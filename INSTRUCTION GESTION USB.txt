@@ -1,0 +1,6 @@
+which systemctl
+//Si le résultat est /usr/bin/systemctl au lieu de /bin/systemctl, adapte la ligne en conséquence. visudo valide la syntaxe avant de sauvegarder — utilise Ctrl+X puis Y pour quitter si c'est nano.//
+sudo visudo
+//Ajouter à la fin du fichier//
+alain ALL=(ALL) NOPASSWD: /bin/systemctl stop ModemManager
+alain ALL=(ALL) NOPASSWD: /bin/systemctl start ModemManager
