@@ -1,0 +1,32 @@
+venv) alain@alain-PC:~/NicLink$ NICLINK_LOG=DEBUG python -m nicsoft.web 2>&1 | ts '[%H:%M:%S]' | grep -E "get_fen lent|fen_lock|IllegalMove|await_move|TOUR"
+[20:20:47] [TOUR] début tour HUMAIN (0.00s depuis dernier tour)
+[20:20:51] [TIMING] await_move: 0.36s — move=d2d4
+[20:20:51] [TOUR] fin tour HUMAIN: 4.17s
+[20:20:51] [TOUR] début tour STOCKFISH (4.17s depuis dernier tour)
+[20:20:55] [TOUR] fin tour STOCKFISH: 3.15s
+[20:20:55] [TOUR] début tour HUMAIN (3.15s depuis dernier tour)
+[20:21:02] [DRIVER] IllegalMove après stabilisation: rnbqkbnr/pppp1ppp/4p
+[20:21:03] [TIMING] await_move: 2.69s — move=e2e4
+[20:21:03] [TOUR] fin tour HUMAIN: 8.41s
+[20:21:03] [TOUR] début tour STOCKFISH (8.41s depuis dernier tour)
+[20:21:07] [TOUR] fin tour STOCKFISH: 4.22s
+[20:21:07] [TOUR] début tour HUMAIN (4.22s depuis dernier tour)
+[20:21:11] [TIMING] await_move: 3.66s — move=f2f3
+[20:21:38] [TOUR] fin tour HUMAIN: 31.23s
+[20:21:38] [TOUR] début tour STOCKFISH (31.23s depuis dernier tour)
+[20:21:42] [TOUR] fin tour STOCKFISH: 4.08s
+[20:21:42] [TOUR] début tour HUMAIN (4.08s depuis dernier tour)
+[20:21:47] [TIMING] await_move: 3.60s — move=g2g3
+[20:21:47] [TOUR] fin tour HUMAIN: 4.67s
+[20:21:47] [TOUR] début tour STOCKFISH (4.67s depuis dernier tour)
+[20:21:50] [TOUR] fin tour STOCKFISH: 3.18s
+[20:21:50] [TOUR] début tour HUMAIN (3.18s depuis dernier tour)
+[20:22:55] [TIMING] await_move: 30.96s — move=g1e2
+[20:22:56] [TOUR] fin tour HUMAIN: 65.71s
+[20:22:56] [TOUR] début tour STOCKFISH (65.71s depuis dernier tour)
+[20:23:00] [TOUR] fin tour STOCKFISH: 3.82s
+[20:23:00] [TOUR] début tour HUMAIN (3.82s depuis dernier tour)
+^C
+(venv) alain@alain-PC:~/NicLink$ 
+
+

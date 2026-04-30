@@ -1,0 +1,51 @@
+COMMANDES NICLINK
+=================
+
+LANCER IMPORTER OUVERTURES
+----------------------------
+python -m nicsoft.exercices.eco_import
+/NicLink/nicsoft/exercices/__main__.py
+outils:
+-------
+python -m nicsoft.exercices.manage
+
+LANCER LE JEU STABLE
+-------------
+cd ~/NicLink && bash update_stable.sh
+SOLUTION 1
+cd ~/NicLink_stable && source ~/NicLink/venv/bin/activate && python -m nicsoft.web
+
+METTRE A JOUR LA VERSION STABLE
+---------------------------------
+cd ~/NicLink && bash update_stable.sh
+ou
+rsync -a --exclude=venv ~/NicLink/ ~/NicLink_stable/
+
+LANCER LE JEU TIME DEBUG
+-------------------------
+NICLINK_LOG=DEBUG python -m nicsoft.web
+
+LANCER LE JEU EN TRAVAIL
+-------------
+cd ~/NicLink
+source venv/bin/activate
+cd ~/NicLink && python -m nicsoft.web
+
+SAUVEGARDES
+-----------
+Backup normal :
+python -m nicsoft.utils.backup_manager
+
+Backup épinglé (jamais supprimé automatiquement) :
+python -m nicsoft.utils.backup_manager --pin --label "description"
+
+Lister les backups :
+python -m nicsoft.utils.backup_manager --list
+
+Simuler sans rien créer :
+python -m nicsoft.utils.backup_manager --dry-run
+
+
+Les backups sont sauvegardés dans : ~/NicLink_backups/
+  - normal/   : rotation automatique (max 5)
+  - pinned/   : jamais supprimés automatiquement

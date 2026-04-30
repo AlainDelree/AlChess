@@ -1,0 +1,7 @@
+add_ouverture.py — ajout manuel interactif (coups UCI à la main)
+eco_import.py — import depuis les TSV Lichess avec popularité livre
+explore_book.py — navigation dans un livre .bin + import depuis le livre
+edit_ouverture.py — modifier une ouverture existante
+download_eco_wiki.py — télécharger eco_hierarchy.json depuis Wikipedia
+
+

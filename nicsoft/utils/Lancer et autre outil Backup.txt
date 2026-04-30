@@ -1,0 +1,10 @@
+Créer un backup normal (rotation automatique) :
+bashpython -m nicsoft.utils.backup_manager
+Créer un backup épinglé (jamais supprimé) :
+bashpython -m nicsoft.utils.backup_manager --pin --label "menus stables avant refacto"
+Épingler un backup existant après coup :
+bashpython -m nicsoft.utils.backup_manager --pin-existing NicLink_backup_2026-03-19_18-00-00.tar.gz
+Désépingler (il redevient éligible à la rotation) :
+bashpython -m nicsoft.utils.backup_manager --unpin NicLink_backup_2026-03-19_18-00-00.PINNED.tar.gz
+Lister tous les backups (épinglés séparés des normaux, avec le label) :
+bashpython -m nicsoft.utils.backup_manager --list

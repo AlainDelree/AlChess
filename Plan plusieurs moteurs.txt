@@ -1,0 +1,31 @@
+1. Couche moteur universelle (engine_manager.py)
+
+Communique avec n'importe quel moteur UCI (Stockfish, Maia, autres)
+Expose une interface commune : demander un coup, évaluer une position, changer de moteur
+Remplace la bibliothèque stockfish spécifique actuelle
+
+2. Contrôle de force par Elo
+
+Remplace les niveaux 1-20 flous par un vrai Elo (1320–3190)
+Dans l'écran paramètres : boutons -50/+50 et saisie directe
+Affiché clairement : "Vous jouez contre Stockfish ~1700 Elo"
+
+3. Barre d'évaluation WDL
+
+Affiche les probabilités Victoire/Nulle/Défaite visuellement (style Chess.com)
+Disponible pendant la partie pédagogique après chaque coup
+Disponible dans l'écran d'analyse de partie
+
+4. Analyse de partie refaite proprement
+
+Utilise l'EngineManager au lieu de Stockfish directement
+Profite du MultiPV : affiche le meilleur coup ET 2 alternatives dans la révision
+
+5. Choix du moteur dans les paramètres
+
+Sélecteur de moteur (Stockfish, Maia, etc.)
+Chemin vers l'exécutable configurable
+Sauvegardé dans config.json
+
+
+Tout est lié par l'EngineManager — c'est la pièce centrale qui débloque tout le reste. On commence par là quand tu es prêt.

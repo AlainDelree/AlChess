@@ -1,0 +1,117 @@
+alain@alain-PC:~$ sudo dmesg -w | grep -i "usb\|error\|reset\|disconnect"
+[    0.231802] ACPI: bus type USB registered
+[    0.231824] usbcore: registered new interface driver usbfs
+[    0.231832] usbcore: registered new interface driver hub
+[    0.231839] usbcore: registered new device driver usb
+[    0.279776] pci 0000:00:1a.0: quirk_usb_early_handoff+0x0/0x190 took 15251 usecs
+[    0.295772] pci 0000:00:1d.0: quirk_usb_early_handoff+0x0/0x190 took 15597 usecs
+[    0.355148] ehci-pci 0000:00:1a.0: new USB bus registered, assigned bus number 1
+[    0.365743] ehci-pci 0000:00:1a.0: USB 2.0 started, EHCI 1.00
+[    0.365817] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 6.17
+[    0.365821] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    0.365823] usb usb1: Product: EHCI Host Controller
+[    0.365824] usb usb1: Manufacturer: Linux 6.17.0-20-generic ehci_hcd
+[    0.365826] usb usb1: SerialNumber: 0000:00:1a.0
+[    0.365990] hub 1-0:1.0: USB hub found
+[    0.366331] ehci-pci 0000:00:1d.0: new USB bus registered, assigned bus number 2
+[    0.376649] ehci-pci 0000:00:1d.0: USB 2.0 started, EHCI 1.00
+[    0.376740] usb usb2: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 6.17
+[    0.376744] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    0.376746] usb usb2: Product: EHCI Host Controller
+[    0.376748] usb usb2: Manufacturer: Linux 6.17.0-20-generic ehci_hcd
+[    0.376750] usb usb2: SerialNumber: 0000:00:1d.0
+[    0.376931] hub 2-0:1.0: USB hub found
+[    0.466618] RAS: Correctable Errors collector initialized.
+[    0.601653] usb 1-1: new high-speed USB device number 2 using ehci-pci
+[    0.618648] usb 2-1: new high-speed USB device number 2 using ehci-pci
+[    0.728969] usb 1-1: New USB device found, idVendor=8087, idProduct=0024, bcdDevice= 0.00
+[    0.728977] usb 1-1: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[    0.736889] hub 1-1:1.0: USB hub found
+[    0.744090] usb 2-1: New USB device found, idVendor=8087, idProduct=0024, bcdDevice= 0.00
+[    0.744097] usb 2-1: New USB device strings: Mfr=0, Product=0, SerialNumber=0
+[    0.751124] hub 2-1:1.0: USB hub found
+[    1.017667] usb 1-1.1: new full-speed USB device number 3 using ehci-pci
+[    1.089667] usb 2-1.2: new high-speed USB device number 3 using ehci-pci
+[    1.105935] usb 1-1.1: New USB device found, idVendor=2d80, idProduct=8003, bcdDevice= 1.00
+[    1.105945] usb 1-1.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[    1.105949] usb 1-1.1: Product: Chessnut Air
+[    1.105952] usb 1-1.1: Manufacturer: Chessnut
+[    1.105954] usb 1-1.1: SerialNumber: Chessnut
+[    1.142841] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT0._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[    1.142861] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT0._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[    1.143130] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT0._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[    1.143148] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT0._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[    1.145072] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT1._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[    1.145090] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT1._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[    1.146079] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT1._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[    1.146096] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT1._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[    1.163611] usb 1-1.2: new low-speed USB device number 4 using ehci-pci
+[    1.202424] usbcore: registered new interface driver usbhid
+[    1.202429] usbhid: USB HID core driver
+[    1.208351] input: Chessnut Chessnut Air Keyboard as /devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.1/1-1.1:1.0/0003:2D80:8003.0001/input/input2
+[    1.236693] usb 2-1.2: New USB device found, idVendor=0bc2, idProduct=ab28, bcdDevice= 1.00
+[    1.236705] usb 2-1.2: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    1.236710] usb 2-1.2: Product: BUP SL
+[    1.236713] usb 2-1.2: Manufacturer: Seagate
+[    1.236716] usb 2-1.2: SerialNumber: NA9S4E21
+[    1.244887] usbcore: registered new interface driver usb-storage
+[    1.247519] usbcore: registered new interface driver uas
+[    1.259197] usb 1-1.2: New USB device found, idVendor=046d, idProduct=c31c, bcdDevice=64.00
+[    1.259206] usb 1-1.2: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    1.259210] usb 1-1.2: Product: USB Keyboard
+[    1.259213] usb 1-1.2: Manufacturer: Logitech
+[    1.259867] hid-generic 0003:2D80:8003.0001: input,hiddev0,hidraw0: USB HID v1.11 Keyboard [Chessnut Chessnut Air] on usb-0000:00:1a.0-1.1/input0
+[    1.264755] input: Logitech USB Keyboard as /devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2/1-1.2:1.0/0003:046D:C31C.0002/input/input4
+[    1.301662] usb 2-1.5: new full-speed USB device number 4 using ehci-pci
+[    1.316824] hid-generic 0003:046D:C31C.0002: input,hidraw1: USB HID v1.10 Keyboard [Logitech USB Keyboard] on usb-0000:00:1a.0-1.2/input0
+[    1.323062] input: Logitech USB Keyboard Consumer Control as /devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2/1-1.2:1.1/0003:046D:C31C.0003/input/input5
+[    1.373785] input: Logitech USB Keyboard System Control as /devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2/1-1.2:1.1/0003:046D:C31C.0003/input/input6
+[    1.373907] hid-generic 0003:046D:C31C.0003: input,hidraw2: USB HID v1.10 Device [Logitech USB Keyboard] on usb-0000:00:1a.0-1.2/input1
+[    1.416103] usb 2-1.5: New USB device found, idVendor=3151, idProduct=3020, bcdDevice= 0.02
+[    1.416116] usb 2-1.5: New USB device strings: Mfr=1, Product=2, SerialNumber=0
+[    1.416120] usb 2-1.5: Product: Wireless Device
+[    1.416131] usb 2-1.5: Manufacturer: YICHIP
+[    1.424987] input: YICHIP Wireless Device as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1.5/2-1.5:1.0/0003:3151:3020.0004/input/input7
+[    1.475952] hid-generic 0003:3151:3020.0004: input,hidraw3: USB HID v2.00 Keyboard [YICHIP Wireless Device] on usb-0000:00:1d.0-1.5/input0
+[    1.490771] input: YICHIP Wireless Device Mouse as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1.5/2-1.5:1.1/0003:3151:3020.0005/input/input8
+[    1.490946] input: YICHIP Wireless Device System Control as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1.5/2-1.5:1.1/0003:3151:3020.0005/input/input9
+[    1.541833] input: YICHIP Wireless Device Consumer Control as /devices/pci0000:00/0000:00:1d.0/usb2/2-1/2-1.5/2-1.5:1.1/0003:3151:3020.0005/input/input10
+[    1.542013] hid-generic 0003:3151:3020.0005: input,hiddev1,hidraw4: USB HID v2.00 Mouse [YICHIP Wireless Device] on usb-0000:00:1d.0-1.5/input1
+[    1.605698] usb 2-1.6: new full-speed USB device number 5 using ehci-pci
+[    1.693481] usb 2-1.6: New USB device found, idVendor=0bda, idProduct=a728, bcdDevice= 2.00
+[    1.693492] usb 2-1.6: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[    1.693495] usb 2-1.6: Product: Bluetooth 5.4 Radio
+[    1.693498] usb 2-1.6: Manufacturer: Realtek
+[    1.693501] usb 2-1.6: SerialNumber: 00E04C239987
+[    6.771649] usbcore: registered new interface driver btusb
+[13040.747317] usb 2-1.6: reset full-speed USB device number 5 using ehci-pci
+[13040.920944] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT0._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[13040.920962] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT0._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[13040.921195] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT0._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[13040.921207] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT0._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[13040.927368] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT1._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[13040.927385] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT1._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[13040.937895] ACPI BIOS Error (bug): Could not resolve symbol [\_SB.PCI0.SAT0.SPT1._GTF.DSSP], AE_NOT_FOUND (20250404/psargs-332)
+[13040.937911] ACPI Error: Aborting method \_SB.PCI0.SAT0.SPT1._GTF due to previous error (AE_NOT_FOUND) (20250404/psparse-529)
+[13046.006314] usb 1-1.1: reset full-speed USB device number 3 using ehci-pci
+[13051.574863] usb 1-1.1: PM: dpm_run_callback(): usb_dev_resume returns -5
+[13051.574880] usb 1-1.1: PM: failed to resume async: error -5
+[13051.577186] usb 1-1.1: USB disconnect, device number 3
+[13051.648334] usb 1-1.1: new full-speed USB device number 5 using ehci-pci
+[13051.738838] usb 1-1.1: New USB device found, idVendor=2d80, idProduct=8003, bcdDevice= 1.00
+[13051.738846] usb 1-1.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[13051.738848] usb 1-1.1: Product: Chessnut Air
+[13051.738850] usb 1-1.1: Manufacturer: Chessnut
+[13051.738852] usb 1-1.1: SerialNumber: Chessnut
+[13051.741720] usbhid 1-1.1:1.0: can't add hid device: -75
+[13051.742344] usbhid 1-1.1:1.0: probe with driver usbhid failed with error -75
+[13226.464804] usb 1-1.1: USB disconnect, device number 5
+[13227.205652] usb 1-1.1: new full-speed USB device number 6 using ehci-pci
+[13227.294302] usb 1-1.1: New USB device found, idVendor=2d80, idProduct=8003, bcdDevice= 1.00
+[13227.294312] usb 1-1.1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+[13227.294317] usb 1-1.1: Product: Chessnut Air
+[13227.294320] usb 1-1.1: Manufacturer: Chessnut
+[13227.294322] usb 1-1.1: SerialNumber: Chessnut
+[13227.297550] input: Chessnut Chessnut Air Keyboard as /devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.1/1-1.1:1.0/0003:2D80:8003.0006/input/input19
+[13227.348112] hid-generic 0003:2D80:8003.0006: input,hiddev0,hidraw0: USB HID v1.11 Keyboard [Chessnut Chessnut Air] on usb-0000:00:1a.0-1.1/input0
+
