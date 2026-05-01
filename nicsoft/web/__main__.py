@@ -190,6 +190,8 @@ def main():
                 set_app_state("menu")
             elif atype == "start":
                 _launch_pedagogique(action)
+            elif atype == "start_humain":
+                _launch_humain(action)
             elif atype == "start_retranscription":
                 _launch_retranscription(action)
             elif atype == "back_menu":
@@ -453,7 +455,7 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
 
 
 def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
-    from nicsoft.play_human.__main__ import GameWeb
+    from nicsoft.play_human.human import GameWeb
     nl_inst = None
     try:
         if virtual:

@@ -48,9 +48,6 @@
     }
 
     /* ── Écrans ── */
-    #screen-exercices {
-      display: none;
-    }
     #screen-menu, #screen-config, #screen-config-humain {
       flex: 1;
       display: none;
@@ -120,43 +117,6 @@
     .menu-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .menu-btn-primary  { background: #e94560; color: white; }
     .menu-btn-secondary { background: #16213e; color: #888; border: 1px solid #0f3460; }
-    .menu-btn-wrap {
-      display: flex; flex-direction: column; align-items: center; gap: 0;
-      width: 300px;
-      position: relative;
-    }
-    .menu-btn-desc {
-      position: absolute;
-      top: 50%; transform: translateY(-50%);
-      width: 220px;
-      background: #0d1b2e; border: 1px solid #0f3460;
-      border-radius: 8px;
-      font-size: 0.78rem; color: #8899aa; line-height: 1.5;
-      padding: 10px 14px; box-sizing: border-box;
-      pointer-events: none;
-    }
-    .menu-btn-wrap:nth-child(odd) .menu-btn-desc {
-      right: calc(100% + 18px);
-    }
-    .menu-btn-wrap:nth-child(odd) .menu-btn-desc::after {
-      content: '';
-      position: absolute;
-      top: 50%; right: -8px; transform: translateY(-50%);
-      border: 8px solid transparent;
-      border-right: none;
-      border-left-color: #0f3460;
-    }
-    .menu-btn-wrap:nth-child(even) .menu-btn-desc {
-      left: calc(100% + 18px);
-    }
-    .menu-btn-wrap:nth-child(even) .menu-btn-desc::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: -8px; transform: translateY(-50%);
-      border: 8px solid transparent;
-      border-left: none;
-      border-right-color: #0f3460;
-    }
 
     /* ── Écran config ── */
     .config-title {
@@ -284,18 +244,6 @@
     .square.feedback-imprecision { background: #ff9800 !important; }
     .square.feedback-erreur     { background: #f44336 !important; }
     .square.feedback-blunder    { background: #9c27b0 !important; }
-    .ex-hint                    { background: #ffd740 !important; }
-    #ex-spinner {
-      display:none; flex-direction:column; align-items:center; justify-content:center;
-      aspect-ratio:1; width:min(calc(100vh - 200px), calc(100vw - 640px));
-    }
-    #ex-spinner .spinner-ring {
-      width:60px; height:60px; border:5px solid #0f3460;
-      border-top-color:#e94560; border-radius:50%;
-      animation: spin 0.9s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .ex-hint { background: #ffd740 !important; }
 
     /* ── Coordonnées ── */
     #board-wrapper {
@@ -305,34 +253,6 @@
       border-radius: 4px;
       overflow: hidden;
     }
-    .jfilt-btn {
-      background: #0f3460;
-      border: 1px solid #333;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      padding: 2px 7px;
-      cursor: pointer;
-      opacity: 0.5;
-      transition: opacity 0.15s;
-    }
-    .jfilt-btn.active {
-      opacity: 1;
-      border-color: currentColor;
-    }
-    .jlog-entry {
-      display: flex;
-      gap: 5px;
-      padding: 2px 0;
-      border-bottom: 1px solid #1a2a3a;
-    }
-    .jlog-time {
-      color: #445;
-      flex-shrink: 0;
-      font-size: 0.68rem;
-      padding-top: 1px;
-    }
-    .jlog-msg { flex: 1; word-break: break-word; }
-
     .coord-rank {
       display: flex;
       flex-direction: column;
@@ -510,59 +430,16 @@
     .toast.toast-warning { border-color: #ff9800; color: #ff9800; }
     .toast.toast-info    { border-color: #e94560; color: #e0e0e0; }
 
-    /* ── Responsive par classe (détection JS au chargement) ── */
-
-    /* res-medium : portable standard 1100-1399px */
-    .res-medium .menu-btn,
-    .res-medium .menu-btn-wrap         { width: 260px; }
-    .res-medium .menu-btn              { font-size: 0.9rem; }
-    .res-medium .menu-btn-desc         { width: 190px; font-size: 0.74rem; }
-
-    .res-medium .screen-board-layout,
-    .res-medium #screen-game           { grid-template-columns: 180px minmax(0,1fr) 340px; gap: 14px; padding: 12px 16px; }
-    .res-medium #left-panel            { width: 180px; }
-    .res-medium #panel                 { width: 340px; }
-    .res-medium #board,
-    .res-medium #rv-board,
-    .res-medium #board-pos-init        { width: min(calc(100vh - 260px), calc(100vw - 580px)); height: min(calc(100vh - 260px), calc(100vw - 580px)); }
-    .res-medium .coord-rank            { height: min(calc(100vh - 260px), calc(100vw - 580px)); }
-    .res-medium .coord-file            { width: min(calc(100vh - 260px), calc(100vw - 580px)); }
-    .res-medium #board-align           { width: calc(min(calc(100vh - 260px), calc(100vw - 580px)) + 20px); }
-
-    /* res-small : petit portable < 1100px */
-    .res-small .menu-btn,
-    .res-small .menu-btn-wrap          { width: 240px; }
-    .res-small .menu-btn               { font-size: 0.85rem; }
-    .res-small .menu-btn-desc {
-      position: static; transform: none;
-      width: 240px; margin-top: 4px;
-      border-radius: 0 0 8px 8px; font-size: 0.72rem;
+    /* ── Responsive ── */
+    @media (max-width: 1000px) {
+      #screen-game {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+      #left-panel { width: 100%; }
+      #panel { width: 100%; }
     }
-    .res-small .menu-btn-wrap:nth-child(odd) .menu-btn-desc,
-    .res-small .menu-btn-wrap:nth-child(even) .menu-btn-desc { left: auto; right: auto; }
-    .res-small .menu-btn-wrap:nth-child(odd) .menu-btn-desc::after,
-    .res-small .menu-btn-wrap:nth-child(even) .menu-btn-desc::after { display: none; }
-    .res-small .menu-btn-wrap          { margin-bottom: 4px; }
-
-    .res-small .screen-board-layout,
-    .res-small #screen-game            { grid-template-columns: 1fr; padding: 10px; }
-    .res-small #left-panel             { width: 100%; }
-    .res-small #panel                  { width: 100%; }
-    .res-small #board,
-    .res-small #rv-board,
-    .res-small #board-pos-init         { width: min(calc(100vw - 24px), 460px); height: min(calc(100vw - 24px), 460px); }
-    .res-small .coord-rank             { height: min(calc(100vw - 24px), 460px); }
-    .res-small .coord-file             { width: min(calc(100vw - 24px), 460px); }
-    .res-small #board-align            { width: calc(min(calc(100vw - 24px), 460px) + 20px); }
   </style>
-  <script>
-    // Détection résolution au chargement — applique res-large/res-medium/res-small sur <html>
-    (function() {
-      var w = window.screen.width;
-      var cls = w >= 1400 ? 'res-large' : w >= 1100 ? 'res-medium' : 'res-small';
-      document.documentElement.className = cls;
-    })();
-  </script>
 </head>
 <body>
 
@@ -570,39 +447,16 @@
   <h1>♟ NicLink</h1>
   <div id="status-dot"></div>
   <span id="status-text">Connexion...</span>
-  <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:auto; font-size:0.75rem; color:#556; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
 </header>
 
 <!-- ── Écran menu ── -->
 <div id="screen-menu">
   <div class="menu-title">♟ NicLink</div>
   <div class="menu-subtitle">Vérification de l'échiquier…</div>
-
-  <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-primary" data-needs-board disabled onclick="sendAction({type:'mode', value:'pedagogique'})">🎓 Mode Pédagogique</button>
-    <div class="menu-btn-desc">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
-  </div>
-
-  <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'humain'})">⚔️ Humain vs Humain</button>
-    <div class="menu-btn-desc">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
-  </div>
-
-  <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'analyse'})">🔍 Analyse de partie</button>
-    <div class="menu-btn-desc">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
-  </div>
-
-  <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'analyse_libre'})">🔬 Laboratoire</button>
-    <div class="menu-btn-desc">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
-  </div>
-
-  <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'exercices'})">📚 Exercices</button>
-    <div class="menu-btn-desc">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
-  </div>
-
+  <button class="menu-btn menu-btn-primary"   data-needs-board disabled onclick="sendAction({type:'mode', value:'pedagogique'})">🎓 Mode Pédagogique</button>
+  <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'humain'})">⚔️ Humain vs Humain</button>
+  <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'analyse'})">🔍 Analyse de partie</button>
+  <button class="menu-btn menu-btn-secondary" disabled>🔬 Analyse libre</button>
   <button class="menu-btn menu-btn-secondary" id="btn-reconnect" onclick="sendAction({type:'reconnect_board'})" style="font-size:0.85rem; opacity:0.5; cursor:default;" disabled>✓ Échiquier connecté</button>
   <button class="menu-btn" onclick="ouvrirModal('quit', 'Quitter NicLink ?', 'Quitter', 'btn-warning')" style="background:#1e1e3a; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
 </div>
@@ -1021,319 +875,6 @@
     </div>
   </div>
 </div>
-<!-- ── Écran Exercices — sélection ── -->
-<div id="screen-exercices" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:16px; overflow-y:auto;">
-
-  <div style="font-size:1.5rem; color:#e94560; font-weight:bold;">📚 Exercices — Ouvertures</div>
-  <div style="font-size:0.85rem; color:#778; margin-top:-10px;">Choisissez une ouverture et entraînez-vous avec le livre de GM</div>
-
-  <!-- Paramètres compacts -->
-  <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; justify-content:center; background:#16213e; border:1px solid #0f3460; border-radius:8px; padding:12px 20px;">
-    <div style="display:flex; align-items:center; gap:10px;">
-      <span style="color:#aaa; font-size:0.82rem;">Variété</span>
-      <input type="range" id="ex-variete" min="1" max="8" value="3" style="width:90px; accent-color:#e94560;" oninput="exUpdateVariete()">
-      <span id="ex-variete-label" style="color:#e0e0e0; font-weight:bold; width:16px;">3</span>
-    </div>
-    <button class="btn" style="background:#1e1e3a; color:#666; margin-top:0;" onclick="sendAction({type:'back'})">← Menu</button>
-  </div>
-
-  <!-- Onglets Blancs / Noirs -->
-  <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid #0f3460;">
-    <button id="ex-tab-white" onclick="exSelectTab('white')"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#e8c840; color:#1a1a2e; transition:opacity 0.15s;">
-      ♔ Blancs suggérés
-    </button>
-    <button id="ex-tab-black" onclick="exSelectTab('black')"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#16213e; color:#778; transition:opacity 0.15s;">
-      ♚ Noirs suggérés
-    </button>
-  </div>
-
-  <!-- Liste des ouvertures groupées -->
-  <div id="ex-ouvertures-list" style="width:100%; max-width:960px;"></div>
-
-</div>
-
-<!-- ── Écran Exercice en cours ── -->
-<div id="screen-exercice-running" style="display:none; flex:1; grid-template-columns:220px minmax(0,1fr) 380px; gap:20px; padding:16px 20px; width:100%; max-width:100vw; align-items:start; overflow:hidden;">
-
-  <!-- Colonne gauche : info -->
-  <div style="display:flex; flex-direction:column; gap:8px;">
-    <div class="card" style="padding:12px 14px;">
-      <h2 id="ex-run-nom" style="color:#e94560; font-size:0.85rem; margin-bottom:8px;"></h2>
-      <div id="ex-run-status" style="font-size:0.9rem; font-weight:600; color:#e0e0e0; margin-bottom:8px;">—</div>
-      <div id="ex-run-info" style="font-size:0.8rem; color:#aaa; line-height:1.6;"></div>
-      <div id="ex-run-instructions" style="margin-top:10px; font-size:0.78rem; color:#4caf50; line-height:1.5; padding:8px; background:#0a2a1a; border-radius:4px; border-left:3px solid #4caf50;"></div>
-    </div>
-    <div class="card" style="padding:12px 14px;">
-      <h2>COUPS DU LIVRE</h2>
-      <div id="ex-run-book-moves" style="font-size:0.82rem; color:#4caf50;"></div>
-    </div>
-  </div>
-
-  <!-- Colonne centre : échiquier -->
-  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; max-height:calc(100vh - 60px); overflow:hidden;">
-    <!-- Spinner chargement -->
-    <div id="ex-spinner">
-      <div class="spinner-ring"></div>
-      <div style="color:#778; font-size:0.85rem; margin-top:14px;">Connexion à l'échiquier…</div>
-    </div>
-    <div id="ex-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #0f3460; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 640px));">
-      <div class="player-row" style="padding:4px 6px; background:#0f3460;"><span id="ex-player-top" style="color:#aaa; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
-      <div style="display:flex; align-items:stretch;">
-        <div class="coord-rank" id="ex-coord-rank"></div>
-        <div id="ex-board" style="display:grid; grid-template-columns:repeat(8,1fr); flex:1; min-width:0; aspect-ratio:1;"></div>
-      </div>
-      <div class="coord-file" id="ex-coord-file" style="width:100%;"></div>
-      <div class="player-row" style="padding:4px 6px; background:#0f3460;"><span id="ex-player-bottom" style="color:#ddd; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
-    </div>
-    <!-- Feedback -->
-    <div id="ex-feedback" style="margin-top:8px; padding:8px 16px; border-radius:6px; font-size:0.9rem; display:none; text-align:center; font-weight:600;"></div>
-  </div>
-
-  <!-- Colonne droite : contrôles -->
-  <div style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:calc(100vh - 60px);">
-
-    <div class="card" style="padding:14px 16px;">
-      <h2>PROGRESSION</h2>
-      <div id="ex-run-moves-count" style="font-size:1.2rem; font-weight:bold; color:#e0e0e0; text-align:center;">Coup 0</div>
-      <div id="ex-run-variete" style="font-size:0.75rem; color:#556; text-align:center; margin-top:4px;"></div>
-    </div>
-
-    <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
-      <h2>ACTIONS</h2>
-      <button id="ex-btn-sync" class="btn" style="margin-bottom:0; background:#0f3460; border:1px solid #4caf50; color:#4caf50;" onclick="sendAction({type:'exercice_sync'})">🔄 Synchroniser plateau → Virtuel</button>
-      <button class="btn btn-reprendre" style="margin-bottom:0;" onclick="sendAction({type:'exercice_retry'})">↺ Recommencer l'exercice</button>
-      <button class="btn btn-continuer" style="margin-bottom:0;" onclick="sendAction({type:'exercice_back'})">← Choisir autre ouverture</button>
-      <button class="btn" style="background:#1e1e3a; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
-    </div>
-
-  </div>
-</div>
-
-<!-- ── Écran Labo ── -->
-<div id="screen-labo" style="display:none; flex:1; grid-template-columns:220px minmax(0,1fr) 450px; gap:20px; padding:16px 20px; width:100%; max-width:100vw; align-items:start; overflow:hidden;">
-
-  <!-- Colonne gauche : journal + pgn -->
-  <div style="display:flex; flex-direction:column; gap:6px; height:calc(100vh - 60px);">
-    <div class="card" style="padding:10px 12px; display:flex; flex-direction:column; flex:1; min-height:0;">
-
-      <!-- Onglets Journal / PGN -->
-      <div style="display:flex; gap:0; margin-bottom:8px; flex-shrink:0; border-bottom:1px solid #1a2a3a;">
-        <button id="labo-tab-journal" onclick="laboSwitchTab('journal')"
-          style="background:none; border:none; border-bottom:2px solid #e94560; color:#e0e0e0;
-                 font-size:0.72rem; font-weight:600; padding:4px 10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">
-          Journal
-        </button>
-        <button id="labo-tab-pgn" onclick="laboSwitchTab('pgn')"
-          style="background:none; border:none; border-bottom:2px solid transparent; color:#556;
-                 font-size:0.72rem; font-weight:600; padding:4px 10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; display:none;">
-          PGN
-        </button>
-      </div>
-
-      <!-- Panneau Journal -->
-      <div id="labo-tab-panel-journal" style="display:flex; flex-direction:column; flex:1; min-height:0;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-shrink:0;">
-          <div style="display:flex; flex-wrap:wrap; gap:4px;">
-            <button id="jfilt-coups"   onclick="laboJournalToggleFilt('coups')"   class="jfilt-btn active" style="color:#e0e0e0;">Coups</button>
-            <button id="jfilt-alertes" onclick="laboJournalToggleFilt('alertes')" class="jfilt-btn active" style="color:#ff9800;">Alertes</button>
-            <button id="jfilt-analyse" onclick="laboJournalToggleFilt('analyse')" class="jfilt-btn active" style="color:#4caf50;">Analyse</button>
-            <button id="jfilt-config"  onclick="laboJournalToggleFilt('config')"  class="jfilt-btn active" style="color:#aac4e0;">Config</button>
-          </div>
-          <button onclick="laboJournalVider()" style="background:none; border:1px solid #333; border-radius:4px; color:#556; font-size:0.7rem; padding:2px 7px; cursor:pointer; flex-shrink:0;">Vider</button>
-        </div>
-        <div id="labo-journal" style="flex:1; overflow-y:auto; min-height:0; font-size:0.75rem; line-height:1.5;"></div>
-      </div>
-
-      <!-- Panneau PGN -->
-      <div id="labo-tab-panel-pgn" style="display:none; flex-direction:column; flex:1; min-height:0;">
-        <div id="labo-pgn-info-left" style="font-size:0.72rem; color:#556; margin-bottom:6px; flex-shrink:0;"></div>
-        <div id="labo-pgn-moves" style="flex:1; overflow-y:auto; min-height:0; font-size:0.8rem;"></div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Colonne centre : échiquier -->
-  <div style="display:flex; flex-direction:column; align-items:center; min-width:0; max-height:calc(100vh - 60px); overflow:hidden;">
-    <!-- Toggles camp + tour -->
-    <div style="display:flex; align-items:center; gap:16px; margin-bottom:6px; justify-content:center;">
-      <!-- Je joue -->
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:0.78rem; color:#556;">Je joue</span>
-        <div style="display:flex; border:1px solid #333; border-radius:6px; overflow:hidden;">
-          <button id="labo-camp-white" onclick="laboSetCamp('white')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#e94560; color:#fff; border:none; transition:all 0.15s;">♔ Blancs</button>
-          <button id="labo-camp-black" onclick="laboSetCamp('black')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#16213e; color:#555; border:none; transition:all 0.15s;">♚ Noirs</button>
-        </div>
-      </div>
-      <!-- Tour actuel -->
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:0.78rem; color:#556;">Tour</span>
-        <div style="display:flex; border:1px solid #333; border-radius:6px; overflow:hidden;">
-          <button id="labo-turn-white" onclick="laboSetTurn('white')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#e94560; color:#fff; border:none; transition:all 0.15s;">♔ Blancs</button>
-          <button id="labo-turn-black" onclick="laboSetTurn('black')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#16213e; color:#555; border:none; transition:all 0.15s;">♚ Noirs</button>
-        </div>
-      </div>
-    </div>
-    <div id="labo-board-align" style="display:flex; flex-direction:column; width:100%;">
-      <div class="player-row">
-        <span id="labo-player-top" style="color:#777; font-weight:bold;">Noirs</span>
-      </div>
-      <div style="display:flex; align-items:stretch; gap:6px; width:100%;">
-        <!-- Barre d'évaluation verticale -->
-        <div id="labo-eval-bar-wrap" style="display:flex; flex-direction:column; align-items:center; width:18px; flex-shrink:0;">
-          <div id="labo-eval-score" style="font-size:0.62rem; color:#aaa; margin-bottom:2px; white-space:nowrap;">0.0</div>
-          <div style="flex:1; width:14px; border-radius:4px; overflow:hidden; border:1px solid #333; background:#111; display:flex; flex-direction:column;">
-            <div id="labo-eval-black" style="background:#222; width:100%; flex:1; transition:flex 0.4s ease;"></div>
-            <div id="labo-eval-white" style="background:#e0e0e0; width:100%; flex:1; transition:flex 0.4s ease;"></div>
-          </div>
-        </div>
-        <!-- Échiquier -->
-        <div id="labo-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #0f3460; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 720px));">
-          <div style="display:flex; min-height:0;">
-            <div class="coord-rank" id="labo-coord-rank" style="height:auto; align-self:stretch;"></div>
-            <div id="labo-board" style="display:grid; grid-template-columns:repeat(8,1fr); flex:1; min-width:0; aspect-ratio:1;"></div>
-          </div>
-          <div class="coord-file" id="labo-coord-file" style="width:100%;"></div>
-        </div>
-      </div>
-      <div class="player-row">
-        <span id="labo-player-bottom" style="color:#ddd; font-weight:bold;">Blancs</span>
-      </div>
-    </div>
-    <div id="labo-feedback" style="margin-top:8px; padding:6px 14px; border-radius:6px; font-size:0.88rem; display:none; text-align:center;"></div>
-  </div>
-
-  <!-- Colonne droite : accordéon -->
-  <div style="display:flex; flex-direction:column; gap:6px; overflow-y:auto; max-height:calc(100vh - 60px);">
-
-    <!-- ── Position + Tour (toujours visible) ── -->
-    <div class="card" style="padding:12px 14px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-        <div id="labo-turn-info" style="font-size:0.95rem; font-weight:600; color:#e0e0e0;">—</div>
-  
-      </div>
-
-      <div id="labo-last-move" style="margin-top:6px; font-size:1rem; font-weight:bold; color:#aac4e0; min-height:1.2rem; text-align:center;"></div>
-      <div id="labo-feedback" style="margin-top:4px; padding:4px 8px; border-radius:4px; font-size:0.82rem; display:none;"></div>
-    </div>
-
-    <!-- Source physique — toujours visible -->
-    <button class="btn btn-continuer" id="labo-btn-source-physique" style="margin-bottom:0;"
-      onclick="laboSyncPhysique()">🔄 Source physique → Virtuel</button>
-
-    <!-- ── Moteur (ouvert par défaut) ── -->
-    <div class="card" style="padding:0;">
-      <div onclick="laboToggleSection('labo-sec-moteur')"
-        style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
-        <h2 style="margin-bottom:0;">MOTEUR</h2>
-        <span id="labo-sec-moteur-arrow" style="color:#556; font-size:0.8rem;">▲</span>
-      </div>
-      <div id="labo-sec-moteur" style="padding:0 14px 12px; display:flex; flex-direction:column; gap:7px;">
-        <div id="labo-engine-label" style="font-size:0.78rem; color:#556; margin-bottom:2px;"></div>
-        <button class="btn btn-best" id="labo-btn-best" style="margin-bottom:0;" onclick="sendAction({type:'best_move'})">💡 Meilleur coup</button>
-        <button class="btn" id="labo-btn-auto" style="margin-bottom:0; background:#0f3460; color:#e0e0e0; border:1px solid #333;" onclick="laboToggleAuto()">⏵ Auto OFF</button>
-
-      </div>
-    </div>
-
-    <!-- ── Config moteur (fermé par défaut) ── -->
-    <div class="card" style="padding:0;">
-      <div onclick="laboToggleSection('labo-sec-cfg')"
-        style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
-        <h2 style="margin-bottom:0;">CONFIG MOTEUR</h2>
-        <span id="labo-sec-cfg-arrow" style="color:#556; font-size:0.8rem;">▼</span>
-      </div>
-      <div id="labo-sec-cfg" style="padding:0 14px 12px; display:none; flex-direction:column; gap:8px;">
-        <div style="display:flex; gap:6px;">
-          <button class="color-btn selected" id="labo-eng-sf"     onclick="laboSelectEngine('stockfish')">⚡ Stockfish</button>
-          <button class="color-btn"          id="labo-eng-maia"   onclick="laboSelectEngine('maia')">🧠 Maia</button>
-          <button class="color-btn"          id="labo-eng-rodent" onclick="laboSelectEngine('rodent')">🐭 Rodent</button>
-        </div>
-        <div id="labo-cfg-sf">
-          <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjElo(-50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
-            <input id="labo-elo" class="cfg-input" type="number" min="1320" max="3190" value="1500"
-              style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampElo()">
-            <button onclick="laboAdjElo(50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjElo(200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
-          </div>
-          <div id="labo-elo-label" style="text-align:center;font-size:0.72rem;color:#778;">~1500 Elo</div>
-        </div>
-        <div id="labo-cfg-maia" style="display:none;">
-          <select id="labo-maia-elo" class="cfg-input" style="margin-bottom:0;" onchange="laboPushConfig()">
-            <option value="1100">Maia 1100</option><option value="1200">Maia 1200</option>
-            <option value="1300">Maia 1300</option><option value="1400">Maia 1400</option>
-            <option value="1500" selected>Maia 1500</option><option value="1600">Maia 1600</option>
-            <option value="1700">Maia 1700</option><option value="1800">Maia 1800</option>
-            <option value="1900">Maia 1900</option>
-          </select>
-        </div>
-        <div id="labo-cfg-rodent" style="display:none;">
-          <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjRodentElo(-200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjRodentElo(-50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
-            <input id="labo-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="800"
-              style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampRodentElo()">
-            <button onclick="laboAdjRodentElo(50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjRodentElo(200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
-          </div>
-          <div id="labo-rodent-elo-label" style="text-align:center;font-size:0.72rem;color:#778;">800 Elo</div>
-        </div>
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <label class="cfg-label" style="margin-bottom:0; font-size:0.8rem;">Analyse des coups</label>
-          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="checkbox" id="labo-analyse-chk" checked style="width:14px; height:14px; cursor:pointer; accent-color:#e94560;"
-              onchange="sendAction({type:'set_analyse', value:this.checked})">
-            <span style="font-size:0.8rem; color:#aaa;">Activée</span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Position virtuelle (fermé par défaut) ── -->
-    <div class="card" style="padding:0;">
-      <div onclick="laboToggleSection('labo-sec-pos')"
-        style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
-        <h2 style="margin-bottom:0;">POSITION VIRTUELLE</h2>
-        <span id="labo-sec-pos-arrow" style="color:#556; font-size:0.8rem;">▼</span>
-      </div>
-      <div id="labo-sec-pos" style="padding:0 14px 12px; display:none; flex-direction:column; gap:7px;">
-        <input type="file" id="labo-pgn-input" accept=".pgn" style="display:none" onchange="laboLoadPgn(event)">
-        <button class="btn btn-best" style="margin-bottom:0;" onclick="document.getElementById('labo-pgn-input').click()">📂 Importer PGN</button>
-        <div id="labo-pgn-nav" style="display:none; flex-direction:column; gap:5px;">
-          <div id="labo-pgn-info" style="font-size:0.75rem; color:#556; text-align:center;"></div>
-          <div id="labo-pgn-san" style="text-align:center; font-size:1.1rem; font-weight:bold; color:#e0e0e0; min-height:1.4rem;"></div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-continuer" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnPrev()">← Précédent</button>
-            <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnNext()">Suivant →</button>
-          </div>
-        </div>
-        <button class="btn" id="labo-btn-copy" style="margin-bottom:0; background:#1a3a5a; color:#aac4e0; border:1px solid #2a5a8a; display:none;"
-          onclick="laboCopyToBoard()">📋 Source virtuelle → Plateau</button>
-
-      </div>
-    </div>
-
-    <!-- Retour -->
-    <div style="padding:4px 0 8px;">
-      <button class="btn" style="background:#1e1e3a; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
-    </div>
-
-  </div>
-</div>
-
-
 <!-- ── Écran connexion échiquier ── -->
 <div id="screen-connecting" style="display:none; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
   <div style="font-size:2rem;">♟</div>
