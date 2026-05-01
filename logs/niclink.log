@@ -137,3 +137,12 @@ ImportError: cannot import name 'get_ouvertures' from 'nicsoft.exercices.__main_
 2026-04-30 14:27:31 [WARNING] werkzeug — Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
 2026-04-30 21:55:07 [WARNING] werkzeug — Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
 2026-04-30 23:06:26 [WARNING] werkzeug — Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+2026-05-01 23:26:55 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> [1m[31m       _
+2026-05-01 23:26:55 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> |   _ | |
+2026-05-01 23:26:55 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> |_ |_ |_|[0m v0.33.0-dev+git.5d8b306 built Apr  6 2026
+2026-05-01 23:26:55 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> Search algorithm: classic
+2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> Loading weights file from: /home/alain/NicLink/engines/maia/maia-1500.pb.gz
+2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> BLAS vendor: OpenBLAS.
+2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> OpenBLAS [OpenBLAS 0.3.26 NO_LAPACKE DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64].
+2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> OpenBLAS found 8 Haswell core(s).
+2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> BLAS max batch size is 256.
