@@ -1,0 +1,12 @@
+[Event "Anonyme vs Stockfish 16 (~1500elo)"]
+[Site "Chessnut Air"]
+[Date "2026.05.01 23:48:05"]
+[Round "?"]
+[White "Anonyme"]
+[Black "Stockfish 16"]
+[Result "0-1"]
+[EngineElo "1500"]
+
+1. e4 { ✓ 8cp gap=5.1s } 1... e5 { gap=1.07s } 2. f4 { ! 114cp gap=7.03s } 2...
+Nc6 { gap=1.03s } 0-1
+

@@ -1,4 +1,5 @@
-// ── Constantes ────────────────────────────────────────────────────────────
+// ── VARIABLES GLOBALES ────────────────────────────────────
+
 let _boardFlipped = false;  // true = noirs en bas
 
 const BASE = "/static/pieces/";
@@ -17,7 +18,7 @@ const PIECES = {
   'p': `<img src="${BASE}bP.svg">`,
 };
 
-// ── État global ────────────────────────────────────────────────────────────
+
 
 let currentFen       = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 let lastMove         = null;
@@ -31,7 +32,8 @@ let _selectedColor   = "white";
 let _boardOk         = false;
 let _virtualMode     = false;
 
-// ── Mode virtuel ──────────────────────────────────────────────────────────
+
+// ── MODE VIRTUEL ──────────────────────────────────────────
 
 function toggleVirtualMode(enabled) {
   _virtualMode = enabled;
@@ -61,7 +63,8 @@ function toggleVirtualMode(enabled) {
   }
 }
 
-// ── Échiquier principal ────────────────────────────────────────────────────
+
+// ── ÉCHIQUIER — construction et rendu ─────────────────────
 
 function buildBoard() {
   const board = document.getElementById("board");
@@ -200,7 +203,8 @@ function buildBoardReview() {
   }
 }
 
-// ── Contrôle Elo ──────────────────────────────────────────────────────────
+
+// ── CONFIG PÉDAGOGIQUE — ELO, moteur, couleur, démarrage ──
 
 const ELO_LABELS = [
   [1320, "Débutant"],
@@ -348,7 +352,8 @@ function updateWdlBar(wdl) {
   document.getElementById("wdl-loss-pct").textContent = wdl.loss > 5 ? wdl.loss + "%" : "";
 }
 
-// ── SocketIO ──────────────────────────────────────────────────────────────
+
+// ── SOCKETIO — connexion et état général ──────────────────
 
 const socket = io();
 
@@ -530,6 +535,8 @@ socket.on("app_state", (data) => {
   }
 });
 
+// ── SOCKETIO — événements jeu en cours (coups, tours, feedback) ─
+
 socket.on("undo_move", (data) => {
   // Juste mettre à jour la position courante — reviewFens sera reconstruit au game_over
   currentFen = data.fen || currentFen;
@@ -662,6 +669,8 @@ socket.on("popup", (data) => {
   };
 });
 
+// ── SOCKETIO — fin de partie et navigation review ─────────
+
 socket.on("game_over", (data) => {
   if (data.skip) return;  // back_menu — on ignore
   hideFeedback();
@@ -673,6 +682,8 @@ socket.on("game_over", (data) => {
   const fenToRender = reviewFens[reviewIdx] || currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
   renderBoard(fenToRender, null, null, null, null, null, null);
 });
+
+// ── SOCKETIO — initialisation des parties (pédagogique, HH) ─
 
 socket.on("init", (data) => {
   _gameMode = "pedagogique";
@@ -792,6 +803,8 @@ socket.on("position_initiale", (data) => {
   if (data.fen) renderBoardPosInit(data.fen);
 });
 
+// ── UI — utilitaires (toast, boutons, historique, PGN) ────
+
 function afficherToast(message, type) {
   const toast = document.getElementById("toast");
   if (!toast) return;
@@ -886,7 +899,8 @@ function renderBoardPosInit(fen) {
     }
   }
 }
-// ── Feedback ──────────────────────────────────────────────────────────────
+// ── FEEDBACK — qualité des coups et séquence punitive ─────
+
 
 const LABELS = {
   bon:         "✓ Bon coup",
@@ -968,7 +982,7 @@ function hideFeedback() {
   if (cardActions) cardActions.style.display = "flex";
 }
 
-// ── Séquence punitive ─────────────────────────────────────────────────────
+
 
 function jouerSequencePunitive() {
   if (!_punishmentLine || _punishmentLine.length === 0 || !_fenAvantCoup) return;
@@ -1359,7 +1373,7 @@ function _setAutoPlayIcon(playing) {
   }
 }
 
-// ── Config Humain vs Humain ──────────────────────────────────────────────
+// ── CONFIG HUMAIN VS HUMAIN ───────────────────────────────
 
 let _hhColor  = "white";
 let _gameMode = "pedagogique";  // "pedagogique" ou "humain"
