@@ -298,7 +298,7 @@ def _launch_pedagogique(config):
 
 def _launch_retranscription(config):
     """Lance le mode retranscription — délègue au module nicsoft.retranscription."""
-    from nicsoft.retranscription.__main__ import run_retranscription
+    from nicsoft.retranscription.retranscription import run_retranscription
     from nicsoft.web.server import get_action as _get_action
     import queue as _queue
 
@@ -360,7 +360,7 @@ def _launch_humain(config):
 def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, bip_active,
                      engine_elo, engine_path, engine_type="stockfish", maia_elo=1500,
                      rodent_elo=800, rodent_simple=False, _error=None, virtual=False):
-    from nicsoft.play_pedagogique.__main__ import Game, load_config
+    from nicsoft.play_pedagogique.pedagogique import Game, load_config
     from nicsoft.web.server import get_action
 
     config = load_config()
@@ -555,7 +555,7 @@ def _wait_initial_position_web(nl_inst, timeout: float = 300.0):
 
 def _launch_exercices():
     """Affiche l'écran de sélection des exercices — initialise NicLink si besoin."""
-    from nicsoft.exercices.__main__ import get_ouvertures, get_mes_lignes
+    from nicsoft.exercices.exercices import get_ouvertures, get_mes_lignes
     web_server._app_state = "exercices"
     set_app_state("exercices", {
         "ouvertures":  get_ouvertures(),
@@ -577,7 +577,7 @@ def _run_exercice(config: dict) -> None:
         return
     _exercice_running = True
 
-    from nicsoft.exercices.__main__ import ExerciceSession, OUVERTURES, get_mes_lignes
+    from nicsoft.exercices.exercices import ExerciceSession, OUVERTURES, get_mes_lignes
     import logging as _log
 
     ouverture_id = config.get("ouverture_id", "")
@@ -669,7 +669,7 @@ def _run_exercice(config: dict) -> None:
             try: nl_inst.turn_off_all_leds()
             except Exception: pass
         if web_server._app_state not in ("menu", "exercices"):
-            from nicsoft.exercices.__main__ import get_ouvertures, get_mes_lignes
+            from nicsoft.exercices.exercices import get_ouvertures, get_mes_lignes
             web_server._app_state = "exercices"
             set_app_state("exercices", {
                 "ouvertures": get_ouvertures(),
@@ -684,7 +684,7 @@ def _run_drill(config: dict) -> None:
         return
     _exercice_running = True
 
-    from nicsoft.exercices.__main__ import DrillSession, get_mes_lignes
+    from nicsoft.exercices.exercices import DrillSession, get_mes_lignes
     import logging as _log
 
     ligne_ids   = config.get("ligne_ids", [])
@@ -724,7 +724,7 @@ def _run_drill(config: dict) -> None:
         set_app_state("exercice_running")
 
         # Construire l'ouverture synthétique pour exercice_init
-        from nicsoft.exercices.__main__ import common_init_moves
+        from nicsoft.exercices.exercices import common_init_moves
         init = common_init_moves(lignes)
         camp = lignes[0].get("camp_suggere", human_color)
         ouverture_synth = {
@@ -772,7 +772,7 @@ def _run_drill(config: dict) -> None:
             try: nl_inst.turn_off_all_leds()
             except Exception: pass
         if web_server._app_state not in ("menu", "exercices"):
-            from nicsoft.exercices.__main__ import get_ouvertures, get_mes_lignes
+            from nicsoft.exercices.exercices import get_ouvertures, get_mes_lignes
             web_server._app_state = "exercices"
             set_app_state("exercices", {
                 "ouvertures": get_ouvertures(),
@@ -834,7 +834,7 @@ def _poll_board_fen_labo():
 
 def _make_labo_session(nl_inst, config: dict):
     """Crée une LaboSession depuis la config courante."""
-    from nicsoft.labo.__main__ import LaboSession
+    from nicsoft.labo.labo import LaboSession
     from nicsoft.game.engine_manager import find_stockfish
     engine_path = ""
     try:
@@ -1163,7 +1163,7 @@ def _launch_analyse_libre(config):
 def _run_analyse_libre(player_name, playing_white, start_fen, pause, analyse_active, bip_active,
                        engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple, _error=None):
     from nicsoft.niclink import NicLinkManager
-    from nicsoft.labo.__main__ import LaboSession
+    from nicsoft.labo.labo import LaboSession
 
     nl_inst = None
     try:
