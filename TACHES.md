@@ -80,7 +80,7 @@ nicsoft/
 - **Git** : committer après chaque étape stable. `git checkout .` pour annuler les changements non commités.
 
 //Nouveaux bugs ( il faut penser à consulter le fichier log en haut a droite dans le programme)
-- Lorsqu'on retourne à l'ecran des menus depuis un module(pedagogique HH ou autre) le clic sur un moment ne réagit pas
+- Aller dans Exercices puis mes lignes, puis Chigorine ligne 1 clic sur noir.  Faire toute la ligne, cliquer sur retour au menu, retourner dans Exercices re cliquer sur Chigorine ligne 1 ->> aucune réaction.  Bug apparait avec d'autre écran, toujours lié au bouton "retour"
 
 //Questions
 - Ne peut-on pas créer des Unit Test pour nous aider dans la recherche et résolution de bug?  Ou établir une sorte de procédure.  J'ai l'impression de chercher au hasard
