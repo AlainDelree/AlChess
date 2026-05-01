@@ -7,7 +7,7 @@
 ### Priorité haute
 - **Retour menu depuis partie en cours** — cliquer "Retour au menu" pendant une partie pédagogique ne stoppe pas la partie côté serveur. La partie continue en arrière-plan. Bloque le démarrage d'un autre mode sans redémarrer le programme.
 
-- **Écran HH vide** — l'écran Humain vs Humain s'affiche vide dans certaines conditions (état résiduel ?). À reproduire et investiguer.
+- **Écran HH vide** — l'écran Humain vs Humain s'affiche vide dans certaines conditions (état résiduel ?). À reproduire et investiguer. --> Piste à suivre, lors de la creations des menus virtuel on a ajouter HH  mais en virtuel c'est pas vraiment intéressant donc on n'a jamais rien développer.  Le menu HH devait même etre suprimer du mode virtuel (il y est encore)  Peut-etre qu'il y a confusion entre HH physique qui est developpé et HH virtuel qui ne l'est pas
 
 ### Priorité moyenne
 - **Contraste visuel** — certains boutons et libellés peu lisibles avec les couleurs actuelles (ex: bouton Pause grisé qui se fond dans le fond). À revoir dans le CSS.
@@ -78,3 +78,9 @@ nicsoft/
 - **USB Chessnut sur nouveau PC** : nécessite quirk usbhid (`/etc/modprobe.d/chessnut.conf`) + recompilation du `.so` depuis `src/`. Voir `INSTALLATION_NICLINK.md` sections 4b et 4c.
 - **`retranscription_en_cours`** au démarrage : normal, c'est la fonctionnalité de reprise. Ne doit être traité que quand on accède à l'écran Retranscription.
 - **Git** : committer après chaque étape stable. `git checkout .` pour annuler les changements non commités.
+
+//Nouveaux bugs ( il faut penser à consulter le fichier log en haut a droite dans le programme)
+- Aller dans Exercices puis mes lignes, puis Chigorine ligne 1 clic sur noir.  Faire toute la ligne, cliquer sur retour au menu, retourner dans Exercices re cliquer sur Chigorine ligne 1 ->> aucune réaction.
+
+//Questions
+- Ne peut-on pas créer des Unit Test pour nous aider dans la recherche et résolution de bug?  Ou établir une sorte de procédure.  J'ai l'impression de chercher au hasard
