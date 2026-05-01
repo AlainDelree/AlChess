@@ -65,9 +65,9 @@ nicsoft/
 
 ## 💡 Fonctionnalités à venir
 
-- **Quit button** dans le menu principal
+- **Quit button** dans le menu principal--> existe deja
 - **Analyse libre** — Stockfish suggère les meilleurs coups pour les deux camps sans auto-play
-- **Maia Chess** intégration (plus long terme)
+- **Maia Chess** intégration (plus long terme)--> deja fait sauf si c'est pour autre chose que je ne sais pas
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
 - **Supprimer les `[DEBUG]` prints** une fois le programme stable
 
@@ -80,7 +80,7 @@ nicsoft/
 - **Git** : committer après chaque étape stable. `git checkout .` pour annuler les changements non commités.
 
 //Nouveaux bugs ( il faut penser à consulter le fichier log en haut a droite dans le programme)
-- Aller dans Exercices puis mes lignes, puis Chigorine ligne 1 clic sur noir.  Faire toute la ligne, cliquer sur retour au menu, retourner dans Exercices re cliquer sur Chigorine ligne 1 ->> aucune réaction.
+- Lorsqu'on retourne à l'ecran des menus depuis un module(pedagogique HH ou autre) le clic sur un moment ne réagit pas
 
 //Questions
 - Ne peut-on pas créer des Unit Test pour nous aider dans la recherche et résolution de bug?  Ou établir une sorte de procédure.  J'ai l'impression de chercher au hasard

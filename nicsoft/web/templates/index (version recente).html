@@ -12,20 +12,20 @@
 
     body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #1a1a2e;
-      color: #e0e0e0;
+      background: #d8e4f0;
+      color: #1a2a3a;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
     header {
-      background: #16213e;
+      background: #c2d4e8;
       padding: 12px 24px;
       display: flex;
       align-items: center;
       gap: 16px;
-      border-bottom: 2px solid #0f3460;
+      border-bottom: 2px solid #a0b8d0;
     }
 
     header h1 {
@@ -44,14 +44,15 @@
 
     #status-text {
       font-size: 0.85rem;
-      color: #888;
+      color: #1a2a3a;
     }
 
     /* ── Écrans ── */
     #screen-exercices {
       display: none;
     }
-    #screen-menu, #screen-config, #screen-config-humain {
+    #screen-menu, #screen-config, #screen-config-humain,
+    #screen-retranscription, #screen-retrans-game {
       flex: 1;
       display: none;
       flex-direction: column;
@@ -102,7 +103,7 @@
       margin-bottom: 8px;
     }
     .menu-subtitle {
-      color: #888;
+      color: #1a2a3a;
       margin-bottom: 20px;
     }
     .menu-btn {
@@ -119,7 +120,7 @@
     .menu-btn:active { transform: scale(0.98); }
     .menu-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .menu-btn-primary  { background: #e94560; color: white; }
-    .menu-btn-secondary { background: #16213e; color: #888; border: 1px solid #0f3460; }
+    .menu-btn-secondary { background: #c2d4e8; color: #1a2a3a; border: 1px solid #a0b8d0; }
     .menu-btn-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 0;
       width: 300px;
@@ -129,9 +130,9 @@
       position: absolute;
       top: 50%; transform: translateY(-50%);
       width: 220px;
-      background: #0d1b2e; border: 1px solid #0f3460;
+      background: #ccdaec; border: 1px solid #a0b8d0;
       border-radius: 8px;
-      font-size: 0.78rem; color: #8899aa; line-height: 1.5;
+      font-size: 0.78rem; color: #1a2a3a; line-height: 1.5;
       padding: 10px 14px; box-sizing: border-box;
       pointer-events: none;
     }
@@ -144,7 +145,7 @@
       top: 50%; right: -8px; transform: translateY(-50%);
       border: 8px solid transparent;
       border-right: none;
-      border-left-color: #0f3460;
+      border-left-color: #a0b8d0;
     }
     .menu-btn-wrap:nth-child(even) .menu-btn-desc {
       left: calc(100% + 18px);
@@ -155,7 +156,7 @@
       top: 50%; left: -8px; transform: translateY(-50%);
       border: 8px solid transparent;
       border-left: none;
-      border-right-color: #0f3460;
+      border-right-color: #a0b8d0;
     }
 
     /* ── Écran config ── */
@@ -166,7 +167,7 @@
     }
 
     .cfg-label {
-      color: #aaa;
+      color: #1a2a3a;
       font-size: 0.85rem;
       display: block;
       margin-bottom: 4px;
@@ -174,7 +175,7 @@
     .cfg-input {
       width: 100%;
       padding: 8px 12px;
-      background: #0f3460;
+      background: #a0b8d0;
       border: 1px solid #333;
       border-radius: 4px;
       color: white;
@@ -189,13 +190,13 @@
       padding: 8px;
       border: 2px solid #333;
       border-radius: 6px;
-      background: #16213e;
-      color: #aaa;
+      background: #c2d4e8;
+      color: #1a2a3a;
       cursor: pointer;
       font-size: 0.9rem;
       transition: all 0.2s;
     }
-    .color-btn.selected { border-color: #e94560; color: white; background: #0f3460; }
+    .color-btn.selected { border-color: #e94560; color: white; background: #a0b8d0; }
 
     /* ── Colonne gauche (Historique) ── */
     #left-panel {
@@ -226,14 +227,14 @@
       min-height: 1.8em;
     }
     #player-top-name {
-      color: #777;
+      color: #2a3a4a;
       flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     #player-bottom-name {
-      color: #ddd;
+      color: #1a2a3a;
       flex: 1;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -245,15 +246,19 @@
       gap: 2px;
       font-size: 1.05rem;
       flex-shrink: 0;
-      color: #ccc;
+      color: #1a2a3a;
     }
 
-    #board, #rv-board, #board-pos-init {
+    #board, #rv-board, #board-pos-init, #retrans-board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       overflow: hidden;
       width: min(calc(100vh - 220px), calc(100vw - 720px));
       height: min(calc(100vh - 220px), calc(100vw - 720px));
+    }
+    #retrans-board {
+      width: min(500px, calc(100vw - 460px));
+      height: min(500px, calc(100vw - 460px));
     }
 
     .square {
@@ -290,7 +295,7 @@
       aspect-ratio:1; width:min(calc(100vh - 200px), calc(100vw - 640px));
     }
     #ex-spinner .spinner-ring {
-      width:60px; height:60px; border:5px solid #0f3460;
+      width:60px; height:60px; border:5px solid #a0b8d0;
       border-top-color:#e94560; border-radius:50%;
       animation: spin 0.9s linear infinite;
     }
@@ -301,12 +306,12 @@
     #board-wrapper {
       display: flex;
       align-items: flex-start;
-      border: 2px solid #0f3460;
+      border: 2px solid #a0b8d0;
       border-radius: 4px;
       overflow: hidden;
     }
     .jfilt-btn {
-      background: #0f3460;
+      background: #a0b8d0;
       border: 1px solid #333;
       border-radius: 4px;
       font-size: 0.7rem;
@@ -323,7 +328,7 @@
       display: flex;
       gap: 5px;
       padding: 2px 0;
-      border-bottom: 1px solid #1a2a3a;
+      border-bottom: 1px solid #b8cce0;
     }
     .jlog-time {
       color: #445;
@@ -339,12 +344,12 @@
       justify-content: space-around;
       height: min(calc(100vh - 220px), calc(100vw - 720px));
       width: 16px;
-      background: #16213e;
+      background: #c2d4e8;
       flex-shrink: 0;
     }
     .coord-rank span {
       font-size: 0.62rem;
-      color: #666;
+      color: #2a3a4a;
       text-align: center;
       line-height: 1;
     }
@@ -357,11 +362,11 @@
       justify-content: space-around;
       width: min(calc(100vh - 220px), calc(100vw - 720px));
       padding: 0 2px;
-      background: #16213e;
+      background: #c2d4e8;
     }
     .coord-file span {
       font-size: 0.62rem;
-      color: #666;
+      color: #2a3a4a;
       text-align: center;
       flex: 1;
     }
@@ -382,8 +387,8 @@
     }
 
     .card {
-      background: #16213e;
-      border: 1px solid #0f3460;
+      background: #c2d4e8;
+      border: 1px solid #a0b8d0;
       border-radius: 10px;
       padding: 18px;
       box-sizing: border-box;
@@ -393,7 +398,7 @@
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 2px;
-      color: #556;
+      color: #2a3a4a;
       margin-bottom: 14px;
       font-weight: 700;
     }
@@ -401,12 +406,12 @@
     .card h2.card-title-lg {
       font-size: 0.9rem;
       letter-spacing: 1.5px;
-      color: #778;
+      color: #2a3a4a;
     }
 
     #turn-info { font-size: 1.1rem; font-weight: 600; }
     #turn-info.white   { color: #f5f5f5; }
-    #turn-info.black   { color: #aaaaaa; }
+    #turn-info.black   { color: #1a2a3aaaa; }
     #turn-info.warning { color: #ff9800; animation: pulse-warn 1s infinite; }
     @keyframes pulse-warn { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
 
@@ -422,7 +427,7 @@
     #feedback-box.blunder    { background: #4a148c; border-left: 4px solid #9c27b0; }
 
     #feedback-label { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-    #feedback-detail { font-size: 0.85rem; color: #ccc; }
+    #feedback-detail { font-size: 0.85rem; color: #1a2a3a; }
 
     .btn {
       display: block;
@@ -440,8 +445,8 @@
     .btn:active { transform: scale(0.97); }
     .btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .btn-reprendre  { background: #e94560; color: white; }
-    .btn-best       { background: #0f3460; color: white; border: 1px solid #e94560; }
-    .btn-continuer  { background: #333; color: #ccc; }
+    .btn-best       { background: #a0b8d0; color: white; border: 1px solid #e94560; }
+    .btn-continuer  { background: #333; color: #1a2a3a; }
     .btn-warning    { background: #b71c1c; color: white; }
 
     /* ── Historique ── */
@@ -457,9 +462,9 @@
       white-space: nowrap;
       width: 56px;
       text-align: left;
-      color: #ccc;
+      color: #1a2a3a;
     }
-    .move-chip.bon        { color: #888; }
+    .move-chip.bon        { color: #1a2a3a; }
     .move-chip.imprecision { color: #ff9800; }
     .move-chip.erreur     { color: #f44336; }
     .move-chip.blunder    { color: #ce93d8; }
@@ -480,7 +485,7 @@
     }
     .gameover-result {
       font-size: 1.1rem;
-      color: #aaa;
+      color: #1a2a3a;
       margin-bottom: 8px;
     }
 
@@ -490,12 +495,12 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: #16213e;
-      border: 1px solid #0f3460;
+      background: #c2d4e8;
+      border: 1px solid #a0b8d0;
       border-radius: 8px;
       padding: 12px 24px;
       font-size: 0.95rem;
-      color: #e0e0e0;
+      color: #1a2a3a;
       opacity: 0;
       transition: opacity 0.3s, transform 0.3s;
       z-index: 200;
@@ -508,7 +513,7 @@
     }
     .toast.toast-success { border-color: #4caf50; color: #4caf50; }
     .toast.toast-warning { border-color: #ff9800; color: #ff9800; }
-    .toast.toast-info    { border-color: #e94560; color: #e0e0e0; }
+    .toast.toast-info    { border-color: #e94560; color: #1a2a3a; }
 
     /* ── Responsive ── */
     @media (max-width: 1000px) {
@@ -519,7 +524,57 @@
       #left-panel { width: 100%; }
       #panel { width: 100%; }
     }
+
+    /* ── res-medium : 1100-1399px ── */
+    .res-medium .menu-btn              { width: 260px; font-size: 0.9rem; }
+    .res-medium .menu-btn-wrap         { width: 260px; }
+    .res-medium .menu-btn-desc         { width: 185px; font-size: 0.74rem; }
+    .res-medium .screen-board-layout,
+    .res-medium #screen-game,
+    .res-medium #screen-exercice-running,
+    .res-medium #screen-labo           { grid-template-columns: 180px minmax(0,1fr) 320px !important; gap: 14px !important; padding: 12px 14px !important; }
+    .res-medium #left-panel            { width: 180px; }
+    .res-medium #panel                 { width: 320px; }
+    .res-medium #board,
+    .res-medium #rv-board,
+    .res-medium #board-pos-init        { width: min(calc(100vh - 260px), calc(100vw - 560px)); height: min(calc(100vh - 260px), calc(100vw - 560px)); }
+    .res-medium .coord-rank            { height: min(calc(100vh - 260px), calc(100vw - 560px)); }
+    .res-medium .coord-file            { width: min(calc(100vh - 260px), calc(100vw - 560px)); }
+    .res-medium #board-align           { width: calc(min(calc(100vh - 260px), calc(100vw - 560px)) + 20px); }
+
+    /* ── res-small : < 1100px ── */
+    .res-small .menu-btn               { width: 240px; font-size: 0.85rem; }
+    .res-small .menu-btn-wrap          { width: 240px; margin-bottom: 4px; }
+    .res-small .menu-btn-desc {
+      position: static; transform: none;
+      width: 240px; margin-top: 4px;
+      border-radius: 0 0 8px 8px; font-size: 0.72rem;
+    }
+    .res-small .menu-btn-wrap:nth-child(odd) .menu-btn-desc,
+    .res-small .menu-btn-wrap:nth-child(even) .menu-btn-desc { left: auto; right: auto; }
+    .res-small .menu-btn-wrap:nth-child(odd) .menu-btn-desc::after,
+    .res-small .menu-btn-wrap:nth-child(even) .menu-btn-desc::after { display: none; }
+    .res-small .screen-board-layout,
+    .res-small #screen-game,
+    .res-small #screen-exercice-running,
+    .res-small #screen-labo            { grid-template-columns: 1fr !important; padding: 10px !important; }
+    .res-small #left-panel             { width: 100%; }
+    .res-small #panel                  { width: 100%; }
+    .res-small #board,
+    .res-small #rv-board,
+    .res-small #board-pos-init         { width: min(calc(100vw - 24px), 460px); height: min(calc(100vw - 24px), 460px); }
+    .res-small .coord-rank             { height: min(calc(100vw - 24px), 460px); }
+    .res-small .coord-file             { width: min(calc(100vw - 24px), 460px); }
+    .res-small #board-align            { width: calc(min(calc(100vw - 24px), 460px) + 20px); }
   </style>
+  <script>
+    // Détection résolution physique — applique res-large/res-medium/res-small sur <html>
+    (function() {
+      var w = window.screen.width;
+      var cls = w >= 1360 ? 'res-large' : w >= 1024 ? 'res-medium' : 'res-small';
+      document.documentElement.className = cls;
+    })();
+  </script>
 </head>
 <body>
 
@@ -560,15 +615,31 @@
     <div class="menu-btn-desc">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
   </div>
 
+  <div class="menu-btn-wrap">
+    <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'retranscription'})">📝 Retranscrire une partie</button>
+    <div class="menu-btn-desc">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
+  </div>
+
   <button class="menu-btn menu-btn-secondary" id="btn-reconnect" onclick="sendAction({type:'reconnect_board'})" style="font-size:0.85rem; opacity:0.5; cursor:default;" disabled>✓ Échiquier connecté</button>
-  <button class="menu-btn" onclick="ouvrirModal('quit', 'Quitter NicLink ?', 'Quitter', 'btn-warning')" style="background:#1e1e3a; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
+
+  <!-- Toggle mode virtuel -->
+  <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
+    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
+      <input type="checkbox" id="chk-virtual-mode"
+        style="width:15px; height:15px; cursor:pointer; accent-color:#e94560;"
+        onchange="toggleVirtualMode(this.checked)">
+      <span style="font-size:0.82rem; color:#556;">Mode sans échiquier physique</span>
+    </label>
+  </div>
+
+  <button class="menu-btn" onclick="ouvrirModal('quit', 'Quitter NicLink ?', 'Quitter', 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
 </div>
 
 <!-- ── Écran config ── -->
 <div id="screen-config" style="justify-content:flex-start; padding:0; overflow:hidden;">
 
   <!-- Barre de titre fixe -->
-  <div style="width:100%; background:#16213e; border-bottom:1px solid #0f3460; padding:12px 32px; flex-shrink:0;">
+  <div style="width:100%; background:#c2d4e8; border-bottom:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0;">
     <div class="config-title" style="margin-bottom:0;">🎓 Mode Pédagogique</div>
   </div>
 
@@ -618,13 +689,13 @@
           <div id="cfg-section-stockfish">
             <label class="cfg-label">Force du moteur</label>
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-              <button onclick="adjustElo(-200)" style="width:38px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-200</button>
-              <button onclick="adjustElo(-50)"  style="width:34px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-50</button>
+              <button onclick="adjustElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-200</button>
+              <button onclick="adjustElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-50</button>
               <input id="cfg-elo" class="cfg-input" type="number" min="1320" max="3190" value="1500"
                      style="flex:1; text-align:center; margin-bottom:0; font-size:1rem; font-weight:bold;"
                      oninput="clampElo()">
-              <button onclick="adjustElo(50)"  style="width:34px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+50</button>
-              <button onclick="adjustElo(200)" style="width:38px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+200</button>
+              <button onclick="adjustElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+50</button>
+              <button onclick="adjustElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+200</button>
             </div>
             <div id="cfg-elo-label" style="text-align:center; font-size:0.78rem; color:#778;">~1500 Elo — Joueur confirmé</div>
           </div>
@@ -650,13 +721,13 @@
           <div id="cfg-section-rodent" style="display:none;">
             <label class="cfg-label">Force de Rodent</label>
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-              <button onclick="adjustRodentElo(-200)" style="width:38px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-200</button>
-              <button onclick="adjustRodentElo(-50)"  style="width:34px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-50</button>
+              <button onclick="adjustRodentElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-200</button>
+              <button onclick="adjustRodentElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-50</button>
               <input id="cfg-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="800"
                      style="flex:1; text-align:center; margin-bottom:0; font-size:1rem; font-weight:bold;"
                      oninput="clampRodentElo()">
-              <button onclick="adjustRodentElo(50)"  style="width:34px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+50</button>
-              <button onclick="adjustRodentElo(200)" style="width:38px; height:32px; background:#0f3460; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+200</button>
+              <button onclick="adjustRodentElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+50</button>
+              <button onclick="adjustRodentElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+200</button>
             </div>
             <div id="cfg-rodent-elo-label" style="text-align:center; font-size:0.78rem; color:#778; margin-bottom:10px;">800 Elo — Grand débutant</div>
             <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -679,11 +750,19 @@
               <span id="cfg-analyse-label" style="font-size:0.85rem; color:#aaa; display:inline-block; width:52px;">Activée</span>
             </label>
           </div>
-          <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
             <label class="cfg-label" style="margin-bottom:0;">Bip sonore</label>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
               <input type="checkbox" id="cfg-bip" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
               <span id="cfg-bip-label" style="font-size:0.85rem; color:#aaa; display:inline-block; width:52px;">Activé</span>
+            </label>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <label class="cfg-label" style="margin-bottom:0;">Afficher les coups légaux</label>
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="cfg-show-legal" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;"
+                onchange="virtSaveLegalPref(this.checked)">
+              <span id="cfg-show-legal-label" style="font-size:0.85rem; color:#aaa; display:inline-block; width:52px;">Activé</span>
             </label>
           </div>
         </div>
@@ -695,7 +774,7 @@
   </div><!-- fin zone scrollable -->
 
   <!-- Barre de boutons fixe en bas -->
-  <div style="width:100%; background:#16213e; border-top:1px solid #0f3460; padding:12px 32px; flex-shrink:0; display:flex; gap:12px; justify-content:center;">
+  <div style="width:100%; background:#c2d4e8; border-top:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0; display:flex; gap:12px; justify-content:center;">
     <button class="btn btn-continuer" onclick="sendAction({type:'back'})" style="width:160px; margin-bottom:0;">← Retour</button>
     <button class="btn btn-reprendre" onclick="startGame()" style="width:260px; margin-bottom:0; font-size:1rem;">▶ Démarrer la partie</button>
   </div>
@@ -703,36 +782,187 @@
 </div>
 
 <!-- ── Écran config Humain vs Humain ── -->
-<div id="screen-config-humain">
-  <div class="config-title">⚔️ Humain vs Humain</div>
-  <div class="card" style="width:360px;">
-    <h2>Configuration de la partie</h2>
+<div id="screen-config-humain" style="display:none; justify-content:flex-start; padding:0; overflow:hidden;">
 
-    <label class="cfg-label" id="label-white-name">Joueur Blancs</label>
-    <input id="cfg-white-name" class="cfg-input" type="text" placeholder="Anonyme1">
+  <!-- Barre de titre fixe -->
+  <div style="width:100%; background:#c2d4e8; border-bottom:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0;">
+    <div class="config-title" style="margin-bottom:0;">⚔️ Humain vs Humain</div>
+  </div>
 
-    <label class="cfg-label" id="label-black-name">Joueur Noirs</label>
-    <input id="cfg-black-name" class="cfg-input" type="text" placeholder="Anonyme2">
+  <!-- Zone scrollable -->
+  <div style="flex:1; overflow-y:auto; min-height:0; width:100%; padding:16px 32px; display:flex; flex-direction:column; gap:12px; align-items:center;">
 
-    <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-      <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-        <input type="checkbox" id="hh-random" onchange="selectColorHH(this.checked ? 'random' : 'white')"
-               style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
-        <span style="font-size:0.85rem; color:#aaa;">🎲 Couleurs aléatoires</span>
-      </label>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:560px; align-items:start;">
+
+      <!-- Joueur Blancs -->
+      <div class="card" style="padding:14px 16px;">
+        <h2><span id="label-white-name">Joueur Blancs</span></h2>
+        <label class="cfg-label">Nom</label>
+        <input id="cfg-white-name" class="cfg-input" type="text" placeholder="Nom Blancs">
+      </div>
+
+      <!-- Joueur Noirs -->
+      <div class="card" style="padding:14px 16px;">
+        <h2><span id="label-black-name">Joueur Noirs</span></h2>
+        <label class="cfg-label">Nom</label>
+        <input id="cfg-black-name" class="cfg-input" type="text" placeholder="Nom Noirs">
+      </div>
+
     </div>
 
-    <label class="cfg-label">Type de partie</label>
-    <select id="cfg-hh-type" class="cfg-input">
-      <option value="serieuse">Sérieuse</option>
-      <option value="pedagogique">Pédagogique</option>
-      <option value="amusement">Amusement</option>
-      <option value="club">Club</option>
-    </select>
+    <!-- Couleurs + Type -->
+    <div style="width:100%; max-width:560px; display:flex; flex-direction:column; gap:12px;">
+
+      <div class="card" style="padding:14px 16px;">
+        <h2>Couleurs</h2>
+        <div class="color-btns">
+          <button class="color-btn selected" onclick="selectColorHH('white')">♔ Blancs en bas</button>
+          <button class="color-btn"          onclick="selectColorHH('black')">♚ Noirs en bas</button>
+          <button class="color-btn"          onclick="selectColorHH('random')">🎲 Aléatoire</button>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#556; font-size:0.85rem; cursor:pointer;">
+          <input type="checkbox" id="hh-random" onchange="selectColorHH(this.checked ? 'random' : 'white')">
+          Couleurs aléatoires
+        </label>
+      </div>
+
+      <div class="card" style="padding:14px 16px;">
+        <h2>Type de partie</h2>
+        <select id="cfg-hh-type" class="cfg-input">
+          <option value="serieuse">Sérieuse</option>
+          <option value="amusement">Amusement</option>
+          <option value="club">Club</option>
+        </select>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Boutons fixes en bas -->
+  <div style="width:100%; background:#c2d4e8; border-top:1px solid #a0b8d0; padding:12px 32px; display:flex; gap:12px; flex-shrink:0;">
+    <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;">← Retour</button>
+    <button class="btn btn-reprendre" onclick="startGameHH()" style="flex:2;">▶ Démarrer</button>
+  </div>
+
+</div>
+
+<div id="screen-retranscription">
+  <div class="config-title">📝 Retranscrire</div>
+
+  <!-- Bandeau session en cours -->
+  <div id="retrans-resume-banner" style="display:none; background:#1a3a1a; border:1px solid #4caf50; border-radius:8px; padding:12px 16px; margin-bottom:16px; width:380px; text-align:center;">
+    <div style="color:#4caf50; font-weight:bold; margin-bottom:6px;">♻ Session en cours</div>
+    <div id="retrans-resume-info" style="color:#aaa; font-size:0.85rem; margin-bottom:10px;"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="btn btn-continuer" onclick="retransResume(false)" style="flex:1; padding:6px;">Nouvelle</button>
+      <button class="btn btn-reprendre" onclick="retransResume(true)" style="flex:1; padding:6px;">↩ Reprendre</button>
+    </div>
+  </div>
+
+  <!-- Onglets -->
+  <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid #a0b8d0; margin-bottom:16px; width:380px;">
+    <button id="retrans-tab-partie" onclick="retransSelectTab('partie')"
+      style="flex:1; padding:10px; font-size:0.9rem; font-weight:bold; cursor:pointer; border:none; background:#e94560; color:white; transition:0.15s;">
+      🏆 Partie
+    </button>
+    <button id="retrans-tab-exercice" onclick="retransSelectTab('exercice')"
+      style="flex:1; padding:10px; font-size:0.9rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#778; transition:0.15s;">
+      📖 Exercice
+    </button>
+  </div>
+
+  <!-- Formulaire Partie -->
+  <div id="retrans-form-partie" class="card" style="width:380px;">
+    <label class="cfg-label">Blancs</label>
+    <input id="retrans-white" class="cfg-input" type="text" placeholder="Nom du joueur Blancs">
+
+    <label class="cfg-label">Noirs</label>
+    <input id="retrans-black" class="cfg-input" type="text" placeholder="Nom du joueur Noirs">
+
+    <label class="cfg-label">Date</label>
+    <input id="retrans-date" class="cfg-input" type="date">
+
+    <label class="cfg-label">Événement</label>
+    <input id="retrans-event" class="cfg-input" type="text" placeholder="Tournoi, club...">
 
     <div style="display:flex; gap:8px; margin-top:8px;">
-      <button class="btn btn-continuer" onclick="sendAction({type:'back'})" style="flex:1;">← Retour</button>
-      <button class="btn btn-reprendre" onclick="startGameHH()" style="flex:2;">▶ Démarrer la partie</button>
+      <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;">← Retour</button>
+      <button class="btn btn-reprendre" onclick="startRetranscription()" style="flex:2;">▶ Démarrer</button>
+    </div>
+  </div>
+
+  <!-- Formulaire Exercice -->
+  <div id="retrans-form-exercice" class="card" style="width:380px; display:none;">
+    <label class="cfg-label">Nom de la ligne</label>
+    <input id="retrans-nom" class="cfg-input" type="text" placeholder="ex: Chigorine, Ruy Lopez...">
+
+    <label class="cfg-label">Camp suggéré</label>
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <button id="retrans-camp-white" class="btn" onclick="retransSetCamp('white')"
+        style="flex:1; padding:8px; background:#e8c840; border:1px solid #e8c840; color:#d8e4f0; font-weight:bold;">♔ Blancs</button>
+      <button id="retrans-camp-black" class="btn" onclick="retransSetCamp('black')"
+        style="flex:1; padding:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#778;">♚ Noirs</button>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;">← Retour</button>
+      <button class="btn btn-reprendre" onclick="startRetranscription()" style="flex:2;">▶ Démarrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Écran retranscription en cours ── -->
+<div id="screen-retrans-game" style="display:none; flex:1; grid-template-columns:220px minmax(0,1fr) 200px; gap:20px; padding:16px 20px; width:100%; max-width:100vw; align-items:start; overflow:hidden;">
+  <div id="retrans-left" style="width:220px; display:flex; flex-direction:column; gap:10px;">
+    <div class="card" style="padding:14px;">
+      <div id="retrans-title" style="font-weight:bold; color:#e94560; margin-bottom:6px;"></div>
+      <div id="retrans-turn" style="font-size:0.85rem; color:#aaa; margin-bottom:10px;"></div>
+      <div id="retrans-status" style="font-size:0.82rem; color:#e0e0e0;"></div>
+    </div>
+    <div class="card" style="padding:14px; flex:1; overflow-y:auto;">
+      <h2>Coups</h2>
+      <div id="retrans-history" style="font-size:0.82rem; line-height:1.8;"></div>
+    </div>
+  </div>
+
+  <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+    <div id="retrans-player-top" style="font-size:0.85rem; font-weight:600; color:#aaa; padding:4px 0; text-align:center; width:100%;"></div>
+    <div id="retrans-board-wrapper" style="min-width:0; display:flex; flex-direction:row; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden;">
+      <div id="retrans-coord-rank" class="coord-rank" style="height:min(500px, calc(100vw - 460px));"></div>
+      <div style="display:flex; flex-direction:column;">
+        <div id="retrans-board" class="board"></div>
+        <div id="retrans-coord-file" class="coord-file" style="width:min(500px, calc(100vw - 460px));"></div>
+      </div>
+    </div>
+    <div id="retrans-player-bottom" style="font-size:0.85rem; font-weight:600; color:#e0e0e0; padding:4px 0; text-align:center; width:100%;"></div>
+    <div style="font-size:0.78rem; color:#556;">Cliquez pour jouer</div>
+  </div>
+
+  <div id="retrans-right" style="width:200px; display:flex; flex-direction:column; gap:10px;">
+    <div class="card" style="padding:14px;">
+      <h2>Actions</h2>
+      <button class="btn btn-warning" onclick="sendAction({type:'retranscription_undo'})"
+        style="width:100%; margin-bottom:8px;">↩ Annuler coup</button>
+      <button class="btn" onclick="retransFlip()"
+        style="width:100%; margin-bottom:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#aaa;">
+        ⇅ Retourner l'échiquier</button>
+      <button id="btn-retrans-save-continue" class="btn btn-continuer" onclick="retransSaveContinue()"
+        style="width:100%; margin-bottom:8px; display:none;">💾 Sauver et continuer</button>
+      <button class="btn" onclick="retransEnd('1-0')"
+        style="width:100%; margin-bottom:4px; background:#1a2a1a; color:#4caf50; border:1px solid #4caf50;">
+        Blancs gagnent (1-0)</button>
+      <button class="btn" onclick="retransEnd('0-1')"
+        style="width:100%; margin-bottom:4px; background:#2a1a1a; color:#e94560; border:1px solid #e94560;">
+        Noirs gagnent (0-1)</button>
+      <button class="btn" onclick="retransEnd('1/2-1/2')"
+        style="width:100%; margin-bottom:8px; background:#1a1a2a; color:#778; border:1px solid #445;">
+        Nulle (½-½)</button>
+      <button class="btn btn-continuer" onclick="retransEnd('*')"
+        style="width:100%; margin-bottom:4px; font-size:0.82rem;">← Sauver et quitter</button>
+      <button class="btn" onclick="retransQuitSansSauver()"
+        style="width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#556;">
+        ✕ Quitter sans sauver</button>
     </div>
   </div>
 </div>
@@ -743,7 +973,7 @@
     <div class="card" style="height: calc(100vh - 110px); display:flex; flex-direction:column;">
       <h2>Historique</h2>
       <div id="historique" style="flex:1; overflow-y:auto;"></div>
-      <div id="legende" style="border-top:1px solid #0f3460; padding-top:10px; margin-top:8px; font-size:0.72rem; color:#555;">
+      <div id="legende" style="border-top:1px solid #a0b8d0; padding-top:10px; margin-top:8px; font-size:0.72rem; color:#555;">
         <table style="width:100%;border-collapse:collapse;">
           <tr><td style="width:44px;color:#666">d4</td><td style="color:#666">Bon coup</td></tr>
           <tr><td style="color:#f0a500">e4?!</td><td style="color:#888">Imprécision</td></tr>
@@ -783,6 +1013,9 @@
       <div class="player-row" id="player-row-bottom">
         <span id="player-bottom-name">—</span>
         <span id="material-bottom"></span>
+        <button id="btn-flip" onclick="flipBoard()" title="Noirs en bas"
+          style="background:none; border:none; color:#556; cursor:pointer; font-size:0.8rem; padding:2px 6px; margin-left:auto; opacity:0.6; transition:opacity 0.2s;"
+          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">⇅</button>
       </div>
     </div>
   </div>
@@ -795,7 +1028,7 @@
         <div id="game-subtitle" style="color:#aaa; margin-bottom:14px; font-size:0.9rem;"></div>
         <div id="pause-select-row" style="display:flex; align-items:center; gap:10px;">
           <label style="font-size:0.8rem; color:#778; white-space:nowrap;">Pause :</label>
-          <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" style="flex:1; background:#0f3460; color:#e0e0e0; border:1px solid #e94560; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
+          <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" style="flex:1; background:#a0b8d0; color:#e0e0e0; border:1px solid #e94560; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
             <option value="" disabled selected>...</option>
             <option value="toujours">Toujours</option>
             <option value="imprecision">Imprécision + Erreur + Gaffe</option>
@@ -817,16 +1050,23 @@
         </div>
         <div id="countdown"></div>
         <button class="btn btn-best"      id="btn-best"      disabled onclick="sendAction({type:'meilleur'})">💡 Voir le meilleur coup</button>
-        <button class="btn"               id="btn-sequence"  disabled onclick="jouerSequencePunitive()" style="background:#1a3a5a; color:#aac4e0; border:1px solid #2a5a8a;">🎬 Voir la séquence</button>
+        <button class="btn"               id="btn-sequence"  disabled onclick="jouerSequencePunitive()" style="background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;">🎬 Voir la séquence</button>
         <button class="btn btn-reprendre" id="btn-reprendre" disabled onclick="sendAction({type:'reprendre'})">↩ Reprendre mon coup</button>
         <button class="btn btn-continuer" id="btn-continuer" disabled onclick="sendAction({type:'continuer'})">→ Continuer</button>
       </div>
       <div class="card" id="card-actions" style="display:flex; flex-direction:column; gap:8px;">
         <h2>Actions</h2>
-        <button class="btn" style="background:#1a3a5a; color:#aac4e0; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})">⏸ Pause</button>
+        <button class="btn" style="background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})">⏸ Pause</button>
         <button class="btn btn-warning" onclick="ouvrirModalAbandonner()">🏳 Abandonner</button>
         <button class="btn" id="btn-nulle" style="background:#4a4a6a; color:#e0e0e0;" onclick="ouvrirModalNulle()">🤝 Partie Nulle</button>
-        <button class="btn" style="background:#1e1e3a; color:#666;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
+        <button class="btn" id="btn-undo" style="display:none; background:#2a3a1a; color:#aae0aa; border:1px solid #4a8a2a;" onclick="demanderUndo()">↩ Annuler le dernier coup</button>
+        <button class="btn" style="background:#b8cce0; color:#666;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
+      </div>
+      <!-- Message undo confirmation -->
+      <div class="card" id="card-undo-confirm" style="display:none; flex-direction:column; gap:8px; border-color:#4a8a2a;">
+        <h2 style="color:#aae0aa;">↩ Coup annulé</h2>
+        <div id="undo-msg" style="font-size:0.85rem; color:#aaa; margin-bottom:4px;">Replacez la pièce sur l'échiquier puis confirmez.</div>
+        <button class="btn" style="background:#2a3a1a; color:#aae0aa; border:1px solid #4a8a2a;" onclick="sendAction({type:'undo_confirm'})">✓ Confirmer</button>
       </div>
     </div>
     <!-- ── Pause ── -->
@@ -862,11 +1102,11 @@
         <!-- Toujours visible — reprend la partie (= continuer en pause manuelle) -->
         <button class="btn btn-reprendre" id="btn-pause-resume" onclick="sendAction({type:'resume_pause'})">▶ Reprendre la partie</button>
         <button class="btn btn-best"      id="btn-pause-meilleur"  disabled onclick="sendAction({type:'meilleur'})">💡 Voir le meilleur coup</button>
-        <button class="btn"               id="btn-pause-sequence"  style="display:none; background:#1a3a5a; color:#aac4e0; border:1px solid #2a5a8a;" disabled onclick="jouerSequencePunitive()">🎬 Voir la séquence</button>
+        <button class="btn"               id="btn-pause-sequence"  style="display:none; background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;" disabled onclick="jouerSequencePunitive()">🎬 Voir la séquence</button>
         <!-- Toujours disponibles -->
-        <button class="btn" id="btn-changer-couleur" style="background:#0f3460; color:#e0e0e0; border:1px solid #e94560;" onclick="pauseToggleChangerCouleur()">🔄 Changer de couleur</button>
+        <button class="btn" id="btn-changer-couleur" style="background:#a0b8d0; color:#e0e0e0; border:1px solid #e94560;" onclick="pauseToggleChangerCouleur()">🔄 Changer de couleur</button>
         <button class="btn btn-warning" style="display:none;" id="btn-pause-abandonner" onclick="ouvrirModalAbandonner()">🏳 Abandonner</button>
-        <button class="btn" style="background:#1e1e3a; color:#666;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
+        <button class="btn" style="background:#b8cce0; color:#666;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
       </div>
     </div>
     <!-- ── Fin de partie ── -->
@@ -920,7 +1160,7 @@
         </div>
         <!-- Sauvegarder -->
         <div id="card-save-block" style="display:flex; flex-direction:column; gap:6px;">
-          <select id="save-type" style="width:100%; background:#0f3460; border:1px solid #333; border-radius:4px; color:white; padding:8px 10px; font-size:0.88rem;">
+          <select id="save-type" style="width:100%; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:white; padding:8px 10px; font-size:0.88rem;">
             <optgroup label="── Stockfish ──">
               <option value="sf-pedagogique">Stockfish — Pédagogique</option>
               <option value="sf-serieuse">Stockfish — Sérieuse</option>
@@ -940,10 +1180,20 @@
       <div class="card" style="padding:14px 18px; display:flex; flex-direction:column; gap:8px;">
         <input type="file" id="pgn-file-input" accept=".pgn" style="display:none" onchange="loadPgnFile(event)">
         <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()">📂 Importer PGN</button>
+        <!-- Sélecteur nombre de coups séquence -->
+        <div id="rv-seq-row" style="display:none; align-items:center; gap:8px;">
+          <label style="font-size:0.8rem; color:#778; white-space:nowrap;">Séquence :</label>
+          <select id="rv-seq-moves" style="flex:1; background:#a0b8d0; color:#e0e0e0; border:1px solid #2a5a8a; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
+            <option value="3" selected>3 coups</option>
+            <option value="4">4 coups</option>
+            <option value="5">5 coups</option>
+          </select>
+        </div>
         <button class="btn btn-reprendre" style="margin-bottom:0; display:none;" id="btn-analyser"     onclick="lancerAnalyse()">🔍 Analyser la partie</button>
+        <button class="btn" style="margin-bottom:0; display:none; background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;" id="btn-rv-sequence" onclick="jouerSequenceReview()">🎬 Voir la séquence</button>
         <button class="btn btn-reprendre" style="margin-bottom:0; display:none;" id="btn-telecharger"  onclick="telechargerPgn()">⬇️ Télécharger PGN analysé</button>
         <button class="btn btn-continuer" style="margin-bottom:0; display:none;" id="btn-vider-analyse" onclick="_viderAnalyse()">🗑 Enlever la partie chargée</button>
-        <button class="btn" style="background:#1e1e3a; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
+        <button class="btn" style="background:#b8cce0; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
       </div>
     </div>
   </div>
@@ -985,28 +1235,40 @@
   <div style="font-size:0.85rem; color:#778; margin-top:-10px;">Choisissez une ouverture et entraînez-vous avec le livre de GM</div>
 
   <!-- Paramètres compacts -->
-  <div style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; justify-content:center; background:#16213e; border:1px solid #0f3460; border-radius:8px; padding:12px 20px;">
+  <div id="ex-variete-bar" style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; justify-content:center; background:#c2d4e8; border:1px solid #a0b8d0; border-radius:8px; padding:12px 20px;">
     <div style="display:flex; align-items:center; gap:10px;">
       <span style="color:#aaa; font-size:0.82rem;">Variété</span>
       <input type="range" id="ex-variete" min="1" max="8" value="3" style="width:90px; accent-color:#e94560;" oninput="exUpdateVariete()">
       <span id="ex-variete-label" style="color:#e0e0e0; font-weight:bold; width:16px;">3</span>
     </div>
-    <button class="btn" style="background:#1e1e3a; color:#666; margin-top:0;" onclick="sendAction({type:'back'})">← Menu</button>
+    <button class="btn" style="background:#b8cce0; color:#666; margin-top:0;" onclick="sendAction({type:'back'})">← Menu</button>
   </div>
 
-  <!-- Onglets Blancs / Noirs -->
-  <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid #0f3460;">
+  <!-- Onglets Blancs / Noirs / Mes lignes -->
+  <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid #a0b8d0;">
     <button id="ex-tab-white" onclick="exSelectTab('white')"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#e8c840; color:#1a1a2e; transition:opacity 0.15s;">
+      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#e8c840; color:#d8e4f0; transition:opacity 0.15s;">
       ♔ Blancs suggérés
     </button>
     <button id="ex-tab-black" onclick="exSelectTab('black')"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#16213e; color:#778; transition:opacity 0.15s;">
+      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#778; transition:opacity 0.15s;">
       ♚ Noirs suggérés
+    </button>
+    <button id="ex-tab-mes-lignes" onclick="exSelectTab('mes-lignes')"
+      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#778; transition:opacity 0.15s;">
+      ★ Mes lignes
     </button>
   </div>
 
   <!-- Liste des ouvertures groupées -->
+  <!-- Barre drill compacte -->
+  <div id="ex-drill-bar" style="display:none; width:100%; max-width:960px; background:#c2d4e8; border:1px solid #a0b8d0; border-radius:8px; padding:8px 12px; margin-bottom:8px; align-items:center; gap:8px;">
+    <span id="ex-drill-count" style="font-size:0.82rem; color:#778; flex:1;"></span>
+    <button class="btn" onclick="sendAction({type:'back'})"
+      style="padding:7px 14px; font-size:0.82rem; background:#b8cce0; color:#666; border:1px solid #333;">← Menu</button>
+    <button id="ex-drill-btn" class="btn btn-reprendre" onclick="exLancerDrill()"
+      style="padding:7px 18px; font-size:0.85rem;">🎲 Drill</button>
+  </div>
   <div id="ex-ouvertures-list" style="width:100%; max-width:960px;"></div>
 
 </div>
@@ -1035,14 +1297,14 @@
       <div class="spinner-ring"></div>
       <div style="color:#778; font-size:0.85rem; margin-top:14px;">Connexion à l'échiquier…</div>
     </div>
-    <div id="ex-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #0f3460; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 640px));">
-      <div class="player-row" style="padding:4px 6px; background:#0f3460;"><span id="ex-player-top" style="color:#aaa; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
+    <div id="ex-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 640px));">
+      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-top" style="color:#aaa; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
       <div style="display:flex; align-items:stretch;">
         <div class="coord-rank" id="ex-coord-rank"></div>
         <div id="ex-board" style="display:grid; grid-template-columns:repeat(8,1fr); flex:1; min-width:0; aspect-ratio:1;"></div>
       </div>
       <div class="coord-file" id="ex-coord-file" style="width:100%;"></div>
-      <div class="player-row" style="padding:4px 6px; background:#0f3460;"><span id="ex-player-bottom" style="color:#ddd; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
+      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-bottom" style="color:#ddd; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
     </div>
     <!-- Feedback -->
     <div id="ex-feedback" style="margin-top:8px; padding:8px 16px; border-radius:6px; font-size:0.9rem; display:none; text-align:center; font-weight:600;"></div>
@@ -1059,10 +1321,10 @@
 
     <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
       <h2>ACTIONS</h2>
-      <button id="ex-btn-sync" class="btn" style="margin-bottom:0; background:#0f3460; border:1px solid #4caf50; color:#4caf50;" onclick="sendAction({type:'exercice_sync'})">🔄 Synchroniser plateau → Virtuel</button>
+      <button id="ex-btn-sync" class="btn" style="margin-bottom:0; background:#a0b8d0; border:1px solid #4caf50; color:#4caf50;" onclick="sendAction({type:'exercice_sync'})">🔄 Synchroniser plateau → Virtuel</button>
       <button class="btn btn-reprendre" style="margin-bottom:0;" onclick="sendAction({type:'exercice_retry'})">↺ Recommencer l'exercice</button>
       <button class="btn btn-continuer" style="margin-bottom:0;" onclick="sendAction({type:'exercice_back'})">← Choisir autre ouverture</button>
-      <button class="btn" style="background:#1e1e3a; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
+      <button class="btn" style="background:#b8cce0; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
     </div>
 
   </div>
@@ -1076,7 +1338,7 @@
     <div class="card" style="padding:10px 12px; display:flex; flex-direction:column; flex:1; min-height:0;">
 
       <!-- Onglets Journal / PGN -->
-      <div style="display:flex; gap:0; margin-bottom:8px; flex-shrink:0; border-bottom:1px solid #1a2a3a;">
+      <div style="display:flex; gap:0; margin-bottom:8px; flex-shrink:0; border-bottom:1px solid #b8cce0;">
         <button id="labo-tab-journal" onclick="laboSwitchTab('journal')"
           style="background:none; border:none; border-bottom:2px solid #e94560; color:#e0e0e0;
                  font-size:0.72rem; font-weight:600; padding:4px 10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">
@@ -1125,7 +1387,7 @@
                    background:#e94560; color:#fff; border:none; transition:all 0.15s;">♔ Blancs</button>
           <button id="labo-camp-black" onclick="laboSetCamp('black')"
             style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#16213e; color:#555; border:none; transition:all 0.15s;">♚ Noirs</button>
+                   background:#c2d4e8; color:#555; border:none; transition:all 0.15s;">♚ Noirs</button>
         </div>
       </div>
       <!-- Tour actuel -->
@@ -1137,7 +1399,7 @@
                    background:#e94560; color:#fff; border:none; transition:all 0.15s;">♔ Blancs</button>
           <button id="labo-turn-black" onclick="laboSetTurn('black')"
             style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#16213e; color:#555; border:none; transition:all 0.15s;">♚ Noirs</button>
+                   background:#c2d4e8; color:#555; border:none; transition:all 0.15s;">♚ Noirs</button>
         </div>
       </div>
     </div>
@@ -1155,7 +1417,7 @@
           </div>
         </div>
         <!-- Échiquier -->
-        <div id="labo-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #0f3460; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 720px));">
+        <div id="labo-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 720px));">
           <div style="display:flex; min-height:0;">
             <div class="coord-rank" id="labo-coord-rank" style="height:auto; align-self:stretch;"></div>
             <div id="labo-board" style="display:grid; grid-template-columns:repeat(8,1fr); flex:1; min-width:0; aspect-ratio:1;"></div>
@@ -1198,7 +1460,7 @@
       <div id="labo-sec-moteur" style="padding:0 14px 12px; display:flex; flex-direction:column; gap:7px;">
         <div id="labo-engine-label" style="font-size:0.78rem; color:#556; margin-bottom:2px;"></div>
         <button class="btn btn-best" id="labo-btn-best" style="margin-bottom:0;" onclick="sendAction({type:'best_move'})">💡 Meilleur coup</button>
-        <button class="btn" id="labo-btn-auto" style="margin-bottom:0; background:#0f3460; color:#e0e0e0; border:1px solid #333;" onclick="laboToggleAuto()">⏵ Auto OFF</button>
+        <button class="btn" id="labo-btn-auto" style="margin-bottom:0; background:#a0b8d0; color:#e0e0e0; border:1px solid #333;" onclick="laboToggleAuto()">⏵ Auto OFF</button>
 
       </div>
     </div>
@@ -1218,12 +1480,12 @@
         </div>
         <div id="labo-cfg-sf">
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjElo(-50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
+            <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
+            <button onclick="laboAdjElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
             <input id="labo-elo" class="cfg-input" type="number" min="1320" max="3190" value="1500"
               style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampElo()">
-            <button onclick="laboAdjElo(50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjElo(200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
+            <button onclick="laboAdjElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
+            <button onclick="laboAdjElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
           </div>
           <div id="labo-elo-label" style="text-align:center;font-size:0.72rem;color:#778;">~1500 Elo</div>
         </div>
@@ -1238,12 +1500,12 @@
         </div>
         <div id="labo-cfg-rodent" style="display:none;">
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjRodentElo(-200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjRodentElo(-50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
+            <button onclick="laboAdjRodentElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
+            <button onclick="laboAdjRodentElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
             <input id="labo-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="800"
               style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampRodentElo()">
-            <button onclick="laboAdjRodentElo(50)"  style="width:32px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjRodentElo(200)" style="width:36px;height:28px;background:#0f3460;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
+            <button onclick="laboAdjRodentElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
+            <button onclick="laboAdjRodentElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
           </div>
           <div id="labo-rodent-elo-label" style="text-align:center;font-size:0.72rem;color:#778;">800 Elo</div>
         </div>
@@ -1276,7 +1538,7 @@
             <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnNext()">Suivant →</button>
           </div>
         </div>
-        <button class="btn" id="labo-btn-copy" style="margin-bottom:0; background:#1a3a5a; color:#aac4e0; border:1px solid #2a5a8a; display:none;"
+        <button class="btn" id="labo-btn-copy" style="margin-bottom:0; background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a; display:none;"
           onclick="laboCopyToBoard()">📋 Source virtuelle → Plateau</button>
 
       </div>
@@ -1284,7 +1546,7 @@
 
     <!-- Retour -->
     <div style="padding:4px 0 8px;">
-      <button class="btn" style="background:#1e1e3a; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
+      <button class="btn" style="background:#b8cce0; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
     </div>
 
   </div>
@@ -1294,8 +1556,8 @@
 <!-- ── Écran connexion échiquier ── -->
 <div id="screen-connecting" style="display:none; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
   <div style="font-size:2rem;">♟</div>
-  <div style="font-size:1.2rem; color:#e0e0e0;">Connexion à l'échiquier…</div>
-  <div style="color:#888; font-size:0.9rem;">Vérifiez que le plateau est allumé et en position initiale.</div>
+  <div id="connecting-msg" style="font-size:1.2rem; color:#e0e0e0;">Connexion à l'échiquier…</div>
+  <div id="connecting-sub" style="color:#888; font-size:0.9rem;">Vérifiez que le plateau est allumé et en position initiale.</div>
   <div style="width:40px; height:40px; border:3px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
 </div>
 
@@ -1303,8 +1565,9 @@
 
 <!-- ── Modal de confirmation ── -->
 <div id="modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
-  <div style="background:#16213e; border:1px solid #e94560; border-radius:10px; padding:28px 32px; min-width:300px; text-align:center;">
-    <div id="modal-title" style="font-size:1.1rem; color:#e0e0e0; margin-bottom:20px;"></div>
+  <div style="background:#c2d4e8; border:1px solid #e94560; border-radius:10px; padding:28px 32px; min-width:300px; text-align:center;">
+    <div id="modal-title" style="font-size:1.1rem; color:#e0e0e0; margin-bottom:8px;"></div>
+    <div id="modal-subtitle" style="font-size:0.78rem; color:#778; margin-bottom:20px;"></div>
     <!-- Boutons standard (confirmation simple) -->
     <div id="modal-btns-standard" style="display:flex; gap:12px; justify-content:center;">
       <button id="modal-confirm" class="btn" style="min-width:120px;"></button>
@@ -1326,7 +1589,7 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 #modal-overlay { display: none; }
 #modal-overlay.open { display: flex; }
-.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:#16213e; border:1px solid #0f3460; border-radius:8px; padding:12px 24px; font-size:0.95rem; color:#e0e0e0; opacity:0; transition:opacity 0.3s,transform 0.3s; z-index:200; pointer-events:none; }
+.toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:#c2d4e8; border:1px solid #a0b8d0; border-radius:8px; padding:12px 24px; font-size:0.95rem; color:#e0e0e0; opacity:0; transition:opacity 0.3s,transform 0.3s; z-index:200; pointer-events:none; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 .toast.toast-success { border-color:#4caf50; color:#4caf50; }
 .toast.toast-warning { border-color:#ff9800; color:#ff9800; }
@@ -1340,5 +1603,25 @@
 </style>
 
 <script src="/static/app.js"></script>
+
+<!-- Overlay de démarrage -->
+<div id="startup-overlay" style="
+  position: fixed; inset: 0; z-index: 9999;
+  background: #d8e4f0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 20px;
+">
+  <span style="font-size: 2rem;">♟</span>
+  <div style="font-size: 1.2rem; color: #1a2a3a; font-weight: 600;">Démarrage de NicLink…</div>
+  <div style="color: #2a3a4a; font-size: 0.9rem;">Chargement en cours…</div>
+  <div style="
+    width: 40px; height: 40px;
+    border: 4px solid #c2d4e8;
+    border-top-color: #e94560;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  "></div>
+</div>
+
 </body>
 </html>

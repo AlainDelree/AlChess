@@ -782,6 +782,71 @@
 </div>
 
 <!-- ── Écran config Humain vs Humain ── -->
+<div id="screen-config-humain" style="justify-content:flex-start; padding:0; overflow:hidden;">
+
+  <!-- Barre de titre fixe -->
+  <div style="width:100%; background:#c2d4e8; border-bottom:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0;">
+    <div class="config-title" style="margin-bottom:0;">⚔️ Humain vs Humain</div>
+  </div>
+
+  <!-- Zone scrollable -->
+  <div style="flex:1; overflow-y:auto; min-height:0; width:100%; padding:16px 32px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:560px; align-items:start;">
+
+      <!-- Joueur Blancs -->
+      <div class="card" style="padding:14px 16px;">
+        <h2><span id="label-white-name">Joueur Blancs</span></h2>
+        <label class="cfg-label">Nom</label>
+        <input id="cfg-white-name" class="cfg-input" type="text" placeholder="Nom Blancs">
+      </div>
+
+      <!-- Joueur Noirs -->
+      <div class="card" style="padding:14px 16px;">
+        <h2><span id="label-black-name">Joueur Noirs</span></h2>
+        <label class="cfg-label">Nom</label>
+        <input id="cfg-black-name" class="cfg-input" type="text" placeholder="Nom Noirs">
+      </div>
+
+    </div>
+
+    <!-- Couleurs + Type -->
+    <div style="width:100%; max-width:560px; display:flex; flex-direction:column; gap:12px;">
+
+      <div class="card" style="padding:14px 16px;">
+        <h2>Couleurs</h2>
+        <div class="color-btns">
+          <button class="color-btn selected" onclick="selectColorHH('white')">♔ Blancs en bas</button>
+          <button class="color-btn"          onclick="selectColorHH('black')">♚ Noirs en bas</button>
+          <button class="color-btn"          onclick="selectColorHH('random')">🎲 Aléatoire</button>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#556; font-size:0.85rem; cursor:pointer;">
+          <input type="checkbox" id="hh-random" onchange="selectColorHH(this.checked ? 'random' : 'white')">
+          Couleurs aléatoires
+        </label>
+      </div>
+
+      <div class="card" style="padding:14px 16px;">
+        <h2>Type de partie</h2>
+        <select id="cfg-hh-type" class="cfg-input">
+          <option value="serieuse">Sérieuse</option>
+          <option value="amusement">Amusement</option>
+          <option value="club">Club</option>
+        </select>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Boutons fixes en bas -->
+  <div style="width:100%; background:#c2d4e8; border-top:1px solid #a0b8d0; padding:12px 32px; display:flex; gap:12px; flex-shrink:0;">
+    <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;">← Retour</button>
+    <button class="btn btn-reprendre" onclick="startGameHH()" style="flex:2;">▶ Démarrer</button>
+  </div>
+
+</div>
+
 <div id="screen-retranscription">
   <div class="config-title">📝 Retranscrire</div>
 
