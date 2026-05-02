@@ -24,49 +24,6 @@
 
 ---
 
-## 🔨 Refactoring structure (chantier en cours)
-
-### Étape 1 — Nettoyage ✅
-- [x] Git initialisé
-- [x] `play_stockfish/` supprimé
-- [x] `play_menu/` supprimé  
-- [x] `lichess/` supprimé
-- [x] Sources driver C copiées dans `src/`
-- [x] `INSTALLATION_NICLINK.md` mis à jour (quirk usbhid + recompilation .so)
-
-### Étape 2 — Renommage des `__main__.py` internes ✅
-- [x] `play_human/__main__.py` → `human.py`
-- [x] `play_pedagogique/__main__.py` → `pedagogique.py`
-- [x] `retranscription/__main__.py` → `retranscription.py`
-- [x] `labo/__main__.py` → `labo.py`
-- [x] `exercices/__main__.py` → `exercices.py`
-- [x] `web/__main__.py` → `alchess.py` (nom du programme)
-
-### Étape 3 — Restructuration des dossiers ✅
-Structure cible :
-```
-nicsoft/
-├── core/          (ex-niclink/)
-├── modes/
-│   ├── pedagogique/
-│   ├── humain/
-│   ├── analyse/   (ex-retranscription/)
-│   ├── exercices/
-│   └── labo/
-├── engine/        (ex-game/)
-├── tools/         (scripts admin ex-exercices/)
-├── web/
-└── utils/
-```
-
-### Étape 4 — CSS extrait ✅
-- [x] CSS extrait de `index.html` vers `static/css/main.css`
-
-### Étape 5 — JS commenté par sections ✅
-- [x] Séparateurs `// ──` harmonisés dans `app.js`
-
----
-
 ## 💡 Fonctionnalités à venir
 
 - **Labo — à terminer** — mode non finalisé : Stockfish ne joue pas dans tous les cas (voir bug "Labo Stockfish ne joue pas"), comportement des toggles à revoir
