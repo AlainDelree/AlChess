@@ -23,7 +23,7 @@
   <h1>♟ AlChess</h1>
   <div id="status-dot"></div>
   <span id="status-text">Connexion...</span>
-  <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:auto; font-size:0.75rem; color:#556; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
+  <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:auto; font-size:0.75rem; color:#3a5a7a; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
   <a id="btn-debug-mark" href="#" title="Insérer un marqueur debug dans les logs" onclick="debugMark(event)" style="display:none; font-size:0.75rem; color:#e94560; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🔖</a>
   <a id="btn-debug-mark" href="#" title="Insérer un marqueur debug dans les logs" onclick="debugMark(event)" style="display:none; font-size:0.75rem; color:#e94560; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🔖</a>
 </header>
@@ -71,7 +71,7 @@
       <input type="checkbox" id="chk-virtual-mode"
         style="width:15px; height:15px; cursor:pointer; accent-color:#e94560;"
         onchange="toggleVirtualMode(this.checked)">
-      <span style="font-size:0.82rem; color:#556;">Mode sans échiquier physique</span>
+      <span style="font-size:0.82rem; color:#3a5a7a;">Mode sans échiquier physique</span>
     </label>
   </div>
 
@@ -132,15 +132,15 @@
           <div id="cfg-section-stockfish">
             <label class="cfg-label">Force du moteur</label>
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-              <button onclick="adjustElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-200</button>
-              <button onclick="adjustElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-50</button>
+              <button onclick="adjustElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-200</button>
+              <button onclick="adjustElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-50</button>
               <input id="cfg-elo" class="cfg-input" type="number" min="1320" max="3190" value="1500"
                      style="flex:1; text-align:center; margin-bottom:0; font-size:1rem; font-weight:bold;"
                      oninput="clampElo()">
-              <button onclick="adjustElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+50</button>
-              <button onclick="adjustElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+200</button>
+              <button onclick="adjustElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+50</button>
+              <button onclick="adjustElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+200</button>
             </div>
-            <div id="cfg-elo-label" style="text-align:center; font-size:0.78rem; color:#778;">~1500 Elo — Joueur confirmé</div>
+            <div id="cfg-elo-label" style="text-align:center; font-size:0.78rem; color:#3a5a7a;">~1500 Elo — Joueur confirmé</div>
           </div>
 
           <!-- Section Maia -->
@@ -157,27 +157,27 @@
               <option value="1800">Maia 1800 — Avancé+</option>
               <option value="1900">Maia 1900 — Expert</option>
             </select>
-            <div style="text-align:center; font-size:0.78rem; color:#778;">Joue comme un humain de ce niveau</div>
+            <div style="text-align:center; font-size:0.78rem; color:#3a5a7a;">Joue comme un humain de ce niveau</div>
           </div>
 
           <!-- Section Rodent -->
           <div id="cfg-section-rodent" style="display:none;">
             <label class="cfg-label">Force de Rodent</label>
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-              <button onclick="adjustRodentElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-200</button>
-              <button onclick="adjustRodentElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">-50</button>
+              <button onclick="adjustRodentElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-200</button>
+              <button onclick="adjustRodentElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-50</button>
               <input id="cfg-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="800"
                      style="flex:1; text-align:center; margin-bottom:0; font-size:1rem; font-weight:bold;"
                      oninput="clampRodentElo()">
-              <button onclick="adjustRodentElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+50</button>
-              <button onclick="adjustRodentElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#aaa; cursor:pointer; font-size:0.75rem;">+200</button>
+              <button onclick="adjustRodentElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+50</button>
+              <button onclick="adjustRodentElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+200</button>
             </div>
-            <div id="cfg-rodent-elo-label" style="text-align:center; font-size:0.78rem; color:#778; margin-bottom:10px;">800 Elo — Grand débutant</div>
+            <div id="cfg-rodent-elo-label" style="text-align:center; font-size:0.78rem; color:#3a5a7a; margin-bottom:10px;">800 Elo — Grand débutant</div>
             <div style="display:flex; align-items:center; justify-content:space-between;">
               <label class="cfg-label" style="margin-bottom:0;">Jeu simplifié</label>
               <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                 <input type="checkbox" id="cfg-rodent-simple" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
-                <span style="font-size:0.85rem; color:#aaa; display:inline-block; width:52px;">Activé</span>
+                <span style="font-size:0.85rem; color:#445; display:inline-block; width:52px;">Activé</span>
               </label>
             </div>
           </div>
@@ -190,14 +190,14 @@
             <label class="cfg-label" style="margin-bottom:0;">Analyse des coups</label>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
               <input type="checkbox" id="cfg-analyse" checked style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
-              <span id="cfg-analyse-label" style="font-size:0.85rem; color:#aaa; display:inline-block; width:52px;">Activée</span>
+              <span id="cfg-analyse-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;">Activée</span>
             </label>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
             <label class="cfg-label" style="margin-bottom:0;">Bip sonore</label>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
               <input type="checkbox" id="cfg-bip" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
-              <span id="cfg-bip-label" style="font-size:0.85rem; color:#aaa; display:inline-block; width:52px;">Activé</span>
+              <span id="cfg-bip-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;">Activé</span>
             </label>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -205,7 +205,7 @@
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
               <input type="checkbox" id="cfg-show-legal" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;"
                 onchange="virtSaveLegalPref(this.checked)">
-              <span id="cfg-show-legal-label" style="font-size:0.85rem; color:#aaa; display:inline-block; width:52px;">Activé</span>
+              <span id="cfg-show-legal-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;">Activé</span>
             </label>
           </div>
         </div>
@@ -263,7 +263,7 @@
           <button class="color-btn"          onclick="selectColorHH('black')">♚ Noirs en bas</button>
           <button class="color-btn"          onclick="selectColorHH('random')">🎲 Aléatoire</button>
         </div>
-        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#556; font-size:0.85rem; cursor:pointer;">
+        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#3a5a7a; font-size:0.85rem; cursor:pointer;">
           <input type="checkbox" id="hh-random" onchange="selectColorHH(this.checked ? 'random' : 'white')">
           Couleurs aléatoires
         </label>
@@ -296,7 +296,7 @@
   <!-- Bandeau session en cours -->
   <div id="retrans-resume-banner" style="display:none; background:#1a3a1a; border:1px solid #4caf50; border-radius:8px; padding:12px 16px; margin-bottom:16px; width:380px; text-align:center;">
     <div style="color:#4caf50; font-weight:bold; margin-bottom:6px;">♻ Session en cours</div>
-    <div id="retrans-resume-info" style="color:#aaa; font-size:0.85rem; margin-bottom:10px;"></div>
+    <div id="retrans-resume-info" style="color:#445; font-size:0.85rem; margin-bottom:10px;"></div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-continuer" onclick="retransResume(false)" style="flex:1; padding:6px;">Nouvelle</button>
       <button class="btn btn-reprendre" onclick="retransResume(true)" style="flex:1; padding:6px;">↩ Reprendre</button>
@@ -310,7 +310,7 @@
       🏆 Partie
     </button>
     <button id="retrans-tab-exercice" onclick="retransSelectTab('exercice')"
-      style="flex:1; padding:10px; font-size:0.9rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#778; transition:0.15s;">
+      style="flex:1; padding:10px; font-size:0.9rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#3a5a7a; transition:0.15s;">
       📖 Exercice
     </button>
   </div>
@@ -345,7 +345,7 @@
       <button id="retrans-camp-white" class="btn" onclick="retransSetCamp('white')"
         style="flex:1; padding:8px; background:#e8c840; border:1px solid #e8c840; color:#d8e4f0; font-weight:bold;">♔ Blancs</button>
       <button id="retrans-camp-black" class="btn" onclick="retransSetCamp('black')"
-        style="flex:1; padding:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#778;">♚ Noirs</button>
+        style="flex:1; padding:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#3a5a7a;">♚ Noirs</button>
     </div>
 
     <div style="display:flex; gap:8px; margin-top:8px;">
@@ -360,7 +360,7 @@
   <div id="retrans-left" style="width:220px; display:flex; flex-direction:column; gap:10px;">
     <div class="card" style="padding:14px;">
       <div id="retrans-title" style="font-weight:bold; color:#e94560; margin-bottom:6px;"></div>
-      <div id="retrans-turn" style="font-size:0.85rem; color:#aaa; margin-bottom:10px;"></div>
+      <div id="retrans-turn" style="font-size:0.85rem; color:#445; margin-bottom:10px;"></div>
       <div id="retrans-status" style="font-size:0.82rem; color:#e0e0e0;"></div>
     </div>
     <div class="card" style="padding:14px; flex:1; overflow-y:auto;">
@@ -370,7 +370,7 @@
   </div>
 
   <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-    <div id="retrans-player-top" style="font-size:0.85rem; font-weight:600; color:#aaa; padding:4px 0; text-align:center; width:100%;"></div>
+    <div id="retrans-player-top" style="font-size:0.85rem; font-weight:600; color:#445; padding:4px 0; text-align:center; width:100%;"></div>
     <div id="retrans-board-wrapper" style="min-width:0; display:flex; flex-direction:row; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden;">
       <div id="retrans-coord-rank" class="coord-rank" style="height:min(500px, calc(100vw - 460px));"></div>
       <div style="display:flex; flex-direction:column;">
@@ -379,7 +379,7 @@
       </div>
     </div>
     <div id="retrans-player-bottom" style="font-size:0.85rem; font-weight:600; color:#e0e0e0; padding:4px 0; text-align:center; width:100%;"></div>
-    <div style="font-size:0.78rem; color:#556;">Cliquez pour jouer</div>
+    <div style="font-size:0.78rem; color:#3a5a7a;">Cliquez pour jouer</div>
   </div>
 
   <div id="retrans-right" style="width:200px; display:flex; flex-direction:column; gap:10px;">
@@ -388,7 +388,7 @@
       <button class="btn btn-warning" onclick="sendAction({type:'retranscription_undo'})"
         style="width:100%; margin-bottom:8px;">↩ Annuler coup</button>
       <button class="btn" onclick="retransFlip()"
-        style="width:100%; margin-bottom:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#aaa;">
+        style="width:100%; margin-bottom:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#445;">
         ⇅ Retourner l'échiquier</button>
       <button id="btn-retrans-save-continue" class="btn btn-continuer" onclick="retransSaveContinue()"
         style="width:100%; margin-bottom:8px; display:none;">💾 Sauver et continuer</button>
@@ -399,12 +399,12 @@
         style="width:100%; margin-bottom:4px; background:#2a1a1a; color:#e94560; border:1px solid #e94560;">
         Noirs gagnent (0-1)</button>
       <button class="btn" onclick="retransEnd('1/2-1/2')"
-        style="width:100%; margin-bottom:8px; background:#1a1a2a; color:#778; border:1px solid #445;">
+        style="width:100%; margin-bottom:8px; background:#1a1a2a; color:#3a5a7a; border:1px solid #445;">
         Nulle (½-½)</button>
       <button class="btn btn-continuer" onclick="retransEnd('*')"
         style="width:100%; margin-bottom:4px; font-size:0.82rem;">← Sauver et quitter</button>
       <button class="btn" onclick="retransQuitSansSauver()"
-        style="width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#556;">
+        style="width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#3a5a7a;">
         ✕ Quitter sans sauver</button>
     </div>
   </div>
@@ -416,12 +416,13 @@
     <div class="card" style="height: calc(100vh - 110px); display:flex; flex-direction:column;">
       <h2>Historique</h2>
       <div id="historique" style="flex:1; overflow-y:auto;"></div>
-      <div id="legende" style="border-top:1px solid #a0b8d0; padding-top:10px; margin-top:8px; font-size:0.72rem; color:#555;">
+      <div id="legende" style="border-top:1px solid #a0b8d0; padding-top:10px; margin-top:8px; font-size:0.72rem; color:#1a2a3a;">
+        <div style="font-weight:600; margin-bottom:4px; font-size:0.75rem;">Légende</div>
         <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="width:44px;color:#666">d4</td><td style="color:#666">Bon coup</td></tr>
-          <tr><td style="color:#f0a500">e4?!</td><td style="color:#888">Imprécision</td></tr>
-          <tr><td style="color:#e05000">Nf3?</td><td style="color:#888">Erreur</td></tr>
-          <tr><td style="color:#9b00e0">Qg4??</td><td style="color:#888">Gaffe</td></tr>
+          <tr><td style="width:44px;color:#1a2a3a">d4</td><td style="color:#1a2a3a">Bon coup</td></tr>
+          <tr><td style="color:#f0a500">e4?!</td><td style="color:#f0a500">Imprécision</td></tr>
+          <tr><td style="color:#e05000">Nf3?</td><td style="color:#e05000">Erreur</td></tr>
+          <tr><td style="color:#9b00e0">Qg4??</td><td style="color:#9b00e0">Gaffe</td></tr>
         </table>
       </div>
     </div>
@@ -457,7 +458,7 @@
         <span id="player-bottom-name">—</span>
         <span id="material-bottom"></span>
         <button id="btn-flip" onclick="flipBoard()" title="Noirs en bas"
-          style="background:none; border:none; color:#556; cursor:pointer; font-size:0.8rem; padding:2px 6px; margin-left:auto; opacity:0.6; transition:opacity 0.2s;"
+          style="background:none; border:none; color:#3a5a7a; cursor:pointer; font-size:0.8rem; padding:2px 6px; margin-left:auto; opacity:0.6; transition:opacity 0.2s;"
           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">⇅</button>
       </div>
     </div>
@@ -468,10 +469,10 @@
     <div id="panel-playing">
       <div class="card">
         <h2 class="card-title-lg" id="panel-playing-title">Partie Pédagogique</h2>
-        <div id="game-subtitle" style="color:#aaa; margin-bottom:14px; font-size:0.9rem;"></div>
+        <div id="game-subtitle" style="color:#445; margin-bottom:14px; font-size:0.9rem;"></div>
         <div id="pause-select-row" style="display:flex; align-items:center; gap:10px;">
-          <label style="font-size:0.8rem; color:#778; white-space:nowrap;">Pause :</label>
-          <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" style="flex:1; background:#a0b8d0; color:#e0e0e0; border:1px solid #e94560; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
+          <label style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;">Pause :</label>
+          <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" style="flex:1; background:#a0b8d0; color:#1a2a3a; border:1px solid #7a9ab8; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
             <option value="" disabled selected>...</option>
             <option value="toujours">Toujours</option>
             <option value="imprecision">Imprécision + Erreur + Gaffe</option>
@@ -493,22 +494,22 @@
         </div>
         <div id="countdown"></div>
         <button class="btn btn-best"      id="btn-best"      disabled onclick="sendAction({type:'meilleur'})">💡 Voir le meilleur coup</button>
-        <button class="btn"               id="btn-sequence"  disabled onclick="jouerSequencePunitive()" style="background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;">🎬 Voir la séquence</button>
+        <button class="btn"               id="btn-sequence"  disabled onclick="jouerSequencePunitive()" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;">🎬 Voir la séquence</button>
         <button class="btn btn-reprendre" id="btn-reprendre" disabled onclick="sendAction({type:'reprendre'})">↩ Reprendre mon coup</button>
         <button class="btn btn-continuer" id="btn-continuer" disabled onclick="sendAction({type:'continuer'})">→ Continuer</button>
       </div>
       <div class="card" id="card-actions" style="display:flex; flex-direction:column; gap:8px;">
         <h2>Actions</h2>
-        <button class="btn" style="background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})">⏸ Pause</button>
+        <button class="btn" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})">⏸ Pause</button>
         <button class="btn btn-warning" onclick="ouvrirModalAbandonner()">🏳 Abandonner</button>
         <button class="btn" id="btn-nulle" style="background:#4a4a6a; color:#e0e0e0;" onclick="ouvrirModalNulle()">🤝 Partie Nulle</button>
         <button class="btn" id="btn-undo" style="display:none; background:#2a3a1a; color:#aae0aa; border:1px solid #4a8a2a;" onclick="demanderUndo()">↩ Annuler le dernier coup</button>
-        <button class="btn" style="background:#b8cce0; color:#666;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
+        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
       </div>
       <!-- Message undo confirmation -->
       <div class="card" id="card-undo-confirm" style="display:none; flex-direction:column; gap:8px; border-color:#4a8a2a;">
         <h2 style="color:#aae0aa;">↩ Coup annulé</h2>
-        <div id="undo-msg" style="font-size:0.85rem; color:#aaa; margin-bottom:4px;">Replacez la pièce sur l'échiquier puis confirmez.</div>
+        <div id="undo-msg" style="font-size:0.85rem; color:#445; margin-bottom:4px;">Replacez la pièce sur l'échiquier puis confirmez.</div>
         <button class="btn" style="background:#2a3a1a; color:#aae0aa; border:1px solid #4a8a2a;" onclick="sendAction({type:'undo_confirm'})">✓ Confirmer</button>
       </div>
     </div>
@@ -518,18 +519,18 @@
       <!-- Info joueur + feedback coup (si pause auto) -->
       <div class="card" style="padding:14px 16px;">
         <h2 class="card-title-lg">Partie en pause</h2>
-        <div id="pause-info" style="color:#aaa; font-size:0.9rem; margin-top:4px; margin-bottom:8px;"></div>
+        <div id="pause-info" style="color:#445; font-size:0.9rem; margin-top:4px; margin-bottom:8px;"></div>
         <!-- Feedback visible seulement en pause auto -->
         <div id="pause-feedback-box" style="display:none; border-radius:6px; padding:10px 12px;">
-          <div id="pause-feedback-label" style="font-size:1rem; font-weight:700; margin-bottom:4px;"></div>
-          <div id="pause-feedback-detail" style="font-size:0.85rem; color:#ccc;"></div>
+          <div id="pause-feedback-label" style="font-size:1rem; font-weight:700; margin-bottom:4px; color:#f0f0f0;"></div>
+          <div id="pause-feedback-detail" style="font-size:0.85rem; color:#f0f0f0;"></div>
         </div>
       </div>
 
       <!-- Navigation historique -->
       <div class="card" style="padding:14px 16px;">
         <h2>Navigation</h2>
-        <div id="pause-move-san" style="text-align:center; font-size:1.6rem; font-weight:bold; color:#e0e0e0; min-height:2rem; margin-bottom:10px;"></div>
+        <div id="pause-move-san" style="text-align:center; font-size:1.6rem; font-weight:bold; color:#1a2a3a; min-height:2rem; margin-bottom:10px;"></div>
         <div style="display:flex; gap:8px;">
           <button class="btn btn-continuer" style="flex:1; margin-bottom:0; padding:8px;" onclick="pauseReviewPrev()">← Précédent</button>
           <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:8px;" onclick="pauseReviewNext()">Suivant →</button>
@@ -545,11 +546,11 @@
         <!-- Toujours visible — reprend la partie (= continuer en pause manuelle) -->
         <button class="btn btn-reprendre" id="btn-pause-resume" onclick="sendAction({type:'resume_pause'})">▶ Reprendre la partie</button>
         <button class="btn btn-best"      id="btn-pause-meilleur"  disabled onclick="sendAction({type:'meilleur'})">💡 Voir le meilleur coup</button>
-        <button class="btn"               id="btn-pause-sequence"  style="display:none; background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;" disabled onclick="jouerSequencePunitive()">🎬 Voir la séquence</button>
+        <button class="btn"               id="btn-pause-sequence"  style="display:none; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" disabled onclick="jouerSequencePunitive()">🎬 Voir la séquence</button>
         <!-- Toujours disponibles -->
         <button class="btn" id="btn-changer-couleur" style="background:#a0b8d0; color:#e0e0e0; border:1px solid #e94560;" onclick="pauseToggleChangerCouleur()">🔄 Changer de couleur</button>
         <button class="btn btn-warning" style="display:none;" id="btn-pause-abandonner" onclick="ouvrirModalAbandonner()">🏳 Abandonner</button>
-        <button class="btn" style="background:#b8cce0; color:#666;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
+        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
       </div>
     </div>
     <!-- ── Fin de partie ── -->
@@ -560,21 +561,21 @@
           <span id="gameover-title" style="font-size:0.95rem; font-weight:bold; color:#e94560;">Partie terminée</span>
           <span id="gameover-result" style="font-size:1.1rem; font-weight:bold; color:#e94560;"></span>
         </div>
-        <div id="rv-game-info" style="color:#aaa; font-size:0.82em; margin-top:4px;"></div>
+        <div id="rv-game-info" style="color:#445; font-size:0.82em; margin-top:4px;"></div>
       </div>
       <!-- Navigation + Sauvegarder fusionnés -->
       <div class="card" id="card-nav-save" style="padding:14px 18px;">
         <!-- Ligne : NAVIGATION + COUP N -->
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-          <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:2px; color:#556; font-weight:700;">Navigation</span>
-          <span id="review-move-info" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; color:#556; font-weight:700;"></span>
+          <span style="font-size:0.72rem; text-transform:uppercase; letter-spacing:2px; color:#3a5a7a; font-weight:700;">Navigation</span>
+          <span id="review-move-info" style="font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; color:#3a5a7a; font-weight:700;"></span>
         </div>
         <!-- Coup actuel centré, grand -->
-        <div id="review-move-san" style="text-align:center; font-size:1.6rem; font-weight:bold; color:#e0e0e0; margin-bottom:10px; min-height:2rem;"></div>
+        <div id="review-move-san" style="text-align:center; font-size:1.6rem; font-weight:bold; color:#1a2a3a; margin-bottom:10px; min-height:2rem;"></div>
         <!-- Meilleur coup (visible si analysé et best_move disponible) -->
         <div id="review-best-move-row" style="display:none; margin-bottom:8px;">
           <button id="btn-review-best" class="btn btn-best" style="width:100%; margin-bottom:0;" onclick="showReviewBestMove()">💡 Voir le meilleur coup</button>
-          <div id="review-best-move-san" style="text-align:center; font-size:0.9rem; color:#aac4e0; margin-top:6px; display:none;"></div>
+          <div id="review-best-move-san" style="text-align:center; font-size:0.9rem; color:#3a5a7a; margin-top:6px; display:none;"></div>
         </div>
         <!-- Play/Pause + Slider vitesse -->
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
@@ -589,7 +590,7 @@
             </svg>
           </button>
           <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#556;">
+            <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#3a5a7a;">
               <span>0.2s</span><span>Vitesse</span><span>5s</span>
             </div>
             <input id="autoplay-speed" type="range" min="0.2" max="5" step="0.1" value="2" disabled
@@ -625,7 +626,7 @@
         <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()">📂 Importer PGN</button>
         <!-- Sélecteur nombre de coups séquence -->
         <div id="rv-seq-row" style="display:none; align-items:center; gap:8px;">
-          <label style="font-size:0.8rem; color:#778; white-space:nowrap;">Séquence :</label>
+          <label style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;">Séquence :</label>
           <select id="rv-seq-moves" style="flex:1; background:#a0b8d0; color:#e0e0e0; border:1px solid #2a5a8a; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
             <option value="3" selected>3 coups</option>
             <option value="4">4 coups</option>
@@ -633,10 +634,10 @@
           </select>
         </div>
         <button class="btn btn-reprendre" style="margin-bottom:0; display:none;" id="btn-analyser"     onclick="lancerAnalyse()">🔍 Analyser la partie</button>
-        <button class="btn" style="margin-bottom:0; display:none; background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a;" id="btn-rv-sequence" onclick="jouerSequenceReview()">🎬 Voir la séquence</button>
+        <button class="btn" style="margin-bottom:0; display:none; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" id="btn-rv-sequence" onclick="jouerSequenceReview()">🎬 Voir la séquence</button>
         <button class="btn btn-reprendre" style="margin-bottom:0; display:none;" id="btn-telecharger"  onclick="telechargerPgn()">⬇️ Télécharger PGN analysé</button>
         <button class="btn btn-continuer" style="margin-bottom:0; display:none;" id="btn-vider-analyse" onclick="_viderAnalyse()">🗑 Enlever la partie chargée</button>
-        <button class="btn" style="background:#b8cce0; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
+        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
       </div>
     </div>
   </div>
@@ -675,16 +676,16 @@
 <div id="screen-exercices" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:16px; overflow-y:auto;">
 
   <div style="font-size:1.5rem; color:#e94560; font-weight:bold;">📚 Exercices — Ouvertures</div>
-  <div style="font-size:0.85rem; color:#778; margin-top:-10px;">Choisissez une ouverture et entraînez-vous avec le livre de GM</div>
+  <div style="font-size:0.85rem; color:#3a5a7a; margin-top:-10px;">Choisissez une ouverture et entraînez-vous avec le livre de GM</div>
 
   <!-- Paramètres compacts -->
   <div id="ex-variete-bar" style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; justify-content:center; background:#c2d4e8; border:1px solid #a0b8d0; border-radius:8px; padding:12px 20px;">
     <div style="display:flex; align-items:center; gap:10px;">
-      <span style="color:#aaa; font-size:0.82rem;">Variété</span>
+      <span style="color:#445; font-size:0.82rem;">Variété</span>
       <input type="range" id="ex-variete" min="1" max="8" value="3" style="width:90px; accent-color:#e94560;" oninput="exUpdateVariete()">
       <span id="ex-variete-label" style="color:#e0e0e0; font-weight:bold; width:16px;">3</span>
     </div>
-    <button class="btn" style="background:#b8cce0; color:#666; margin-top:0;" onclick="sendAction({type:'back'})">← Menu</button>
+    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-top:0;" onclick="sendAction({type:'back'})">← Menu</button>
   </div>
 
   <!-- Onglets Blancs / Noirs / Mes lignes -->
@@ -694,11 +695,11 @@
       ♔ Blancs suggérés
     </button>
     <button id="ex-tab-black" onclick="exSelectTab('black')"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#778; transition:opacity 0.15s;">
+      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#3a5a7a; transition:opacity 0.15s;">
       ♚ Noirs suggérés
     </button>
     <button id="ex-tab-mes-lignes" onclick="exSelectTab('mes-lignes')"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#778; transition:opacity 0.15s;">
+      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#3a5a7a; transition:opacity 0.15s;">
       ★ Mes lignes
     </button>
   </div>
@@ -706,9 +707,9 @@
   <!-- Liste des ouvertures groupées -->
   <!-- Barre drill compacte -->
   <div id="ex-drill-bar" style="display:none; width:100%; max-width:960px; background:#c2d4e8; border:1px solid #a0b8d0; border-radius:8px; padding:8px 12px; margin-bottom:8px; align-items:center; gap:8px;">
-    <span id="ex-drill-count" style="font-size:0.82rem; color:#778; flex:1;"></span>
+    <span id="ex-drill-count" style="font-size:0.82rem; color:#3a5a7a; flex:1;"></span>
     <button class="btn" onclick="sendAction({type:'back'})"
-      style="padding:7px 14px; font-size:0.82rem; background:#b8cce0; color:#666; border:1px solid #333;">← Menu</button>
+      style="padding:7px 14px; font-size:0.82rem; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; border:1px solid #333;">← Menu</button>
     <button id="ex-drill-btn" class="btn btn-reprendre" onclick="exLancerDrill()"
       style="padding:7px 18px; font-size:0.85rem;">🎲 Drill</button>
   </div>
@@ -724,7 +725,7 @@
     <div class="card" style="padding:12px 14px;">
       <h2 id="ex-run-nom" style="color:#e94560; font-size:0.85rem; margin-bottom:8px;"></h2>
       <div id="ex-run-status" style="font-size:0.9rem; font-weight:600; color:#e0e0e0; margin-bottom:8px;">—</div>
-      <div id="ex-run-info" style="font-size:0.8rem; color:#aaa; line-height:1.6;"></div>
+      <div id="ex-run-info" style="font-size:0.8rem; color:#445; line-height:1.6;"></div>
       <div id="ex-run-instructions" style="margin-top:10px; font-size:0.78rem; color:#4caf50; line-height:1.5; padding:8px; background:#0a2a1a; border-radius:4px; border-left:3px solid #4caf50;"></div>
     </div>
     <div class="card" style="padding:12px 14px;">
@@ -738,16 +739,16 @@
     <!-- Spinner chargement -->
     <div id="ex-spinner">
       <div class="spinner-ring"></div>
-      <div style="color:#778; font-size:0.85rem; margin-top:14px;">Connexion à l'échiquier…</div>
+      <div style="color:#3a5a7a; font-size:0.85rem; margin-top:14px;">Connexion à l'échiquier…</div>
     </div>
     <div id="ex-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 640px));">
-      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-top" style="color:#aaa; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
+      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-top" style="color:#445; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
       <div style="display:flex; align-items:stretch;">
         <div class="coord-rank" id="ex-coord-rank"></div>
         <div id="ex-board" style="display:grid; grid-template-columns:repeat(8,1fr); flex:1; min-width:0; aspect-ratio:1;"></div>
       </div>
       <div class="coord-file" id="ex-coord-file" style="width:100%;"></div>
-      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-bottom" style="color:#ddd; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
+      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-bottom" style="color:#1a2a3a; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
     </div>
     <!-- Feedback -->
     <div id="ex-feedback" style="margin-top:8px; padding:8px 16px; border-radius:6px; font-size:0.9rem; display:none; text-align:center; font-weight:600;"></div>
@@ -759,7 +760,7 @@
     <div class="card" style="padding:14px 16px;">
       <h2>PROGRESSION</h2>
       <div id="ex-run-moves-count" style="font-size:1.2rem; font-weight:bold; color:#e0e0e0; text-align:center;">Coup 0</div>
-      <div id="ex-run-variete" style="font-size:0.75rem; color:#556; text-align:center; margin-top:4px;"></div>
+      <div id="ex-run-variete" style="font-size:0.75rem; color:#3a5a7a; text-align:center; margin-top:4px;"></div>
     </div>
 
     <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
@@ -767,7 +768,7 @@
       <button id="ex-btn-sync" class="btn" style="margin-bottom:0; background:#a0b8d0; border:1px solid #4caf50; color:#4caf50;" onclick="sendAction({type:'exercice_sync'})">🔄 Synchroniser plateau → Virtuel</button>
       <button class="btn btn-reprendre" style="margin-bottom:0;" onclick="sendAction({type:'exercice_retry'})">↺ Recommencer l'exercice</button>
       <button class="btn btn-continuer" style="margin-bottom:0;" onclick="sendAction({type:'exercice_back'})">← Choisir autre ouverture</button>
-      <button class="btn" style="background:#b8cce0; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
+      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
     </div>
 
   </div>
@@ -788,7 +789,7 @@
           Journal
         </button>
         <button id="labo-tab-pgn" onclick="laboSwitchTab('pgn')"
-          style="background:none; border:none; border-bottom:2px solid transparent; color:#556;
+          style="background:none; border:none; border-bottom:2px solid transparent; color:#3a5a7a;
                  font-size:0.72rem; font-weight:600; padding:4px 10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; display:none;">
           PGN
         </button>
@@ -803,14 +804,14 @@
             <button id="jfilt-analyse" onclick="laboJournalToggleFilt('analyse')" class="jfilt-btn active" style="color:#4caf50;">Analyse</button>
             <button id="jfilt-config"  onclick="laboJournalToggleFilt('config')"  class="jfilt-btn active" style="color:#aac4e0;">Config</button>
           </div>
-          <button onclick="laboJournalVider()" style="background:none; border:1px solid #333; border-radius:4px; color:#556; font-size:0.7rem; padding:2px 7px; cursor:pointer; flex-shrink:0;">Vider</button>
+          <button onclick="laboJournalVider()" style="background:none; border:1px solid #333; border-radius:4px; color:#3a5a7a; font-size:0.7rem; padding:2px 7px; cursor:pointer; flex-shrink:0;">Vider</button>
         </div>
         <div id="labo-journal" style="flex:1; overflow-y:auto; min-height:0; font-size:0.75rem; line-height:1.5;"></div>
       </div>
 
       <!-- Panneau PGN -->
       <div id="labo-tab-panel-pgn" style="display:none; flex-direction:column; flex:1; min-height:0;">
-        <div id="labo-pgn-info-left" style="font-size:0.72rem; color:#556; margin-bottom:6px; flex-shrink:0;"></div>
+        <div id="labo-pgn-info-left" style="font-size:0.72rem; color:#3a5a7a; margin-bottom:6px; flex-shrink:0;"></div>
         <div id="labo-pgn-moves" style="flex:1; overflow-y:auto; min-height:0; font-size:0.8rem;"></div>
       </div>
 
@@ -823,7 +824,7 @@
     <div style="display:flex; align-items:center; gap:16px; margin-bottom:6px; justify-content:center;">
       <!-- Je joue -->
       <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:0.78rem; color:#556;">Je joue</span>
+        <span style="font-size:0.78rem; color:#3a5a7a;">Je joue</span>
         <div style="display:flex; border:1px solid #333; border-radius:6px; overflow:hidden;">
           <button id="labo-camp-white" onclick="laboSetCamp('white')"
             style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
@@ -835,7 +836,7 @@
       </div>
       <!-- Tour actuel -->
       <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:0.78rem; color:#556;">Tour</span>
+        <span style="font-size:0.78rem; color:#3a5a7a;">Tour</span>
         <div style="display:flex; border:1px solid #333; border-radius:6px; overflow:hidden;">
           <button id="labo-turn-white" onclick="laboSetTurn('white')"
             style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
@@ -853,7 +854,7 @@
       <div style="display:flex; align-items:stretch; gap:6px; width:100%;">
         <!-- Barre d'évaluation verticale -->
         <div id="labo-eval-bar-wrap" style="display:flex; flex-direction:column; align-items:center; width:18px; flex-shrink:0;">
-          <div id="labo-eval-score" style="font-size:0.62rem; color:#aaa; margin-bottom:2px; white-space:nowrap;">0.0</div>
+          <div id="labo-eval-score" style="font-size:0.62rem; color:#445; margin-bottom:2px; white-space:nowrap;">0.0</div>
           <div style="flex:1; width:14px; border-radius:4px; overflow:hidden; border:1px solid #333; background:#111; display:flex; flex-direction:column;">
             <div id="labo-eval-black" style="background:#222; width:100%; flex:1; transition:flex 0.4s ease;"></div>
             <div id="labo-eval-white" style="background:#e0e0e0; width:100%; flex:1; transition:flex 0.4s ease;"></div>
@@ -898,10 +899,10 @@
       <div onclick="laboToggleSection('labo-sec-moteur')"
         style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
         <h2 style="margin-bottom:0;">MOTEUR</h2>
-        <span id="labo-sec-moteur-arrow" style="color:#556; font-size:0.8rem;">▲</span>
+        <span id="labo-sec-moteur-arrow" style="color:#3a5a7a; font-size:0.8rem;">▲</span>
       </div>
       <div id="labo-sec-moteur" style="padding:0 14px 12px; display:flex; flex-direction:column; gap:7px;">
-        <div id="labo-engine-label" style="font-size:0.78rem; color:#556; margin-bottom:2px;"></div>
+        <div id="labo-engine-label" style="font-size:0.78rem; color:#3a5a7a; margin-bottom:2px;"></div>
         <button class="btn btn-best" id="labo-btn-best" style="margin-bottom:0;" onclick="sendAction({type:'best_move'})">💡 Meilleur coup</button>
         <button class="btn" id="labo-btn-auto" style="margin-bottom:0; background:#a0b8d0; color:#e0e0e0; border:1px solid #333;" onclick="laboToggleAuto()">⏵ Auto OFF</button>
 
@@ -913,7 +914,7 @@
       <div onclick="laboToggleSection('labo-sec-cfg')"
         style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
         <h2 style="margin-bottom:0;">CONFIG MOTEUR</h2>
-        <span id="labo-sec-cfg-arrow" style="color:#556; font-size:0.8rem;">▼</span>
+        <span id="labo-sec-cfg-arrow" style="color:#3a5a7a; font-size:0.8rem;">▼</span>
       </div>
       <div id="labo-sec-cfg" style="padding:0 14px 12px; display:none; flex-direction:column; gap:8px;">
         <div style="display:flex; gap:6px;">
@@ -923,14 +924,14 @@
         </div>
         <div id="labo-cfg-sf">
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
+            <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>
+            <button onclick="laboAdjElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-50</button>
             <input id="labo-elo" class="cfg-input" type="number" min="1320" max="3190" value="1500"
               style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampElo()">
-            <button onclick="laboAdjElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
+            <button onclick="laboAdjElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+50</button>
+            <button onclick="laboAdjElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+200</button>
           </div>
-          <div id="labo-elo-label" style="text-align:center;font-size:0.72rem;color:#778;">~1500 Elo</div>
+          <div id="labo-elo-label" style="text-align:center;font-size:0.72rem;color:#3a5a7a;">~1500 Elo</div>
         </div>
         <div id="labo-cfg-maia" style="display:none;">
           <select id="labo-maia-elo" class="cfg-input" style="margin-bottom:0;" onchange="laboPushConfig()">
@@ -943,21 +944,21 @@
         </div>
         <div id="labo-cfg-rodent" style="display:none;">
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjRodentElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjRodentElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">-50</button>
+            <button onclick="laboAdjRodentElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>
+            <button onclick="laboAdjRodentElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-50</button>
             <input id="labo-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="800"
               style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampRodentElo()">
-            <button onclick="laboAdjRodentElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjRodentElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#aaa;cursor:pointer;font-size:0.7rem;">+200</button>
+            <button onclick="laboAdjRodentElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+50</button>
+            <button onclick="laboAdjRodentElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+200</button>
           </div>
-          <div id="labo-rodent-elo-label" style="text-align:center;font-size:0.72rem;color:#778;">800 Elo</div>
+          <div id="labo-rodent-elo-label" style="text-align:center;font-size:0.72rem;color:#3a5a7a;">800 Elo</div>
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between;">
           <label class="cfg-label" style="margin-bottom:0; font-size:0.8rem;">Analyse des coups</label>
           <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
             <input type="checkbox" id="labo-analyse-chk" checked style="width:14px; height:14px; cursor:pointer; accent-color:#e94560;"
               onchange="sendAction({type:'set_analyse', value:this.checked})">
-            <span style="font-size:0.8rem; color:#aaa;">Activée</span>
+            <span style="font-size:0.8rem; color:#445;">Activée</span>
           </label>
         </div>
       </div>
@@ -968,20 +969,20 @@
       <div onclick="laboToggleSection('labo-sec-pos')"
         style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
         <h2 style="margin-bottom:0;">POSITION VIRTUELLE</h2>
-        <span id="labo-sec-pos-arrow" style="color:#556; font-size:0.8rem;">▼</span>
+        <span id="labo-sec-pos-arrow" style="color:#3a5a7a; font-size:0.8rem;">▼</span>
       </div>
       <div id="labo-sec-pos" style="padding:0 14px 12px; display:none; flex-direction:column; gap:7px;">
         <input type="file" id="labo-pgn-input" accept=".pgn" style="display:none" onchange="laboLoadPgn(event)">
         <button class="btn btn-best" style="margin-bottom:0;" onclick="document.getElementById('labo-pgn-input').click()">📂 Importer PGN</button>
         <div id="labo-pgn-nav" style="display:none; flex-direction:column; gap:5px;">
-          <div id="labo-pgn-info" style="font-size:0.75rem; color:#556; text-align:center;"></div>
+          <div id="labo-pgn-info" style="font-size:0.75rem; color:#3a5a7a; text-align:center;"></div>
           <div id="labo-pgn-san" style="text-align:center; font-size:1.1rem; font-weight:bold; color:#e0e0e0; min-height:1.4rem;"></div>
           <div style="display:flex; gap:6px;">
             <button class="btn btn-continuer" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnPrev()">← Précédent</button>
             <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnNext()">Suivant →</button>
           </div>
         </div>
-        <button class="btn" id="labo-btn-copy" style="margin-bottom:0; background:#9ab8d8; color:#aac4e0; border:1px solid #2a5a8a; display:none;"
+        <button class="btn" id="labo-btn-copy" style="margin-bottom:0; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a; display:none;"
           onclick="laboCopyToBoard()">📋 Source virtuelle → Plateau</button>
 
       </div>
@@ -989,7 +990,7 @@
 
     <!-- Retour -->
     <div style="padding:4px 0 8px;">
-      <button class="btn" style="background:#b8cce0; color:#666; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
+      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
     </div>
 
   </div>
@@ -1010,7 +1011,7 @@
 <div id="modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:100; align-items:center; justify-content:center;">
   <div style="background:#c2d4e8; border:1px solid #e94560; border-radius:10px; padding:28px 32px; min-width:300px; text-align:center;">
     <div id="modal-title" style="font-size:1.1rem; color:#e0e0e0; margin-bottom:8px;"></div>
-    <div id="modal-subtitle" style="font-size:0.78rem; color:#778; margin-bottom:20px;"></div>
+    <div id="modal-subtitle" style="font-size:0.78rem; color:#3a5a7a; margin-bottom:20px;"></div>
     <!-- Boutons standard (confirmation simple) -->
     <div id="modal-btns-standard" style="display:flex; gap:12px; justify-content:center;">
       <button id="modal-confirm" class="btn" style="min-width:120px;"></button>
