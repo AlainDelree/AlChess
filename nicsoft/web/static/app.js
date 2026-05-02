@@ -3,6 +3,32 @@
 let _boardFlipped = false;  // true = noirs en bas
 
 const BASE = "/static/pieces/";
+
+// ── MODE DEBUG ────────────────────────────────────────────
+// Vérifie si le mode debug est actif et affiche le bouton 🔖
+fetch("/debug/mode")
+  .then(r => r.json())
+  .then(data => {
+    if (data.debug) {
+      const btn = document.getElementById("btn-debug-mark");
+      if (btn) btn.style.display = "inline";
+    }
+  })
+  .catch(() => {});
+
+function debugMark(e) {
+  e.preventDefault();
+  fetch("/debug/mark")
+    .then(() => {
+      const btn = document.getElementById("btn-debug-mark");
+      if (btn) {
+        const orig = btn.textContent;
+        btn.textContent = "✅";
+        setTimeout(() => { btn.textContent = orig; }, 1000);
+      }
+    })
+    .catch(() => {});
+}
 const PIECES = {
   'K': `<img src="${BASE}wK.svg">`,
   'Q': `<img src="${BASE}wQ.svg">`,
@@ -1097,7 +1123,7 @@ function telechargerPgn() {
   a.click();
   URL.revokeObjectURL(url);
 }
-function sauvegarderAlChess() {
+function sauvegarderNicLink() {
   const white  = document.getElementById("player-bottom-name").textContent;
   const black  = document.getElementById("player-top-name").textContent;
   const result = document.getElementById("gameover-result").textContent.trim() || "*";
@@ -3037,7 +3063,7 @@ function exRenderMesLignes(lignes) {
     list.innerHTML = `<div style="color:#556; text-align:center; padding:30px; line-height:1.8;">
       <div style="font-size:1.1rem; margin-bottom:8px;">Aucune ligne personnelle trouvée.</div>
       <div style="font-size:0.82rem;">Placez vos fichiers <b>.pgn</b> dans<br>
-      <code style="color:#e94560;">~/AlChess/data/mes_lignes/</code><br>
+      <code style="color:#e94560;">~/NicLink/data/mes_lignes/</code><br>
       puis lancez : <code style="color:#e94560;">python -m nicsoft.exercices.manage</code> → option 6</div>
     </div>`;
     return;
