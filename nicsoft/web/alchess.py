@@ -297,8 +297,8 @@ def _launch_pedagogique(config):
 
 
 def _launch_retranscription(config):
-    """Lance le mode retranscription — délègue au module nicsoft.retranscription."""
-    from nicsoft.retranscription.retranscription import run_retranscription
+    """Lance le mode retranscription — délègue au module nicsoft.modes.retranscription."""
+    from nicsoft.modes.retranscription.retranscription import run_retranscription
     from nicsoft.web.server import get_action as _get_action
     import queue as _queue
 
