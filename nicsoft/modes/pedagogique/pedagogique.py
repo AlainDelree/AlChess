@@ -48,6 +48,10 @@ from nicsoft.engine.pgn_manager import (
 )
 from nicsoft.niclink import NicLinkManager
 from nicsoft.engine.board_utils import wait_for_initial_position
+
+class BackMenuExit(Exception):
+    """Levée pour sortir proprement vers le menu sans tuer le processus."""
+    pass
 from nicsoft.engine.players import load_players, save_players
 from nicsoft.utils.backup_manager import run_backup
 from nicsoft.utils.input_helpers import ask_int, parse_player_input
@@ -433,7 +437,7 @@ class Game(threading.Thread):
         # Sortie immédiate sans attendre (retour menu, ou partie sans serveur web)
         if skip_save:
             finalize_pgn(self.tmp_path, False, None)
-            sys.exit(0)
+            raise BackMenuExit()
         # Attendre la décision de sauvegarde depuis le navigateur
         player_name = getattr(self, "player_name", "Human")
         white = player_name if self.playing_white else "Stockfish"
@@ -463,7 +467,7 @@ class Game(threading.Thread):
             elif atype in ("back_menu", "abandonner"):
                 finalize_pgn(self.tmp_path, False, None)
                 break
-        sys.exit(0)
+        raise BackMenuExit()
 
     def check_for_game_over(self) -> None:
         over_state = self.nl_inst.is_game_over()

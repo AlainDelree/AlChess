@@ -18,9 +18,6 @@ from flask_socketio import SocketIO, emit
 logger = logging.getLogger("niclink.server")
 LOG_FILE = pathlib.Path.home() / "NicLink" / "logs" / "niclink.log"
 
-# Mode debug — activé via variable d'environnement NICLINK_LOG=DEBUG
-DEBUG_MODE = os.environ.get("NICLINK_LOG", "").upper() == "DEBUG"
-
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "niclink_pedagogique"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading", )
@@ -62,28 +59,6 @@ def get_logs():
     if LOG_FILE.exists():
         return send_file(str(LOG_FILE), mimetype="text/plain", as_attachment=False)
     return "Aucun log disponible.", 404
-
-@app.route("/debug/mark")
-def debug_mark():
-    """Insère un marqueur dans les logs — mode debug uniquement."""
-    if not DEBUG_MODE:
-        abort(403)
-    from datetime import datetime
-    marker = f"\n{'='*60}\n=== DEBUG MARK — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n{'='*60}\n"
-    try:
-        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(marker)
-        print(marker)
-        return "Marqueur ajouté.", 200
-    except Exception as e:
-        return f"Erreur : {e}", 500
-
-@app.route("/debug/mode")
-def debug_mode_status():
-    """Retourne si le mode debug est actif — utilisé par le JS au démarrage."""
-    from flask import jsonify
-    return jsonify({"debug": DEBUG_MODE})
 
 
 # ── SocketIO events ───────────────────────────────────────────────────────────
@@ -164,9 +139,10 @@ def on_action(data):
     atype = data.get("type", "")
     # Retour menu — traité ici directement pour playing et game_over
     if atype == "back_menu":
+        prev_state = _app_state  # sauvegarder AVANT de changer
         set_app_state("menu")
         # Mettre dans action_queue seulement si un thread actif écoute
-        if _app_state in ("playing", "connecting", "game_over", "paused", "labo",
+        if prev_state in ("playing", "connecting", "game_over", "paused", "labo",
                           "exercice_running", "retrans_playing"):
             action_queue.put(data)
         return

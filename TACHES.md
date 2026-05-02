@@ -68,3 +68,5 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **Labo Stockfish ne joue pas** Mode Auto ON (libelle Auto OFF) partie deja entammé(sur l'echiquier c4, d4 blanc et d5 noir joué.  Normalement a noir de jouer) Toggle laissé: Je Joue et Tour = blanc et blanc.  Du coup, je joue c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir.  Aucune réaction de stockfish.
 - **Exercice avec echiquier physique**  Le coup de l'ordinateur est montré via des led sur le plateau mais n'apparait sur l'ecran de l'ordinateur que quand le coup est joué sur l'echiquier.
 - **HH délai avant d'afficher le coup des blancs** A vérifier
+- **Partie pédagogique** délai avant d'afficher le 1er coup blanc
+

@@ -360,7 +360,7 @@ def _launch_humain(config):
 def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, bip_active,
                      engine_elo, engine_path, engine_type="stockfish", maia_elo=1500,
                      rodent_elo=800, rodent_simple=False, _error=None, virtual=False):
-    from nicsoft.modes.pedagogique.pedagogique import Game, load_config
+    from nicsoft.modes.pedagogique.pedagogique import Game, load_config, BackMenuExit
     from nicsoft.web.server import get_action
 
     config = load_config()
@@ -435,6 +435,8 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         game.save_pgn_tmp()
         print(f"Partie : {player_name} vs {engine_label}")
         game.start()
+    except BackMenuExit:
+        pass  # retour menu propre — le processus continue
     except SystemExit as e:
         if "board connection error" in str(e):
             print("Erreur : échiquier non détecté.")
