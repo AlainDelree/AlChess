@@ -834,7 +834,7 @@ def _poll_board_fen_labo():
 
 def _make_labo_session(nl_inst, config: dict):
     """Crée une LaboSession depuis la config courante."""
-    from nicsoft.labo.labo import LaboSession
+    from nicsoft.modes.labo.labo import LaboSession
     from nicsoft.engine.engine_manager import find_stockfish
     engine_path = ""
     try:
@@ -1163,7 +1163,7 @@ def _launch_analyse_libre(config):
 def _run_analyse_libre(player_name, playing_white, start_fen, pause, analyse_active, bip_active,
                        engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple, _error=None):
     from nicsoft.niclink import NicLinkManager
-    from nicsoft.labo.labo import LaboSession
+    from nicsoft.modes.labo.labo import LaboSession
 
     nl_inst = None
     try:
