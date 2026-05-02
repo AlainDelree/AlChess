@@ -42,7 +42,7 @@
 - [x] `exercices/__main__.py` → `exercices.py`
 - [x] `web/__main__.py` → `alchess.py` (nom du programme)
 
-### Étape 3 — Restructuration des dossiers
+### Étape 3 — Restructuration des dossiers ✅
 Structure cible :
 ```
 nicsoft/
@@ -69,6 +69,7 @@ nicsoft/
 
 ## 💡 Fonctionnalités à venir
 
+- **Mise à jour pyproject.toml** — changer nom/auteur/URL vers AlChess quand le compte GitHub sera prêt
 - **Analyse libre** — Stockfish suggère les meilleurs coups pour les deux camps sans auto-play (Labo existe mais à confirmer si c'est ça)
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
 - **Supprimer les `[DEBUG]` prints** une fois le programme stable
