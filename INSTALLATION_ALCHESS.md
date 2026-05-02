@@ -1,8 +1,9 @@
-# Guide d'installation NicLink — Nouvelle machine Ubuntu
+# Guide d'installation AlChess — Nouvelle machine Ubuntu
 
 Basé sur l'installation réelle du 13 avril 2026 sur ThinkPad X1 Carbon Gen 13.
 Mis à jour le 30 avril 2026 — launcher GTK, port automatique.
 Mis à jour le 1 mai 2026 — quirk usbhid Chessnut, recompilation driver .so.
+Mis à jour le 3 mai 2026 — GitHub, renommage AlChess.
 
 ---
 
@@ -21,9 +22,15 @@ sudo apt install cmake pkg-config libudev-dev libhidapi-dev build-essential pyth
 
 ---
 
-## 2. Copie du projet
+## 2. Récupération du projet
 
-Copier le dossier `~/NicLink/` depuis la machine source **sans le venv** :
+**Depuis GitHub (recommandé) :**
+
+```bash
+git clone https://github.com/AlainDelree/AlChess.git ~/NicLink
+```
+
+**Depuis une machine locale (alternative) :**
 
 ```bash
 rsync -av --exclude=venv alain@machine-source:~/NicLink/ ~/NicLink/
@@ -220,7 +227,7 @@ cat > ~/Bureau/NicLink.desktop << 'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=NicLink
+Name=AlChess
 Comment=Entraînement aux échecs avec échiquier physique
 Exec=bash -c "/usr/bin/python3 /home/NOM_UTILISATEUR/NicLink/nicsoft/web/launcher.py"
 Icon=/home/NOM_UTILISATEUR/NicLink/nicsoft/web/static/pieces/wP.svg
@@ -294,7 +301,7 @@ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor  # attendu : performan
 | Lecteur d'empreintes bloque sudo | PAM fprintd prioritaire | Désactiver dans Paramètres → Utilisateurs → Empreinte |
 | SocketIO reste en polling lent | CPU en mode `powersave` | Réglé par le changement de gouverneur |
 | `ModuleNotFoundError: No module named 'gi'` | GTK non installé ou venv actif | `sudo apt install python3-gi` et utiliser `/usr/bin/python3` pour le launcher |
-| `Address already in use` sur port 5000 | Instance déjà en cours | NicLink trouve automatiquement le prochain port libre — relancer normalement |
+| `Address already in use` sur port 5000 | Instance déjà en cours | AlChess trouve automatiquement le prochain port libre — relancer normalement |
 | Fenêtre GTK n'apparaît pas au clic | launcher.py lancé avec le venv python | Vérifier que le `.desktop` utilise `/usr/bin/python3` |
 
 ---
@@ -311,12 +318,14 @@ utiliser le zoom du navigateur (Ctrl+ / Ctrl-).
 
 ```bash
 # 1. Paquets système
-sudo apt install libhidapi-hidraw0 libopenblas0 cpufrequtils stockfish
+sudo apt install git libhidapi-hidraw0 libopenblas0 cpufrequtils stockfish
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0
 sudo apt install cmake pkg-config libudev-dev libhidapi-dev build-essential python3-dev
 
-# 2. Copie du projet
-rsync -av --exclude=venv alain@machine-source:~/NicLink/ ~/NicLink/
+# 2. Récupération du projet
+git clone https://github.com/AlainDelree/AlChess.git ~/NicLink
+# Ou depuis une machine locale :
+# rsync -av --exclude=venv alain@machine-source:~/NicLink/ ~/NicLink/
 
 # 3. Venv
 cd ~/NicLink
@@ -356,7 +365,7 @@ cat > ~/Bureau/NicLink.desktop << 'EOF'
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=NicLink
+Name=AlChess
 Comment=Entraînement aux échecs avec échiquier physique
 Exec=bash -c "/usr/bin/python3 /home/NOM_UTILISATEUR/NicLink/nicsoft/web/launcher.py"
 Icon=/home/NOM_UTILISATEUR/NicLink/nicsoft/web/static/pieces/wP.svg
