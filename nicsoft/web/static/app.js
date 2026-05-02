@@ -1097,7 +1097,7 @@ function telechargerPgn() {
   a.click();
   URL.revokeObjectURL(url);
 }
-function sauvegarderNicLink() {
+function sauvegarderAlChess() {
   const white  = document.getElementById("player-bottom-name").textContent;
   const black  = document.getElementById("player-top-name").textContent;
   const result = document.getElementById("gameover-result").textContent.trim() || "*";
@@ -3037,7 +3037,7 @@ function exRenderMesLignes(lignes) {
     list.innerHTML = `<div style="color:#556; text-align:center; padding:30px; line-height:1.8;">
       <div style="font-size:1.1rem; margin-bottom:8px;">Aucune ligne personnelle trouvée.</div>
       <div style="font-size:0.82rem;">Placez vos fichiers <b>.pgn</b> dans<br>
-      <code style="color:#e94560;">~/NicLink/data/mes_lignes/</code><br>
+      <code style="color:#e94560;">~/AlChess/data/mes_lignes/</code><br>
       puis lancez : <code style="color:#e94560;">python -m nicsoft.exercices.manage</code> → option 6</div>
     </div>`;
     return;

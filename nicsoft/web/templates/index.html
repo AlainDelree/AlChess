@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NicLink</title>
+  <title>AlChess</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
   <link rel="stylesheet" href="/static/css/main.css">
@@ -20,7 +20,7 @@
 <body>
 
 <header>
-  <h1>♟ NicLink</h1>
+  <h1>♟ AlChess</h1>
   <div id="status-dot"></div>
   <span id="status-text">Connexion...</span>
   <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:auto; font-size:0.75rem; color:#556; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
@@ -28,7 +28,7 @@
 
 <!-- ── Écran menu ── -->
 <div id="screen-menu">
-  <div class="menu-title">♟ NicLink</div>
+  <div class="menu-title">♟ AlChess</div>
   <div class="menu-subtitle">Vérification de l'échiquier…</div>
 
   <div class="menu-btn-wrap">
@@ -73,7 +73,7 @@
     </label>
   </div>
 
-  <button class="menu-btn" onclick="ouvrirModal('quit', 'Quitter NicLink ?', 'Quitter', 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
+  <button class="menu-btn" onclick="ouvrirModal('quit', 'Quitter AlChess ?', 'Quitter', 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
 </div>
 
 <!-- ── Écran config ── -->
@@ -614,7 +614,7 @@
               <option value="h-club">Humain — Club</option>
             </optgroup>
           </select>
-          <button class="btn btn-reprendre" style="width:100%; margin-bottom:0; padding:8px;" onclick="sauvegarderNicLink()">💾 Sauvegarder dans NicLink</button>
+          <button class="btn btn-reprendre" style="width:100%; margin-bottom:0; padding:8px;" onclick="sauvegarderAlChess()">💾 Sauvegarder dans AlChess</button>
         </div>
       </div>
       <!-- Actions analyse + retour menu -->
@@ -1037,7 +1037,7 @@
   align-items: center; justify-content: center; gap: 20px;
 ">
   <span style="font-size: 2rem;">♟</span>
-  <div style="font-size: 1.2rem; color: #1a2a3a; font-weight: 600;">Démarrage de NicLink…</div>
+  <div style="font-size: 1.2rem; color: #1a2a3a; font-weight: 600;">Démarrage de AlChess…</div>
   <div style="color: #2a3a4a; font-size: 0.9rem;">Chargement en cours…</div>
   <div style="
     width: 40px; height: 40px;
