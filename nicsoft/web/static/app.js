@@ -5,6 +5,31 @@ let _boardFlipped = false;  // true = noirs en bas
 const BASE = "/static/pieces/";
 
 // ── MODE DEBUG ────────────────────────────────────────────
+fetch("/debug/mode")
+  .then(r => r.json())
+  .then(data => {
+    if (data.debug) {
+      const btn = document.getElementById("btn-debug-mark");
+      if (btn) btn.style.display = "inline";
+    }
+  })
+  .catch(() => {});
+
+function debugMark(e) {
+  e.preventDefault();
+  fetch("/debug/mark")
+    .then(() => {
+      const btn = document.getElementById("btn-debug-mark");
+      if (btn) {
+        const orig = btn.textContent;
+        btn.textContent = "✅";
+        setTimeout(() => { btn.textContent = orig; }, 1000);
+      }
+    })
+    .catch(() => {});
+}
+
+// ── MODE DEBUG ────────────────────────────────────────────
 // Vérifie si le mode debug est actif et affiche le bouton 🔖
 fetch("/debug/mode")
   .then(r => r.json())
