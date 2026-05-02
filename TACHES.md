@@ -105,4 +105,5 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 ## 🐛 Bugs récents
 
 - **Retour exercices bloqué** — Exercices → Mes lignes → Chigorine ligne 1 → ligne complète → Retour menu → re-cliquer Chigorine ligne 1 → aucune réaction. Bug lié au bouton "retour" en général, apparaît avec d'autres écrans.
-- **Annuler Coup Pédagogique** - Patie pédagogique-> Pas de bouton reprendre coup. Si ->Bouton pause-> pas de bouton reprendre le coup et si on recule avec l'historique, ca reprend quand meme au coup sans apporter de modification
+- **Annuler Coup Pédagogique** - Patie pédagogique-> Pas de bouton reprendre coup. Si ->Bouton pause-> pas de bouton reprendre le coup et si on recule avec l'historique, ca reprend quand meme au coup sans apporter de modification.
+- **Labo Stockfish ne joue pas** Mode Auto ON (libelle Auto OFF) partie deja entammé(sur l'echiquier c4, d4 blanc et d5 noir joué.  Normalement a noir de jouer) Toggle laissé: Je Joue et Tour = blanc et blanc.  Du coup, je joue c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir.  Aucune réaction de stockfish.
