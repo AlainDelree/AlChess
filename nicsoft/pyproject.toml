@@ -1,9 +1,8 @@
-#  nic_soft is free software: you can redistribute it and/or modify it under the terms of the gnu general public license as published by the free software foundation, either version 3 of the license, or (at your option) any later version.
+#  AlChess is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 #
-#  nic_soft is distributed in the hope that it will be useful, but without any warranty; without even the implied warranty of merchantability or fitness for a particular purpose. see the gnu general public license for more details.
+#  AlChess is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
-#  you should have received a copy of the gnu general public license along with nic_soft. if not, see <https://www.gnu.org/licenses/>.
-
+#  You should have received a copy of the GNU General Public License along with AlChess. If not, see <https://www.gnu.org/licenses/>.
 [build-system]
 requires = [
     "setuptools>=42",
@@ -12,32 +11,28 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name="nicsoft"
-version="1.1.0"
+name="alchess"
+version="1.0.0"
 authors=[
-    { name = "Nicolas Vaagen", email="nicolasvaagen@gmail.com" }
+    { name = "Alain Delree", email="alain.delree@gmail.com" }
 ]
-description='A package containing NicLink and associated software. NicLink is a "driver" for chessnut air boards.'
-keywords=["Chessnut", "Chessnut air", "e-board", "EasyLinkSDK", "chess", "lichess", "boardAPI"]
+description='Application connectant un échiquier physique Chessnut Air à une interface web pédagogique.'
+keywords=["Chessnut", "Chessnut air", "e-board", "EasyLinkSDK", "chess", "pedagogique"]
 classifiers= [
-    "Development Status :: ongoing",
-    "Intended Audience :: Chessnut air owners",
-    "Programming language :: Python :: 3.12+",
-    "Programming language :: C++",
-    "Operating System :: POSIX :: GNU/Linux",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: C++",
     "Operating System :: POSIX :: Linux",
-    "Operating System :: Microsoft :: Windows", # untested
-    "Operating System :: MacOS :: MacOS X", # untested
-    "Topic :: chess"
+    "Topic :: Games/Entertainment :: Board Games",
 ]
 readme = "README.md"
 license = {file = "LICENSE"}
-requires-python = ">=3.12.3"
+requires-python = ">=3.12"
 
 [project.urls]
-Repository = 'https://github.com/nicvagn/NicLink'
-issues = 'https://github.com/nicvagn/NicLink/issues'
+Repository = 'https://github.com/AlainDelree/AlChess'
+issues = 'https://github.com/AlainDelree/AlChess/issues'
 
 [tool.setuptools.packages]
-find = {} # defaults
-
+find = {}
