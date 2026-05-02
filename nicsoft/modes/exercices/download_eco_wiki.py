@@ -3,7 +3,7 @@ nicsoft/exercices/download_eco_wiki.py — NicLink
 Télécharge la liste ECO depuis Wikipedia et construit eco_hierarchy.json.
 
 Usage :
-    python -m nicsoft.exercices.download_eco_wiki
+    python -m nicsoft.modes.exercices.download_eco_wiki
 
 Produit : ~/NicLink/data/eco_hierarchy.json
 Format :

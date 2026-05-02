@@ -3,11 +3,11 @@ nicsoft/exercices/manage.py — NicLink
 Menu central de gestion du catalogue d'ouvertures.
 
 Usage :
-    python -m nicsoft.exercices.manage
+    python -m nicsoft.modes.exercices.manage
 """
 
 import sys
-from nicsoft.exercices._catalogue import bold, cyan, dim, green, red, yellow
+from nicsoft.modes.exercices._catalogue import bold, cyan, dim, green, red, yellow
 
 MENU = [
     ("1", "Ajouter une ouverture manuellement",       "add"),
@@ -47,25 +47,25 @@ def main():
             print(red("Choix invalide.\n")); continue
 
         if action == "add":
-            from nicsoft.exercices.add_ouverture import main as run
+            from nicsoft.modes.exercices.add_ouverture import main as run
             run()
         elif action == "eco":
-            from nicsoft.exercices.eco_import import main as run
+            from nicsoft.modes.exercices.eco_import import main as run
             run()
         elif action == "explore":
-            from nicsoft.exercices.explore_book import main as run
+            from nicsoft.modes.exercices.explore_book import main as run
             run()
         elif action == "edit":
-            from nicsoft.exercices.edit_ouverture import main as run
+            from nicsoft.modes.exercices.edit_ouverture import main as run
             run()
         elif action == "wiki":
-            from nicsoft.exercices.download_eco_wiki import main as run
+            from nicsoft.modes.exercices.download_eco_wiki import main as run
             run()
         elif action == "import_lignes":
-            from nicsoft.exercices.import_lignes import main as run
+            from nicsoft.modes.exercices.import_lignes import main as run
             run()
         elif action == "show_uci":
-            from nicsoft.exercices.import_lignes import show_uci
+            from nicsoft.modes.exercices.import_lignes import show_uci
             show_uci()
 
         print()

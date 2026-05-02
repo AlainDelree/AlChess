@@ -3,7 +3,7 @@ nicsoft/exercices/eco_import.py — NicLink
 Explorateur ECO Lichess + import au catalogue.
 
 Usage :
-    python -m nicsoft.exercices.eco_import
+    python -m nicsoft.modes.exercices.eco_import
 
 Workflow :
     1. Filtrer par code(s) ECO  ex: C02  ou  C60-C67  ou  D
@@ -114,56 +114,7 @@ def best_book_for(board: chess.Board, books: list[pathlib.Path]) -> tuple:
             pass
     return best_path, best_entries
 
-# ── Popularité depuis le livre ───────────────────────────────────────────────
-
-def get_popularity(uci_moves: list, books: list) -> tuple:
-    if not uci_moves or not books:
-        return 0, 0
-    board = chess.Board()
-    for uci in uci_moves[:-1]:
-        try: board.push(chess.Move.from_uci(uci))
-        except Exception: return 0, 0
-    last_uci    = uci_moves[-1]
-    best_weight = 0
-    max_weight  = 0
-    for book_path in books:
-        try:
-            with chess.polyglot.open_reader(str(book_path)) as reader:
-                entries = list(reader.find_all(board))
-            if not entries: continue
-            entries.sort(key=lambda e: e.weight, reverse=True)
-            total = sum(e.weight for e in entries)
-            if total > max_weight:
-                max_weight  = total
-                best_weight = next(
-                    (e.weight for e in entries if e.move.uci() == last_uci), 0)
-        except Exception:
-            pass
-    return best_weight, max_weight
-
-
-def pop_bar(weight, max_weight, width=8):
-    if max_weight == 0 or weight == 0:
-        return dim("░" * width)
-    pct    = weight / max_weight
-    filled = round(pct * width)
-    if pct >= 0.30:   cfn = green
-    elif pct >= 0.10: cfn = yellow
-    else:             cfn = dim
-    return cfn("█" * filled) + dim("░" * (width - filled))
-
-
-def pop_label(weight, max_weight):
-    if max_weight == 0 or weight == 0:
-        return dim("absent   ")
-    pct = weight / max_weight * 100
-    if pct >= 30:  return green(f"{pct:4.0f}% ★★★")
-    if pct >= 10:  return yellow(f"{pct:4.0f}% ★★ ")
-    if pct >= 3:   return yellow(f"{pct:4.0f}% ★  ")
-    return dim(f"{pct:4.0f}% —  ")
-
-
-# ── Catalogue ─────────────────────────────────────────────────────────────────────
+# ── Catalogue ─────────────────────────────────────────────────────────────────
 
 def load_existing_ids() -> list[str]:
     content = CATALOGUE.read_text(encoding="utf-8")
@@ -205,31 +156,17 @@ def append_ouverture(entry: dict) -> None:
 
 # ── Affichage résultats ───────────────────────────────────────────────────────
 
-def display_results(results, existing_inits, books) -> None:
+def display_results(results: list[dict], existing_inits: list) -> None:
     existing_uci_sets = {tuple(einit) for _, einit in existing_inits}
-    print(dim(f"  Calcul popularité ({len(results)} lignes)…"))
-    for i, r in enumerate(results):
-        w, mw = get_popularity(r["uci"], books)
-        r["_weight"] = w
-        r["_maxw"]   = mw
-        done = round((i + 1) / len(results) * 30)
-        print(f"\r  [{chr(9608)*done}{chr(9617)*(30-done)}] {i+1}/{len(results)}", end="", flush=True)
     print()
-    results.sort(key=lambda r: r["_weight"], reverse=True)
-    for i, r in enumerate(results):
-        r["_idx"] = i + 1
-    print()
-    hdr = f"  {'#':>3}  {'ECO':<6}  {'Nom':<40}  {'Cp':>3}  {'Popularité':<20}  Statut"
-    print(bold(hdr))
-    print("  " + chr(9472) * 85)
-    for r in results:
+    print(bold(f"  {'#':>3}  {'ECO':<6}  {'Nom':<45}  {'Coups':>5}  {'Statut'}"))
+    print("  " + "─" * 75)
+    for i, r in enumerate(results, 1):
         already = tuple(r["uci"]) in existing_uci_sets
-        status  = magenta("✓") if already else ""
+        status  = magenta("✓ catalogue") if already else dim("—")
         nb      = len(r["uci"])
-        name_tr = r["name"][:39]
-        bar     = pop_bar(r["_weight"], r["_maxw"])
-        lbl     = pop_label(r["_weight"], r["_maxw"])
-        print(f"  {r['_idx']:>3}  {cyan(r['eco']):<15}  {name_tr:<40}  {nb:>3}  {bar} {lbl}  {status}")
+        name_tr = r["name"][:44]
+        print(f"  {i:>3}  {cyan(r['eco']):<15}  {name_tr:<45}  {nb:>5}  {status}")
     print()
 
 # ── Import d'une entrée ───────────────────────────────────────────────────────
@@ -358,7 +295,7 @@ def main():
         if not results:
             print(red(f"Aucun résultat pour '{filtre}'.")); continue
 
-        display_results(results, existing_inits, books)
+        display_results(results, existing_inits)
         print(f"  {len(results)} résultat(s). Entrez les numéros à ajouter, 'tout', ou Entrée pour nouveau filtre.\n")
 
         try:
