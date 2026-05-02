@@ -1,5 +1,5 @@
 import chess
-from nicsoft.play_human.human import Game
+from nicsoft.modes.humain.human import Game
 
 class DummyNL:
     def get_fen(self):
