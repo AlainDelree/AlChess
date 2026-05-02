@@ -10,7 +10,7 @@
 - **Écran HH vide** — piste identifiée : confusion entre HH physique (développé) et HH virtuel (non développé). Le bouton HH est visible en mode virtuel mais ne mène nulle part. À corriger : masquer HH en mode virtuel.
 
 ### Priorité moyenne
-- **Contraste visuel** — partiellement corrigé. Reste à faire : (1) bouton "Voir la séquence" peu lisible, (2) bouton "← Retour au menu" contours peu visibles, (3) texte blanc dans config pédagogique (boutons Blancs/Noirs/Aléatoire, moteur, options).
+
 
 - **Spinner bloqué au démarrage** — occasionnellement, l'écran "Démarrage de NicLink" reste bloqué avec le spinner malgré `board_ok` reçu. Non reproductible de façon fiable.
 
@@ -30,6 +30,7 @@
 - **Analyse libre** — Stockfish suggère les meilleurs coups pour les deux camps sans auto-play (Labo existe mais à confirmer si c'est ça)
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
 - **Supprimer les `[DEBUG]` prints** une fois le programme stable
+- **Time logs permanents** — remplacer `tlog()` (DEBUG only) par logging structuré toujours actif, timings `await_move` et `WAIT_FISH` dans le fichier log sans polluer le terminal
 
 ## 🧪 Stratégie de tests
 
@@ -69,5 +70,6 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **Exercice avec echiquier physique**  Le coup de l'ordinateur est montré via des led sur le plateau mais n'apparait sur l'ecran de l'ordinateur que quand le coup est joué sur l'echiquier.
 - **HH délai avant d'afficher le coup des blancs** A vérifier
 - **Partie pédagogique** délai avant d'afficher le 1er coup blanc
+- **WAIT_FISH lent intermittent** — occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente). À diagnostiquer via time logs permanents.
 - **Back_menu bloqué pendant WAIT_FISH** — Si une gaffe est faite et que le joueur clique "Retour menu" pendant que le coup de Stockfish est en attente de placement physique (`[WAIT_FISH]`), le thread reste bloqué. Même cause que BUG-011 mais dans `wait_for_stockfish_move()` cette fois. À corriger : vérifier `kill_switch` dans la boucle WAIT_FISH.
 
