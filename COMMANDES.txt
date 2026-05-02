@@ -9,27 +9,20 @@ outils:
 -------
 python -m nicsoft.exercices.manage
 
-LANCER LE JEU STABLE
--------------
-cd ~/NicLink && bash update_stable.sh
-SOLUTION 1
-cd ~/NicLink_stable && source ~/NicLink/venv/bin/activate && python -m nicsoft.web
-
-METTRE A JOUR LA VERSION STABLE
----------------------------------
-cd ~/NicLink && bash update_stable.sh
-ou
-rsync -a --exclude=venv ~/NicLink/ ~/NicLink_stable/
-
-LANCER LE JEU TIME DEBUG
--------------------------
-NICLINK_LOG=DEBUG python -m nicsoft.web
-
 LANCER LE JEU EN TRAVAIL
 -------------
 cd ~/NicLink
 source venv/bin/activate
 cd ~/NicLink && python -m nicsoft.web
+
+
+LANCER LE JEU TIME DEBUG
+-------------------------
+NICLINK_LOG=DEBUG python -m nicsoft.web
+
+DISTRIBUTION NOUVEAU PC
+----------------------
+pip install git+https://github.com/AlainDelree/AlChess.git
 
 SAUVEGARDES
 -----------
