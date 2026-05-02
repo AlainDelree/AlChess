@@ -124,10 +124,25 @@ Ce fichier sert à trois choses :
 
 ## Patterns identifiés
 
-1. **État non nettoyé au retour menu** — BUG-005, BUG-009. Pattern récurrent : une variable JS ou Python conserve l'état d'une session précédente. → Tester systématiquement les transitions retour menu.
+1. **État non nettoyé au retour menu** — BUG-005, BUG-009, BUG-011. Pattern récurrent : une variable JS ou Python conserve l'état d'une session précédente, ou un thread reste bloqué. → Tester systématiquement les transitions retour menu.
+
+5. **`sys.exit()` dans un thread tue tout le processus** — BUG-011. Utiliser des exceptions custom (`BackMenuExit`) pour sortir proprement d'un thread sans tuer Flask. → Ne jamais appeler `sys.exit()` dans un thread de jeu, sauf pour erreur fatale.
 
 2. **HTML structural** — BUG-001, BUG-002. Des `</div>` ou `</button>` manquants causent des bugs silencieux difficiles à diagnostiquer. → Valider le HTML avec les DevTools après chaque modification de `index.html`.
 
 3. **Race conditions USB/threading** — BUG-006, BUG-007. L'USB du Chessnut est lent et partagé entre threads. → Toujours passer par le thread dédié, jamais d'appel USB direct.
 
 4. **Handler manquant côté serveur** — BUG-009. Une action JS envoyée sans handler Python correspondant est ignorée silencieusement. → Vérifier que tout `sendAction({type: X})` a un `elif atype == "X"` dans `alchess.py`.
+
+---
+
+### BUG-011 — Retour menu bloque le programme (impossible de relancer un mode)
+**Date** : mai 2026  
+**Fichiers** : `web/server.py`, `modes/pedagogique/pedagogique.py`, `web/alchess.py`  
+**Symptôme** : Après "Retour au menu" depuis une partie en cours, impossible de relancer un mode (pédagogique, HH, exercices). Les clics sont ignorés indéfiniment.  
+**Cause racine** : Double problème — (1) Dans `server.py`, `on_action` appelait `set_app_state("menu")` AVANT de vérifier si `_app_state` était dans les états actifs. Résultat : `_app_state` valait déjà `"menu"` au moment de la condition, donc `back_menu` n'arrivait jamais dans `action_queue`. Le thread de jeu ne recevait jamais le signal d'arrêt et restait bloqué dans `await_move()`. (2) Dans `pedagogique.py`, `_end_game` appelait `sys.exit(0)` pour le retour menu, ce qui tuait tout le processus Flask au lieu de simplement terminer le thread.  
+**Correction** :  
+- `server.py` : sauvegarder `prev_state = _app_state` avant `set_app_state("menu")`, puis vérifier `prev_state` dans la condition.  
+- `pedagogique.py` : remplacer `sys.exit(0)` par `raise BackMenuExit()` (nouvelle exception custom), exclure `BackMenuExit` du handler `[CRASH]`.  
+- `alchess.py` : importer `BackMenuExit` et l'attraper dans `_run_pedagogique` sans relancer.  
+**Test** : Partie pédagogique → jouer 2 coups → Retour menu → immédiatement relancer Pédagogique → vérifier que la partie démarre sans délai. Répéter avec HH et Exercices.
