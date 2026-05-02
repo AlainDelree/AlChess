@@ -3,13 +3,13 @@ nicsoft/exercices/add_ouverture.py — NicLink
 Ajout manuel d'une ouverture au catalogue.
 
 Usage :
-    python -m nicsoft.exercices.add_ouverture
-    (ou via : python -m nicsoft.exercices.manage)
+    python -m nicsoft.modes.exercices.add_ouverture
+    (ou via : python -m nicsoft.modes.exercices.manage)
 """
 
 import chess
 import sys
-from nicsoft.exercices._catalogue import (
+from nicsoft.modes.exercices._catalogue import (
     BOOKS_DIR, scan_books, check_books, load_existing_ids, load_existing_inits,
     append_ouverture, resolve_parent_eco,
     bold, cyan, green, red, yellow, ask,

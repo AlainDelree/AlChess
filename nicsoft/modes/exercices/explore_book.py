@@ -3,8 +3,8 @@ nicsoft/exercices/explore_book.py — NicLink
 Explorateur interactif de livre Polyglot + import au catalogue.
 
 Usage :
-    python -m nicsoft.exercices.explore_book
-    (ou via : python -m nicsoft.exercices.manage)
+    python -m nicsoft.modes.exercices.explore_book
+    (ou via : python -m nicsoft.modes.exercices.manage)
 
 Navigation :
     [1-9]  Jouer le coup numéroté
@@ -18,7 +18,7 @@ import chess
 import chess.polyglot
 import pathlib
 import sys
-from nicsoft.exercices._catalogue import (
+from nicsoft.modes.exercices._catalogue import (
     _c, BOOKS_DIR, scan_books, book_moves_for,
     load_existing_ids, load_existing_inits, append_ouverture, resolve_parent_eco,
     bold, cyan, green, red, yellow, dim, magenta, ask,

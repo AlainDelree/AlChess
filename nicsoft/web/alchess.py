@@ -555,7 +555,7 @@ def _wait_initial_position_web(nl_inst, timeout: float = 300.0):
 
 def _launch_exercices():
     """Affiche l'écran de sélection des exercices — initialise NicLink si besoin."""
-    from nicsoft.exercices.exercices import get_ouvertures, get_mes_lignes
+    from nicsoft.modes.exercices.exercices import get_ouvertures, get_mes_lignes
     web_server._app_state = "exercices"
     set_app_state("exercices", {
         "ouvertures":  get_ouvertures(),
@@ -577,7 +577,7 @@ def _run_exercice(config: dict) -> None:
         return
     _exercice_running = True
 
-    from nicsoft.exercices.exercices import ExerciceSession, OUVERTURES, get_mes_lignes
+    from nicsoft.modes.exercices.exercices import ExerciceSession, OUVERTURES, get_mes_lignes
     import logging as _log
 
     ouverture_id = config.get("ouverture_id", "")
@@ -669,7 +669,7 @@ def _run_exercice(config: dict) -> None:
             try: nl_inst.turn_off_all_leds()
             except Exception: pass
         if web_server._app_state not in ("menu", "exercices"):
-            from nicsoft.exercices.exercices import get_ouvertures, get_mes_lignes
+            from nicsoft.modes.exercices.exercices import get_ouvertures, get_mes_lignes
             web_server._app_state = "exercices"
             set_app_state("exercices", {
                 "ouvertures": get_ouvertures(),
@@ -684,7 +684,7 @@ def _run_drill(config: dict) -> None:
         return
     _exercice_running = True
 
-    from nicsoft.exercices.exercices import DrillSession, get_mes_lignes
+    from nicsoft.modes.exercices.exercices import DrillSession, get_mes_lignes
     import logging as _log
 
     ligne_ids   = config.get("ligne_ids", [])
@@ -724,7 +724,7 @@ def _run_drill(config: dict) -> None:
         set_app_state("exercice_running")
 
         # Construire l'ouverture synthétique pour exercice_init
-        from nicsoft.exercices.exercices import common_init_moves
+        from nicsoft.modes.exercices.exercices import common_init_moves
         init = common_init_moves(lignes)
         camp = lignes[0].get("camp_suggere", human_color)
         ouverture_synth = {
@@ -772,7 +772,7 @@ def _run_drill(config: dict) -> None:
             try: nl_inst.turn_off_all_leds()
             except Exception: pass
         if web_server._app_state not in ("menu", "exercices"):
-            from nicsoft.exercices.exercices import get_ouvertures, get_mes_lignes
+            from nicsoft.modes.exercices.exercices import get_ouvertures, get_mes_lignes
             web_server._app_state = "exercices"
             set_app_state("exercices", {
                 "ouvertures": get_ouvertures(),

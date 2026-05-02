@@ -3,12 +3,12 @@ nicsoft/exercices/edit_ouverture.py — NicLink
 Modifier une ouverture existante dans le catalogue.
 
 Usage :
-    python -m nicsoft.exercices.edit_ouverture [--id ID]
-    (ou via : python -m nicsoft.exercices.manage)
+    python -m nicsoft.modes.exercices.edit_ouverture [--id ID]
+    (ou via : python -m nicsoft.modes.exercices.manage)
 """
 
 import sys
-from nicsoft.exercices._catalogue import (
+from nicsoft.modes.exercices._catalogue import (
     parse_ouvertures, save_ouverture,
     bold, cyan, green, red, yellow, dim, ask,
 )

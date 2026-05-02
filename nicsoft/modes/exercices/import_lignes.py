@@ -4,7 +4,7 @@ Importe des fichiers PGN simples (une ligne par fichier) depuis
 ~/NicLink/data/mes_lignes/ et les sauvegarde dans mes_lignes.json.
 
 Usage :
-    python -m nicsoft.exercices.import_lignes
+    python -m nicsoft.modes.exercices.import_lignes
 
 Format PGN attendu (un fichier = une ligne) :
     [Event "Ruy Lopez — ligne principale"]
@@ -22,7 +22,7 @@ import chess
 import chess.pgn
 import io
 
-from nicsoft.exercices._catalogue import (
+from nicsoft.modes.exercices._catalogue import (
     bold, cyan, green, red, yellow, dim, make_unique_id, pgn_to_uci
 )
 

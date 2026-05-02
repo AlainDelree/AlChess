@@ -3,7 +3,7 @@ nicsoft/exercices/eco_import.py — NicLink
 Explorateur ECO Lichess + import au catalogue.
 
 Usage :
-    python -m nicsoft.exercices.eco_import
+    python -m nicsoft.modes.exercices.eco_import
 
 Workflow :
     1. Filtrer par code(s) ECO  ex: C02  ou  C60-C67  ou  D
@@ -18,7 +18,7 @@ import pathlib
 import re
 import sys
 
-from nicsoft.exercices._catalogue import (
+from nicsoft.modes.exercices._catalogue import (
     DATA_DIR, BOOKS_DIR, scan_books, book_moves_for, best_book_for,
     load_existing_ids, load_existing_inits, append_ouverture,
     load_eco_hierarchy, resolve_parent_eco, make_unique_id, pgn_to_uci,
