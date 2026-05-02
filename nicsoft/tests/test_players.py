@@ -1,4 +1,4 @@
-from nicsoft.play_human.__main__ import (
+from nicsoft.play_human.human import (
     normalize_player_name,
     find_existing_player,
 )
