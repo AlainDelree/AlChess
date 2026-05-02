@@ -146,3 +146,7 @@ ImportError: cannot import name 'get_ouvertures' from 'nicsoft.exercices.__main_
 2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> OpenBLAS [OpenBLAS 0.3.26 NO_LAPACKE DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64].
 2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> OpenBLAS found 8 Haswell core(s).
 2026-05-01 23:27:00 [WARNING] chess.engine — <UciProtocol (pid=65151)>: stderr >> BLAS max batch size is 256.
+
+============================================================
+=== DEBUG MARK — 2026-05-02 20:43:55 ===
+============================================================
