@@ -667,8 +667,8 @@ socket.on("swap_color", (data) => {
   const botName  = document.getElementById("player-bottom-name");
   topName.textContent = isWhite ? opponent : data.player;
   botName.textContent = isWhite ? data.player : opponent;
-  topName.style.color = isWhite ? "#555" : "#ddd";
-  botName.style.color = isWhite ? "#ddd" : "#555";
+  topName.style.color = "#3a5a7a";
+  botName.style.color = "#1a2a3a";
 });
 
 socket.on("best_move", (data) => {
@@ -752,8 +752,8 @@ socket.on("init", (data) => {
   topName.textContent = isWhite ? opponent : data.player;
   botName.textContent = isWhite ? data.player : opponent;
   // Couleur du nom selon les pièces jouées : noir=gris, blanc=clair
-  topName.style.color = isWhite ? "#555" : "#ddd";
-  botName.style.color = isWhite ? "#ddd" : "#555";
+  topName.style.color = "#3a5a7a";
+  botName.style.color = "#1a2a3a";
 
   // Couleur de fond selon le moteur
   if (data.engine_type === "maia") {
@@ -804,8 +804,8 @@ socket.on("init_hh", (data) => {
   const botName = document.getElementById("player-bottom-name");
   topName.textContent  = data.black || "Noirs";
   botName.textContent  = data.white || "Blancs";
-  topName.style.color  = "#777";
-  botName.style.color  = "#ddd";
+  topName.style.color  = "#3a5a7a";
+  botName.style.color  = "#1a2a3a";
   document.getElementById("game-subtitle").innerHTML =
     `<span style="color:#f0f0f0;">♔ ${data.white}</span>`+
     `<span style="color:#666; margin:0 8px;">vs</span>`+
@@ -1101,10 +1101,10 @@ function addToHistory(san, qualite, color) {
 
 function qualiteColor(qualite) {
   switch(qualite) {
-    case "imprecision": return "#f0a500";
-    case "erreur":      return "#e05000";
-    case "blunder":     return "#9b00e0";
-    default:            return "#ccc";
+    case "imprecision": return "#cc7700";
+    case "erreur":      return "#cc2200";
+    case "blunder":     return "#7b00b0";
+    default:            return "#1a2a3a";
   }
 }
 function qualiteSymbole(qualite) {
@@ -1181,14 +1181,14 @@ function _renderHistory() {
   const total  = Math.max(whites.length, blacks.length);
 
   let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
-  html += '<tr><th style="color:#666;width:24px;text-align:right;padding-right:6px"></th>';
-  html += '<th style="color:#aaa;text-align:left;padding:2px 4px">Blancs</th>';
-  html += '<th style="color:#aaa;text-align:left;padding:2px 4px">Noirs</th></tr>';
+  html += '<tr><th style="color:#3a5a7a;width:24px;text-align:right;padding-right:6px"></th>';
+  html += '<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">Blancs</th>';
+  html += '<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">Noirs</th></tr>';
 
   for (let i = 0; i < total; i++) {
     const w = whites[i];
     const b = blacks[i];
-    html += `<tr><td style="color:#555;text-align:right;padding-right:6px;font-size:0.75rem">${i+1}.</td>`;
+    html += `<tr><td style="color:#3a5a7a;text-align:right;padding-right:6px;font-size:0.75rem">${i+1}.</td>`;
     const wq = w?.qualite || "bon";
     const bq = b?.qualite || "bon";
     const wsym = w?.qualite ? (sym[wq] || "") : "";
@@ -1576,7 +1576,7 @@ function renderHistory(activeIdx) {
   const blacks = reviewMoves.map((m, i) => ({...m, _idx: i + 1})).filter(m => m.color === "black");
   const total  = Math.max(whites.length, blacks.length);
   let html = '<table style="width:100%;border-collapse:collapse;">';
-  html += '<tr><th style="color:#888;font-weight:normal;padding:2px 4px;">Blancs</th><th style="color:#888;font-weight:normal;padding:2px 4px;">Noirs</th></tr>';
+  html += '<tr><th style="color:#1a2a3a;font-weight:600;padding:2px 4px;">Blancs</th><th style="color:#1a2a3a;font-weight:600;padding:2px 4px;">Noirs</th></tr>';
   for (let i = 0; i < total; i++) {
       const mw   = whites[i];
       const mb   = blacks[i];

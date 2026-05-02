@@ -10,7 +10,7 @@
 - **Écran HH vide** — piste identifiée : confusion entre HH physique (développé) et HH virtuel (non développé). Le bouton HH est visible en mode virtuel mais ne mène nulle part. À corriger : masquer HH en mode virtuel.
 
 ### Priorité moyenne
-- **Contraste visuel** — certains boutons et libellés peu lisibles avec les couleurs actuelles (ex: bouton Pause grisé qui se fond dans le fond). À revoir dans le CSS.
+- **Contraste visuel** — partiellement corrigé. Reste à faire : (1) bouton "Voir la séquence" peu lisible, (2) bouton "← Retour au menu" contours peu visibles, (3) texte blanc dans config pédagogique (boutons Blancs/Noirs/Aléatoire, moteur, options).
 
 - **Spinner bloqué au démarrage** — occasionnellement, l'écran "Démarrage de NicLink" reste bloqué avec le spinner malgré `board_ok` reçu. Non reproductible de façon fiable.
 
@@ -69,4 +69,5 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **Exercice avec echiquier physique**  Le coup de l'ordinateur est montré via des led sur le plateau mais n'apparait sur l'ecran de l'ordinateur que quand le coup est joué sur l'echiquier.
 - **HH délai avant d'afficher le coup des blancs** A vérifier
 - **Partie pédagogique** délai avant d'afficher le 1er coup blanc
+- **Back_menu bloqué pendant WAIT_FISH** — Si une gaffe est faite et que le joueur clique "Retour menu" pendant que le coup de Stockfish est en attente de placement physique (`[WAIT_FISH]`), le thread reste bloqué. Même cause que BUG-011 mais dans `wait_for_stockfish_move()` cette fois. À corriger : vérifier `kill_switch` dans la boucle WAIT_FISH.
 
