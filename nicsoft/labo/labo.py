@@ -15,7 +15,7 @@ import logging
 import threading
 import time
 
-from nicsoft.game.engine_manager import EngineManager, find_stockfish
+from nicsoft.engine.engine_manager import EngineManager, find_stockfish
 from nicsoft.web.server import send_event
 
 logger = logging.getLogger("NL labo")
@@ -53,7 +53,7 @@ class LaboSession:
 
         # ── Moteur ───────────────────────────────────────────────────────
         if engine_type == "maia":
-            from nicsoft.game.engine_manager import MaiaEngine, find_lc0, find_maia_weights
+            from nicsoft.engine.engine_manager import MaiaEngine, find_lc0, find_maia_weights
             lc0_path     = find_lc0()
             weights_path = find_maia_weights(maia_elo)
             sf_path      = find_stockfish() or "stockfish"

@@ -2,7 +2,7 @@ import chess
 import chess.pgn
 from pathlib import Path
 
-from nicsoft.game.pgn_manager import build_output_path, save_pgn
+from nicsoft.engine.pgn_manager import build_output_path, save_pgn
 
 
 def test_build_output_path_creates_human_pgn_path(tmp_path):

@@ -181,7 +181,7 @@ def set_virtual_board(vb) -> None:
 
 @socketio.on("save_pgn_externe")
 def on_save_pgn_externe(data):
-    from nicsoft.game.pgn_manager import build_final_path
+    from nicsoft.engine.pgn_manager import build_final_path
     white     = data.get("white", "Blanc")
     black     = data.get("black", "Noir")
     result    = data.get("result", "*")
@@ -203,7 +203,7 @@ def on_save_pgn_externe(data):
 def on_analyser_pgn(data):
     """Reçoit une liste de coups UCI et les analyse via EngineManager."""
     import threading, json, pathlib
-    from nicsoft.game.engine_manager import EngineManager, find_stockfish
+    from nicsoft.engine.engine_manager import EngineManager, find_stockfish
 
     print(f"[WEB] analyser_pgn reçu: {len(data.get('moves', []))} coups")
     moves_uci  = data.get("moves", [])

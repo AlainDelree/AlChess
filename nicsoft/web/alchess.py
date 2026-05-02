@@ -631,7 +631,7 @@ def _run_exercice(config: dict) -> None:
         # Créer un moteur pour le mode "continuer après livre"
         engine = None
         try:
-            from nicsoft.game.engine_manager import EngineManager, find_stockfish
+            from nicsoft.engine.engine_manager import EngineManager, find_stockfish
             import json, pathlib
             cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
             engine_elo  = 1500
@@ -741,7 +741,7 @@ def _run_drill(config: dict) -> None:
         session = DrillSession(nl_inst, lignes, human_color)
 
         try:
-            from nicsoft.game.engine_manager import EngineManager, find_stockfish
+            from nicsoft.engine.engine_manager import EngineManager, find_stockfish
             import json, pathlib
             cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
             engine_elo = 1500
@@ -835,7 +835,7 @@ def _poll_board_fen_labo():
 def _make_labo_session(nl_inst, config: dict):
     """Crée une LaboSession depuis la config courante."""
     from nicsoft.labo.labo import LaboSession
-    from nicsoft.game.engine_manager import find_stockfish
+    from nicsoft.engine.engine_manager import find_stockfish
     engine_path = ""
     try:
         import json, pathlib

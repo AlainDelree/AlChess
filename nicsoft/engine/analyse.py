@@ -6,7 +6,7 @@ Délègue tout à EngineManager — ce module reste pour la compatibilité
 des imports existants.
 """
 
-from nicsoft.game.engine_manager import (
+from nicsoft.engine.engine_manager import (
     EngineManager,
     classifier_coup,
     score_to_cp,
@@ -32,7 +32,7 @@ def analyser_partie(moves_uci: list, niveau: int = 5, callback=None) -> list:
     Compatibilité avec l'ancienne API — crée un EngineManager temporaire.
     Préférer analyser_partie_avec_manager() si un EngineManager existe déjà.
     """
-    from nicsoft.game.engine_manager import find_stockfish
+    from nicsoft.engine.engine_manager import find_stockfish
     import pathlib, json
 
     config_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"

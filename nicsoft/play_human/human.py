@@ -12,20 +12,20 @@ import time
 import chess
 import chess.pgn
 from nicsoft.utils.timing import tlog
-from nicsoft.game.display import display_move, display_turn, display_check_status
-from nicsoft.game.pgn_manager import (
+from nicsoft.engine.display import display_move, display_turn, display_check_status
+from nicsoft.engine.pgn_manager import (
     build_tmp_path,
     build_and_save_pgn,
     ask_save_pgn,
     finalize_pgn,
 )
-from nicsoft.game.players import (
+from nicsoft.engine.players import (
     load_players,
     save_players,
     find_existing_player,
     normalize_player_name,
 )
-from nicsoft.game.board_utils import wait_for_initial_position
+from nicsoft.engine.board_utils import wait_for_initial_position
 from nicsoft.web.server import send_event, get_action, set_app_state, _game_state
 from nicsoft.niclink import NicLinkManager
 
@@ -776,7 +776,7 @@ class GameWeb(threading.Thread):
                         is_white2 = self.board.turn == chess.WHITE
                         player2   = self.white_name if is_white2 else self.black_name
                         color2    = "white" if is_white2 else "black"
-                        from nicsoft.game.board_utils import analyser_position_illegale as _a
+                        from nicsoft.engine.board_utils import analyser_position_illegale as _a
                         send_event("turn", {
                             "color":    color2,
                             "player":   player2,
@@ -794,7 +794,7 @@ class GameWeb(threading.Thread):
                 if stable_count >= STABLE_NEEDED and not _illegal_reported[0]:
                     _illegal_reported[0] = True
                     try:
-                        from nicsoft.game.board_utils import analyser_position_illegale
+                        from nicsoft.engine.board_utils import analyser_position_illegale
                         msg = analyser_position_illegale(self.board, phys)
                     except Exception:
                         msg = "⚠ Position illégale — remettez la pièce à sa place."

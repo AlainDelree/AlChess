@@ -31,15 +31,15 @@ import chess
 import chess.pgn
 import numpy as np
 
-from nicsoft.game.engine_manager import EngineManager, find_stockfish
+from nicsoft.engine.engine_manager import EngineManager, find_stockfish
 from nicsoft.utils.timing import tlog
-from nicsoft.game.display import (
+from nicsoft.engine.display import (
     display_move,
     display_turn,
     display_board_diff,
     check_tab_press,
 )
-from nicsoft.game.pgn_manager import (
+from nicsoft.engine.pgn_manager import (
     build_tmp_path,
     ask_save_pgn,
     build_final_path,
@@ -47,13 +47,13 @@ from nicsoft.game.pgn_manager import (
     save_game,
 )
 from nicsoft.niclink import NicLinkManager
-from nicsoft.game.board_utils import wait_for_initial_position
-from nicsoft.game.players import load_players, save_players
+from nicsoft.engine.board_utils import wait_for_initial_position
+from nicsoft.engine.players import load_players, save_players
 from nicsoft.utils.backup_manager import run_backup
 from nicsoft.utils.input_helpers import ask_int, parse_player_input
 from nicsoft.web.server import send_event, get_action, start_server
 from nicsoft.niclink.nl_exceptions import ExitNicLink
-from nicsoft.game.engine_manager import (
+from nicsoft.engine.engine_manager import (
     classifier_coup as _classifier_coup,
     score_to_cp     as _score_to_cp,
     SEUIL_BON, SEUIL_IMPRECISION, SEUIL_ERREUR,
@@ -134,7 +134,7 @@ def _display_position_error(
                 elif exp and act:
                     missing_sq, missing_piece = sq, exp
                     extra_sq,   extra_piece   = sq, act
-        from nicsoft.game.display import _piece_symbol, _piece_name_fr
+        from nicsoft.engine.display import _piece_symbol, _piece_name_fr
         print()
         if missing_sq and extra_sq and missing_sq != extra_sq:
             sym_m = _piece_symbol(missing_piece)
@@ -271,7 +271,7 @@ class Game(threading.Thread):
         self.engine_type       = engine_type
 
         if engine_type == "maia":
-            from nicsoft.game.engine_manager import MaiaEngine, find_lc0, find_maia_weights
+            from nicsoft.engine.engine_manager import MaiaEngine, find_lc0, find_maia_weights
             lc0_path     = find_lc0()
             weights_path = find_maia_weights(maia_elo)
             sf_path      = find_stockfish() or "stockfish"
@@ -1064,7 +1064,7 @@ class Game(threading.Thread):
                                             diff_count, context="human")
                     # Message adapté + 2 bips
                     try:
-                        from nicsoft.game.board_utils import analyser_position_illegale
+                        from nicsoft.engine.board_utils import analyser_position_illegale
                         msg = analyser_position_illegale(self.nl_inst.game_board, board_fen)
                     except Exception:
                         msg = "⚠ Coup illégal — remettez la pièce à sa place."
