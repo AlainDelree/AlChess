@@ -1,4 +1,4 @@
-# NicLink — Tâches et bugs
+# AlChess — Tâches et bugs
 
 ---
 
@@ -70,7 +70,6 @@ nicsoft/
 ## 💡 Fonctionnalités à venir
 
 - **Labo — à terminer** — mode non finalisé : Stockfish ne joue pas dans tous les cas (voir bug "Labo Stockfish ne joue pas"), comportement des toggles à revoir
-- **Mise à jour pyproject.toml** — changer nom/auteur/URL vers AlChess quand le compte GitHub sera prêt
 - **Analyse libre** — Stockfish suggère les meilleurs coups pour les deux camps sans auto-play (Labo existe mais à confirmer si c'est ça)
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
 - **Supprimer les `[DEBUG]` prints** une fois le programme stable
@@ -99,9 +98,10 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 ## 📝 Notes techniques
 
-- **USB Chessnut sur nouveau PC** : nécessite quirk usbhid (`/etc/modprobe.d/chessnut.conf`) + recompilation du `.so` depuis `src/`. Voir `INSTALLATION_NICLINK.md` sections 4b et 4c.
+- **USB Chessnut sur nouveau PC** : nécessite quirk usbhid (`/etc/modprobe.d/chessnut.conf`) + recompilation du `.so` depuis `src/`. Voir `INSTALLATION_ALCHESS.md` sections 4b et 4c.
 - **`retranscription_en_cours`** au démarrage : normal, c'est la fonctionnalité de reprise. Ne doit être traité que quand on accède à l'écran Retranscription.
-- **Git** : committer après chaque étape stable. `git checkout .` pour annuler les changements non commités.
+- **Git** : committer après chaque étape stable. `git checkout .` pour annuler les changements non commités. `git push` pour synchroniser avec GitHub.
+- **GitHub** : https://github.com/AlainDelree/AlChess — `git push` après chaque session stable.
 - **Logs** : consulter via le bouton 📋 en haut à droite du programme.
 
 ## 🐛 Bugs récents
