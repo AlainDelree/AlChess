@@ -314,6 +314,54 @@ utiliser le zoom du navigateur (Ctrl+ / Ctrl-).
 
 ---
 
+## 14. Mise à jour depuis une ancienne installation
+
+### Si l'installation a été faite via `git clone` (recommandé)
+
+```bash
+cd ~/NicLink
+git pull
+```
+
+Puis recompiler le driver si nécessaire (voir section 4c).
+
+---
+
+### Si l'installation a été faite via clé USB ou rsync
+
+> ⚠️ **Sauvegarder d'abord les données importantes :**
+> ```bash
+> cp -r ~/NicLink/games ~/Bureau/games_backup
+> cp -r ~/NicLink/data ~/Bureau/data_backup
+> ```
+
+Initialiser Git et récupérer la version GitHub :
+
+```bash
+cd ~/NicLink
+git init
+git remote add origin https://github.com/AlainDelree/AlChess.git
+git fetch
+git reset --hard origin/master
+```
+
+> ⚠️ `git reset --hard` écrase tout le code local avec la version GitHub.
+> Les données dans `games/` et `data/` ne sont pas touchées si elles ne sont
+> pas dans le dépôt — mais par précaution, toujours sauvegarder avant.
+
+Ensuite recréer le venv et recompiler le driver :
+
+```bash
+cd ~/NicLink
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Et recompiler le `.so` (voir section 4c).
+
+---
+
 ## 13. Résumé — checklist complète sur un nouveau PC
 
 ```bash
