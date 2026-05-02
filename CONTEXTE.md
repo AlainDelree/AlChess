@@ -63,7 +63,7 @@ cd ~/NicLink && python -m nicsoft.web
 **Prérequis USB Chessnut sur ce PC (ThinkPad X1 Carbon Gen 7) :**
 - Quirk usbhid : `/etc/modprobe.d/chessnut.conf` → `options usbhid quirks=0x2d80:0x8003:0x40`
 - Driver recompilé depuis `~/NicLink/src/`
-- Voir `INSTALLATION_NICLINK.md` sections 4b et 4c
+- Voir `INSTALLATION_ALCHESS.md` sections 4b et 4c
 
 ---
 
@@ -86,11 +86,11 @@ cd ~/NicLink && python -m nicsoft.web
 | `TESTS.md` | Checklist de régression (smoke test + régression complète) |
 | `TEST_RESULTATS.md` | Résultats des sessions de test avec dates |
 | `HISTORIQUE_BUGS.md` | Bugs résolus avec causes racines et tests de régression |
-| `INSTALLATION_NICLINK.md` | Guide d'installation sur nouveau PC |
+| `INSTALLATION_ALCHESS.md` | Guide d'installation sur nouveau PC |
 
 ---
 
-## État actuel (mis à jour le 2 mai 2026)
+## État actuel (mis à jour le 3 mai 2026)
 
 **Stable et fonctionnel :**
 - Mode Pédagogique (vs Stockfish, Maia, Rodent)
@@ -101,14 +101,21 @@ cd ~/NicLink && python -m nicsoft.web
 - Laboratoire (analyse libre)
 - Mode virtuel (sans échiquier physique)
 
-**Refactoring en cours :**
-- ✅ Étape 1 : modules anciens supprimés, `__main__.py` allégés
-- ✅ Étape 5 : `app.js` commenté par sections
-- ⏳ Étape 2 : restructuration des dossiers (core/, modes/, engine/)
-- ⏳ Étape 3 : extraction du CSS
-- ⏳ Renommer NicLink → AlChess dans le code et l'interface
+**Refactoring ✅ terminé :**
+- Structure : `modes/`, `engine/`, `utils/`, `niclink/` conservé
+- `__main__.py` allégés → `pedagogique.py`, `human.py`, `alchess.py`, etc.
+- CSS extrait dans `static/css/main.css`
+- `app.js` commenté par sections
+- Renommage NicLink → AlChess dans l'interface
+- GitHub : https://github.com/AlainDelree/AlChess
 
 **Bugs actifs prioritaires :**
-- Retour menu depuis partie en cours ne stoppe pas le thread serveur
-- Retour exercices bloqué (re-cliquer même ligne → aucune réaction)
-- Écran HH vide en mode virtuel (bouton HH à masquer en mode virtuel)
+- Back_menu pendant WAIT_FISH bloque le thread (BUG-011 variant)
+- Retour exercices bloqué après ligne complète
+- Écran HH vide en mode virtuel (bouton HH à masquer)
+- WAIT_FISH intermittent très lent (hardware Chessnut Air)
+
+**Prochaine session — time logs permanents :**
+- Remplacer `tlog()` (actif seulement en DEBUG) par un logging structuré toujours actif
+- Enregistrer les timings `await_move` et `WAIT_FISH` dans le fichier log
+- Sans polluer le terminal en mode normal
