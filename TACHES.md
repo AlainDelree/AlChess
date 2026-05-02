@@ -105,3 +105,4 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 ## 🐛 Bugs récents
 
 - **Retour exercices bloqué** — Exercices → Mes lignes → Chigorine ligne 1 → ligne complète → Retour menu → re-cliquer Chigorine ligne 1 → aucune réaction. Bug lié au bouton "retour" en général, apparaît avec d'autres écrans.
+- **Annuler Coup Pédagogique** - Patie pédagogique-> Pas de bouton reprendre coup. Si ->Bouton pause-> pas de bouton reprendre le coup et si on recule avec l'historique, ca reprend quand meme au coup sans apporter de modification
