@@ -59,8 +59,8 @@ nicsoft/
 └── utils/
 ```
 
-### Étape 4 — CSS extrait
-- [ ] Extraire le CSS inline de `index.html` vers `static/css/main.css`
+### Étape 4 — CSS extrait ✅
+- [x] CSS extrait de `index.html` vers `static/css/main.css`
 
 ### Étape 5 — JS commenté par sections ✅
 - [x] Séparateurs `// ──` harmonisés dans `app.js`
@@ -69,6 +69,7 @@ nicsoft/
 
 ## 💡 Fonctionnalités à venir
 
+- **Labo — à terminer** — mode non finalisé : Stockfish ne joue pas dans tous les cas (voir bug "Labo Stockfish ne joue pas"), comportement des toggles à revoir
 - **Mise à jour pyproject.toml** — changer nom/auteur/URL vers AlChess quand le compte GitHub sera prêt
 - **Analyse libre** — Stockfish suggère les meilleurs coups pour les deux camps sans auto-play (Labo existe mais à confirmer si c'est ça)
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
