@@ -455,7 +455,7 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
 
 
 def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
-    from nicsoft.play_human.human import GameWeb
+    from nicsoft.modes.humain.human import GameWeb
     nl_inst = None
     try:
         if virtual:

@@ -1,4 +1,4 @@
-from nicsoft.play_human.human import (
+from nicsoft.modes.humain.human import (
     normalize_player_name,
     find_existing_player,
 )
