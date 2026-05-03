@@ -1201,7 +1201,11 @@ class Game(threading.Thread):
                 if self.move_gaps:
                     self.move_gaps.pop()
                 print("  Coup annulé — rejouez.")
-                send_event("undo_move", {"fen": self.nl_inst.game_board.fen().split()[0], "count": 2})
+                send_event("undo_move", {
+                    "fen":      self.nl_inst.game_board.fen().split()[0],
+                    "full_fen": self.nl_inst.game_board.fen(),
+                    "count":    2,
+                })
                 expected = self.nl_inst.game_board.board_fen()
                 while True:
                     if self.nl_inst.kill_switch.is_set():
@@ -1307,7 +1311,11 @@ class Game(threading.Thread):
             if self.move_gaps:
                 self.move_gaps.pop()
             # Notifier le JS de retirer le dernier coup de reviewFens
-            send_event("undo_move", {"fen": self.nl_inst.game_board.fen().split()[0], "count": 1})
+            send_event("undo_move", {
+                    "fen":      self.nl_inst.game_board.fen().split()[0],
+                    "full_fen": self.nl_inst.game_board.fen(),
+                    "count":    1,
+            })
             print("  Coup annulé — rejouez.")
             # Attendre que le joueur remette la pièce, avec feedback visuel cases en erreur
             print("  Remettez la pièce à sa position initiale.")
