@@ -5,16 +5,15 @@
 ## 🐛 Bugs connus
 
 ### Priorité haute
-- **Retour menu depuis partie en cours** — cliquer "Retour au menu" pendant une partie pédagogique ne stoppe pas la partie côté serveur. La partie continue en arrière-plan. Bloque le démarrage d'un autre mode sans redémarrer le programme.
-
 - **Écran HH vide** — piste identifiée : confusion entre HH physique (développé) et HH virtuel (non développé). Le bouton HH est visible en mode virtuel mais ne mène nulle part. À corriger : masquer HH en mode virtuel.
 
 ### Priorité moyenne
 
-
 - **Spinner bloqué au démarrage** — occasionnellement, l'écran "Démarrage de NicLink" reste bloqué avec le spinner malgré `board_ok` reçu. Non reproductible de façon fiable.
 
 - **Écran Exercices vide** — s'affiche vide dans certaines conditions (état résiduel d'un mode précédent ?). Semble se corriger au redémarrage.
+
+- **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Le 1er bip vient du `connect()` USB initial qui échoue (plateau pas encore prêt), le 2e vient du retry 1s plus tard qui réussit. Piste : éviter le double appel `_niclink.connect()` en séparant connect et get_fen dans `_check_board_at_startup`.
 
 ### Priorité basse (existants avant refactoring)
 - **Beep timing** — le bip sonore se déclenche sur la correction plutôt que sur l'erreur
@@ -62,14 +61,24 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **GitHub** : https://github.com/AlainDelree/AlChess — `git push` après chaque session stable.
 - **Logs** : consulter via le bouton 📋 en haut à droite du programme.
 
-## 🐛 Bugs récents
-- **L'ecriture sur la modale est trop pale lors du clic sur "Retour menu" de partie pédagogique virtuel(pas vérifier les autre)
-- **Retour exercices bloqué** — Exercices → Mes lignes → Chigorine ligne 1 → ligne complète → Retour menu → re-cliquer Chigorine ligne 1 → aucune réaction. Bug lié au bouton "retour" en général, apparaît avec d'autres écrans.
-- **Annuler Coup Pédagogique** - Patie pédagogique-> Pas de bouton reprendre coup. Si ->Bouton pause-> pas de bouton reprendre le coup et si on recule avec l'historique, ca reprend quand meme au coup sans apporter de modification.
-- **Labo Stockfish ne joue pas** Mode Auto ON (libelle Auto OFF) partie deja entammé(sur l'echiquier c4, d4 blanc et d5 noir joué.  Normalement a noir de jouer) Toggle laissé: Je Joue et Tour = blanc et blanc.  Du coup, je joue c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir.  Aucune réaction de stockfish.
-- **Exercice avec echiquier physique**  Le coup de l'ordinateur est montré via des led sur le plateau mais n'apparait sur l'ecran de l'ordinateur que quand le coup est joué sur l'echiquier.
-- **HH délai avant d'afficher le coup des blancs** A vérifier
-- **Partie pédagogique** délai avant d'afficher le 1er coup blanc
-- **WAIT_FISH lent intermittent** — occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente). À diagnostiquer via time logs permanents.
-- **Back_menu bloqué pendant WAIT_FISH** — Si une gaffe est faite et que le joueur clique "Retour menu" pendant que le coup de Stockfish est en attente de placement physique (`[WAIT_FISH]`), le thread reste bloqué. Même cause que BUG-011 mais dans `wait_for_stockfish_move()` cette fois. À corriger : vérifier `kill_switch` dans la boucle WAIT_FISH.
+## ✅ Bugs résolus récemment
 
+- **Retour menu depuis partie en cours** *(commit 0f43aab + 216cd09, 2026-05-03)* — Le retour menu pendant une partie pédagogique est maintenant fonctionnel dans tous les cas : tour humain, tour Stockfish, et pendant l'attente de placement physique (WAIT_FISH). Corrections : kill_switch testé dans les 4 boucles bloquantes ; thread dédié `_poll_abort` dans WAIT_FISH ; check `_abandon_demande` après WAIT_FISH dans `handle_fish_turn` ; `kill_switch.clear()` après `_check_web_abandon` pour neutraliser les résidus de `nulle`.
+
+- **Back_menu bloqué pendant WAIT_FISH** *(commit 216cd09, 2026-05-03)* — Résolu dans le même lot que ci-dessus.
+
+- **Bips multiples au démarrage** *(commit 216cd09, 2026-05-03)* — Réduit de 4 à 2. Cause : 3 appels simultanés à `_check_board_at_startup` (déclenchés par les 3 events `set_virtual_mode: False` du navigateur) en plus de l'appel initial. Fix : verrou `_board_check_lock` + retries internes séquentiels.
+
+---
+
+## 🐛 Bugs récents
+
+- **L'ecriture sur la modale est trop pale lors du clic sur "Retour menu" de partie pédagogique virtuel** (pas vérifié les autres)
+- **Retour exercices bloqué** — Exercices → Mes lignes → Chigorine ligne 1 → ligne complète → Retour menu → re-cliquer Chigorine ligne 1 → aucune réaction. Bug lié au bouton "retour" en général, apparaît avec d'autres écrans.
+- **Annuler Coup Pédagogique** — Partie pédagogique → Pas de bouton reprendre coup. Si → Bouton pause → pas de bouton reprendre le coup et si on recule avec l'historique, ça reprend quand même au coup sans apporter de modification.
+- **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
+- **Exercice avec échiquier physique** — Le coup de l'ordinateur est montré via des LEDs sur le plateau mais n'apparaît sur l'écran que quand le coup est joué sur l'échiquier.
+- **HH délai avant d'afficher le coup des blancs** — À vérifier.
+- **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc.
+- **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente). À diagnostiquer via time logs permanents.
+- **Écran init de pédagogique illisible** — Le nom de joueur dans l'écran init de pédagogique (quand on commence le jeu avec un échiquier non rangé) n'est pas suffisamment visible.
