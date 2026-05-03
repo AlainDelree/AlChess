@@ -1299,7 +1299,11 @@ function ouvrirModal(actionType, titre, labelConfirm, btnClass) {
   const btn = document.getElementById("modal-confirm");
   btn.textContent = labelConfirm;
   btn.className = "btn " + (btnClass || "btn-reprendre");
-  btn.onclick = () => { fermerModal(); sendAction({ type: actionType }); };
+  btn.onclick = () => {
+    fermerModal();
+    sendAction({ type: actionType });
+    if (actionType === "quit") setTimeout(() => window.close(), 300);
+  };
   // Toujours afficher les boutons standard (pas les boutons couleur)
   const std  = document.getElementById("modal-btns-standard");
   const coul = document.getElementById("modal-btns-couleur");
