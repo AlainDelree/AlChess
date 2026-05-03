@@ -35,32 +35,32 @@
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-primary" data-needs-board disabled onclick="sendAction({type:'mode', value:'pedagogique'})">🎓 Mode Pédagogique</button>
-    <div class="menu-btn-desc">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
+    <div class="menu-btn-desc" id="desc-pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'humain'})">⚔️ Humain vs Humain</button>
-    <div class="menu-btn-desc">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
+    <button class="menu-btn menu-btn-secondary" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})">⚔️ Humain vs Humain</button>
+    <div class="menu-btn-desc" id="desc-humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'analyse'})">🔍 Analyse de partie</button>
-    <div class="menu-btn-desc">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
+    <div class="menu-btn-desc" id="desc-analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'analyse_libre'})">🔬 Laboratoire</button>
-    <div class="menu-btn-desc">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
+    <div class="menu-btn-desc" id="desc-labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'exercices'})">📚 Exercices</button>
-    <div class="menu-btn-desc">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
+    <div class="menu-btn-desc" id="desc-exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'retranscription'})">📝 Retranscrire une partie</button>
-    <div class="menu-btn-desc">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
+    <div class="menu-btn-desc" id="desc-retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
   </div>
 
   <button class="menu-btn menu-btn-secondary" id="btn-reconnect" onclick="sendAction({type:'reconnect_board'})" style="font-size:0.85rem; opacity:0.5; cursor:default;" disabled>✓ Échiquier connecté</button>
