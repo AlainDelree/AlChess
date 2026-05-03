@@ -896,7 +896,7 @@ function _viderAnalyse() {
   _isAnalysed = false;
   _stopAutoPlay();
   _setNavControls(false);
-toggleVirtualMode(false);  // init bulles desc gauche/droite
+  toggleVirtualMode(_virtualMode);  // préserver le mode courant
   const top = document.getElementById("player-top-name");
   const bot = document.getElementById("player-bottom-name");
   if (top) top.textContent = "";
