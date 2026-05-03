@@ -65,6 +65,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 - **Mode virtuel réinitialisé au retour menu** *(commit c958300, 2026-05-03)* — `_viderAnalyse()` appelait `toggleVirtualMode(false)` à chaque retour au menu, écrasant le choix de l'utilisateur. Remplacé par `toggleVirtualMode(_virtualMode)` pour conserver l'état courant.
 
+- **Contraste modal et écran pos-init** *(commit 4f0b748, 2026-05-03)* — Titre modal en `#e0e0e0` (quasi invisible sur fond `#c2d4e8`) → `#1a2a3a`. Labels "Adversaire"/"Joueur" de l'écran init pédagogique en `#666`/`#ccc` (pale sur `#d8e4f0`) → `#1a2a3a`.
+
 
 
 - **Retour menu depuis partie en cours** *(commit 0f43aab + 216cd09, 2026-05-03)* — Le retour menu pendant une partie pédagogique est maintenant fonctionnel dans tous les cas : tour humain, tour Stockfish, et pendant l'attente de placement physique (WAIT_FISH). Corrections : kill_switch testé dans les 4 boucles bloquantes ; thread dédié `_poll_abort` dans WAIT_FISH ; check `_abandon_demande` après WAIT_FISH dans `handle_fish_turn` ; `kill_switch.clear()` après `_check_web_abandon` pour neutraliser les résidus de `nulle`.
@@ -77,7 +79,6 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 ## 🐛 Bugs récents
 
-- **L'ecriture sur la modale est trop pale lors du clic sur "Retour menu" de partie pédagogique virtuel** Aussi: Modal apres clic sur Sauver et Quitter dans Retransciption et Modal apres clic sur le bouton Quitter dans l'ecran menu
 - **Retour exercices bloqué** — Exercices → Mes lignes → Chigorine ligne 1 → ligne complète → Retour menu → re-cliquer Chigorine ligne 1 → aucune réaction. Bug lié au bouton "retour" en général, apparaît avec d'autres écrans.
 - **Annuler Coup Pédagogique** — Partie pédagogique → Pas de bouton reprendre coup. Si → Bouton pause → pas de bouton reprendre le coup et si on recule avec l'historique, ça reprend quand même au coup sans apporter de modification.
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
@@ -85,4 +86,3 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **HH délai avant d'afficher le coup des blancs** — À vérifier.
 - **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc.
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente). À diagnostiquer via time logs permanents.
-- **Écran init de pédagogique illisible** — Le nom de joueur dans l'écran init de pédagogique (quand on commence le jeu avec un échiquier non rangé) n'est pas suffisamment visible.
