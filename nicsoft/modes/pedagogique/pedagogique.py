@@ -1179,10 +1179,13 @@ class Game(threading.Thread):
             return False
         if self._pause_demandee:
             self._pause_demandee = False
-            changer_couleur, _ = self.handle_pause()
+            changer_couleur, reprendre_pause = self.handle_pause()
             if changer_couleur:
                 self.playing_white = not self.playing_white
-            return False
+            if reprendre_pause:
+                self._reprendre_demande = True  # propager vers le handler reprendre ci-dessous
+            else:
+                return False
         if self._reprendre_demande:
             self._reprendre_demande = False
             # Annuler le dernier coup humain (et le coup Stockfish précédent si nécessaire)
@@ -1198,6 +1201,7 @@ class Game(threading.Thread):
                 if self.move_gaps:
                     self.move_gaps.pop()
                 print("  Coup annulé — rejouez.")
+                send_event("undo_move", {"fen": self.nl_inst.game_board.fen().split()[0], "count": 2})
                 expected = self.nl_inst.game_board.board_fen()
                 while True:
                     if self.nl_inst.kill_switch.is_set():
@@ -1303,7 +1307,7 @@ class Game(threading.Thread):
             if self.move_gaps:
                 self.move_gaps.pop()
             # Notifier le JS de retirer le dernier coup de reviewFens
-            send_event("undo_move", {"fen": self.nl_inst.game_board.fen().split()[0]})
+            send_event("undo_move", {"fen": self.nl_inst.game_board.fen().split()[0], "count": 1})
             print("  Coup annulé — rejouez.")
             # Attendre que le joueur remette la pièce, avec feedback visuel cases en erreur
             print("  Remettez la pièce à sa position initiale.")
