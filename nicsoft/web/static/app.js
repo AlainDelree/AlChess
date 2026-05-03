@@ -97,6 +97,17 @@ function toggleVirtualMode(enabled) {
   document.querySelectorAll(".menu-btn[data-physical-only]")
     .forEach(b => { b.closest(".menu-btn-wrap").style.display = enabled ? "none" : ""; });
 
+  // Repositionner les bulles desc selon le mode (gauche/droite)
+  // Physique : Péda G, HH D, Analyse G, Labo D, Exercices G, Retrans D
+  // Virtuel  : Péda G, Analyse D, Labo G, Exercices D, Retrans G
+  const descRight = enabled
+    ? ["desc-analyse", "desc-exercices"]
+    : ["desc-humain", "desc-labo", "desc-retrans"];
+  ["desc-pedagogique","desc-humain","desc-analyse","desc-labo","desc-exercices","desc-retrans"].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.toggle("desc-right", descRight.includes(id));
+  });
+
   if (enabled) {
     if (sub) { sub.textContent = "Mode sans échiquier — choisissez un mode"; sub.style.color = "#e94560"; }
     if (btn) { btn.style.display = "none"; }
@@ -885,6 +896,7 @@ function _viderAnalyse() {
   _isAnalysed = false;
   _stopAutoPlay();
   _setNavControls(false);
+toggleVirtualMode(false);  // init bulles desc gauche/droite
   const top = document.getElementById("player-top-name");
   const bot = document.getElementById("player-bottom-name");
   if (top) top.textContent = "";
@@ -4205,3 +4217,4 @@ _buildBoardPosInit();
 renderBoard(currentFen, null, null, null, null, null, null);
 // Griser les contrôles nav au démarrage (pas de partie chargée)
 _setNavControls(false);
+toggleVirtualMode(false);  // init bulles desc gauche/droite

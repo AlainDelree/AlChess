@@ -18,6 +18,8 @@ cd ~/NicLink && python -m nicsoft.web
 
 LANCER LE JEU TIME DEBUG
 -------------------------
+cd ~/NicLink
+source venv/bin/activate
 NICLINK_LOG=DEBUG python -m nicsoft.web
 
 DISTRIBUTION NOUVEAU PC
