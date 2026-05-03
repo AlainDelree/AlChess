@@ -916,6 +916,8 @@ class Game(threading.Thread):
                 "message":      "Reproduisez la position sur l'échiquier pour reprendre.",
             })
             while True:
+                if self.nl_inst.kill_switch.is_set():
+                    return False, False
                 raw = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
                 if phys == expected_fen:
@@ -1198,6 +1200,8 @@ class Game(threading.Thread):
                 print("  Coup annulé — rejouez.")
                 expected = self.nl_inst.game_board.board_fen()
                 while True:
+                    if self.nl_inst.kill_switch.is_set():
+                        return False
                     raw = self.nl_inst.current_fen
                     if raw and raw.strip().split()[0] == expected:
                         print("  Position rétablie — rejouez.")
@@ -1313,6 +1317,8 @@ class Game(threading.Thread):
                     "physical_fen": current_fen,
                 })
             while True:
+                if self.nl_inst.kill_switch.is_set():
+                    return False
                 raw = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
                 if phys == expected:
@@ -1407,6 +1413,9 @@ class Game(threading.Thread):
         _last_log = time.time()
         _loop_count = 0
         while True:
+            if self.nl_inst.kill_switch.is_set():
+                self.nl_inst.turn_off_all_leds()
+                return
             _loop_count += 1
             raw_fen = self.nl_inst.current_fen
             if not raw_fen:
