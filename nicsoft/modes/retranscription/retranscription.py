@@ -55,6 +55,23 @@ def _build_pgn(moves_uci: list, headers: dict) -> str:
     return buf.getvalue()
 
 
+def preview_path_partie(white: str, black: str, event: str) -> str:
+    """Retourne le chemin qui serait utilisé pour sauvegarder, sans écrire."""
+    GAMES_DIR.mkdir(parents=True, exist_ok=True)
+    base = _safe(event) if event and event != "?" else _safe(f"{white}_vs_{black}")
+    if not base:
+        base = "Partie"
+    return str(_next_filepath(GAMES_DIR, base))
+
+
+def preview_path_exercice(nom: str) -> str:
+    """Retourne le chemin qui serait utilisé pour l'exercice, sans écrire."""
+    safe_nom = _safe(nom) if nom else "Exercice"
+    dest_dir = LIGNES_DIR / safe_nom
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    return str(_next_filepath(dest_dir, safe_nom))
+
+
 def export_partie(moves_uci: list, white: str, black: str,
                   date: str, event: str, result: str) -> str:
     """Sauvegarde une partie de club. Retourne le chemin du fichier."""
@@ -258,6 +275,13 @@ def run_retranscription(config: dict,
                 "path": filepath, "result": final_result
             })
             # Garder la position — ne pas quitter
+
+        elif atype == "retranscription_preview_path":
+            if mode == "exercice":
+                path = preview_path_exercice(nom)
+            else:
+                path = preview_path_partie(white, black, event)
+            send_event("retranscription_path_preview", {"path": path})
 
         elif atype == "retranscription_end":
             final_result = action.get("result", result)

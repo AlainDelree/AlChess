@@ -3982,8 +3982,7 @@ function retransQuitSansSauver() {
 
 function retransEnd(result) {
   if (result === "*") {
-    // Sauver et quitter — direct, pas de confirmation
-    sendAction({ type: "retranscription_end", result });
+    sendAction({ type: "retranscription_preview_path" });
     return;
   }
   // Résultat définitif — demander confirmation
@@ -4201,28 +4200,29 @@ socket.on("retranscription_end", (data) => {
   sendAction({ type: "retranscription_end", result: data.result });
 });
 
-socket.on("retranscription_saved", (data) => {
-  document.getElementById("screen-retrans-game").style.display = "none";
-  // Afficher la modale de confirmation avec le chemin
+socket.on("retranscription_path_preview", (data) => {
   const btn = document.getElementById("modal-confirm");
-  if (btn) {
-    document.getElementById("modal-title").textContent = `✓ PGN sauvegardé — ${data.result}`;
-    const sub = document.getElementById("modal-subtitle");
-    if (sub) sub.textContent = data.path || "";
-    btn.textContent = "OK";
-    btn.className = "btn btn-reprendre";
-    btn.onclick = () => { fermerModal(); };
-    const std  = document.getElementById("modal-btns-standard");
-    const coul = document.getElementById("modal-btns-couleur");
-    if (std)  std.style.display  = "flex";
-    if (coul) coul.style.display = "none";
-    // Cacher le bouton Annuler
-    const cancel = document.getElementById("modal-cancel");
-    if (cancel) cancel.style.display = "none";
-    document.getElementById("modal-overlay").classList.add("open");
-  } else {
-    afficherToast(`✓ PGN sauvegardé — ${data.result}`, "success");
-  }
+  if (!btn) return;
+  document.getElementById("modal-title").textContent = "Sauver et quitter ?";
+  const sub = document.getElementById("modal-subtitle");
+  if (sub) sub.textContent = `Le fichier PGN sera enregistré dans :\n${data.path}`;
+  btn.textContent = "✓ Confirmer";
+  btn.className = "btn btn-reprendre";
+  btn.onclick = () => { fermerModal(); sendAction({ type: "retranscription_end", result: "*" }); };
+  const std  = document.getElementById("modal-btns-standard");
+  const coul = document.getElementById("modal-btns-couleur");
+  if (std)  std.style.display  = "flex";
+  if (coul) coul.style.display = "none";
+  const cancel = document.getElementById("modal-cancel");
+  if (cancel) cancel.style.display = "";
+  document.getElementById("modal-overlay").classList.add("open");
+});
+
+socket.on("retranscription_saved", (data) => {
+  fermerModal();
+  const parts = (data.path || "").split("/");
+  const fname = parts[parts.length - 1];
+  afficherToast(`✓ PGN sauvegardé : ${fname}`, "success");
 });
 
 buildBoard();
