@@ -15,6 +15,12 @@ Toujours faire en début de session :
 2. Lire `TESTS.md` — checklist de régression
 3. `git status` avant toute modification
 
+## Workflow de travail
+
+- Mettre à jour `TACHES.md` immédiatement après chaque correction (déplacer le bug dans "Bugs résolus récemment", noter le commit).
+- Committer après chaque étape stable, avec un message descriptif.
+- En cas d'interruption : l'état exact est dans `git log --oneline` (dernière étape stable) et `TACHES.md` (ce qui reste à faire).
+
 ## Commandes
 
 ```bash
