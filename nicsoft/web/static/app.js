@@ -1302,7 +1302,16 @@ function ouvrirModal(actionType, titre, labelConfirm, btnClass) {
   btn.onclick = () => {
     fermerModal();
     sendAction({ type: actionType });
-    if (actionType === "quit") setTimeout(() => window.close(), 300);
+    if (actionType === "quit") {
+      document.body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                    height:100vh;background:#1a2a3a;color:#c8d8e8;font-family:sans-serif;gap:1rem;">
+          <div style="font-size:2rem;">✕</div>
+          <div style="font-size:1.2rem;font-weight:bold;">AlChess est fermé</div>
+          <div style="font-size:0.9rem;color:#7a9ab8;">Vous pouvez fermer cet onglet.</div>
+        </div>`;
+      setTimeout(() => window.close(), 600);
+    }
   };
   // Toujours afficher les boutons standard (pas les boutons couleur)
   const std  = document.getElementById("modal-btns-standard");
