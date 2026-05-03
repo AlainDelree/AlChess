@@ -1345,6 +1345,9 @@ class Game(threading.Thread):
         if self._abandon_demande:
             self._traiter_abandon()
             return
+        # kill_switch peut être actif pour nulle/pause arrivés entre les tours :
+        # on le réinitialise ici pour ne pas polluer WAIT_FISH.
+        self.nl_inst.kill_switch.clear()
         if self._pause_demandee:
             self._pause_demandee = False
             changer_couleur, _ = self.handle_pause()
@@ -1397,6 +1400,10 @@ class Game(threading.Thread):
         self.check_for_game_over()
 
         self._wait_for_fish_move_on_board(fish_move)
+        # Abandon/back_menu demandé pendant l'attente plateau → traiter maintenant
+        if self._abandon_demande:
+            self.nl_inst.kill_switch.clear()
+            self._traiter_abandon()
 
     def _wait_for_fish_move_on_board(self, fish_move: str) -> None:
         """Attend que le joueur déplace physiquement la pièce de Stockfish."""
@@ -1410,90 +1417,118 @@ class Game(threading.Thread):
         bad_fen_since = None; last_bad_fen = None
         warning_shown = False; last_diff_count = 0
 
+        # Thread dédié : surveille back_menu/abandonner pendant l'attente physique.
+        # Utilise get_action(timeout) pour bloquer sans boucle active.
+        _abort_stop = threading.Event()
+        def _poll_abort():
+            while not _abort_stop.is_set():
+                action = get_action(timeout=0.15)
+                if action is None:
+                    continue
+                atype = action.get("type", "")
+                if atype == "abandonner":
+                    self._abandon_demande = True
+                    self.nl_inst.kill_switch.set()
+                    return
+                elif atype == "back_menu":
+                    self._back_menu_demande = True
+                    self._abandon_demande = True
+                    self.nl_inst.kill_switch.set()
+                    return
+                elif atype == "nulle":
+                    self._nulle_demandee = True
+                elif atype == "set_pause":
+                    self.pedagogique_pause = action.get("value", "blunder")
+                # pause et autres actions : ignorées pendant l'attente plateau
+        _abort_thread = threading.Thread(target=_poll_abort, daemon=True)
+        _abort_thread.start()
+
         _last_log = time.time()
         _loop_count = 0
-        while True:
-            if self.nl_inst.kill_switch.is_set():
-                self.nl_inst.turn_off_all_leds()
-                return
-            _loop_count += 1
-            raw_fen = self.nl_inst.current_fen
-            if not raw_fen:
-                time.sleep(0.05)
-                continue
-
-            board_fen = raw_fen.strip().split()[0]
-
-            # Log périodique toutes les 0.5s
-            if time.time() - _last_log >= 0.5:
-                _last_log = time.time()
-                tlog("[WAIT_FISH] %.1fs (loop=%d) — identique=%s fen=%s",
-                     time.time()-_t_wait, _loop_count,
-                     board_fen == expected_fen, board_fen[:25])
-
-            if board_fen == expected_fen:
-                tlog("[WAIT_FISH] placement confirmé en %.2fs", time.time()-_t_wait)
-                # Éteindre immédiatement les LEDs du coup Stockfish
-                try:
+        try:
+            while True:
+                if self.nl_inst.kill_switch.is_set():
                     self.nl_inst.turn_off_all_leds()
-                except Exception:
-                    pass
-                if warning_shown:
-                    print("   Position rétablie. Continuez.")
-                    send_event("turn", {
-                        "color":    "white" if self.playing_white == chess.WHITE else "black",
-                        "player":   getattr(self, "player_name", "Joueur"),
-                        "is_human": True,
-                        "in_check": False,
-                    })
-                return
+                    return
+                _loop_count += 1
+                raw_fen = self.nl_inst.current_fen
+                if not raw_fen:
+                    time.sleep(0.05)
+                    continue
 
-            time.sleep(0.05)
+                board_fen = raw_fen.strip().split()[0]
 
-            # Promotion
-            if len(fish_move) == 5:
-                dest_sq = chess.parse_square(fish_move[2:4])
-                src_sq  = chess.parse_square(fish_move[:2])
-                try:
-                    tmp_promo = chess.Board(board_fen + " w - - 0 1")
-                    promo_color = chess.WHITE if self.playing_white == chess.BLACK else chess.BLACK
-                    if (tmp_promo.piece_at(dest_sq) is not None and
-                            tmp_promo.piece_at(dest_sq).color == promo_color and
-                            tmp_promo.piece_at(src_sq) is None):
-                        return
-                except Exception:
-                    pass
+                if time.time() - _last_log >= 0.5:
+                    _last_log = time.time()
+                    tlog("[WAIT_FISH] %.1fs (loop=%d) — identique=%s fen=%s",
+                         time.time()-_t_wait, _loop_count,
+                         board_fen == expected_fen, board_fen[:25])
 
-            try:
-                tmp_board  = chess.Board(board_fen + " w - - 0 1")
-                diff_count = sum(1 for sq in chess.SQUARES
-                                 if self.nl_inst.game_board.piece_at(sq) != tmp_board.piece_at(sq))
-            except Exception:
-                diff_count = 0
+                if board_fen == expected_fen:
+                    tlog("[WAIT_FISH] placement confirmé en %.2fs", time.time()-_t_wait)
+                    try:
+                        self.nl_inst.turn_off_all_leds()
+                    except Exception:
+                        pass
+                    if warning_shown:
+                        print("   Position rétablie. Continuez.")
+                        send_event("turn", {
+                            "color":    "white" if self.playing_white == chess.WHITE else "black",
+                            "player":   getattr(self, "player_name", "Joueur"),
+                            "is_human": True,
+                            "in_check": False,
+                        })
+                    return
 
-            if diff_count <= 2:
-                bad_fen_since = None; last_bad_fen = None
-                warning_shown = False; last_diff_count = 0
                 time.sleep(0.05)
-                continue
 
-            now = time.time()
-            if board_fen != last_bad_fen:
-                bad_fen_since = now; last_bad_fen = board_fen
-                last_diff_count = diff_count; warning_shown = False
-            elif now - bad_fen_since >= STABLE_DELAY and not warning_shown:
-                warning_shown = True; last_diff_count = diff_count
-                _display_position_error(self.nl_inst.game_board, tmp_board,
-                                        diff_count, context="fish", fish_move=fish_move)
+                # Promotion
+                if len(fish_move) == 5:
+                    dest_sq = chess.parse_square(fish_move[2:4])
+                    src_sq  = chess.parse_square(fish_move[:2])
+                    try:
+                        tmp_promo = chess.Board(board_fen + " w - - 0 1")
+                        promo_color = chess.WHITE if self.playing_white == chess.BLACK else chess.BLACK
+                        if (tmp_promo.piece_at(dest_sq) is not None and
+                                tmp_promo.piece_at(dest_sq).color == promo_color and
+                                tmp_promo.piece_at(src_sq) is None):
+                            return
+                    except Exception:
+                        pass
+
                 try:
-                    self.nl_inst.show_board_diff(self.nl_inst.game_board, tmp_board)
+                    tmp_board  = chess.Board(board_fen + " w - - 0 1")
+                    diff_count = sum(1 for sq in chess.SQUARES
+                                     if self.nl_inst.game_board.piece_at(sq) != tmp_board.piece_at(sq))
                 except Exception:
-                    self.nl_inst.set_move_leds(fish_move)
+                    diff_count = 0
 
-            if check_tab_press() and warning_shown:
-                _display_position_error(self.nl_inst.game_board, tmp_board,
-                                        diff_count, context="fish", fish_move=fish_move)
-            time.sleep(0.1)
+                if diff_count <= 2:
+                    bad_fen_since = None; last_bad_fen = None
+                    warning_shown = False; last_diff_count = 0
+                    time.sleep(0.05)
+                    continue
+
+                now = time.time()
+                if board_fen != last_bad_fen:
+                    bad_fen_since = now; last_bad_fen = board_fen
+                    last_diff_count = diff_count; warning_shown = False
+                elif now - bad_fen_since >= STABLE_DELAY and not warning_shown:
+                    warning_shown = True; last_diff_count = diff_count
+                    _display_position_error(self.nl_inst.game_board, tmp_board,
+                                            diff_count, context="fish", fish_move=fish_move)
+                    try:
+                        self.nl_inst.show_board_diff(self.nl_inst.game_board, tmp_board)
+                    except Exception:
+                        self.nl_inst.set_move_leds(fish_move)
+
+                if check_tab_press() and warning_shown:
+                    _display_position_error(self.nl_inst.game_board, tmp_board,
+                                            diff_count, context="fish", fish_move=fish_move)
+                time.sleep(0.1)
+        finally:
+            _abort_stop.set()
+            _abort_thread.join(timeout=1.0)
 
     # ── Boucle principale ─────────────────────────────────────────────────
 
