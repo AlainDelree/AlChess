@@ -63,6 +63,10 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 ## ✅ Bugs résolus récemment
 
+- **Mode virtuel réinitialisé au retour menu** *(commit c958300, 2026-05-03)* — `_viderAnalyse()` appelait `toggleVirtualMode(false)` à chaque retour au menu, écrasant le choix de l'utilisateur. Remplacé par `toggleVirtualMode(_virtualMode)` pour conserver l'état courant.
+
+
+
 - **Retour menu depuis partie en cours** *(commit 0f43aab + 216cd09, 2026-05-03)* — Le retour menu pendant une partie pédagogique est maintenant fonctionnel dans tous les cas : tour humain, tour Stockfish, et pendant l'attente de placement physique (WAIT_FISH). Corrections : kill_switch testé dans les 4 boucles bloquantes ; thread dédié `_poll_abort` dans WAIT_FISH ; check `_abandon_demande` après WAIT_FISH dans `handle_fish_turn` ; `kill_switch.clear()` après `_check_web_abandon` pour neutraliser les résidus de `nulle`.
 
 - **Back_menu bloqué pendant WAIT_FISH** *(commit 216cd09, 2026-05-03)* — Résolu dans le même lot que ci-dessus.
@@ -73,7 +77,7 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 ## 🐛 Bugs récents
 
-- **L'ecriture sur la modale est trop pale lors du clic sur "Retour menu" de partie pédagogique virtuel** (pas vérifié les autres)
+- **L'ecriture sur la modale est trop pale lors du clic sur "Retour menu" de partie pédagogique virtuel** Aussi: Modal apres clic sur Sauver et Quitter dans Retransciption et Modal apres clic sur le bouton Quitter dans l'ecran menu
 - **Retour exercices bloqué** — Exercices → Mes lignes → Chigorine ligne 1 → ligne complète → Retour menu → re-cliquer Chigorine ligne 1 → aucune réaction. Bug lié au bouton "retour" en général, apparaît avec d'autres écrans.
 - **Annuler Coup Pédagogique** — Partie pédagogique → Pas de bouton reprendre coup. Si → Bouton pause → pas de bouton reprendre le coup et si on recule avec l'historique, ça reprend quand même au coup sans apporter de modification.
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
