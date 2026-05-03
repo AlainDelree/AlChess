@@ -96,6 +96,7 @@ def _start_modem_manager():
 
 _nl_inst_ref = None  # référence globale pour extinction LEDs au Ctrl+C
 _virtual_mode = False  # True si l'utilisateur a choisi le mode sans échiquier physique
+_board_check_lock = threading.Lock()  # empêche plusieurs _check_board_at_startup simultanés
 
 def _find_free_port(start=5000):
     """Trouve le premier port libre à partir de start."""
@@ -217,33 +218,45 @@ def main():
 
 
 def _check_board_at_startup():
-    for _ in range(100):
-        time.sleep(0.1)
-        if web_server._app_state == "menu":
-            break
-    time.sleep(1.0)
+    if not _board_check_lock.acquire(blocking=False):
+        return  # une vérification est déjà en cours
     try:
+        for _ in range(100):
+            time.sleep(0.1)
+            if web_server._app_state == "menu":
+                break
+        time.sleep(1.0)
         from nicsoft.niclink import NicLinkManager
-        devnull_fd = os.open(os.devnull, os.O_WRONLY)
-        old_fd = os.dup(1)
-        try:
-            os.dup2(devnull_fd, 1)
-            _logger = logging.getLogger("NicLink_startup")
-            nl = NicLinkManager(refresh_delay=0.1, logger=_logger, thread_sleep_delay=0.1)
-        finally:
-            os.dup2(old_fd, 1)
-            os.close(devnull_fd)
-            os.close(old_fd)
-        try:
-            nl._fen_reader_stop.set()
-        except Exception:
-            pass
-        send_event("board_ok", {})
-    except SystemExit as e:
-        if "board connection error" in str(e):
-            send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
-    except Exception:
+        _logger = logging.getLogger("NicLink_startup")
+        for attempt in range(4):
+            if attempt > 0:
+                time.sleep(1.0)
+            try:
+                devnull_fd = os.open(os.devnull, os.O_WRONLY)
+                old_fd = os.dup(1)
+                try:
+                    os.dup2(devnull_fd, 1)
+                    nl = NicLinkManager(refresh_delay=0.1, logger=_logger, thread_sleep_delay=0.1)
+                finally:
+                    os.dup2(old_fd, 1)
+                    os.close(devnull_fd)
+                    os.close(old_fd)
+                try:
+                    nl._fen_reader_stop.set()
+                except Exception:
+                    pass
+                send_event("board_ok", {})
+                return  # succès
+            except SystemExit as e:
+                if "board connection error" not in str(e):
+                    send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+                    return
+                # board pas encore prêt — réessayer
+            except Exception:
+                pass  # réessayer
         send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+    finally:
+        _board_check_lock.release()
 
 
 def _launch_pedagogique(config):
