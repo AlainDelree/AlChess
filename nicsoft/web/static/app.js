@@ -600,12 +600,24 @@ socket.on("app_state", (data) => {
 // ── SOCKETIO — événements jeu en cours (coups, tours, feedback) ─
 
 socket.on("undo_move", (data) => {
-  // Juste mettre à jour la position courante — reviewFens sera reconstruit au game_over
   currentFen = data.fen || currentFen;
   lastMove   = null;
+  const count = data.count || 1;
+  for (let i = 0; i < count; i++) {
+    if (reviewFens.length > 1)  reviewFens.pop();
+    if (reviewMoves.length > 0) reviewMoves.pop();
+  }
+  reviewIdx = reviewFens.length - 1;
+  _renderHistory();
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
+  const btnUndo = document.getElementById("btn-undo");
+  if (btnUndo) btnUndo.style.display = "none";
 });
+
+function demanderUndo() {
+  sendAction({ type: "reprendre" });
+}
 
 socket.on("move", (data) => {
   currentFen    = data.fen;
@@ -655,6 +667,12 @@ socket.on("turn", (data) => {
   if (btnNulle) {
     btnNulle.disabled = !data.is_human;
     btnNulle.style.opacity = data.is_human ? "1" : "0.4";
+  }
+  // btn-undo : visible pendant le tour humain si au moins 1 tour complet joué
+  const btnUndo = document.getElementById("btn-undo");
+  if (btnUndo) {
+    const canUndo = data.is_human && reviewFens.length >= 3;
+    btnUndo.style.display = canUndo ? "" : "none";
   }
   // btn-reprendre géré par showFeedback/hideFeedback uniquement
   if (!data.player || !data.color) return;
@@ -1900,9 +1918,10 @@ socket.on("pause", (data) => {
   const btnMeilleur  = document.getElementById("btn-pause-meilleur");
   const btnSequence  = document.getElementById("btn-pause-sequence");
 
-  // Reprendre : seulement si pause auto (un coup a été joué)
+  // Reprendre : si pause auto OU si pause manuelle avec des coups à annuler
   if (btnReprendre) {
-    btnReprendre.style.display = data.auto ? "block" : "none";
+    const canUndo = data.auto || reviewFens.length >= 3;
+    btnReprendre.style.display = canUndo ? "block" : "none";
   }
   // Continuer : seulement si pause auto
   if (btnContinuer) {
