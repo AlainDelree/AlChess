@@ -611,6 +611,8 @@ socket.on("undo_move", (data) => {
   _renderHistory();
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
+  // Resynchroniser chess.js avec la position après undo (full_fen inclut le tour et le roque)
+  if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
   const btnUndo = document.getElementById("btn-undo");
   if (btnUndo) btnUndo.style.display = "none";
 });
@@ -1758,6 +1760,7 @@ let _pauseReviewFens    = [];
 let _pauseReviewMoves   = [];
 let _pauseReviewIdx     = 0;
 let _pauseChangerCouleur = false;  // toggle local pendant la pause
+let _pauseIsAuto         = false;  // true = pause auto (après coup), false = pause manuelle
 
 // ── Rendu échiquier avec cases en erreur ──────────────────────────────────
 function renderBoardWithErrors(expectedFen, physicalFen) {
@@ -1943,6 +1946,7 @@ socket.on("pause", (data) => {
 
   // Reset toggle changer_couleur
   _pauseChangerCouleur = false;
+  _pauseIsAuto = !!data.auto;
   _updateChangerCouleurBtn();
 
   // Initialiser la navigation avec l'historique courant
@@ -2014,7 +2018,9 @@ function pauseToggleChangerCouleur() {
 }
 
 function pauseReprendre() {
-  const fen = _pauseReviewFens[_pauseReviewIdx] || null;
+  // En pause manuelle : ne pas envoyer de FEN (on veut juste pop 2 coups, pas tronquer)
+  // En pause auto : envoyer le FEN de navigation si l'utilisateur a navigué en arrière
+  const fen = _pauseIsAuto ? (_pauseReviewFens[_pauseReviewIdx] || null) : null;
   sendAction({
     type:            "reprendre",
     changer_couleur: _pauseChangerCouleur,
