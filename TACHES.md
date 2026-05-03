@@ -65,6 +65,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 - **Mode virtuel réinitialisé au retour menu** *(commit c958300, 2026-05-03)* — `_viderAnalyse()` appelait `toggleVirtualMode(false)` à chaque retour au menu, écrasant le choix de l'utilisateur. Remplacé par `toggleVirtualMode(_virtualMode)` pour conserver l'état courant.
 
+- **Annuler coup pédagogique** *(commit 2d46db3, 2026-05-03)* — Bouton "↩ Annuler le dernier coup" visible dès qu'un tour complet est joué ; "Reprendre" dans la pause manuelle propagé correctement ; `undo_move` met à jour l'historique JS.
+
 - **Contraste modal et écran pos-init** *(commit 4f0b748, 2026-05-03)* — Titre modal en `#e0e0e0` (quasi invisible sur fond `#c2d4e8`) → `#1a2a3a`. Labels "Adversaire"/"Joueur" de l'écran init pédagogique en `#666`/`#ccc` (pale sur `#d8e4f0`) → `#1a2a3a`.
 
 
@@ -78,9 +80,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 ---
 
 ## 🐛 Bugs récents
-
-- **Retour exercices bloqué** — Exercices → Mes lignes → Chigorine ligne 1 → ligne complète → Retour menu → re-cliquer Chigorine ligne 1 → aucune réaction. Bug lié au bouton "retour" en général, apparaît avec d'autres écrans.
-- **Annuler Coup Pédagogique** — Partie pédagogique → Pas de bouton reprendre coup. Si → Bouton pause → pas de bouton reprendre le coup et si on recule avec l'historique, ça reprend quand même au coup sans apporter de modification.
+- **Rertanscrire Sauver et Quitter trop rapide**  Au clic sur "Sauver et Quitter"  La modale qui donne le chemin du fichier PGN a un bouton annuler inutile.  Si on clique dessus ce n'annule rien. Il faut revoir la logique de la modal. Un texte le fichier PGN sera enregistré dans /home/alain/NicLink/games/Retranscription/Blancs_vs_Noirs_6.pgn et comme ca l'utilisateur a le choix et l'information.
+- **Le plateau bip inutilement** Lors du clic a chaque menu où on va l'utiliser (Pédagogique, HH Exercices...)
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
 - **Exercice avec échiquier physique** — Le coup de l'ordinateur est montré via des LEDs sur le plateau mais n'apparaît sur l'écran que quand le coup est joué sur l'échiquier.
 - **HH délai avant d'afficher le coup des blancs** — À vérifier.
