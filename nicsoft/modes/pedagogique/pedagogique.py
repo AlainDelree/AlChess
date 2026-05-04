@@ -1428,8 +1428,10 @@ class Game(threading.Thread):
         fish_move = fish_move_obj.uci()
         san = self.nl_inst.game_board.san(fish_move_obj)
 
+        _t_step = time.time()
         self.nl_inst.make_move_game_board(fish_move)
         display_move(engine_label, engine_color, san)
+        tlog("[TIMING-F] make_move: %.3fs", time.time()-_t_step)
 
         # Évaluation WDL après le coup du moteur (position du joueur humain)
         wdl_bar = None
@@ -1456,11 +1458,19 @@ class Game(threading.Thread):
         self.move_gaps.append(gap)
         self.last_move_time = now
 
+        _t_step = time.time()
         self._append_move_to_pgn(fish_move_obj, comment=f"gap={gap}s")
+        tlog("[TIMING-F] append_pgn: %.3fs", time.time()-_t_step)
+        _t_step = time.time()
         self.save_pgn_tmp()
+        tlog("[TIMING-F] save_pgn: %.3fs", time.time()-_t_step)
+        _t_step = time.time()
         self.check_for_game_over()
+        tlog("[TIMING-F] game_over_check: %.3fs", time.time()-_t_step)
 
+        _t_step = time.time()
         self._wait_for_fish_move_on_board(fish_move)
+        tlog("[TIMING-F] wait_fish_total: %.3fs", time.time()-_t_step)
         # Abandon/back_menu demandé pendant l'attente plateau → traiter maintenant
         if self._abandon_demande:
             self.nl_inst.kill_switch.clear()
@@ -1527,10 +1537,12 @@ class Game(threading.Thread):
 
                 if board_fen == expected_fen:
                     tlog("[WAIT_FISH] placement confirmé en %.2fs", time.time()-_t_wait)
+                    _t_leds = time.time()
                     try:
                         self.nl_inst.turn_off_all_leds()
                     except Exception:
                         pass
+                    tlog("[WAIT_FISH] turn_off_leds: %.3fs", time.time()-_t_leds)
                     if warning_shown:
                         print("   Position rétablie. Continuez.")
                         send_event("turn", {
@@ -1589,7 +1601,9 @@ class Game(threading.Thread):
                 time.sleep(0.1)
         finally:
             _abort_stop.set()
+            _t_join = time.time()
             _abort_thread.join(timeout=1.0)
+            tlog("[WAIT_FISH] abort_join: %.3fs", time.time()-_t_join)
 
     # ── Boucle principale ─────────────────────────────────────────────────
 
