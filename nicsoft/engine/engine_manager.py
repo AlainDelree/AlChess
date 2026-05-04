@@ -73,7 +73,8 @@ class EngineManager:
         self._engine_path   = engine_path
         self._engine_elo    = max(ELO_MIN, min(ELO_MAX, engine_elo))
         self._analyse_active = analyse_active
-        self._lock          = threading.Lock()
+        self._lock_play     = threading.Lock()
+        self._lock_eval     = threading.Lock()
 
         self._engine_play: chess.engine.SimpleEngine | None = None
         self._engine_eval: chess.engine.SimpleEngine | None = None
@@ -148,7 +149,7 @@ class EngineManager:
     def set_elo(self, elo: int) -> None:
         """Change le niveau Elo du moteur de jeu à chaud."""
         self._engine_elo = max(ELO_MIN, min(ELO_MAX, elo))
-        with self._lock:
+        with self._lock_play:
             if self._engine_play:
                 self._apply_elo(self._engine_play)
 
@@ -162,7 +163,7 @@ class EngineManager:
 
         Retourne le coup ou None en cas d'erreur.
         """
-        with self._lock:
+        with self._lock_play:
             if not self._engine_play:
                 return None
             try:
@@ -187,7 +188,7 @@ class EngineManager:
             "best_move": str | None,  # meilleur coup UCI
           }
         """
-        with self._lock:
+        with self._lock_eval:
             if not self._engine_eval:
                 return {"cp": None, "mate": None, "wdl": None, "best_move": None}
             try:
@@ -270,7 +271,7 @@ class EngineManager:
             # relancer en MultiPV=2 pour obtenir le vrai meilleur coup
             if qualite != "bon" and best is None:
                 try:
-                    with self._lock:
+                    with self._lock_eval:
                         info_mpv = self._engine_eval.analyse(
                             board,
                             chess.engine.Limit(depth=depth),
@@ -296,7 +297,7 @@ class EngineManager:
         """
         Retourne la ligne punitive après un coup humain.
         """
-        with self._lock:
+        with self._lock_eval:
             if not self._engine_eval:
                 return []
             try:
@@ -324,7 +325,7 @@ class EngineManager:
         Retourne une liste de dict :
           [{"move": str (UCI), "cp": int, "mate": int | None}, ...]
         """
-        with self._lock:
+        with self._lock_eval:
             if not self._engine_eval:
                 return []
             try:
@@ -529,7 +530,8 @@ class MaiaEngine(EngineManager):
         self._weights_path  = weights_path
         self._maia_elo      = maia_elo
         self._analyse_active = analyse_active
-        self._lock          = threading.Lock()
+        self._lock_play     = threading.Lock()
+        self._lock_eval     = threading.Lock()
 
         self._engine_play: chess.engine.SimpleEngine | None = None
         self._engine_eval: chess.engine.SimpleEngine | None = None
@@ -575,7 +577,7 @@ class MaiaEngine(EngineManager):
         Demande un coup à Maia — nodes=1 (pas de recherche, réseau pur).
         think_time est ignoré pour Maia.
         """
-        with self._lock:
+        with self._lock_play:
             if not self._engine_play:
                 return None
             try:
