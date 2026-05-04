@@ -1165,7 +1165,7 @@ class Game(threading.Thread):
         def poll_abandon():
             while not abandon_stop.is_set():
                 try:
-                    action = get_action(timeout=0.2)
+                    action = get_action(timeout=0.05)
                     if action:
                         atype = action.get("type")
                         if atype == "abandonner":

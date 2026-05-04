@@ -700,7 +700,7 @@ class GameWeb(threading.Thread):
 
         def watch_actions():
             while not watch_stop.is_set():
-                action = get_action(timeout=0.3)
+                action = get_action(timeout=0.05)
                 if action is None:
                     continue
                 atype = action.get("type", "")
@@ -761,9 +761,9 @@ class GameWeb(threading.Thread):
             import time as _time
             stable_count = 0
             last_fen = None
-            STABLE_NEEDED = 16  # ~1.6s de stabilité avant de signaler
+            STABLE_NEEDED = 32  # ~1.6s de stabilité avant de signaler
             while not watch_stop.is_set():
-                _time.sleep(0.1)
+                _time.sleep(0.05)
                 try:
                     raw = self.nl_inst.current_fen
                     phys = raw.strip().split()[0] if raw else ""
