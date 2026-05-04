@@ -965,6 +965,50 @@ class Game(threading.Thread):
 
     # ── Tour humain ───────────────────────────────────────────────────────
 
+    def _do_reprendre_undo(self) -> bool:
+        """
+        Annule 2 demi-coups (coup moteur + coup humain), ou 1 si début de partie.
+        Attend que le joueur remette les pièces à leur place en envoyant des
+        position_error au navigateur. Retourne True pour signaler de rejouer.
+        """
+        if not self._pgn_node.parent:
+            return False
+        if self._pgn_node.parent.parent is not None:
+            self._pgn_node = self._pgn_node.parent.parent
+            count = 2
+        else:
+            self._pgn_node = self._pgn_node.parent
+            count = 1
+        self.nl_inst.game_board = self._pgn_node.board()
+        for _ in range(count):
+            if self._historique: self._historique.pop()
+            if self.move_gaps:   self.move_gaps.pop()
+        fen_cible = self.nl_inst.game_board.fen()
+        expected  = self.nl_inst.game_board.board_fen()
+        n_txt = "coups" if count == 2 else "coup"
+        print(f"  {count} {n_txt} annulé(s) — remettez les pièces en place.")
+        send_event("undo_move", {
+            "fen":      fen_cible.split()[0],
+            "full_fen": fen_cible,
+            "count":    count,
+            "message":  "Remettez les pièces à leur place, puis rejouez.",
+        })
+        phys_now = (self.nl_inst.current_fen or "").strip().split()[0]
+        if phys_now and phys_now != expected:
+            send_event("position_error", {"expected_fen": expected, "physical_fen": phys_now})
+        while True:
+            if self.nl_inst.kill_switch.is_set():
+                return False
+            raw  = self.nl_inst.current_fen
+            phys = raw.strip().split()[0] if raw else ""
+            if phys == expected:
+                send_event("position_ok", {"fen": expected})
+                print("  Position rétablie — rejouez.")
+                break
+            send_event("position_error", {"expected_fen": expected, "physical_fen": phys})
+            time.sleep(0.2)
+        return True
+
     def handle_human_turn(self) -> bool:
         """
         Gère le tour du joueur humain avec analyse du coup.
@@ -975,7 +1019,7 @@ class Game(threading.Thread):
             self._reprendre_disponible = False
             action = get_action(timeout=0.0)
             if action and action.get("type") == "reprendre":
-                return True  # sera géré par run() qui rappelle handle_human_turn
+                return self._do_reprendre_undo()
 
         human_color = "white" if self.playing_white == chess.WHITE else "black"
         display_turn(getattr(self, "player_name", "Joueur"), human_color)
@@ -1188,35 +1232,7 @@ class Game(threading.Thread):
                 return False
         if self._reprendre_demande:
             self._reprendre_demande = False
-            # Annuler le dernier coup humain (et le coup Stockfish précédent si nécessaire)
-            if len(self.nl_inst.game_board.move_stack) >= 2:
-                self.nl_inst.game_board.pop()  # annuler coup Stockfish
-                self.nl_inst.game_board.pop()  # annuler coup humain
-                if self._pgn_node.parent and self._pgn_node.parent.parent:
-                    self._pgn_node = self._pgn_node.parent.parent
-                elif self._pgn_node.parent:
-                    self._pgn_node = self._pgn_node.parent
-                if self._historique:
-                    self._historique.pop()
-                if self.move_gaps:
-                    self.move_gaps.pop()
-                print("  Coup annulé — rejouez.")
-                send_event("undo_move", {
-                    "fen":      self.nl_inst.game_board.fen().split()[0],
-                    "full_fen": self.nl_inst.game_board.fen(),
-                    "count":    2,
-                })
-                expected = self.nl_inst.game_board.board_fen()
-                while True:
-                    if self.nl_inst.kill_switch.is_set():
-                        return False
-                    raw = self.nl_inst.current_fen
-                    if raw and raw.strip().split()[0] == expected:
-                        print("  Position rétablie — rejouez.")
-                        break
-                    time.sleep(0.2)
-                return True  # relancer handle_human_turn
-            return False
+            return self._do_reprendre_undo()
         if move is None:
             return False
 
@@ -1303,44 +1319,34 @@ class Game(threading.Thread):
             self._reprendre_disponible = True
 
         if reprendre:
-            # Annuler le coup et recommencer ce tour
+            # Annuler le coup et recommencer ce tour.
+            # _pgn_node n'a pas encore été avancé (_append_move_to_pgn est après) :
+            # on ne le recule donc pas.
             self.nl_inst.game_board.pop()
-            self._pgn_node = self._pgn_node.parent if self._pgn_node.parent else self._pgn_game
-            if self._historique:
-                self._historique.pop()
-            if self.move_gaps:
-                self.move_gaps.pop()
-            # Notifier le JS de retirer le dernier coup de reviewFens
+            if self._historique: self._historique.pop()
+            if self.move_gaps:   self.move_gaps.pop()
+            fen_cible = self.nl_inst.game_board.fen()
+            expected  = self.nl_inst.game_board.board_fen()
+            print("  Coup annulé — remettez la pièce à sa position initiale.")
             send_event("undo_move", {
-                    "fen":      self.nl_inst.game_board.fen().split()[0],
-                    "full_fen": self.nl_inst.game_board.fen(),
-                    "count":    1,
+                "fen":      fen_cible.split()[0],
+                "full_fen": fen_cible,
+                "count":    1,
+                "message":  "Remettez la pièce à sa position initiale, puis rejouez.",
             })
-            print("  Coup annulé — rejouez.")
-            # Attendre que le joueur remette la pièce, avec feedback visuel cases en erreur
-            print("  Remettez la pièce à sa position initiale.")
-            expected = self.nl_inst.game_board.board_fen()
-            # Afficher immédiatement les cases incorrectes
-            current_raw = self.nl_inst.current_fen
-            current_fen = current_raw.strip().split()[0] if current_raw else ""
-            if current_fen != expected:
-                send_event("position_error", {
-                    "expected_fen": expected,
-                    "physical_fen": current_fen,
-                })
+            phys_now = (self.nl_inst.current_fen or "").strip().split()[0]
+            if phys_now and phys_now != expected:
+                send_event("position_error", {"expected_fen": expected, "physical_fen": phys_now})
             while True:
                 if self.nl_inst.kill_switch.is_set():
                     return False
-                raw = self.nl_inst.current_fen
+                raw  = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
                 if phys == expected:
                     send_event("position_ok", {"fen": expected})
                     print("  Position rétablie — rejouez.")
                     break
-                send_event("position_error", {
-                    "expected_fen": expected,
-                    "physical_fen": phys,
-                })
+                send_event("position_error", {"expected_fen": expected, "physical_fen": phys})
                 time.sleep(0.2)
             return True  # signal : refaire le tour
 
