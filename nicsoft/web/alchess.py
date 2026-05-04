@@ -402,8 +402,6 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         _nl_inst_ref = nl_inst
         if not virtual:
             _wait_initial_position_web(nl_inst)
-        web_server._app_state = "playing"
-        set_app_state("playing")
 
         if engine_type == "maia":
             engine_label = f"Maia {maia_elo}"
@@ -412,6 +410,8 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         else:
             engine_label = f"Stockfish ~{engine_elo}elo"
 
+        # Initialiser le moteur AVANT de basculer en "playing" — le démarrage de
+        # Stockfish (2 processus, ~0.5-1s) ne sera plus visible pour le joueur.
         game = Game(
             nl_inst, playing_white,
             stockfish_level=level,
@@ -430,6 +430,9 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         game.player_name    = player_name
         game.move_gaps      = []
         game.last_move_time = time.time()
+
+        web_server._app_state = "playing"
+        set_app_state("playing")
         send_event("init", {
             "fen":         chess.STARTING_FEN,
             "player":      player_name,

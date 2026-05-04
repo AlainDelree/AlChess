@@ -532,17 +532,18 @@ class Game(threading.Thread):
 
     # ── Signaux ───────────────────────────────────────────────────────────
 
-    def _start_fish_prefetch(self, board: chess.Board | None = None) -> threading.Event:
+    def _start_fish_prefetch(self, board: chess.Board | None = None) -> None:
         """
         Démarre le calcul du prochain coup moteur en background.
-        Retourne un Event qui sera set() quand le coup est prêt.
-        Utilise _lock_play (indépendant de _lock_eval) pour pouvoir tourner
-        en parallèle de l'évaluation du coup humain.
+        Stocke l'Event dans self._fish_done_event pour que handle_fish_turn
+        puisse attendre si besoin.
+        Utilise _lock_play (indépendant de _lock_eval) → vraie parallélisation.
         """
         board = board or self.nl_inst.game_board.copy()
         self._fish_gen += 1
         _gen = self._fish_gen
         done = threading.Event()
+        self._fish_done_event = done
 
         def _think():
             result = self.engine.get_move(board, think_time=1.0)
@@ -551,7 +552,6 @@ class Game(threading.Thread):
             done.set()
 
         threading.Thread(target=_think, daemon=True).start()
-        return done
 
     def signal_turn(self) -> None:
         # Bip + LEDs camp humain — fire-and-forget via queue LED
@@ -1280,7 +1280,7 @@ class Game(threading.Thread):
 
         # Pipeline : démarrer le calcul du coup moteur en parallèle de l'évaluation
         # _lock_play et _lock_eval sont indépendants → exécution vraiment concurrente
-        _fish_done = self._start_fish_prefetch(self.nl_inst.game_board.copy())
+        self._start_fish_prefetch(self.nl_inst.game_board.copy())
 
         now = time.time()
         gap = round(now - getattr(self, "last_move_time", now), 2)
@@ -1382,9 +1382,6 @@ class Game(threading.Thread):
                 time.sleep(0.2)
             return True  # signal : refaire le tour
 
-        # Attendre que le coup moteur précalculé soit prêt (il tourne en parallèle)
-        _fish_done.wait(timeout=2.0)
-
         self._append_move_to_pgn(move_obj, comment=f"{SYMBOLES.get(qualite,'')} {delta_cp}cp gap={gap}s")
         self.save_pgn_tmp()
         self.check_for_game_over()
@@ -1410,12 +1407,16 @@ class Game(threading.Thread):
         display_turn(engine_label, engine_color)
         send_event("turn", {"color": engine_color, "player": engine_label, "is_human": False})
 
-        # Utiliser le coup précalculé (pipeline) ou calculer maintenant
+        # Utiliser le coup précalculé (pipeline) ou calculer maintenant.
+        # Si le prefetch tourne encore (cas rare : eval très rapide + think_time long),
+        # _fish_done_event permet d'attendre sans boucle active.
         _t_fish = time.time()
+        if self._prefetched_fish_move is None and hasattr(self, '_fish_done_event'):
+            self._fish_done_event.wait(timeout=2.0)
         if self._prefetched_fish_move is not None:
             fish_move_obj = self._prefetched_fish_move
             self._prefetched_fish_move = None
-            tlog("[TIMING] get_move: préchargé (%.3fs)", time.time()-_t_fish)
+            tlog("[TIMING] get_move: préchargé (%.3fs attente)", time.time()-_t_fish)
         else:
             board_courant = self.nl_inst.game_board.copy()
             fish_move_obj = self.engine.get_move(board_courant, think_time=1.0)
