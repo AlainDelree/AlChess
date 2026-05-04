@@ -63,6 +63,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 ## ✅ Bugs résolus récemment
 
+- **Modal Retranscription "Sauver et Quitter"** *(résolu récemment)* — bouton Annuler inutile supprimé, texte du chemin PGN affiché directement dans la modal.
+
 - **Mode virtuel réinitialisé au retour menu** *(commit c958300, 2026-05-03)* — `_viderAnalyse()` appelait `toggleVirtualMode(false)` à chaque retour au menu, écrasant le choix de l'utilisateur. Remplacé par `toggleVirtualMode(_virtualMode)` pour conserver l'état courant.
 
 - **Annuler coup pédagogique** *(commit 2d46db3, 2026-05-03)* — Bouton "↩ Annuler le dernier coup" visible dès qu'un tour complet est joué ; "Reprendre" dans la pause manuelle propagé correctement ; `undo_move` met à jour l'historique JS.
@@ -80,7 +82,7 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 ---
 
 ## 🐛 Bugs récents
-- **Rertanscrire Sauver et Quitter trop rapide**  Au clic sur "Sauver et Quitter"  La modale qui donne le chemin du fichier PGN a un bouton annuler inutile.  Si on clique dessus ce n'annule rien. Il faut revoir la logique de la modal. Un texte le fichier PGN sera enregistré dans /home/alain/NicLink/games/Retranscription/Blancs_vs_Noirs_6.pgn et comme ca l'utilisateur a le choix et l'information.
+- **Partie Nulle Pedagogique physique** Lorsque le moteur joue son coup, avant que je déplace la piece, je peux Abandonner mais Partie Nulle est grisée.
 - **Le plateau bip inutilement** Lors du clic a chaque menu où on va l'utiliser (Pédagogique, HH Exercices...)
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
 - **Exercice avec échiquier physique** — Le coup de l'ordinateur est montré via des LEDs sur le plateau mais n'apparaît sur l'écran que quand le coup est joué sur l'échiquier.
