@@ -611,15 +611,13 @@ socket.on("undo_move", (data) => {
   _renderHistory();
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
+  if (data.message) {
+    const turnInfo = document.getElementById("turn-info");
+    if (turnInfo) { turnInfo.textContent = data.message; turnInfo.className = "warning"; }
+  }
   // Resynchroniser chess.js avec la position après undo (full_fen inclut le tour et le roque)
   if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
-  const btnUndo = document.getElementById("btn-undo");
-  if (btnUndo) btnUndo.style.display = "none";
 });
-
-function demanderUndo() {
-  sendAction({ type: "reprendre" });
-}
 
 socket.on("move", (data) => {
   currentFen    = data.fen;
@@ -670,13 +668,6 @@ socket.on("turn", (data) => {
     btnNulle.disabled = !data.is_human;
     btnNulle.style.opacity = data.is_human ? "1" : "0.4";
   }
-  // btn-undo : visible pendant le tour humain si au moins 1 tour complet joué
-  const btnUndo = document.getElementById("btn-undo");
-  if (btnUndo) {
-    const canUndo = data.is_human && reviewFens.length >= 3;
-    btnUndo.style.display = canUndo ? "" : "none";
-  }
-  // btn-reprendre géré par showFeedback/hideFeedback uniquement
   if (!data.player || !data.color) return;
   const turnInfo = document.getElementById("turn-info");
   if (data.in_check) {
@@ -1022,11 +1013,6 @@ function showFeedback(data) {
     if (cardActions) cardActions.style.display = "none";
   }
 
-  // btn-reprendre actif uniquement pendant la pause pédagogique
-  const btnR = document.getElementById("btn-reprendre");
-  btnR.disabled     = false;
-  btnR.style.opacity = "1";
-
   if (data.best_move_uci) {
     bestMove = data.best_move_uci;
     // Activer le bouton meilleur coup dans le panel pause aussi
@@ -1055,11 +1041,6 @@ function hideFeedback() {
   if (btnSeq) btnSeq.disabled = true;
   const btnPM = document.getElementById("btn-pause-meilleur");
   if (btnPM) { btnPM.disabled = true; btnPM.style.opacity = "0.4"; }
-  const btnReprendre = document.getElementById("btn-reprendre");
-  if (btnReprendre) {
-    btnReprendre.disabled    = true;
-    btnReprendre.style.opacity = "0.4";
-  }
   // Remettre card-actions visible
   const cardActions = document.getElementById("card-actions");
   if (cardActions) cardActions.style.display = "flex";
@@ -1363,22 +1344,8 @@ function sendAction(data) {
   } else if (data.type === "continuer") {
     hideFeedback();
   } else if (data.type === "reprendre") {
-    // Retirer le coup annulé de tous les historiques
-    if (reviewFens.length > 1)  reviewFens.pop();
-    if (reviewMoves.length > 0) reviewMoves.pop();
-    reviewIdx = Math.max(0, reviewFens.length - 1);
-    _pendingMove = null;  // éviter double entrée si qualite arrive après
-    _renderHistory();
-    // Revenir au FEN d'avant le coup annulé
-    currentFen = reviewFens[reviewIdx] || currentFen;
-    lastMove = null;
-    renderBoard(currentFen, null, null, null, null, null, null);
-    // Message d'instruction dans turn-info
-    const turnInfo = document.getElementById("turn-info");
-    if (turnInfo) {
-      turnInfo.textContent = "Replacez toutes les pièces impliquées par votre coup";
-      turnInfo.className = "";
-    }
+    // L'historique est géré par undo_move du serveur — ne rien toucher ici
+    _pendingMove = null;
     hideFeedback();
   }
 }
@@ -1921,10 +1888,9 @@ socket.on("pause", (data) => {
   const btnMeilleur  = document.getElementById("btn-pause-meilleur");
   const btnSequence  = document.getElementById("btn-pause-sequence");
 
-  // Reprendre : si pause auto OU si pause manuelle avec des coups à annuler
+  // Reprendre : toujours visible dans la pause
   if (btnReprendre) {
-    const canUndo = data.auto || reviewFens.length >= 3;
-    btnReprendre.style.display = canUndo ? "block" : "none";
+    btnReprendre.style.display = "block";
   }
   // Continuer : seulement si pause auto
   if (btnContinuer) {
@@ -2018,13 +1984,10 @@ function pauseToggleChangerCouleur() {
 }
 
 function pauseReprendre() {
-  // En pause manuelle : ne pas envoyer de FEN (on veut juste pop 2 coups, pas tronquer)
-  // En pause auto : envoyer le FEN de navigation si l'utilisateur a navigué en arrière
-  const fen = _pauseIsAuto ? (_pauseReviewFens[_pauseReviewIdx] || null) : null;
   sendAction({
     type:            "reprendre",
     changer_couleur: _pauseChangerCouleur,
-    fen:             fen,
+    fen:             null,
   });
 }
 
