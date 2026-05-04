@@ -352,6 +352,8 @@ class Game(threading.Thread):
         # Pipeline : précalcul du coup moteur en parallèle de l'évaluation humaine
         self._prefetched_fish_move: chess.Move | None = None
         self._fish_gen: int = 0
+        # Temps de réflexion du moteur — 0.3s suffit avec UCI_LimitStrength actif
+        self._think_time: float = 0.3
  
         
         self.tmp_path  = build_tmp_path()
@@ -546,7 +548,7 @@ class Game(threading.Thread):
         self._fish_done_event = done
 
         def _think():
-            result = self.engine.get_move(board, think_time=1.0)
+            result = self.engine.get_move(board, think_time=self._think_time)
             if self._fish_gen == _gen:
                 self._prefetched_fish_move = result
             done.set()
@@ -1419,7 +1421,7 @@ class Game(threading.Thread):
             tlog("[TIMING] get_move: préchargé (%.3fs attente)", time.time()-_t_fish)
         else:
             board_courant = self.nl_inst.game_board.copy()
-            fish_move_obj = self.engine.get_move(board_courant, think_time=1.0)
+            fish_move_obj = self.engine.get_move(board_courant, think_time=self._think_time)
             tlog("[TIMING] get_move: %.2fs", time.time()-_t_fish)
         if fish_move_obj is None:
             return
