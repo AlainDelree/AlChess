@@ -844,9 +844,8 @@ class GameWeb(threading.Thread):
         self.board.push(move_obj)
         self.nl_inst.game_board = self.board.copy()  # garder game_board synchro
         self._pgn_node = self._pgn_node.add_variation(move_obj)
-        self.save_pgn_tmp()
 
-        # Envoyer le coup au navigateur
+        # Envoyer le coup avant save_pgn_tmp (I/O disque ne doit pas retarder l'affichage)
         _t_send = time.time()
         send_event("move", {
             "fen":    self.board.board_fen(),
@@ -858,9 +857,7 @@ class GameWeb(threading.Thread):
         })
         tlog("[TIMING] send_event+traitement: %.2fs", time.time()-_t_send)
 
-        # Pas d'analyse Stockfish en HH
-
-        # server.py met à jour _game_state["history"] automatiquement via send_event("move")
+        self.save_pgn_tmp()
 
         now = time.time()
         self.move_gaps.append(round(now - self.last_move_time, 2))
