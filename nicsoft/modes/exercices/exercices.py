@@ -871,8 +871,24 @@ class ExerciceSession:
 
     def _wait_placement_adv(self, uci: str) -> bool:
         """Attend que le joueur place la pièce adverse — lecture passive du FEN."""
+        import queue as _q
+        from nicsoft.web.server import action_queue as _aq
         expected = self.board.board_fen()
         while self._running:
+            try:
+                action = _aq.get_nowait()
+                atype = action.get("type", "")
+                if atype in ("exercice_back", "back_menu"):
+                    self._running = False
+                    return False
+                elif atype == "exercice_retry":
+                    self._retry_requested = True
+                    self._running = False
+                    return False
+            except _q.Empty:
+                pass
+            except Exception:
+                pass
             try:
                 raw  = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
