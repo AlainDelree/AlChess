@@ -84,6 +84,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 - **Exercices : bouton Continuer avec Stockfish** *(commit 17dd515, 2026-05-06)* — Après fin de ligne, bouton "Continuer avec Stockfish" apparaît. Le Python (`_run_free`) était déjà complet ; il manquait le JS. Ajout des handlers `exercice_free_mode` / `exercice_free_gameover`, activation de l'échiquier virtuel dans `_exHandlePosition`, garde `_exLaunching` contre les double-clics. ✓ Validé virtuel et physique.
 
+- **Exercice : impossible de relancer après Retour** *(commits fc9a94f→c8a93b2, 2026-05-06)* — Série de bugs imbriqués : (1) `_app_state` restait sur `"exercice_running"` après retour ; (2) race condition `kill_switch.clear()` vs `_watch_actions` bloquait le thread ; (3) le `finally` d'un vieux thread écrasait l'état de la nouvelle session ; (4) `_wait_placement_adv()` ignorait `back_menu` (pas de `_watch_actions` actif pendant le placement adverse). Fix final : lecture directe de `action_queue` dans `_wait_placement_adv`. ✓ Validé.
+
 - **Exercice physique — coup adversaire affiché immédiatement** *(commit 2a8ff6f, 2026-05-06)* — `exercice_adv_move` ne contenait pas le FEN, le JS n'appelait pas `exRenderBoard()`. Fix : fen/from/to ajoutés au event Python, board rendu immédiatement côté JS. ✓ Validé.
 
 ---
