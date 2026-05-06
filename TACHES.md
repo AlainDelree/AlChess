@@ -83,7 +83,7 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 - **HH délai affichage coup** *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` (écriture disque) était appelé avant `send_event("move")`, retardant l'affichage. Fix : send_event en premier, save_pgn ensuite — comme en pédagogique. ✓ Validé.
 
-- **Exercice physique — coup adversaire affiché immédiatement** *(commit 2a8ff6f, 2026-05-06)* — `exercice_adv_move` ne contenait pas le FEN, le JS n'appelait pas `exRenderBoard()`. Fix : fen/from/to ajoutés au event Python, board rendu immédiatement côté JS.
+- **Exercice physique — coup adversaire affiché immédiatement** *(commit 2a8ff6f, 2026-05-06)* — `exercice_adv_move` ne contenait pas le FEN, le JS n'appelait pas `exRenderBoard()`. Fix : fen/from/to ajoutés au event Python, board rendu immédiatement côté JS. ✓ Validé.
 
 ---
 
