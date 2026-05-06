@@ -793,7 +793,10 @@ class ExerciceSession:
                         atype = action.get("type", "")
                         if atype in ("exercice_back", "back_menu"):
                             self._running = False
-                            self.nl_inst.kill_switch.set()
+                            while not stop_watch.is_set():
+                                self.nl_inst.kill_switch.set()
+                                time.sleep(0.005)
+                            return
                         elif atype == "exercice_retry":
                             self._retry_requested = True
                             self.nl_inst.kill_switch.set()
