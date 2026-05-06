@@ -171,6 +171,11 @@ def on_action(data):
                           "exercice_running", "retrans_playing"):
             action_queue.put(data)
         return
+    # Retour sélection exercices — même pattern que back_menu
+    if atype == "exercice_back" and _app_state == "exercice_running":
+        set_app_state("exercices")
+        action_queue.put(data)  # arrêter le thread exercice proprement
+        return
     if _app_state in ("playing", "connecting", "game_over", "paused", "labo", "exercice_running", "retrans_playing"):
         action_queue.put(data)
     else:
@@ -328,11 +333,12 @@ def send_event(event_type: str, data: dict) -> None:
         _game_state.setdefault("history", []).append(data)
         _game_state.setdefault("history_fen", ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]).append(data.get("fen", ""))
     elif event_type == "undo_move":
-        # Retirer le dernier coup de l'historique
-        if _game_state.get("history"):
-            _game_state["history"].pop()
-        if _game_state.get("history_fen") and len(_game_state["history_fen"]) > 1:
-            _game_state["history_fen"].pop()
+        count = data.get("count", 1)
+        for _ in range(count):
+            if _game_state.get("history"):
+                _game_state["history"].pop()
+            if _game_state.get("history_fen") and len(_game_state["history_fen"]) > 1:
+                _game_state["history_fen"].pop()
         _game_state["fen"] = data.get("fen", _game_state.get("fen"))
     elif event_type == "turn":
         _game_state["turn"] = data
