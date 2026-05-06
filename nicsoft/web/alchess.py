@@ -67,6 +67,11 @@ def _setup_logging():
     else:
         _timing_logger.setLevel(logging.CRITICAL)
 
+    from datetime import datetime
+    debug_tag = " [DEBUG]" if level == "DEBUG" else ""
+    marker = f"\n{'='*60}\n=== DÉMARRAGE{debug_tag} — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n{'='*60}\n"
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(marker)
     logging.getLogger("niclink").info(f"NicLink démarré — log: {LOG_FILE}")
 
 
