@@ -594,14 +594,17 @@ def _launch_exercices():
 
 _exercice_running = False  # guard contre les lancements multiples
 _ex_thread = None          # thread exercice courant
+_exercice_session = 0      # numéro de session — protège le finally des vieux threads
 
 
 def _run_exercice(config: dict) -> None:
     """Lance une session d'exercice — même pattern que pédagogique."""
-    global _exercice_running, _nl_inst_ref
+    global _exercice_running, _nl_inst_ref, _exercice_session
     if _exercice_running:
         return
     _exercice_running = True
+    _exercice_session += 1
+    my_session = _exercice_session
 
     from nicsoft.modes.exercices.exercices import ExerciceSession, OUVERTURES, get_mes_lignes
     import logging as _log
@@ -696,7 +699,7 @@ def _run_exercice(config: dict) -> None:
             except Exception: pass
             try: nl_inst.disconnect()
             except Exception: pass
-        if web_server._app_state not in ("menu", "exercices"):
+        if my_session == _exercice_session and web_server._app_state not in ("menu", "exercices"):
             from nicsoft.modes.exercices.exercices import get_ouvertures, get_mes_lignes
             web_server._app_state = "exercices"
             set_app_state("exercices", {
@@ -707,10 +710,12 @@ def _run_exercice(config: dict) -> None:
 
 def _run_drill(config: dict) -> None:
     """Lance une session de drill multi-lignes depuis mes_lignes."""
-    global _exercice_running, _nl_inst_ref
+    global _exercice_running, _nl_inst_ref, _exercice_session
     if _exercice_running:
         return
     _exercice_running = True
+    _exercice_session += 1
+    my_session = _exercice_session
 
     from nicsoft.modes.exercices.exercices import DrillSession, get_mes_lignes
     import logging as _log
@@ -801,7 +806,7 @@ def _run_drill(config: dict) -> None:
             except Exception: pass
             try: nl_inst.disconnect()
             except Exception: pass
-        if web_server._app_state not in ("menu", "exercices"):
+        if my_session == _exercice_session and web_server._app_state not in ("menu", "exercices"):
             from nicsoft.modes.exercices.exercices import get_ouvertures, get_mes_lignes
             web_server._app_state = "exercices"
             set_app_state("exercices", {
