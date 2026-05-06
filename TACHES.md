@@ -9,8 +9,6 @@
 
 ### Priorité moyenne
 
-- **Spinner bloqué au démarrage** — occasionnellement, l'écran "Démarrage de NicLink" reste bloqué avec le spinner malgré `board_ok` reçu. Non reproductible de façon fiable.
-
 - **Écran Exercices vide** — s'affiche vide dans certaines conditions (état résiduel d'un mode précédent ?). Semble se corriger au redémarrage.
 
 - **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Le 1er bip vient du `connect()` USB initial qui échoue (plateau pas encore prêt), le 2e vient du retry 1s plus tard qui réussit. Piste : éviter le double appel `_niclink.connect()` en séparant connect et get_fen dans `_check_board_at_startup`.
