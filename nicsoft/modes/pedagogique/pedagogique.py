@@ -1633,7 +1633,7 @@ class Game(threading.Thread):
                     _t_tour = time.time()
                     self.handle_fish_turn()
                     tlog("[TOUR] fin tour STOCKFISH: %.2fs", time.time()-_t_tour)
-            except (ExitNicLink, SystemExit):
+            except (ExitNicLink, SystemExit, BackMenuExit):
                 raise  # laisser remonter proprement
             except Exception as e:
                 import traceback
