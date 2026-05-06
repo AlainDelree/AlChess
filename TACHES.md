@@ -79,6 +79,10 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 - **Bips multiples au démarrage** *(commit 216cd09, 2026-05-03)* — Réduit de 4 à 2. Cause : 3 appels simultanés à `_check_board_at_startup` (déclenchés par les 3 events `set_virtual_mode: False` du navigateur) en plus de l'appel initial. Fix : verrou `_board_check_lock` + retries internes séquentiels.
 
+- **[CRASH] BackMenuExit faux positif** *(commit 8b46117, 2026-05-06)* — `BackMenuExit` (exception de contrôle de flux) était catchée par `except Exception` dans la boucle principale péda et loggée comme `[CRASH]`. Aucun crash réel, mais log alarmant. Fix : ajoutée au `except (ExitNicLink, SystemExit, BackMenuExit): raise`.
+
+- **HH délai affichage coup** *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` (écriture disque) était appelé avant `send_event("move")`, retardant l'affichage. Fix : send_event en premier, save_pgn ensuite — comme en pédagogique.
+
 ---
 
 ## 🐛 Bugs récents
@@ -86,6 +90,6 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **Le plateau bip inutilement** Lors du clic a chaque menu où on va l'utiliser (Pédagogique, HH Exercices...)
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
 - **Exercice avec échiquier physique** — Le coup de l'ordinateur est montré via des LEDs sur le plateau mais n'apparaît sur l'écran que quand le coup est joué sur l'échiquier.
-- **HH délai avant d'afficher le coup des blancs** — À vérifier.
-- **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc.
+- **HH délai avant d'afficher le coup** — *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` était appelé avant `send_event("move")`, l'I/O disque retardait l'affichage. Corrigé : send_event en premier. À valider sur plateau physique.
+- **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc. *(confirmé résolu en test, 2026-05-06)*
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente). À diagnostiquer via time logs permanents.
