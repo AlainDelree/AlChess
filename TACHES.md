@@ -81,7 +81,9 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 - **[CRASH] BackMenuExit faux positif** *(commit 8b46117, 2026-05-06)* — `BackMenuExit` (exception de contrôle de flux) était catchée par `except Exception` dans la boucle principale péda et loggée comme `[CRASH]`. Aucun crash réel, mais log alarmant. Fix : ajoutée au `except (ExitNicLink, SystemExit, BackMenuExit): raise`.
 
-- **HH délai affichage coup** *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` (écriture disque) était appelé avant `send_event("move")`, retardant l'affichage. Fix : send_event en premier, save_pgn ensuite — comme en pédagogique.
+- **HH délai affichage coup** *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` (écriture disque) était appelé avant `send_event("move")`, retardant l'affichage. Fix : send_event en premier, save_pgn ensuite — comme en pédagogique. ✓ Validé.
+
+- **Exercice physique — coup adversaire affiché immédiatement** *(commit 2a8ff6f, 2026-05-06)* — `exercice_adv_move` ne contenait pas le FEN, le JS n'appelait pas `exRenderBoard()`. Fix : fen/from/to ajoutés au event Python, board rendu immédiatement côté JS.
 
 ---
 
@@ -89,7 +91,6 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **Partie Nulle Pedagogique physique** Lorsque le moteur joue son coup, avant que je déplace la piece, je peux Abandonner mais Partie Nulle est grisée.
 - **Le plateau bip inutilement** Lors du clic a chaque menu où on va l'utiliser (Pédagogique, HH Exercices...)
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
-- **Exercice avec échiquier physique** — Le coup de l'ordinateur est montré via des LEDs sur le plateau mais n'apparaît sur l'écran que quand le coup est joué sur l'échiquier.
 - **HH délai avant d'afficher le coup** — *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` était appelé avant `send_event("move")`, l'I/O disque retardait l'affichage. Corrigé : send_event en premier. ✓ Validé sur plateau physique.
 - **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc. *(confirmé résolu en test, 2026-05-06)*
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente). À diagnostiquer via time logs permanents.
