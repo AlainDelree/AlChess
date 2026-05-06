@@ -691,6 +691,8 @@ def _run_exercice(config: dict) -> None:
         if nl_inst:
             try: nl_inst.turn_off_all_leds()
             except Exception: pass
+            try: nl_inst.disconnect()
+            except Exception: pass
         if web_server._app_state not in ("menu", "exercices"):
             from nicsoft.modes.exercices.exercices import get_ouvertures, get_mes_lignes
             web_server._app_state = "exercices"
@@ -793,6 +795,8 @@ def _run_drill(config: dict) -> None:
             except Exception: pass
         if nl_inst:
             try: nl_inst.turn_off_all_leds()
+            except Exception: pass
+            try: nl_inst.disconnect()
             except Exception: pass
         if web_server._app_state not in ("menu", "exercices"):
             from nicsoft.modes.exercices.exercices import get_ouvertures, get_mes_lignes
