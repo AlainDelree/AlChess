@@ -3077,7 +3077,11 @@ function exRenderOuvertures(ouvertures) {
   }
 }
 
+let _exLaunching = false;
+
 function exLancer(ouvertureId) {
+  if (_exLaunching) return;
+  _exLaunching = true;
   _exOuvertureId = ouvertureId;
   // Afficher spinner en attendant exercice_init
   const spinner = document.getElementById("ex-spinner");
@@ -3324,6 +3328,7 @@ function exSetFeedback(msg, color, duration = 4000) {
 let _exHumanColor = "w";  // couleur du joueur humain en exercice
 
 socket.on("exercice_init", (data) => {
+  _exLaunching = false;
   _exHumanColor = data.human_color === "black" ? "b" : "w";
   _exBoardFlipped = data.human_color === "black";
   // Retourner l'échiquier selon la couleur du joueur
@@ -3333,6 +3338,8 @@ socket.on("exercice_init", (data) => {
   const wrapper = document.getElementById("ex-board-wrapper");
   if (spinner) spinner.style.display = "none";
   if (wrapper) wrapper.style.display = "flex";
+  const btnContinuer = document.getElementById("ex-btn-continuer");
+  if (btnContinuer) btnContinuer.style.display = "none";
   exBuildBoard();
   const o = data.ouverture;
   const nomEl = document.getElementById("ex-run-nom");
@@ -3378,6 +3385,7 @@ function _exHandlePosition(data) {
       _chessInstance = new Chess();
       _chessInstance.load(data.fen);
     } catch(e) { _chessInstance = null; }
+    _virtActivateExBoard();
   }
   const movesEl = document.getElementById("ex-run-moves-count");
   if (movesEl) movesEl.textContent = `Coup ${data.move_num}`;
@@ -3415,7 +3423,10 @@ function _exHandlePosition(data) {
 let _exSyncPending = false;
 
 socket.on("exercice_wait_position", (data) => {
+  _exLaunching = false;
   _exOutOfBook = false;
+  const btnContinuer = document.getElementById("ex-btn-continuer");
+  if (btnContinuer) btnContinuer.style.display = "none";
   exRenderBoard(data.fen, null, null);
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) {
@@ -3524,10 +3535,31 @@ socket.on("exercice_end_of_line", (data) => {
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) { statusEl.textContent = "🎉 Ligne terminée !"; statusEl.style.color = "#4caf50"; }
   exSetSyncBtn(false);
+  const btnContinuer = document.getElementById("ex-btn-continuer");
+  if (btnContinuer) btnContinuer.style.display = data.can_continue ? "" : "none";
   exSetInstructions(
     "🎉 <b>Bravo !</b> Vous avez complété la ligne théorique.<br>" +
-    "Cliquez <b>Recommencer</b> pour rejouer ou choisissez une autre ouverture."
+    (data.can_continue
+      ? "Cliquez <b>Continuer</b> pour jouer contre Stockfish ou <b>Recommencer</b> pour rejouer."
+      : "Cliquez <b>Recommencer</b> pour rejouer ou choisissez une autre ouverture.")
   );
+});
+
+socket.on("exercice_free_mode", (data) => {
+  const btnContinuer = document.getElementById("ex-btn-continuer");
+  if (btnContinuer) btnContinuer.style.display = "none";
+  exSetFeedback("Théorie terminée — continuez la partie !", "#2196f3", 0);
+  const statusEl = document.getElementById("ex-run-status");
+  if (statusEl) { statusEl.textContent = "Partie libre"; statusEl.style.color = "#2196f3"; }
+  exSetInstructions("La théorie est terminée. Continuez la partie contre Stockfish !");
+  if (data.fen) exRenderBoard(data.fen);
+});
+
+socket.on("exercice_free_gameover", (data) => {
+  exSetFeedback(data.reason || "Partie terminée", "#e57373", 0);
+  const statusEl = document.getElementById("ex-run-status");
+  if (statusEl) { statusEl.textContent = "Partie terminée"; statusEl.style.color = "#e57373"; }
+  exSetInstructions(`<b>${data.reason || "Partie terminée"}</b><br>Cliquez <b>Recommencer</b> pour rejouer.`);
 });
 
 socket.on("exercice_back", () => {

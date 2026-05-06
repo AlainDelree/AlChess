@@ -495,7 +495,6 @@
         <div id="countdown"></div>
         <button class="btn btn-best"      id="btn-best"      disabled onclick="sendAction({type:'meilleur'})">💡 Voir le meilleur coup</button>
         <button class="btn"               id="btn-sequence"  disabled onclick="jouerSequencePunitive()" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;">🎬 Voir la séquence</button>
-        <button class="btn btn-reprendre" id="btn-reprendre" disabled onclick="sendAction({type:'reprendre'})">↩ Reprendre mon coup</button>
         <button class="btn btn-continuer" id="btn-continuer" disabled onclick="sendAction({type:'continuer'})">→ Continuer</button>
       </div>
       <div class="card" id="card-actions" style="display:flex; flex-direction:column; gap:8px;">
@@ -503,14 +502,7 @@
         <button class="btn" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})">⏸ Pause</button>
         <button class="btn btn-warning" onclick="ouvrirModalAbandonner()">🏳 Abandonner</button>
         <button class="btn" id="btn-nulle" style="background:#4a4a6a; color:#e0e0e0;" onclick="ouvrirModalNulle()">🤝 Partie Nulle</button>
-        <button class="btn" id="btn-undo" style="display:none; background:#2a3a1a; color:#aae0aa; border:1px solid #4a8a2a;" onclick="demanderUndo()">↩ Annuler le dernier coup</button>
         <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')">← Retour au menu</button>
-      </div>
-      <!-- Message undo confirmation -->
-      <div class="card" id="card-undo-confirm" style="display:none; flex-direction:column; gap:8px; border-color:#4a8a2a;">
-        <h2 style="color:#aae0aa;">↩ Coup annulé</h2>
-        <div id="undo-msg" style="font-size:0.85rem; color:#445; margin-bottom:4px;">Replacez la pièce sur l'échiquier puis confirmez.</div>
-        <button class="btn" style="background:#2a3a1a; color:#aae0aa; border:1px solid #4a8a2a;" onclick="sendAction({type:'undo_confirm'})">✓ Confirmer</button>
       </div>
     </div>
     <!-- ── Pause ── -->
@@ -541,7 +533,7 @@
       <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
         <h2>Actions</h2>
         <!-- Pause auto uniquement -->
-        <button class="btn btn-continuer" id="btn-pause-reprendre" style="display:none;" onclick="pauseReprendre()">↩ Reprendre mon coup</button>
+        <button class="btn btn-continuer" id="btn-pause-reprendre" onclick="pauseReprendre()">↩ Reprendre mon coup</button>
         <button class="btn btn-reprendre" id="btn-pause-continuer" style="display:none; background:#2e7d32;" onclick="sendAction({type:'continuer'})">▶ Continuer</button>
         <!-- Toujours visible — reprend la partie (= continuer en pause manuelle) -->
         <button class="btn btn-reprendre" id="btn-pause-resume" onclick="sendAction({type:'resume_pause'})">▶ Reprendre la partie</button>
@@ -767,6 +759,7 @@
       <h2>ACTIONS</h2>
       <button id="ex-btn-sync" class="btn" style="margin-bottom:0; background:#a0b8d0; border:1px solid #4caf50; color:#4caf50;" onclick="sendAction({type:'exercice_sync'})">🔄 Synchroniser plateau → Virtuel</button>
       <button class="btn btn-reprendre" style="margin-bottom:0;" onclick="sendAction({type:'exercice_retry'})">↺ Recommencer l'exercice</button>
+      <button id="ex-btn-continuer" class="btn" style="margin-bottom:0; display:none; background:#2e7d32; color:#fff;" onclick="sendAction({type:'exercice_continue'})">▶ Continuer avec Stockfish</button>
       <button class="btn btn-continuer" style="margin-bottom:0;" onclick="sendAction({type:'exercice_back'})">← Choisir autre ouverture</button>
       <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
     </div>
