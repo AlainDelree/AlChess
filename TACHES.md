@@ -4,9 +4,6 @@
 
 ## 🐛 Bugs connus
 
-### Priorité haute
-- **Écran HH vide** — piste identifiée : confusion entre HH physique (développé) et HH virtuel (non développé). Le bouton HH est visible en mode virtuel mais ne mène nulle part. À corriger : masquer HH en mode virtuel.
-
 ### Priorité moyenne
 
 - **Écran Exercices vide** — s'affiche vide dans certaines conditions (état résiduel d'un mode précédent ?). Semble se corriger au redémarrage.
@@ -60,6 +57,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **Logs** : consulter via le bouton 📋 en haut à droite du programme.
 
 ## ✅ Bugs résolus récemment
+
+- **Écran HH vide** *(résolu récemment)* — Triple problème : `<div id="screen-config-humain">` manquant dans index.html, état `config_humain` non géré dans app.js, handler `start_humain` manquant dans alchess.py. Voir BUG-009 dans HISTORIQUE_BUGS.md.
 
 - **Modal Retranscription "Sauver et Quitter"** *(résolu récemment)* — bouton Annuler inutile supprimé, texte du chemin PGN affiché directement dans la modal.
 
