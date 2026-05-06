@@ -18,6 +18,8 @@
 
 ## 💡 Fonctionnalités à venir
 
+- **Exercices : choix moteur/force pour mode libre** — après fin de ligne, le bouton "Continuer" lance Stockfish à la force de config.json. À faire : proposer un choix de moteur (Stockfish/Maia/Rodent) et de niveau au moment du clic.
+
 - **Labo — à terminer** — mode non finalisé : Stockfish ne joue pas dans tous les cas (voir bug "Labo Stockfish ne joue pas"), comportement des toggles à revoir
 - **Analyse libre** — Stockfish suggère les meilleurs coups pour les deux camps sans auto-play (Labo existe mais à confirmer si c'est ça)
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
@@ -79,6 +81,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 - **[CRASH] BackMenuExit faux positif** *(commit 8b46117, 2026-05-06)* — `BackMenuExit` (exception de contrôle de flux) était catchée par `except Exception` dans la boucle principale péda et loggée comme `[CRASH]`. Aucun crash réel, mais log alarmant. Fix : ajoutée au `except (ExitNicLink, SystemExit, BackMenuExit): raise`.
 
 - **HH délai affichage coup** *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` (écriture disque) était appelé avant `send_event("move")`, retardant l'affichage. Fix : send_event en premier, save_pgn ensuite — comme en pédagogique. ✓ Validé.
+
+- **Exercices : bouton Continuer avec Stockfish** *(commit 17dd515, 2026-05-06)* — Après fin de ligne, bouton "Continuer avec Stockfish" apparaît. Le Python (`_run_free`) était déjà complet ; il manquait le JS. Ajout des handlers `exercice_free_mode` / `exercice_free_gameover`, activation de l'échiquier virtuel dans `_exHandlePosition`, garde `_exLaunching` contre les double-clics. ✓ Validé virtuel et physique.
 
 - **Exercice physique — coup adversaire affiché immédiatement** *(commit 2a8ff6f, 2026-05-06)* — `exercice_adv_move` ne contenait pas le FEN, le JS n'appelait pas `exRenderBoard()`. Fix : fen/from/to ajoutés au event Python, board rendu immédiatement côté JS. ✓ Validé.
 
