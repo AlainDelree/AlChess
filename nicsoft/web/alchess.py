@@ -177,9 +177,12 @@ def main():
             elif atype == "mode" and action.get("value") == "exercices":
                 _launch_exercices()
             elif atype == "start_exercice":
-                global _ex_thread
+                global _ex_thread, _exercice_running
                 if _ex_thread and _ex_thread.is_alive():
                     _ex_thread.join(timeout=3.0)
+                    if _ex_thread.is_alive():
+                        print("[EXERCICE] Thread précédent encore vivant après join — force reset")
+                        _exercice_running = False
                 _ex_thread = threading.Thread(target=_run_exercice, args=(action,), daemon=True)
                 _ex_thread.start()
             elif atype == "start_drill":
