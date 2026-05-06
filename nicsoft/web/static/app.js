@@ -481,12 +481,15 @@ socket.on("app_state", (data) => {
   const exRunEl = document.getElementById("screen-exercice-running");
   if (exRunEl) exRunEl.style.display = data.state === "exercice_running" ? "grid" : "none";
 
-  if (data.state === "exercices" && data.ouvertures) {
-    _exMesLignes = data.mes_lignes || [];
-    if (_exTab === "mes-lignes") {
-      exRenderMesLignes(_exMesLignes);
-    } else {
-      exRenderOuvertures(data.ouvertures);
+  if (data.state === "exercices") {
+    _exLaunching = false;  // reset au retour sur l'écran de sélection
+    if (data.ouvertures) {
+      _exMesLignes = data.mes_lignes || [];
+      if (_exTab === "mes-lignes") {
+        exRenderMesLignes(_exMesLignes);
+      } else {
+        exRenderOuvertures(data.ouvertures);
+      }
     }
   }
   // Quand on entre dans le labo, réinitialiser la position virtuelle
