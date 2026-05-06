@@ -6,8 +6,6 @@
 
 ### Priorité moyenne
 
-- **Écran Exercices vide** — s'affiche vide dans certaines conditions (état résiduel d'un mode précédent ?). Semble se corriger au redémarrage.
-
 - **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Le 1er bip vient du `connect()` USB initial qui échoue (plateau pas encore prêt), le 2e vient du retry 1s plus tard qui réussit. Piste : éviter le double appel `_niclink.connect()` en séparant connect et get_fen dans `_check_board_at_startup`.
 
 ### Priorité basse (existants avant refactoring)
@@ -58,6 +56,8 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 ## ✅ Bugs résolus récemment
 
+- **Écran Exercices vide** *(résolu récemment)* — Non reproductible après tests physique + virtuel (2026-05-06). Probablement lié à un état résiduel qui ne se produit plus après les refactorings récents.
+
 - **Écran HH vide** *(résolu récemment)* — Triple problème : `<div id="screen-config-humain">` manquant dans index.html, état `config_humain` non géré dans app.js, handler `start_humain` manquant dans alchess.py. Voir BUG-009 dans HISTORIQUE_BUGS.md.
 
 - **Modal Retranscription "Sauver et Quitter"** *(résolu récemment)* — bouton Annuler inutile supprimé, texte du chemin PGN affiché directement dans la modal.
@@ -86,7 +86,7 @@ Infrastructure plus lourde — à envisager quand le programme est stable et dis
 
 ## 🐛 Bugs récents
 - **Partie Nulle Pedagogique physique** Lorsque le moteur joue son coup, avant que je déplace la piece, je peux Abandonner mais Partie Nulle est grisée.
-- **Le plateau bip inutilement** Lors du clic a chaque menu où on va l'utiliser (Pédagogique, HH Exercices...)
+- **Le plateau bip inutilement** Lors du clic a chaque menu où on va l'utiliser (Pédagogique, HH, Exercices...). Confirmé sur Exercices physique : 2 bips + quelques secondes d'attente à l'entrée dans l'écran échiquier.
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
 - **HH délai avant d'afficher le coup** — *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` était appelé avant `send_event("move")`, l'I/O disque retardait l'affichage. Corrigé : send_event en premier. ✓ Validé sur plateau physique.
 - **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc. *(confirmé résolu en test, 2026-05-06)*
