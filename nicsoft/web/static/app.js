@@ -3478,6 +3478,9 @@ socket.on("exercice_out_of_book", (data) => {
 
 
 socket.on("exercice_adv_move", (data) => {
+  if (data.fen) exRenderBoard(data.fen, data.from || null, data.to || null);
+  const statusEl = document.getElementById("ex-run-status");
+  if (statusEl) { statusEl.textContent = "Déplacez la pièce sur le plateau"; statusEl.style.color = "#aac4e0"; }
   exSetFeedback(`Adversaire : ${sanToFr(data.san)}`, "#aac4e0", 2000);
 });
 

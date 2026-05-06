@@ -1035,10 +1035,14 @@ class ExerciceSession:
 
                 self.nl_inst.set_move_leds(uci)
                 adv_color = "black" if self.human_color == chess.WHITE else "white"
+                _f = "abcdefgh"
                 send_event("exercice_adv_move", {
                     "san":   san,
                     "uci":   uci,
                     "color": adv_color,
+                    "fen":   self.board.board_fen(),
+                    "from":  f"{_f.index(uci[0])}-{int(uci[1])-1}",
+                    "to":    f"{_f.index(uci[2])}-{int(uci[3])-1}",
                 })
                 if not self._wait_placement_adv(uci):
                     return
@@ -1120,7 +1124,15 @@ class ExerciceSession:
                         time.sleep(1.0)
                     self.nl_inst.set_move_leds(uci)
                     adv_color = "black" if self.human_color == chess.WHITE else "white"
-                    send_event("exercice_adv_move", {"san": san, "uci": uci, "color": adv_color})
+                    _f = "abcdefgh"
+                    send_event("exercice_adv_move", {
+                        "san":   san,
+                        "uci":   uci,
+                        "color": adv_color,
+                        "fen":   self.board.board_fen(),
+                        "from":  f"{_f.index(uci[0])}-{int(uci[1])-1}",
+                        "to":    f"{_f.index(uci[2])}-{int(uci[3])-1}",
+                    })
                     if not self._wait_placement_adv(uci):
                         return
                     self.nl_inst.turn_off_all_leds()
