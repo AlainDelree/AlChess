@@ -2523,15 +2523,17 @@ function _laboUpdateAutoBtn(auto) {
   const btn = document.getElementById("labo-btn-auto");
   if (!btn) return;
   if (auto) {
-    btn.textContent = "⏸ Auto ON";
-    btn.style.background   = "#e94560";
+    btn.textContent = "▶ Auto ACTIF";
+    btn.style.background   = "#2e7d32";
     btn.style.color        = "#fff";
-    btn.style.borderColor  = "#e94560";
+    btn.style.borderColor  = "#4caf50";
+    btn.style.fontWeight   = "bold";
   } else {
-    btn.textContent = "⏵ Auto OFF";
-    btn.style.background   = "#0f3460";
-    btn.style.color        = "#e0e0e0";
-    btn.style.borderColor  = "#333";
+    btn.textContent = "○ Auto inactif";
+    btn.style.background   = "#2a2a2a";
+    btn.style.color        = "#888";
+    btn.style.borderColor  = "#444";
+    btn.style.fontWeight   = "normal";
   }
 }
 
