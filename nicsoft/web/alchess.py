@@ -1029,10 +1029,25 @@ def _run_labo_session():
             send_event("labo_auto", {"auto": val})
             if val:
                 # Toujours synchroniser depuis le plateau physique au démarrage Auto
-                # pour s'assurer que le board et le tour sont corrects
                 session.sync_from_physical(turn=labo_config.get("active_turn", session.active_turn))
                 time.sleep(0.1)
-                if session.board.turn == session.engine_color and not session._engine_busy:
+                # Drainer les toggles Auto en attente (clic rapide ON→OFF)
+                from nicsoft.web.server import action_queue as _aq
+                saved = []
+                while not _aq.empty():
+                    try:
+                        pending = _aq.get_nowait()
+                        if pending.get("type") == "engine_auto":
+                            pval = pending.get("value", not session._auto_on)
+                            session._auto_on = pval
+                            send_event("labo_auto", {"auto": pval})
+                        else:
+                            saved.append(pending)
+                    except Exception:
+                        break
+                for a in saved:
+                    _aq.put_nowait(a)
+                if session._auto_on and session.board.turn == session.engine_color and not session._engine_busy:
                     session.do_engine_play()
 
         elif atype == "analyse_position":
