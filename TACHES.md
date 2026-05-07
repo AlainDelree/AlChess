@@ -28,18 +28,21 @@
 
 ## 🧪 Stratégie de tests
 
-### Niveau 1 — Checklist de régression manuelle (à faire maintenant)
-Créer `TESTS.md` avec les séquences critiques à vérifier après chaque modification :
-- Menu → Pédagogique → 2 coups → Retour menu → HH → Démarrer
-- Menu → Exercices → ligne complète → Retour → même ligne → réaction ?
-- Menu → Analyse → importer PGN → naviguer → Retour menu
-- Menu → Retranscription → saisir coups → sauvegarder → reprendre
-- Redémarrage programme → vérifier état propre
+### Niveau 1 — Checklist de régression manuelle ✅ FAIT
+`TESTS.md` créé avec smoke test (5 min) et régression complète (20 min).
 
-### Niveau 2 — Tests d'état serveur (moyen terme)
-Tester les transitions `_app_state` en Python pur, sans navigateur.
-Ex : vérifier que menu → config → playing → back_menu ramène bien à "menu".
-Faisable avec `pytest` dans le dossier `tests/` existant.
+### Niveau 2 — Tests d'état serveur ✅ FAIT (commit f68d591, 2026-05-07)
+`nicsoft/tests/test_app_state.py` — 25 tests pytest couvrant :
+- `set_app_state` : transitions simples, game_over+skip, retour menu
+- `on_action` : back_menu depuis tous les états actifs, routage action_queue/menu_queue
+- `send_event` : init (reset historique), move (append), undo_move (pop N), game_over
+- Lancer : `python -m pytest nicsoft/tests/test_app_state.py -v`
+- Note : `test_pgn.py` en erreur (import `build_output_path` disparu) — à corriger séparément
+
+### Niveau 3 — Tests end-to-end automatisés (long terme)
+Utiliser **Playwright** ou **Selenium** pour piloter un vrai navigateur par code.
+Simule les clics et vérifie les résultats automatiquement.
+Infrastructure plus lourde — à envisager quand le programme est stable et distribué.
 
 ### Niveau 3 — Tests end-to-end automatisés (long terme)
 Utiliser **Playwright** ou **Selenium** pour piloter un vrai navigateur par code.
