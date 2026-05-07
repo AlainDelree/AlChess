@@ -217,11 +217,8 @@ class LaboSession:
                     "color": engine_color, "player": self.engine_label, "qualite": None,
                 })
                 send_event("labo_engine_played", {"san": san, "engine": self.engine_label})
-                # Ne pas mettre à jour l'échiquier virtuel avant placement physique
-                # On envoie seulement le coup joué, pas la nouvelle position
-                self._wait_placement(uci)
-                # Maintenant le plateau physique est correct — mettre à jour le virtuel
                 self._send_position(uci)
+                self._wait_placement(uci)
                 self._check_end(signal_check=False)  # échec signalé par le watcher
             except Exception as e:
                 logger.error(f"do_engine_play : {e}")
