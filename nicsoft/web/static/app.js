@@ -870,6 +870,9 @@ socket.on("history", (data) => {
 socket.on("nulle_refusee", (data) => {
   afficherToast("🤝 Nulle refusée — " + (data.reason || "Stockfish estime avoir l'avantage."), "warning");
 });
+socket.on("nulle_pending", () => {
+  afficherToast("🤝 Nulle enregistrée — placez la pièce pour continuer", "info");
+});
 
 socket.on("pgn_sauvegarde", (data) => {
   const nom = data.path ? data.path.split("/").pop() : "fichier";
