@@ -208,6 +208,7 @@ class LaboSession:
                 san = self.board.san(move)
                 self._placement_in_progress = True  # bloquer le watcher avant push
                 self.board.push(move)
+                self.active_turn = "white" if self.board.turn == chess.WHITE else "black"
                 self._fen_history.append(self.board.fen())
                 self.nl_inst.game_board = self.board.copy()
                 self.nl_inst.set_move_leds(uci)
