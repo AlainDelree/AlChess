@@ -39,15 +39,17 @@
 - Lancer : `python -m pytest nicsoft/tests/test_app_state.py -v`
 - Note : `test_pgn.py` en erreur (import `build_output_path` disparu) — à corriger séparément
 
-### Niveau 3 — Tests end-to-end automatisés (long terme)
-Utiliser **Playwright** ou **Selenium** pour piloter un vrai navigateur par code.
-Simule les clics et vérifie les résultats automatiquement.
-Infrastructure plus lourde — à envisager quand le programme est stable et distribué.
+### Niveau 3 — Tests end-to-end Playwright ✅ FAIT (commit c004ffc, 2026-05-07)
+`nicsoft/tests/e2e/` — Playwright + Chromium headless, serveur lancé en subprocess, mode virtuel.
+12 tests : menu, navigation pédagogique (config→jeu→retour), analyse, exercices, retranscription, transitions.
+- Lancer : `python -m pytest nicsoft/tests/e2e/ -v`
+- Non couvert : bips hardware, détection position physique (nécessite échiquier réel)
 
-### Niveau 3 — Tests end-to-end automatisés (long terme)
-Utiliser **Playwright** ou **Selenium** pour piloter un vrai navigateur par code.
-Simule les clics et vérifie les résultats automatiquement.
-Infrastructure plus lourde — à envisager quand le programme est stable et distribué.
+### Niveau 3 — Tests end-to-end Playwright ✅ FAIT (commit c004ffc, 2026-05-07)
+`nicsoft/tests/e2e/` — Playwright + Chromium headless, serveur lancé en subprocess, mode virtuel.
+12 tests : menu, navigation pédagogique (config→jeu→retour), analyse, exercices, retranscription, transitions.
+- Lancer : `python -m pytest nicsoft/tests/e2e/ -v`
+- Non couvert : bips hardware, détection position physique (nécessite échiquier réel)
 
 ---
 
