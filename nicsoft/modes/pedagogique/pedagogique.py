@@ -1413,6 +1413,8 @@ class Game(threading.Thread):
             return
         display_turn(engine_label, engine_color)
         send_event("turn", {"color": engine_color, "player": engine_label, "is_human": False})
+        # Maintenir Abandonner + Nulle actifs pendant toute la durée du tour moteur
+        send_event("abandon_nulle_ok", {})
 
         # Utiliser le coup précalculé (pipeline) ou calculer maintenant.
         # Si le prefetch tourne encore (cas rare : eval très rapide + think_time long),
@@ -1515,6 +1517,7 @@ class Game(threading.Thread):
                     return
                 elif atype == "nulle":
                     self._nulle_demandee = True
+                    send_event("nulle_pending", {})  # feedback : demande enregistrée
                 elif atype == "set_pause":
                     self.pedagogique_pause = action.get("value", "blunder")
                 # pause et autres actions : ignorées pendant l'attente plateau
