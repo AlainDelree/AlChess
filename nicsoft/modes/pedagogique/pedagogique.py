@@ -1059,6 +1059,11 @@ class Game(threading.Thread):
             "in_check": _in_check,
         })
         tlog("[TURN] send_event turn envoyé")
+        # Nulle cliquée pendant WAIT_FISH : traiter immédiatement sans attendre un coup
+        if self._nulle_demandee:
+            self._nulle_demandee = False
+            self._traiter_nulle()
+            return False
         # Signal de tour — fire-and-forget via queue LED dans driver.
         # Retour immédiat, l'USB est géré dans le thread led_worker.
         self.signal_turn()
@@ -1452,6 +1457,8 @@ class Game(threading.Thread):
             "wdl":    wdl_bar,
         })
         tlog("[TIMING] send_event move: %.2fs", time.time()-_t_send)
+        # Pendant WAIT_FISH le joueur peut toujours abandonner ou proposer nulle
+        send_event("abandon_nulle_ok", {})
 
         now = time.time()
         gap = round(now - getattr(self, "last_move_time", now), 2)

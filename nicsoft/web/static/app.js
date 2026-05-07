@@ -446,6 +446,14 @@ socket.on("virtual_mode_active", () => {
   if (sub) sub.textContent = "Mode sans échiquier physique.";
 });
 
+socket.on("abandon_nulle_ok", () => {
+  // Pendant WAIT_FISH : réactiver Abandonner + Nulle
+  const b = document.querySelector(".btn-warning");
+  if (b) { b.disabled = false; b.style.opacity = "1"; }
+  const n = document.getElementById("btn-nulle");
+  if (n) { n.disabled = false; n.style.opacity = "1"; }
+});
+
 socket.on("connect", () => {
   const overlay = document.getElementById("startup-overlay");
   if (overlay) setTimeout(() => { overlay.style.display = "none"; }, 5000);
