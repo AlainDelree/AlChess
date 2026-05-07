@@ -2512,28 +2512,25 @@ function laboRenderBoard(fen, from, to) {
   }
 }
 
-function laboToggleAuto() {
-  _laboAutoOn = !_laboAutoOn;
+function laboSetAuto(val) {
+  if (_laboAutoOn === val) return;
+  _laboAutoOn = val;
   sendAction({type: "engine_auto", value: _laboAutoOn});
-  laboJournalAdd("config", `Auto ${_laboAutoOn ? "ON ▶" : "OFF ◼"}`);
+  laboJournalAdd("config", `Auto ${val ? "ON ▶" : "OFF ■"}`);
 }
+function laboToggleAuto() { laboSetAuto(!_laboAutoOn); }
 
 function _laboUpdateAutoBtn(auto) {
   _laboAutoOn = auto;
-  const btn = document.getElementById("labo-btn-auto");
-  if (!btn) return;
+  const play = document.getElementById("labo-btn-auto-play");
+  const stop = document.getElementById("labo-btn-auto-stop");
+  if (!play || !stop) return;
   if (auto) {
-    btn.textContent = "▶ Auto ACTIF";
-    btn.style.background   = "#2e7d32";
-    btn.style.color        = "#fff";
-    btn.style.borderColor  = "#4caf50";
-    btn.style.fontWeight   = "bold";
+    play.style.background = "#2e7d32"; play.style.color = "#fff";   // vert actif
+    stop.style.background = "#2a2a2a"; stop.style.color = "#555";   // gris inactif
   } else {
-    btn.textContent = "○ Auto inactif";
-    btn.style.background   = "#2a2a2a";
-    btn.style.color        = "#888";
-    btn.style.borderColor  = "#444";
-    btn.style.fontWeight   = "normal";
+    play.style.background = "#2a2a2a"; play.style.color = "#555";   // gris inactif
+    stop.style.background = "#7b1a1a"; stop.style.color = "#fff";   // rouge actif
   }
 }
 

@@ -897,7 +897,12 @@
       <div id="labo-sec-moteur" style="padding:0 14px 12px; display:flex; flex-direction:column; gap:7px;">
         <div id="labo-engine-label" style="font-size:0.78rem; color:#3a5a7a; margin-bottom:2px;"></div>
         <button class="btn btn-best" id="labo-btn-best" style="margin-bottom:0;" onclick="sendAction({type:'best_move'})">💡 Meilleur coup</button>
-        <button class="btn" id="labo-btn-auto" style="margin-bottom:0; background:#a0b8d0; color:#e0e0e0; border:1px solid #333;" onclick="laboToggleAuto()">⏵ Auto OFF</button>
+        <div style="display:flex; border-radius:6px; overflow:hidden; border:1px solid #444;">
+          <button id="labo-btn-auto-play" onclick="laboSetAuto(true)"
+            style="flex:1; border:none; border-right:1px solid #444; padding:7px 0; font-size:1.1rem; cursor:pointer; background:#2a2a2a; color:#555;">▶</button>
+          <button id="labo-btn-auto-stop" onclick="laboSetAuto(false)"
+            style="flex:1; border:none; padding:7px 0; font-size:1.1rem; cursor:pointer; background:#7b1a1a; color:#fff;">■</button>
+        </div>
 
       </div>
     </div>
