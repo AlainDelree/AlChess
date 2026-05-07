@@ -772,11 +772,11 @@ class Game(threading.Thread):
             print(f"[WEB] Pause pédagogique changée : {val}")
         elif atype == "pause":
             self._pause_demandee = True
-    def _traiter_nulle(self) -> None:
+    def _traiter_nulle(self, board=None) -> None:
         """Traite une proposition de nulle depuis l'interface web."""
         human_color = chess.WHITE if self.playing_white == chess.WHITE else chess.BLACK
         try:
-            board_courant = chess.Board(self.nl_inst.get_game_fen())
+            board_courant = board if board is not None else chess.Board(self.nl_inst.get_game_fen())
             eval_info = self.engine.evaluate(board_courant, depth=10)
             cp   = eval_info["cp"]
             mate = eval_info["mate"]
@@ -1477,13 +1477,22 @@ class Game(threading.Thread):
         self.check_for_game_over()
         tlog("[TIMING-F] game_over_check: %.3fs", time.time()-_t_step)
 
-        _t_step = time.time()
-        self._wait_for_fish_move_on_board(fish_move)
-        tlog("[TIMING-F] wait_fish_total: %.3fs", time.time()-_t_step)
-        # Abandon/back_menu demandé pendant l'attente plateau → traiter maintenant
-        if self._abandon_demande:
-            self.nl_inst.kill_switch.clear()
-            self._traiter_abandon()
+        while True:
+            _t_step = time.time()
+            self._wait_for_fish_move_on_board(fish_move)
+            tlog("[TIMING-F] wait_fish_total: %.3fs", time.time()-_t_step)
+            if self._abandon_demande:
+                self.nl_inst.kill_switch.clear()
+                self._traiter_abandon()  # lève BackMenuExit
+            if self._nulle_demandee:
+                self._nulle_demandee = False
+                self.nl_inst.kill_switch.clear()
+                self._traiter_nulle(board=self.nl_inst.game_board)
+                # acceptée → _end_game lève BackMenuExit (on n'arrive pas ici)
+                # refusée → relancer l'attente de placement
+                send_event("abandon_nulle_ok", {})
+                continue
+            break
 
     def _wait_for_fish_move_on_board(self, fish_move: str) -> None:
         """Attend que le joueur déplace physiquement la pièce de Stockfish."""
@@ -1517,7 +1526,8 @@ class Game(threading.Thread):
                     return
                 elif atype == "nulle":
                     self._nulle_demandee = True
-                    send_event("nulle_pending", {})  # feedback : demande enregistrée
+                    self.nl_inst.kill_switch.set()
+                    return
                 elif atype == "set_pause":
                     self.pedagogique_pause = action.get("value", "blunder")
                 # pause et autres actions : ignorées pendant l'attente plateau
