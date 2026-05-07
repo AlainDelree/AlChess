@@ -1830,6 +1830,7 @@ socket.on("position_ok", (data) => {
   }
   const laboScreen = document.getElementById("screen-labo");
   if (laboScreen && laboScreen.style.display !== "none") {
+    _laboEnginePlacing = false; // placement confirmé → réactiver board_fen_update
     laboRenderBoard(data.fen, null, null);
     if (_laboCopyMode) {
       const turnEl = document.getElementById("labo-turn-info");
@@ -2269,7 +2270,7 @@ function laboSyncPhysique() {
 socket.on("board_fen_update", (data) => {
   const screen = document.getElementById("screen-labo");
   if (!screen || screen.style.display === "none") return;
-  // Ne mettre à jour que si pas en mode position virtuelle active
+  if (_laboEnginePlacing) return; // plateau pas encore à jour — ignorer
   if (!_laboVirtualFen) {
     laboRenderBoard(data.fen, null, null);
   }
@@ -2633,7 +2634,10 @@ socket.on("labo_best_move", (data) => {
   }
 });
 
+let _laboEnginePlacing = false; // true pendant l'attente de placement de la pièce moteur
+
 socket.on("labo_engine_played", (data) => {
+  _laboEnginePlacing = true; // bloquer board_fen_update jusqu'à placement confirmé
   const lastEl = document.getElementById("labo-last-move");
   if (lastEl) {
     lastEl.textContent = `♟ ${data.engine} : ${data.san}`;
@@ -2664,7 +2668,7 @@ socket.on("move", (data) => {
 });
 
 socket.on("labo_placement_cancelled", () => {
-  // Auto désactivé pendant l'attente de placement — effacer le libellé moteur
+  _laboEnginePlacing = false; // placement annulé → réactiver board_fen_update
   const lastEl = document.getElementById("labo-last-move");
   if (lastEl) { lastEl.textContent = ""; }
   const turnEl = document.getElementById("labo-turn-info");
