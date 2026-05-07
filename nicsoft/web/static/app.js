@@ -2589,7 +2589,10 @@ socket.on("labo_position", (data) => {
   if (topEl2) topEl2.textContent = "Noirs" + (turnIsWhite ? "" : " ★");
   if (botEl2) botEl2.textContent = "Blancs" + (turnIsWhite ? " ★" : "");
   // Mettre à jour le toggle Tour pour refléter le tour courant
-  // (seulement si pas forcé manuellement)
+  // Un coup joué (from+to présents) prime sur le forçage manuel
+  if (data.from !== null && data.to !== null) {
+    _laboTurnForced = false;
+  }
   if (!_laboTurnForced) {
     _laboTurn = data.turn;
     _laboUpdateTurnBtn();
