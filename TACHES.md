@@ -96,7 +96,7 @@
 ---
 
 ## 🐛 Bugs récents
-- **Partie Nulle Pedagogique physique** *(commits 976188c + 297a687, 2026-05-07)* — Bouton Nulle grisé pendant WAIT_FISH. Fix : `abandon_nulle_ok` ré-activé dès le début du tour moteur (plus seulement après le coup) → élimine le clignotement ; `nulle_pending` envoyé dans `_poll_abort` + toast JS "Nulle enregistrée" → feedback immédiat. ✓ À valider sur plateau physique.
+- **Partie Nulle Pedagogique physique** *(commits 976188c + 297a687 + 8ad3c7f, 2026-05-07)* — Bouton Nulle grisé pendant WAIT_FISH + pas de feedback si clic sans placer la pièce. Fix : `abandon_nulle_ok` dès le début du tour moteur (élimine clignotement) ; nulle pendant WAIT_FISH évalue immédiatement avec le board interne (sans attendre le placement) ; si refusée, WAIT_FISH reprend. ✓ Validé sur plateau physique.
 - **Le plateau bip inutilement** Lors du clic a chaque menu où on va l'utiliser (Pédagogique, HH, Exercices...). Confirmé sur Exercices physique : 2 bips + quelques secondes d'attente à l'entrée dans l'écran échiquier.
 - **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
 - **HH délai avant d'afficher le coup** — *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` était appelé avant `send_event("move")`, l'I/O disque retardait l'affichage. Corrigé : send_event en premier. ✓ Validé sur plateau physique.
