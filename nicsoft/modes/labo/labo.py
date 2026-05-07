@@ -296,6 +296,11 @@ class LaboSession:
                 self._placement_in_progress = False
                 send_event("labo_placement_cancelled", {})
                 return
+            # Si le board a été resynchronisé depuis l'extérieur → annuler
+            if self.board.board_fen() != expected:
+                self.nl_inst.turn_off_all_leds()
+                self._placement_in_progress = False
+                return
             raw  = self.nl_inst.current_fen
             phys = raw.strip().split()[0] if raw else ""
             if phys == expected:
