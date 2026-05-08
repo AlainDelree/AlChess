@@ -10,7 +10,6 @@
 
 ### Priorité basse (existants avant refactoring)
 - **Beep timing** — le bip sonore se déclenche sur la correction plutôt que sur l'erreur
-- **En passant** — notation `exd6 e.p.` pas encore implémentée
 - **Race condition LEDs** — synchronisation des camps LED parfois incorrecte
 - **Pièces clouées** — pas de signal pour coup illégal sur pièce clouée
 
@@ -61,6 +60,8 @@
 - **Logs** : consulter via le bouton 📋 en haut à droite du programme.
 
 ## ✅ Bugs résolus récemment
+
+- **En passant** *(commit ae1c6ef, 2026-05-08)* — Notation `exd6 e.p.` ajoutée via `san_ep()` dans `board_utils.py`, remplace `board.san()` dans les 6 fichiers actifs (24 occurrences). ✓
 
 - **Labo — spinner démarrage** *(commit 82b53de, 2026-05-08)* — Overlay "Connexion à l'échiquier…" affiché sur le board jusqu'au 1er FEN USB. Invisible en mode virtuel. ✓ Validé.
 
