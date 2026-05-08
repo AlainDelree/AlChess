@@ -1051,12 +1051,62 @@
     <div id="outils-uci-result" style="display:none; margin-top:12px;"></div>
   </div>
 
+  <!-- Outil 1 : Ajouter une ouverture manuellement -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-num">1</span>
+      <span class="outil-title">➕ Ajouter une ouverture au catalogue</span>
+    </div>
+    <p class="outil-desc">Saisissez les informations et les coups (en UCI, ex&nbsp;: <code>e2e4 e7e5 g1f3</code>). Utilisez l'outil&nbsp;7 pour convertir depuis PGN.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
+
+      <div class="add-field">
+        <label class="add-label">Nom <span style="color:#e94560">*</span></label>
+        <input id="add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin"
+          oninput="outilsAddAutoId()">
+      </div>
+
+      <div class="add-field">
+        <label class="add-label">ID unique <span style="color:#e94560">*</span></label>
+        <input id="add-id" type="text" class="add-input" placeholder="ruy_lopez_berlin">
+      </div>
+
+      <div class="add-field">
+        <label class="add-label">Code ECO</label>
+        <input id="add-eco" type="text" class="add-input" placeholder="C65" maxlength="4" style="text-transform:uppercase;">
+      </div>
+
+      <div class="add-field">
+        <label class="add-label">Camp</label>
+        <select id="add-camp" class="add-input">
+          <option value="white">Blancs</option>
+          <option value="black">Noirs</option>
+        </select>
+      </div>
+
+      <div class="add-field" style="grid-column:1/-1;">
+        <label class="add-label">Description</label>
+        <input id="add-desc" type="text" class="add-input" placeholder="Description courte de la ligne">
+      </div>
+
+      <div class="add-field" style="grid-column:1/-1;">
+        <label class="add-label">Coups UCI <span style="color:#e94560">*</span></label>
+        <input id="add-moves" type="text" class="add-input" placeholder="e2e4 e7e5 g1f3 b8c6 f1b5" style="font-family:monospace;">
+      </div>
+
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+      <button class="btn btn-continuer" onclick="outilsAddVerify()">🔍 Vérifier</button>
+      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="outilsAddReset()">✕ Effacer</button>
+    </div>
+
+    <div id="outils-add-preview" style="display:none; margin-top:14px;"></div>
+  </div>
+
   <!-- Outils à venir -->
   <div style="width:100%; max-width:860px; display:flex; gap:12px; flex-wrap:wrap;">
-    <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
-      <span class="outil-num">1</span> <span class="outil-title">➕ Ajouter une ouverture</span>
-      <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
-    </div>
     <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
       <span class="outil-num">2</span> <span class="outil-title">📊 Import ECO Lichess</span>
       <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
