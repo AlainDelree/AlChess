@@ -4859,3 +4859,117 @@ socket.on("outils_edit_save_result", (data) => {
   res.style.padding      = "8px 12px";
   res.style.fontSize     = "0.88rem";
 });
+
+// ── Outil 2 — Import ECO Lichess ──────────────────────────────────────────────
+
+let _ecoResults = [];  // résultats du dernier filtre
+
+function outilsEcoSearch() {
+  const filter = document.getElementById("eco-filter").value.trim().toUpperCase();
+  if (!filter) return;
+  const wrap = document.getElementById("eco-results-wrap");
+  document.getElementById("eco-results-info").textContent = "Recherche en cours…";
+  document.getElementById("eco-results-body").innerHTML = "";
+  document.getElementById("eco-import-result").style.display = "none";
+  wrap.style.display = "block";
+  socket.emit("outils_eco_search", {filter});
+}
+
+socket.on("outils_eco_search_result", (data) => {
+  const info  = document.getElementById("eco-results-info");
+  const tbody = document.getElementById("eco-results-body");
+  if (!data.ok) {
+    info.textContent = `Erreur : ${data.error}`;
+    info.style.color = "#e94560";
+    return;
+  }
+  _ecoResults = data.results || [];
+  info.style.color = "#3a5a7a";
+  let infoText = `${_ecoResults.length} résultat(s)`;
+  if (data.truncated) infoText += ` (limité à 300 sur ${data.total_matched})`;
+  info.textContent = infoText;
+
+  document.getElementById("eco-check-all").checked = false;
+  outilsEcoUpdateCount();
+
+  if (!_ecoResults.length) {
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:10px; text-align:center; color:#888; font-style:italic;">Aucun résultat.</td></tr>`;
+    return;
+  }
+  let html = "";
+  _ecoResults.forEach((r, i) => {
+    const bg       = i % 2 === 0 ? "#f0f4f8" : "#fff";
+    const disabled = r.doublon ? "disabled" : "";
+    const status   = r.doublon
+      ? `<span style="color:#7b1fa2; font-size:0.78rem;">✓ ${r.doublon}</span>`
+      : "";
+    html += `<tr style="background:${bg};">
+      <td style="padding:4px 8px; text-align:center;">
+        <input type="checkbox" class="eco-row-check" data-idx="${i}" ${disabled} ${r.doublon ? "" : ""}>
+      </td>
+      <td style="padding:4px 8px; font-family:monospace; color:#1a2a3a; white-space:nowrap;">${r.eco}</td>
+      <td style="padding:4px 8px; color:#1a2a3a;">${r.name}</td>
+      <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${r.nb_coups}</td>
+      <td style="padding:4px 8px; text-align:center;">${status}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  document.querySelectorAll(".eco-row-check").forEach(cb => {
+    cb.addEventListener("change", outilsEcoUpdateCount);
+  });
+}
+
+function outilsEcoToggleAll(checked) {
+  document.querySelectorAll(".eco-row-check:not(:disabled)").forEach(cb => {
+    cb.checked = checked;
+  });
+  outilsEcoUpdateCount();
+}
+
+function outilsEcoUpdateCount() {
+  const n = document.querySelectorAll(".eco-row-check:checked").length;
+  document.getElementById("eco-selected-count").textContent = n ? `${n} sélectionné(s)` : "";
+}
+
+function outilsEcoImport() {
+  const checked = Array.from(document.querySelectorAll(".eco-row-check:checked"));
+  if (!checked.length) { afficherToast("Aucune ligne sélectionnée.", "warning"); return; }
+
+  const entries = checked.map(cb => {
+    const r = _ecoResults[+cb.dataset.idx];
+    return {eco: r.eco, name: r.name, uci: r.uci};
+  });
+  const camp = document.getElementById("eco-camp").value;
+
+  const btn = document.querySelector("#eco-results-wrap .btn-continuer:last-of-type");
+  if (btn) { btn.disabled = true; btn.textContent = "Import en cours…"; }
+  document.getElementById("eco-import-result").style.display = "none";
+  socket.emit("outils_eco_import", {entries, camp});
+}
+
+socket.on("outils_eco_import_result", (data) => {
+  const btn = document.querySelector("#eco-results-wrap .btn-continuer:last-of-type");
+  if (btn) { btn.disabled = false; btn.textContent = "✅ Importer la sélection"; }
+  const res = document.getElementById("eco-import-result");
+
+  let html = "";
+  if (data.imported && data.imported.length) {
+    html += `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
+      <strong style="color:#2e7d32">✓ ${data.imported.length} ouverture(s) importée(s)</strong>
+      <ul style="margin:4px 0 0 16px; font-size:0.83rem;">`;
+    data.imported.forEach(e => { html += `<li style="color:#1a2a3a;">${e.eco} — ${e.name} <code style="color:#888;">(${e.id})</code></li>`; });
+    html += `</ul></div>`;
+    afficherToast(`✓ ${data.imported.length} ouverture(s) importée(s)`, "success");
+    socket.emit("outils_edit_list", {});  // rafraîchir outil 4
+  }
+  if (data.skipped && data.skipped.length) {
+    html += `<div style="background:#fff3e0; border:1px solid #ff9800; border-radius:6px; padding:10px 14px;">
+      <strong style="color:#e65100">↷ ${data.skipped.length} ignorée(s)</strong>
+      <ul style="margin:4px 0 0 16px; font-size:0.83rem;">`;
+    data.skipped.forEach(e => { html += `<li style="color:#888;">${e.name} — ${e.reason}</li>`; });
+    html += `</ul></div>`;
+  }
+  if (!html) html = `<div style="color:#888; font-size:0.88rem;">Aucune entrée importée.</div>`;
+  res.innerHTML = html;
+  res.style.display = "block";
+});
