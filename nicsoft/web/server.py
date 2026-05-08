@@ -299,6 +299,20 @@ def on_outils_pgn_import(data):
     emit("outils_pgn_import_result", result)
 
 
+@socketio.on("outils_add_verify")
+def on_outils_add_verify(data):
+    """Valide le formulaire d'ajout d'ouverture."""
+    from nicsoft.modes.exercices.add_ouverture import verify_from_web
+    emit("outils_add_verify_result", verify_from_web(data))
+
+
+@socketio.on("outils_add_save")
+def on_outils_add_save(data):
+    """Enregistre une nouvelle ouverture dans le catalogue."""
+    from nicsoft.modes.exercices.add_ouverture import save_from_web
+    emit("outils_add_save_result", save_from_web(data))
+
+
 @socketio.on("outils_san_to_uci")
 def on_outils_san_to_uci(data):
     """Convertit une ligne PGN SAN → liste UCI."""

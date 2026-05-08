@@ -4390,3 +4390,112 @@ socket.on("outils_san_to_uci_result", (data) => {
   res.innerHTML = html;
   res.style.display = "block";
 });
+
+// ── Outil 1 — Ajouter une ouverture ──────────────────────────────────────────
+
+function outilsAddAutoId() {
+  const nom = document.getElementById("add-nom").value;
+  const idEl = document.getElementById("add-id");
+  idEl.value = nom
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 38);
+}
+
+function outilsAddReset() {
+  ["add-nom","add-id","add-eco","add-desc","add-moves"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+  document.getElementById("add-camp").value = "white";
+  const prev = document.getElementById("outils-add-preview");
+  prev.style.display = "none";
+  prev.innerHTML = "";
+}
+
+function outilsAddVerify() {
+  const prev = document.getElementById("outils-add-preview");
+  prev.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  prev.style.display = "block";
+  socket.emit("outils_add_verify", {
+    id:    document.getElementById("add-id").value.trim(),
+    eco:   document.getElementById("add-eco").value.trim(),
+    nom:   document.getElementById("add-nom").value.trim(),
+    desc:  document.getElementById("add-desc").value.trim(),
+    camp:  document.getElementById("add-camp").value,
+    moves: document.getElementById("add-moves").value.trim(),
+  });
+}
+
+socket.on("outils_add_verify_result", (data) => {
+  const prev = document.getElementById("outils-add-preview");
+  if (!data.ok) {
+    let html = '<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px;">';
+    html += '<strong style="color:#e94560">Erreur(s) :</strong><ul style="margin:4px 0 0 16px;">';
+    data.errors.forEach(e => { html += `<li style="color:#e94560">${e}</li>`; });
+    html += "</ul></div>";
+    prev.innerHTML = html;
+    return;
+  }
+
+  const campLabel = data.camp === "white" ? "Blancs" : "Noirs";
+  let html = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; margin-bottom:10px;">
+    <strong style="color:#2e7d32">✓ Données valides</strong>
+    <table style="margin-top:8px; font-size:0.85rem; border-collapse:collapse; width:100%;">
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600; white-space:nowrap;">ID</td><td style="font-family:monospace;">${data.id}</td></tr>
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">Nom</td><td>${data.nom}</td></tr>
+      ${data.eco ? `<tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">ECO</td><td>${data.eco}${data.parent_eco ? ` (parent : ${data.parent_eco})` : ""}</td></tr>` : ""}
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">Camp</td><td>${campLabel}</td></tr>
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">Coups</td><td style="font-family:monospace;">${data.moves.join(" ")} <span style="color:#888;">(${data.moves.length} coups)</span></td></tr>
+    </table>
+  </div>`;
+
+  if (data.warning_no_book) {
+    html += `<div style="background:#fff3e0; border:1px solid #ff9800; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:0.85rem; color:#e65100;">
+      ⚠ Position absente de tous les livres Polyglot. L'ouverture sera ajoutée sans association à un livre.
+    </div>`;
+  }
+
+  let bookSelectHtml = "";
+  if (data.book_options && data.book_options.length > 0) {
+    if (data.book_options.length === 1) {
+      bookSelectHtml = `<input type="hidden" id="add-book-select" value="${data.book_options[0].name}">
+        <div style="font-size:0.85rem; color:#3a5a7a; margin-bottom:10px;">Livre : <strong>${data.book_options[0].name}</strong> — ${data.book_options[0].count} coup(s) suivant(s) : ${data.book_options[0].next}</div>`;
+    } else {
+      bookSelectHtml = `<div style="font-size:0.85rem; margin-bottom:10px;">
+        <label class="add-label" style="margin-bottom:4px; display:block;">Choisir le livre :</label>
+        <select id="add-book-select" class="add-input">`;
+      data.book_options.forEach(b => {
+        bookSelectHtml += `<option value="${b.name}">${b.name} — ${b.count} coup(s) suivant : ${b.next}</option>`;
+      });
+      bookSelectHtml += `</select></div>`;
+    }
+  } else {
+    bookSelectHtml = `<input type="hidden" id="add-book-select" value="">`;
+  }
+  html += bookSelectHtml;
+
+  html += `<button class="btn btn-reprendre" onclick="outilsAddSave(${JSON.stringify(data)})">✅ Ajouter au catalogue</button>`;
+  prev.innerHTML = html;
+});
+
+function outilsAddSave(data) {
+  const bookEl = document.getElementById("add-book-select");
+  data.book = bookEl ? bookEl.value : "";
+  const btn = document.querySelector("#outils-add-preview .btn-reprendre");
+  if (btn) { btn.disabled = true; btn.textContent = "Ajout en cours…"; }
+  socket.emit("outils_add_save", data);
+}
+
+socket.on("outils_add_save_result", (data) => {
+  const prev = document.getElementById("outils-add-preview");
+  if (data.ok) {
+    prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${data.message}</div>`;
+    afficherToast(data.message, "success");
+    outilsAddReset();
+  } else {
+    const errDiv = prev.querySelector("div");
+    if (errDiv) errDiv.insertAdjacentHTML("beforeend", `<p style="color:#e94560; margin-top:8px;">✗ ${data.message}</p>`);
+  }
+});

@@ -123,3 +123,93 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def verify_from_web(data: dict) -> dict:
+    """Valide les données du formulaire web avant ajout."""
+    oid       = data.get("id",    "").strip()
+    eco       = data.get("eco",   "").strip().upper()
+    nom       = data.get("nom",   "").strip()
+    desc      = data.get("desc",  "").strip()
+    camp      = data.get("camp",  "white").lower()
+    moves_raw = data.get("moves", "").strip()
+    if camp not in ("white", "black"):
+        camp = "white"
+
+    errors = []
+    if not oid:
+        errors.append("L'ID ne peut pas être vide.")
+    elif oid in load_existing_ids():
+        errors.append(f"L'ID '{oid}' existe déjà dans le catalogue.")
+    if not nom:
+        errors.append("Le nom ne peut pas être vide.")
+    if not moves_raw:
+        errors.append("Entrez au moins un coup.")
+    if errors:
+        return {"ok": False, "errors": errors}
+
+    board = chess.Board()
+    valid_moves = []
+    for uci in moves_raw.split():
+        try:
+            mv = chess.Move.from_uci(uci)
+            if mv not in board.legal_moves:
+                errors.append(f"Coup illégal : {uci}")
+                break
+            valid_moves.append(uci)
+            board.push(mv)
+        except Exception:
+            errors.append(f"Format invalide : {uci}")
+            break
+    if errors:
+        return {"ok": False, "errors": errors}
+
+    doublon = next((eid for eid, ei in load_existing_inits() if ei == valid_moves), None)
+    if doublon:
+        return {"ok": False, "errors": [f"Séquence identique à '{doublon}' déjà dans le catalogue."]}
+
+    books = scan_books()
+    book_options = []
+    book_found = False
+    if books:
+        found = check_books(board, books)
+        book_found = bool(found)
+        for bp, entries in found.items():
+            tmp = board.copy()
+            sans = []
+            for e in entries[:3]:
+                try:
+                    sans.append(tmp.san(e.move))
+                except Exception:
+                    pass
+            book_options.append({"name": bp.name, "count": len(entries), "next": ", ".join(sans)})
+
+    parent_eco = resolve_parent_eco(eco)
+
+    return {
+        "ok": True,
+        "id": oid, "eco": eco, "nom": nom, "desc": desc, "camp": camp,
+        "moves": valid_moves,
+        "book_found": book_found,
+        "book_options": book_options,
+        "parent_eco": parent_eco,
+        "warning_no_book": not book_found,
+    }
+
+
+def save_from_web(data: dict) -> dict:
+    """Enregistre une ouverture validée dans le catalogue."""
+    try:
+        append_ouverture({
+            "id":           data["id"],
+            "eco":          data.get("eco", ""),
+            "nom":          data["nom"],
+            "desc":         data.get("desc", ""),
+            "init":         data["moves"],
+            "camp_suggere": data.get("camp", "white"),
+            "book":         data.get("book", ""),
+            "parent_eco":   data.get("parent_eco", ""),
+        })
+        return {"ok": True, "message": f"'{data['nom']}' ajoutée avec succès !"}
+    except Exception as e:
+        return {"ok": False, "message": str(e)}

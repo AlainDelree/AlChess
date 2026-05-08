@@ -583,3 +583,9 @@
 .outil-num { background:#e94560; color:#fff; border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; flex-shrink:0; }
 .outil-title { font-weight:700; font-size:1.05rem; color:#1a2a3a; }
 .outil-desc { color:#3a5a7a; font-size:0.88rem; margin-bottom:10px; }
+
+/* ── Outil 1 — formulaire ajout ouverture ── */
+.add-field { display:flex; flex-direction:column; gap:3px; }
+.add-label { font-size:0.82rem; font-weight:600; color:#3a5a7a; }
+.add-input { padding:6px 8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; font-size:0.9rem; }
+.add-input:focus { outline:none; border-color:#e94560; }
