@@ -111,6 +111,9 @@
     .menu-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .menu-btn-primary  { background: #e94560; color: white; }
     .menu-btn-secondary { background: #c2d4e8; color: #1a2a3a; border: 1px solid #a0b8d0; }
+    .menu-btn-humain      { background: #a0aade; color: #2a3060; border: none; }
+    .menu-btn-analyse     { background: #8fcfb8; color: #1a4a38; border: none; }
+    .menu-btn-retrans     { background: #e8c9a8; color: #6b3a15; border: none; }
     .menu-btn-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 0;
       width: 300px;

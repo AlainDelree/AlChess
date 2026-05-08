@@ -39,12 +39,12 @@
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})">⚔️ Humain vs Humain</button>
+    <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})">⚔️ Humain vs Humain</button>
     <div class="menu-btn-desc" id="desc-humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'analyse'})">🔍 Analyse de partie</button>
+    <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})">🔍 Analyse de partie</button>
     <div class="menu-btn-desc" id="desc-analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
   </div>
 
@@ -59,7 +59,7 @@
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'retranscription'})">📝 Retranscrire une partie</button>
+    <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})">📝 Retranscrire une partie</button>
     <div class="menu-btn-desc" id="desc-retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
   </div>
 
@@ -408,6 +408,8 @@
         Nulle (½-½)</button>
       <button class="btn btn-continuer" onclick="retransEnd('*')"
         style="width:100%; margin-bottom:4px; font-size:0.82rem;">← Sauver et quitter</button>
+      <button class="btn" onclick="basketAddRetrans()"
+        style="width:100%; margin-bottom:4px; font-size:0.82rem; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;">🧺 Ajouter à la corbeille</button>
       <button class="btn" onclick="retransQuitSansSauver()"
         style="width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#3a5a7a;">
         ✕ Quitter sans sauver</button>
@@ -615,12 +617,20 @@
             </optgroup>
           </select>
           <button class="btn btn-reprendre" style="width:100%; margin-bottom:0; padding:8px;" onclick="sauvegarderAlChess()">💾 Sauvegarder dans AlChess</button>
+          <button class="btn" style="width:100%; margin-bottom:0; padding:8px; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;" onclick="basketAdd()">🧺 Ajouter à la corbeille</button>
         </div>
       </div>
       <!-- Actions analyse + retour menu -->
       <div class="card" style="padding:14px 18px; display:flex; flex-direction:column; gap:8px;">
         <input type="file" id="pgn-file-input" accept=".pgn" style="display:none" onchange="loadPgnFile(event)">
         <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()">📂 Importer PGN</button>
+        <!-- Corbeille de session -->
+        <div id="basket-row-analyse" style="display:flex; gap:6px; align-items:center;">
+          <select id="basket-select-analyse" class="basket-select" style="flex:1; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#1a2a3a; padding:6px 8px; font-size:0.82rem;">
+            <option value="" disabled>— corbeille vide —</option>
+          </select>
+          <button class="btn basket-load-btn" style="margin-bottom:0; padding:6px 10px; white-space:nowrap;" disabled onclick="basketLoadToAnalyse()">🧺 Charger</button>
+        </div>
         <!-- Sélecteur nombre de coups séquence -->
         <div id="rv-seq-row" style="display:none; align-items:center; gap:8px;">
           <label style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;">Séquence :</label>
@@ -967,6 +977,12 @@
       <div id="labo-sec-pos" style="padding:0 14px 12px; display:none; flex-direction:column; gap:7px;">
         <input type="file" id="labo-pgn-input" accept=".pgn" style="display:none" onchange="laboLoadPgn(event)">
         <button class="btn btn-best" style="margin-bottom:0;" onclick="document.getElementById('labo-pgn-input').click()">📂 Importer PGN</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <select id="basket-select-labo" class="basket-select" style="flex:1; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#1a2a3a; padding:6px 8px; font-size:0.82rem;">
+            <option value="" disabled>— corbeille vide —</option>
+          </select>
+          <button class="btn basket-load-btn" style="margin-bottom:0; padding:6px 10px; white-space:nowrap;" disabled onclick="basketLoadToLabo()">🧺 Charger</button>
+        </div>
         <div id="labo-pgn-nav" style="display:none; flex-direction:column; gap:5px;">
           <div id="labo-pgn-info" style="font-size:0.75rem; color:#3a5a7a; text-align:center;"></div>
           <div id="labo-pgn-san" style="text-align:center; font-size:1.1rem; font-weight:bold; color:#e0e0e0; min-height:1.4rem;"></div>
