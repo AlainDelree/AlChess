@@ -11,6 +11,7 @@ Principes :
 """
 
 import chess
+from nicsoft.utils.debug import DEBUG_MODE
 from nicsoft.engine.board_utils import san_ep
 import logging
 import threading
@@ -194,7 +195,7 @@ class LaboSession:
                     fen_parts = board_copy.fen().split()
                     fen_parts[1] = "b" if self.engine_color == chess.BLACK else "w"
                     board_copy = chess.Board(" ".join(fen_parts))
-                    print(f"[LABO] Tour forcé à {'noir' if self.engine_color == chess.BLACK else 'blanc'} pour le moteur")
+                    if DEBUG_MODE: print(f"[LABO] Tour forcé à {'noir' if self.engine_color == chess.BLACK else 'blanc'} pour le moteur")
                 try:
                     move = self.engine.get_move(board_copy, think_time=1.0)
                 except Exception as engine_err:
