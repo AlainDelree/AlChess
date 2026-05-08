@@ -20,7 +20,6 @@
 
 - **Exercices : choix moteur/force pour mode libre** — après fin de ligne, le bouton "Continuer" lance Stockfish à la force de config.json. À faire : proposer un choix de moteur (Stockfish/Maia/Rodent) et de niveau au moment du clic.
 
-- **Labo — affichage démarrage** — mode physique fonctionnel. Reste : afficher un message "Patientez..." au chargement de l'écran, car l'échiquier n'apparaît qu'après un délai.
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
 - **Supprimer les `[DEBUG]` prints** une fois le programme stable
@@ -63,6 +62,8 @@
 
 ## ✅ Bugs résolus récemment
 
+- **Labo — spinner démarrage** *(commit 82b53de, 2026-05-08)* — Overlay "Connexion à l'échiquier…" affiché sur le board jusqu'au 1er FEN USB. Invisible en mode virtuel. ✓ Validé.
+
 - **Labo Stockfish ne joue pas** *(résolu, 2026-05-08)* — Mode Auto ON, Stockfish muet après échange de couleur via toggle. ✓ Résolu.
 
 - **Bips inutiles à l'entrée des écrans** *(non reproductible, 2026-05-07)* — Probablement résolu par les refactorings récents. À surveiller.
@@ -100,8 +101,6 @@
 ---
 
 ## 🐛 Bugs récents
-     
-  physique   
 - **Partie Nulle Pedagogique physique** *(commits 976188c + 297a687 + 8ad3c7f, 2026-05-07)* — Bouton Nulle grisé pendant WAIT_FISH + pas de feedback si clic sans placer la pièce. Fix : `abandon_nulle_ok` dès le début du tour moteur (élimine clignotement) ; nulle pendant WAIT_FISH évalue immédiatement avec le board interne (sans attendre le placement) ; si refusée, WAIT_FISH reprend. ✓ Validé sur plateau physique.
 - **HH délai avant d'afficher le coup** — *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` était appelé avant `send_event("move")`, l'I/O disque retardait l'affichage. Corrigé : send_event en premier. ✓ Validé sur plateau physique.
 - **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc. *(confirmé résolu en test, 2026-05-06)*
