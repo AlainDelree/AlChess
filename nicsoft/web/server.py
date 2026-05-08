@@ -299,6 +299,20 @@ def on_outils_pgn_import(data):
     emit("outils_pgn_import_result", result)
 
 
+@socketio.on("outils_explore_list")
+def on_outils_explore_list(_data):
+    """Retourne la liste des livres Polyglot disponibles."""
+    from nicsoft.modes.exercices.explore_book import list_books_for_web
+    emit("outils_explore_list_result", {"books": list_books_for_web()})
+
+
+@socketio.on("outils_explore_moves")
+def on_outils_explore_moves(data):
+    """Retourne position + coups disponibles dans un livre."""
+    from nicsoft.modes.exercices.explore_book import get_moves_from_web
+    emit("outils_explore_moves_result", get_moves_from_web(data))
+
+
 @socketio.on("outils_add_verify")
 def on_outils_add_verify(data):
     """Valide le formulaire d'ajout d'ouverture."""
