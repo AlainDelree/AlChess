@@ -63,6 +63,8 @@
 
 ## ✅ Bugs résolus récemment
 
+- **Labo Stockfish ne joue pas** *(résolu, 2026-05-08)* — Mode Auto ON, Stockfish muet après échange de couleur via toggle. ✓ Résolu.
+
 - **Bips inutiles à l'entrée des écrans** *(non reproductible, 2026-05-07)* — Probablement résolu par les refactorings récents. À surveiller.
 
 - **Écran Exercices vide** *(résolu récemment)* — Non reproductible après tests physique + virtuel (2026-05-06). Probablement lié à un état résiduel qui ne se produit plus après les refactorings récents.
@@ -99,7 +101,6 @@
 
 ## 🐛 Bugs récents
 - **Partie Nulle Pedagogique physique** *(commits 976188c + 297a687 + 8ad3c7f, 2026-05-07)* — Bouton Nulle grisé pendant WAIT_FISH + pas de feedback si clic sans placer la pièce. Fix : `abandon_nulle_ok` dès le début du tour moteur (élimine clignotement) ; nulle pendant WAIT_FISH évalue immédiatement avec le board interne (sans attendre le placement) ; si refusée, WAIT_FISH reprend. ✓ Validé sur plateau physique.
-- **Labo Stockfish ne joue pas** — Mode Auto ON (libellé Auto OFF) partie déjà entamée. Toggle laissé : Je Joue et Tour = blanc et blanc. Après c4xc5, toggle : Je Joue reste Blanc mais Tour devient Noir. Aucune réaction de Stockfish.
 - **HH délai avant d'afficher le coup** — *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` était appelé avant `send_event("move")`, l'I/O disque retardait l'affichage. Corrigé : send_event en premier. ✓ Validé sur plateau physique.
 - **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc. *(confirmé résolu en test, 2026-05-06)*
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente). À diagnostiquer via time logs permanents.
