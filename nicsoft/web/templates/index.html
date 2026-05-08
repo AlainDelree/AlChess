@@ -774,18 +774,9 @@
   <div style="display:flex; flex-direction:column; gap:6px; height:calc(100vh - 60px);">
     <div class="card" style="padding:10px 12px; display:flex; flex-direction:column; flex:1; min-height:0;">
 
-      <!-- Onglets Journal / PGN -->
-      <div style="display:flex; gap:0; margin-bottom:8px; flex-shrink:0; border-bottom:1px solid #b8cce0;">
-        <button id="labo-tab-journal" onclick="laboSwitchTab('journal')"
-          style="background:none; border:none; border-bottom:2px solid #e94560; color:#1a2a3a;
-                 font-size:0.72rem; font-weight:600; padding:4px 10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px;">
-          Journal
-        </button>
-        <button id="labo-tab-pgn" onclick="laboSwitchTab('pgn')"
-          style="background:none; border:none; border-bottom:2px solid transparent; color:#3a5a7a;
-                 font-size:0.72rem; font-weight:600; padding:4px 10px; cursor:pointer; text-transform:uppercase; letter-spacing:1px; display:none;">
-          PGN
-        </button>
+      <!-- Titre Journal -->
+      <div style="margin-bottom:8px; flex-shrink:0; border-bottom:2px solid #e94560; padding-bottom:4px;">
+        <span style="font-size:0.72rem; font-weight:600; color:#1a2a3a; text-transform:uppercase; letter-spacing:1px;">Journal</span>
       </div>
 
       <!-- Panneau Journal -->
@@ -802,11 +793,6 @@
         <div id="labo-journal" style="flex:1; overflow-y:auto; min-height:0; font-size:0.75rem; line-height:1.5;"></div>
       </div>
 
-      <!-- Panneau PGN -->
-      <div id="labo-tab-panel-pgn" style="display:none; flex-direction:column; flex:1; min-height:0;">
-        <div id="labo-pgn-info-left" style="font-size:0.72rem; color:#3a5a7a; margin-bottom:6px; flex-shrink:0;"></div>
-        <div id="labo-pgn-moves" style="flex:1; overflow-y:auto; min-height:0; font-size:0.8rem;"></div>
-      </div>
 
     </div>
   </div>
