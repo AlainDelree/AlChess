@@ -4414,7 +4414,10 @@ function outilsAddReset() {
   prev.innerHTML = "";
 }
 
+let _outilsAddContext = "outil1";  // "outil1" | "explore"
+
 function outilsAddVerify() {
+  _outilsAddContext = "outil1";
   const prev = document.getElementById("outils-add-preview");
   prev.innerHTML = "<em style='color:#888'>Vérification…</em>";
   prev.style.display = "block";
@@ -4429,7 +4432,11 @@ function outilsAddVerify() {
 }
 
 socket.on("outils_add_verify_result", (data) => {
-  const prev = document.getElementById("outils-add-preview");
+  const prev = _outilsAddContext === "explore"
+    ? document.getElementById("explore-add-preview")
+    : document.getElementById("outils-add-preview");
+  if (!prev) return;
+
   if (!data.ok) {
     let html = '<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px;">';
     html += '<strong style="color:#e94560">Erreur(s) :</strong><ul style="margin:4px 0 0 16px;">';
@@ -4457,11 +4464,12 @@ socket.on("outils_add_verify_result", (data) => {
     </div>`;
   }
 
+  const fallbackBook = _outilsAddContext === "explore" ? _exploreBook : "";
   let bookSelectHtml = "";
   if (data.book_options && data.book_options.length > 0) {
     if (data.book_options.length === 1) {
       bookSelectHtml = `<input type="hidden" id="add-book-select" value="${data.book_options[0].name}">
-        <div style="font-size:0.85rem; color:#3a5a7a; margin-bottom:10px;">Livre : <strong>${data.book_options[0].name}</strong> — ${data.book_options[0].count} coup(s) suivant(s) : ${data.book_options[0].next}</div>`;
+        <div style="font-size:0.85rem; color:#3a5a7a; margin-bottom:10px;">Livre : <strong>${data.book_options[0].name}</strong> — ${data.book_options[0].count} coup(s) suivant : ${data.book_options[0].next}</div>`;
     } else {
       bookSelectHtml = `<div style="font-size:0.85rem; margin-bottom:10px;">
         <label class="add-label" style="margin-bottom:4px; display:block;">Choisir le livre :</label>
@@ -4472,10 +4480,9 @@ socket.on("outils_add_verify_result", (data) => {
       bookSelectHtml += `</select></div>`;
     }
   } else {
-    bookSelectHtml = `<input type="hidden" id="add-book-select" value="">`;
+    bookSelectHtml = `<input type="hidden" id="add-book-select" value="${fallbackBook}">`;
   }
   html += bookSelectHtml;
-
   html += `<button class="btn btn-reprendre" onclick="outilsAddSave(${JSON.stringify(data)})">✅ Ajouter au catalogue</button>`;
   prev.innerHTML = html;
 });
@@ -4483,19 +4490,249 @@ socket.on("outils_add_verify_result", (data) => {
 function outilsAddSave(data) {
   const bookEl = document.getElementById("add-book-select");
   data.book = bookEl ? bookEl.value : "";
-  const btn = document.querySelector("#outils-add-preview .btn-reprendre");
+  const prevId = _outilsAddContext === "explore" ? "explore-add-preview" : "outils-add-preview";
+  const btn = document.querySelector(`#${prevId} .btn-reprendre`);
   if (btn) { btn.disabled = true; btn.textContent = "Ajout en cours…"; }
   socket.emit("outils_add_save", data);
 }
 
 socket.on("outils_add_save_result", (data) => {
-  const prev = document.getElementById("outils-add-preview");
+  const prevId = _outilsAddContext === "explore" ? "explore-add-preview" : "outils-add-preview";
+  const prev   = document.getElementById(prevId);
   if (data.ok) {
-    prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${data.message}</div>`;
+    if (prev) prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${data.message}</div>`;
     afficherToast(data.message, "success");
-    outilsAddReset();
+    if (_outilsAddContext === "explore") {
+      setTimeout(() => { if (prev) prev.style.display = "none"; }, 2500);
+    } else {
+      outilsAddReset();
+    }
   } else {
-    const errDiv = prev.querySelector("div");
-    if (errDiv) errDiv.insertAdjacentHTML("beforeend", `<p style="color:#e94560; margin-top:8px;">✗ ${data.message}</p>`);
+    if (prev) {
+      const errDiv = prev.querySelector("div");
+      if (errDiv) errDiv.insertAdjacentHTML("beforeend", `<p style="color:#e94560; margin-top:8px;">✗ ${data.message}</p>`);
+    }
   }
 });
+
+// ── Outil 3 — Explorateur Polyglot ───────────────────────────────────────────
+
+let _exploreBook  = "";
+let _exploreMoves = [];   // UCI joués
+
+// Quand on entre dans l'écran outils, charger les livres
+socket.on("app_state", (data) => {
+  if (data.state === "outils_exercices") {
+    socket.emit("outils_explore_list", {});
+  }
+});
+
+socket.on("outils_explore_list_result", (data) => {
+  const listEl  = document.getElementById("explore-book-list");
+  const noneEl  = document.getElementById("explore-no-books");
+  if (!listEl) return;
+  listEl.innerHTML = "";
+  if (!data.books || !data.books.length) {
+    if (noneEl) noneEl.style.display = "block";
+    return;
+  }
+  if (noneEl) noneEl.style.display = "none";
+  data.books.forEach(b => {
+    const btn = document.createElement("button");
+    btn.className = "btn btn-continuer";
+    btn.style.cssText = "font-family:monospace; font-size:0.88rem;";
+    btn.textContent = `📖 ${b.name}  (${b.size_kb} ko)`;
+    btn.onclick = () => exploreSelectBook(b.name);
+    listEl.appendChild(btn);
+  });
+});
+
+function exploreSelectBook(name) {
+  _exploreBook  = name;
+  _exploreMoves = [];
+  document.getElementById("explore-book-selector").style.display = "none";
+  document.getElementById("explore-panel").style.display         = "block";
+  document.getElementById("explore-book-name").textContent       = name;
+  document.getElementById("explore-add-section").style.display   = "none";
+  _exploreLoad();
+}
+
+function exploreChangeBook() {
+  _exploreBook  = "";
+  _exploreMoves = [];
+  document.getElementById("explore-panel").style.display         = "none";
+  document.getElementById("explore-book-selector").style.display = "block";
+}
+
+function exploreBack() {
+  if (_exploreMoves.length) {
+    _exploreMoves.pop();
+    document.getElementById("explore-add-section").style.display = "none";
+    _exploreLoad();
+  }
+}
+
+function exploreReset() {
+  _exploreMoves = [];
+  document.getElementById("explore-add-section").style.display = "none";
+  _exploreLoad();
+}
+
+function explorePlay(uci) {
+  _exploreMoves.push(uci);
+  document.getElementById("explore-add-section").style.display = "none";
+  _exploreLoad();
+}
+
+function _exploreLoad() {
+  socket.emit("outils_explore_moves", {book: _exploreBook, moves: _exploreMoves});
+}
+
+// ── Rendu échiquier mini ──────────────────────────────────────────────────────
+
+const _EXPLORE_PIECE = {
+  'K':'wK','Q':'wQ','R':'wR','B':'wB','N':'wN','P':'wP',
+  'k':'bK','q':'bQ','r':'bR','b':'bB','n':'bN','p':'bP',
+};
+
+function _exploreRenderBoard(fen, lastFrom, lastTo) {
+  const container = document.getElementById("explore-board");
+  if (!container) return;
+  const SQ = 42;
+  const placement = fen.split(" ")[0];
+  const ranks = placement.split("/");
+  const grid = [];
+  for (const rank of ranks) {
+    const row = [];
+    for (const ch of rank) {
+      if (ch >= "1" && ch <= "8") for (let i = 0; i < +ch; i++) row.push(null);
+      else row.push(ch);
+    }
+    grid.push(row);
+  }
+  let html = `<div style="display:inline-grid;grid-template-columns:repeat(8,${SQ}px);grid-template-rows:repeat(8,${SQ}px);border:2px solid #1a2a3a;border-radius:3px;overflow:hidden;">`;
+  for (let r = 0; r < 8; r++) {
+    for (let f = 0; f < 8; f++) {
+      const sq    = "abcdefgh"[f] + (8 - r);
+      const light = (r + f) % 2 === 0;
+      const isHL  = sq === lastFrom || sq === lastTo;
+      const bg    = isHL ? "#cdd26a" : (light ? "#f0d9b5" : "#b58863");
+      const p     = grid[r][f];
+      const img   = p ? `<img src="/static/pieces/${_EXPLORE_PIECE[p]}.svg" style="width:${SQ-6}px;height:${SQ-6}px;">` : "";
+      html += `<div style="width:${SQ}px;height:${SQ}px;background:${bg};display:flex;align-items:center;justify-content:center;">${img}</div>`;
+    }
+  }
+  html += "</div>";
+  html += `<div style="display:flex;width:${SQ*8}px;justify-content:space-around;margin-top:2px;font-size:0.68rem;color:#888;font-family:monospace;">${"abcdefgh".split("").map(c=>`<span>${c}</span>`).join("")}</div>`;
+  container.innerHTML = html;
+}
+
+// ── Réception des coups ───────────────────────────────────────────────────────
+
+socket.on("outils_explore_moves_result", (data) => {
+  if (!data.ok) {
+    const ml = document.getElementById("explore-moves-list");
+    if (ml) ml.innerHTML = `<span style="color:#e94560">${data.error}</span>`;
+    return;
+  }
+
+  _exploreMoves = data.valid_moves || _exploreMoves;
+
+  // Échiquier
+  _exploreRenderBoard(data.fen, data.last_from, data.last_to);
+
+  // Historique
+  const histEl = document.getElementById("explore-history");
+  if (histEl) {
+    if (data.san_history && data.san_history.length) {
+      let line = "", moveNum = 1;
+      data.san_history.forEach((san, i) => {
+        if (i % 2 === 0) line += `${moveNum}. ${san} `;
+        else { line += `${san}  `; moveNum++; }
+      });
+      histEl.textContent = line.trim();
+    } else {
+      histEl.textContent = "(position initiale)";
+    }
+  }
+
+  // Profondeur + bouton retour
+  const depthEl = document.getElementById("explore-depth");
+  if (depthEl) depthEl.textContent = `Profondeur : ${data.depth} coup${data.depth !== 1 ? "s" : ""}`;
+  const backBtn = document.getElementById("explore-btn-back");
+  if (backBtn) backBtn.disabled = data.depth === 0;
+
+  // Coups disponibles
+  const ml = document.getElementById("explore-moves-list");
+  if (ml) {
+    if (!data.moves || !data.moves.length) {
+      ml.innerHTML = `<span style="color:#888; font-size:0.85rem; font-style:italic;">Fin du livre — aucun coup depuis cette position.</span>`;
+    } else {
+      let html = "";
+      data.moves.forEach((m, i) => {
+        const bar  = Math.round(m.pct / 100 * 80);
+        const star = m.star ? "★ " : "  ";
+        const col  = m.star ? "#2e7d32" : (m.pct >= 15 ? "#e65100" : "#555");
+        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer;" onclick="explorePlay('${m.uci}')">
+          <span style="font-family:monospace;font-size:0.9rem;font-weight:${m.star?700:400};color:${col};min-width:72px;">${star}${m.san}</span>
+          <div style="flex:1;height:10px;background:#e0e8f0;border-radius:4px;overflow:hidden;max-width:120px;">
+            <div style="width:${bar}%;height:100%;background:${col};border-radius:4px;"></div>
+          </div>
+          <span style="font-size:0.78rem;color:#888;min-width:30px;">${m.pct}%</span>
+        </div>`;
+      });
+      ml.innerHTML = html;
+    }
+  }
+
+  // Déjà dans le catalogue ?
+  const catEl = document.getElementById("explore-in-catalogue");
+  if (catEl) {
+    if (data.in_catalogue && data.depth > 0) {
+      catEl.textContent = `✓ Déjà dans le catalogue : « ${data.in_catalogue} »`;
+      catEl.style.display = "block";
+    } else {
+      catEl.style.display = "none";
+    }
+  }
+
+  // Bouton "Ajouter au catalogue"
+  const addWrap = document.getElementById("explore-btn-add-wrap");
+  if (addWrap) addWrap.style.display = (data.depth > 0 && !data.in_catalogue) ? "block" : "none";
+});
+
+// ── Ajout au catalogue depuis l'explorateur ───────────────────────────────────
+
+function exploreOpenAdd() {
+  document.getElementById("explore-add-section").style.display = "block";
+  document.getElementById("explore-add-nom").value  = "";
+  document.getElementById("explore-add-id").value   = "";
+  document.getElementById("explore-add-eco").value  = "";
+  document.getElementById("explore-add-desc").value = "";
+  document.getElementById("explore-add-camp").value = "white";
+  document.getElementById("explore-add-preview").style.display = "none";
+  document.getElementById("explore-add-nom").focus();
+}
+
+function exploreAutoId() {
+  const nom = document.getElementById("explore-add-nom").value;
+  document.getElementById("explore-add-id").value = nom
+    .toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 38);
+}
+
+function exploreAddVerify() {
+  _outilsAddContext = "explore";
+  const prev = document.getElementById("explore-add-preview");
+  prev.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  prev.style.display = "block";
+  socket.emit("outils_add_verify", {
+    id:    document.getElementById("explore-add-id").value.trim(),
+    eco:   document.getElementById("explore-add-eco").value.trim(),
+    nom:   document.getElementById("explore-add-nom").value.trim(),
+    desc:  document.getElementById("explore-add-desc").value.trim(),
+    camp:  document.getElementById("explore-add-camp").value,
+    moves: _exploreMoves.join(" "),
+  });
+}
+
