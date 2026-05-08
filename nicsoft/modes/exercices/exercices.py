@@ -12,6 +12,7 @@ Flux :
 """
 
 import chess
+from nicsoft.utils.debug import DEBUG_MODE
 from nicsoft.engine.board_utils import san_ep
 import chess.polyglot
 import logging
@@ -713,14 +714,14 @@ class ExerciceSession:
                     "expected_fen": board_fresh.board_fen(),
                     "physical_fen": phys,
                 })
-                print(f"[EX] Sync refusée — FEN physique ≠ init")
+                if DEBUG_MODE: print(f"[EX] Sync refusée — FEN physique ≠ init")
                 return False
 
             self.board = board_fresh
             self.nl_inst.game_board = self.board.copy()
             self._send_position()
             send_event("exercice_synced", {"fen": phys, "turn": "w" if self.board.turn == chess.WHITE else "b"})
-            print(f"[EX] Synchro plateau → {phys[:40]}")
+            if DEBUG_MODE: print(f"[EX] Synchro plateau → {phys[:40]}")
             return True
         except Exception as e:
             logger.warning(f"sync_from_physical : {e}")

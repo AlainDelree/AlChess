@@ -9,6 +9,7 @@ Deux modes :
 """
 
 import chess
+from nicsoft.utils.debug import DEBUG_MODE
 from nicsoft.engine.board_utils import san_ep
 import json
 import pathlib
@@ -89,7 +90,7 @@ def export_partie(moves_uci: list, white: str, black: str,
         "Result": result,
     }
     filepath.write_text(_build_pgn(moves_uci, headers), encoding="utf-8")
-    print(f"[RETRANSCRIPTION] Partie sauvegardée : {filepath}")
+    if DEBUG_MODE: print(f"[RETRANSCRIPTION] Partie sauvegardée : {filepath}")
     return str(filepath)
 
 
@@ -112,7 +113,7 @@ def export_exercice(moves_uci: list, nom: str,
         headers["InitMoves"] = init_str
     pgn = _build_pgn(moves_uci, headers)
     filepath.write_text(pgn, encoding="utf-8")
-    print(f"[RETRANSCRIPTION] Exercice sauvegardé : {filepath}")
+    if DEBUG_MODE: print(f"[RETRANSCRIPTION] Exercice sauvegardé : {filepath}")
     return str(filepath)
 
 
@@ -186,7 +187,7 @@ def run_retranscription(config: dict,
                     moves_uci.append(uci)
                 except Exception:
                     break
-            print(f"[RETRANSCRIPTION] Session reprise — {len(moves_uci)} coups")
+            if DEBUG_MODE: print(f"[RETRANSCRIPTION] Session reprise — {len(moves_uci)} coups")
 
     vb = VirtualBoard()
     vb.game_board = board.copy()
