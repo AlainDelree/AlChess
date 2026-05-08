@@ -4917,7 +4917,7 @@ socket.on("outils_eco_search_result", (data) => {
   document.querySelectorAll(".eco-row-check").forEach(cb => {
     cb.addEventListener("change", outilsEcoUpdateCount);
   });
-}
+});
 
 function outilsEcoToggleAll(checked) {
   document.querySelectorAll(".eco-row-check:not(:disabled)").forEach(cb => {
