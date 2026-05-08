@@ -299,6 +299,22 @@ def on_outils_pgn_import(data):
     emit("outils_pgn_import_result", result)
 
 
+@socketio.on("outils_wiki_update")
+def on_outils_wiki_update(_data):
+    """Télécharge et reconstruit eco_hierarchy.json depuis Wikipedia."""
+    import threading
+    from nicsoft.modes.exercices.download_eco_wiki import run_from_web
+
+    def run():
+        def progress(step, message):
+            socketio.emit("outils_wiki_progress", {"step": step, "message": message})
+        result = run_from_web(progress)
+        socketio.emit("outils_wiki_done", result)
+
+    threading.Thread(target=run, daemon=True).start()
+    emit("outils_wiki_progress", {"step": "start", "message": "Démarrage…"})
+
+
 @socketio.on("outils_eco_search")
 def on_outils_eco_search(data):
     """Recherche dans les fichiers ECO Lichess."""

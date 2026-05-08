@@ -193,3 +193,58 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def run_from_web(progress_cb) -> dict:
+    """
+    Exécute le téléchargement + parsing + sauvegarde avec callbacks de progression.
+    progress_cb(step, message) — appelé à chaque étape.
+    Retourne {ok, stats, error}.
+    """
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        progress_cb("downloading", "Téléchargement depuis Wikipedia…")
+        wikitext = download_wikitext()
+        progress_cb("parsing", f"Parsing du wikitext ({len(wikitext):,} caractères)…")
+    except Exception as e:
+        return {"ok": False, "error": f"Erreur téléchargement : {e}"}
+
+    try:
+        entries = parse_eco_table(wikitext)
+        if not entries:
+            return {"ok": False, "error": "Aucune entrée parsée — structure Wikipedia peut-être modifiée."}
+        progress_cb("hierarchy", f"{len(entries)} codes parsés, calcul des parents…")
+        entries = build_hierarchy(entries)
+    except Exception as e:
+        return {"ok": False, "error": f"Erreur parsing : {e}"}
+
+    try:
+        progress_cb("saving", "Sauvegarde de eco_hierarchy.json…")
+        with open(OUTPUT, "w", encoding="utf-8") as f:
+            json.dump(entries, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return {"ok": False, "error": f"Erreur sauvegarde : {e}"}
+
+    with_parent = sum(1 for e in entries.values() if e.get("parent"))
+    with_name   = sum(1 for e in entries.values() if e.get("name"))
+
+    preview = []
+    for code in ["C30", "C31", "C32", "C33", "C34", "C35"]:
+        if code in entries:
+            e = entries[code]
+            preview.append({
+                "code":   code,
+                "name":   e.get("name", "")[:50],
+                "moves":  e.get("moves", "")[:50],
+                "parent": e.get("parent") or "",
+            })
+
+    return {
+        "ok":          True,
+        "total":       len(entries),
+        "with_name":   with_name,
+        "with_parent": with_parent,
+        "output":      str(OUTPUT),
+        "preview":     preview,
+    }

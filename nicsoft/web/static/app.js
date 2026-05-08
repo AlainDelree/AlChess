@@ -4973,3 +4973,64 @@ socket.on("outils_eco_import_result", (data) => {
   res.innerHTML = html;
   res.style.display = "block";
 });
+
+// ── Outil 5 — Màj ECO Wikipedia ───────────────────────────────────────────────
+
+function outilsWikiUpdate() {
+  const btn    = document.getElementById("wiki-btn");
+  const status = document.getElementById("wiki-status");
+  const res    = document.getElementById("wiki-result");
+  btn.disabled   = true;
+  btn.textContent = "En cours…";
+  res.style.display = "none";
+  status.textContent = "";
+  socket.emit("outils_wiki_update", {});
+}
+
+socket.on("outils_wiki_progress", (data) => {
+  const status = document.getElementById("wiki-status");
+  if (status) status.textContent = data.message || "";
+});
+
+socket.on("outils_wiki_done", (data) => {
+  const btn    = document.getElementById("wiki-btn");
+  const status = document.getElementById("wiki-status");
+  const res    = document.getElementById("wiki-result");
+  if (btn)    { btn.disabled = false; btn.textContent = "🌐 Mettre à jour depuis Wikipedia"; }
+  if (status) status.textContent = "";
+
+  if (!data.ok) {
+    res.innerHTML = `<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px; color:#e94560;">✗ ${data.error}</div>`;
+    res.style.display = "block";
+    return;
+  }
+
+  let html = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px;">
+    <strong style="color:#2e7d32">✓ eco_hierarchy.json mis à jour</strong>
+    <div style="margin-top:8px; font-size:0.85rem; color:#3a5a7a; display:flex; gap:20px; flex-wrap:wrap;">
+      <span>${data.total} codes ECO</span>
+      <span>${data.with_name} noms d'article</span>
+      <span>${data.with_parent} parents détectés</span>
+    </div>`;
+
+  if (data.preview && data.preview.length) {
+    html += `<div style="margin-top:10px; font-size:0.82rem;">
+      <div style="font-weight:600; color:#1a2a3a; margin-bottom:4px;">Aperçu C30–C35 :</div>
+      <table style="border-collapse:collapse; width:100%;">`;
+    data.preview.forEach((p, i) => {
+      const bg = i % 2 === 0 ? "#f0f4f8" : "#e8f5e9";
+      const parent = p.parent ? `<span style="color:#888;">← ${p.parent}</span>` : "";
+      html += `<tr style="background:${bg};">
+        <td style="padding:2px 8px; font-family:monospace; font-weight:700; color:#1a2a3a; white-space:nowrap;">${p.code}</td>
+        <td style="padding:2px 8px; color:#1a2a3a;">${p.name}</td>
+        <td style="padding:2px 8px; font-family:monospace; font-size:0.78rem; color:#3a5a7a;">${p.moves}</td>
+        <td style="padding:2px 8px;">${parent}</td>
+      </tr>`;
+    });
+    html += `</table></div>`;
+  }
+  html += `<div style="margin-top:8px; font-size:0.78rem; color:#888;">Sauvegardé : ${data.output}</div></div>`;
+  res.innerHTML     = html;
+  res.style.display = "block";
+  afficherToast(`✓ ${data.total} codes ECO mis à jour`, "success");
+});
