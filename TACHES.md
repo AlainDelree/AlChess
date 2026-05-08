@@ -13,7 +13,7 @@
 ## 💡 Fonctionnalités à venir
 
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
-- **Outils Exercices** — Écran web intégré (commit en cours). Outils 6 (Import PGN) et 7 (SAN→UCI) fonctionnels ; outils 1–5 affichés "Prochainement".
+- **Outils Exercices** ✅ — Les 7 outils sont intégrés dans l'interface web (commits d0d28ed→0891570). Plus besoin du terminal pour gérer le catalogue.
 - **Corbeille de session**
 Un système de parties PGN temporaires partagées entre tous les modules, valables le temps de la session (disparaissent à la fermeture du programme).
 Concept :
