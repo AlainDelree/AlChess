@@ -4524,6 +4524,7 @@ let _exploreMoves = [];   // UCI joués
 socket.on("app_state", (data) => {
   if (data.state === "outils_exercices") {
     socket.emit("outils_explore_list", {});
+    socket.emit("outils_edit_list", {});
   }
 });
 
@@ -4736,3 +4737,125 @@ function exploreAddVerify() {
   });
 }
 
+
+// ── Outil 4 — Modifier une ouverture ─────────────────────────────────────────
+
+let _editOuvertures = [];  // cache de la liste complète
+let _editSelected   = null;
+
+socket.on("outils_edit_list_result", (data) => {
+  _editOuvertures = data.ouvertures || [];
+  outilsEditRender(_editOuvertures);
+});
+
+function outilsEditFilter() {
+  const q = document.getElementById("edit-search").value.toLowerCase();
+  const filtered = q
+    ? _editOuvertures.filter(o =>
+        o.id.includes(q) || o.nom.toLowerCase().includes(q) || o.eco.toLowerCase().includes(q))
+    : _editOuvertures;
+  outilsEditRender(filtered);
+}
+
+function outilsEditRender(list) {
+  const wrap = document.getElementById("edit-list-wrap");
+  if (!wrap) return;
+  if (!list.length) {
+    wrap.innerHTML = "<em style='color:#888; padding:10px; display:block;'>Aucune ouverture trouvée.</em>";
+    return;
+  }
+  let html = '<table style="width:100%; border-collapse:collapse; font-size:0.82rem;">';
+  html += '<thead><tr style="background:#c2d4e8; position:sticky; top:0;">'
+        + '<th style="padding:5px 8px; text-align:left; color:#1a2a3a;">ID</th>'
+        + '<th style="padding:5px 8px; color:#1a2a3a;">ECO</th>'
+        + '<th style="padding:5px 8px; text-align:left; color:#1a2a3a;">Nom</th>'
+        + '<th style="padding:5px 8px; color:#1a2a3a;">Camp</th>'
+        + '</tr></thead><tbody>';
+  list.forEach((o, i) => {
+    const bg = i % 2 === 0 ? "#f0f4f8" : "#fff";
+    const campIcon = o.camp_suggere === "black" ? "⬛" : "⬜";
+    html += `<tr style="background:${bg}; cursor:pointer;" onclick="outilsEditSelect('${o.id}')"
+               onmouseover="this.style.background='#dce8f4'" onmouseout="this.style.background='${bg}'">
+      <td style="padding:4px 8px; font-family:monospace; color:#1a2a3a; white-space:nowrap;">${o.id}</td>
+      <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${o.eco || "—"}</td>
+      <td style="padding:4px 8px; color:#1a2a3a;">${o.nom || ""}</td>
+      <td style="padding:4px 8px; text-align:center;">${campIcon}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+function outilsEditSelect(id) {
+  _editSelected = _editOuvertures.find(o => o.id === id);
+  if (!_editSelected) return;
+  const o = _editSelected;
+
+  document.getElementById("edit-form-id").textContent   = o.id;
+  document.getElementById("edit-form-init").textContent = o.init && o.init.length ? `(${o.init.length} coups : ${o.init.join(" ")})` : "(aucun coup)";
+  document.getElementById("edit-nom").value        = o.nom        || "";
+  document.getElementById("edit-eco").value        = o.eco        || "";
+  document.getElementById("edit-camp").value       = o.camp_suggere === "black" ? "black" : "white";
+  document.getElementById("edit-book").value       = o.book       || "";
+  document.getElementById("edit-desc").value       = o.desc       || "";
+  document.getElementById("edit-parent-eco").value = o.parent_eco || "";
+
+  document.getElementById("edit-result").style.display = "none";
+  document.getElementById("edit-form").style.display   = "block";
+  document.getElementById("edit-form").scrollIntoView({behavior: "smooth", block: "nearest"});
+}
+
+function outilsEditSave() {
+  if (!_editSelected) return;
+  const o = _editSelected;
+  const updated = {};
+  const fields = [
+    ["nom",          "edit-nom"],
+    ["eco",          "edit-eco"],
+    ["camp_suggere", "edit-camp"],
+    ["book",         "edit-book"],
+    ["desc",         "edit-desc"],
+    ["parent_eco",   "edit-parent-eco"],
+  ];
+  fields.forEach(([field, elId]) => {
+    const val = document.getElementById(elId).value.trim();
+    if (val !== (o[field] || "")) updated[field] = val;
+  });
+  if (!Object.keys(updated).length) {
+    afficherToast("Aucune modification.", "");
+    return;
+  }
+  const btn = document.querySelector("#edit-form .btn-continuer");
+  if (btn) { btn.disabled = true; btn.textContent = "Enregistrement…"; }
+  socket.emit("outils_edit_save", {id: o.id, updated});
+}
+
+socket.on("outils_edit_save_result", (data) => {
+  const btn = document.querySelector("#edit-form .btn-continuer");
+  if (btn) { btn.disabled = false; btn.textContent = "💾 Enregistrer"; }
+  const res = document.getElementById("edit-result");
+  if (data.ok) {
+    res.style.background = "#e8f5e9";
+    res.style.border     = "1px solid #4caf50";
+    res.style.color      = "#2e7d32";
+    res.innerHTML        = `✓ ${data.message}`;
+    res.style.display    = "block";
+    afficherToast(data.message, "success");
+    // Recharger la liste pour refléter les changements
+    socket.emit("outils_edit_list", {});
+    // Mettre à jour le cache local
+    if (_editSelected) {
+      const updated = JSON.parse(document.querySelector("#edit-form .btn-continuer") ? "{}" : "{}");
+      socket.emit("outils_edit_list", {});
+    }
+  } else {
+    res.style.background = "#ffebee";
+    res.style.border     = "1px solid #e94560";
+    res.style.color      = "#e94560";
+    res.innerHTML        = `✗ ${data.error || data.message}`;
+    res.style.display    = "block";
+  }
+  res.style.borderRadius = "6px";
+  res.style.padding      = "8px 12px";
+  res.style.fontSize     = "0.88rem";
+});
