@@ -1305,12 +1305,20 @@
     </div>
   </div>
 
-  <!-- Outils à venir -->
-  <div style="width:100%; max-width:860px; display:flex; gap:12px; flex-wrap:wrap;">
-    <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
-      <span class="outil-num">5</span> <span class="outil-title">🌐 Màj ECO Wikipedia</span>
-      <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
+  <!-- Outil 5 : Màj ECO Wikipedia -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-num">5</span>
+      <span class="outil-title">🌐 Mettre à jour eco_hierarchy.json</span>
     </div>
+    <p class="outil-desc">Télécharge la liste ECO depuis Wikipedia et reconstruit <code>eco_hierarchy.json</code> — utilisé pour les codes parent ECO dans les outils 1 et 2.</p>
+
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button id="wiki-btn" class="btn btn-continuer" onclick="outilsWikiUpdate()">🌐 Mettre à jour depuis Wikipedia</button>
+      <span id="wiki-status" style="font-size:0.85rem; color:#3a5a7a;"></span>
+    </div>
+
+    <div id="wiki-result" style="display:none; margin-top:12px;"></div>
   </div>
 
 </div>
