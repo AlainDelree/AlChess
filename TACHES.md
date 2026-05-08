@@ -10,7 +10,6 @@
 
 ### Priorité basse (existants avant refactoring)
 - **Race condition LEDs** — synchronisation des camps LED parfois incorrecte
-- **Pièces clouées** — pas de signal pour coup illégal sur pièce clouée
 
 ---
 
@@ -59,6 +58,8 @@
 - **Logs** : consulter via le bouton 📋 en haut à droite du programme.
 
 ## ✅ Bugs résolus récemment
+
+- **Pièces clouées** *(résolu)* — `analyser_position_illegale()` dans `board_utils.py` retourne `"⚠ Ce coup met votre roi en échec — pièce clouée."` pour les coups pseudo-légaux non légaux. ✓
 
 - **Beep timing** *(non reproductible, 2026-05-08)* — Le bip sonne maintenant au moment de la gaffe en pédagogique. Probablement résolu par les refactorings récents. ✓ Validé sur plateau physique.
 
