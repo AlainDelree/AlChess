@@ -489,6 +489,10 @@ socket.on("app_state", (data) => {
   const exRunEl = document.getElementById("screen-exercice-running");
   if (exRunEl) exRunEl.style.display = data.state === "exercice_running" ? "grid" : "none";
 
+  // Outils Exercices
+  const outilsEl = document.getElementById("screen-outils-exercices");
+  if (outilsEl) outilsEl.style.display = data.state === "outils_exercices" ? "flex" : "none";
+
   if (data.state === "exercices") {
     _exLaunching = false;  // reset au retour sur l'écran de sélection
     if (data.ouvertures) {
@@ -4211,3 +4215,178 @@ renderBoard(currentFen, null, null, null, null, null, null);
 // Griser les contrôles nav au démarrage (pas de partie chargée)
 _setNavControls(false);
 toggleVirtualMode(false);  // init bulles desc gauche/droite
+
+// ── Outils Exercices ─────────────────────────────────────────────────────────
+
+let _outilsPgnFiles = [];  // [{name, content}, ...]
+
+function outilsPgnDrop(evt) {
+  evt.preventDefault();
+  document.getElementById("outils-pgn-dropzone").style.borderColor = "#a0b8d0";
+  outilsPgnFilesSelected(evt.dataTransfer.files);
+}
+
+function outilsPgnFilesSelected(fileList) {
+  _outilsPgnFiles = [];
+  const list = document.getElementById("outils-pgn-preview-list");
+  list.innerHTML = "<em style='color:#888'>Lecture en cours…</em>";
+  list.style.display = "block";
+  document.getElementById("outils-pgn-result").style.display = "none";
+  document.getElementById("outils-pgn-btn-import").style.display = "none";
+  document.getElementById("outils-pgn-btn-clear").style.display = "none";
+
+  const toRead = Array.from(fileList).filter(f => f.name.endsWith(".pgn"));
+  if (!toRead.length) {
+    list.innerHTML = "<span style='color:#e94560'>Aucun fichier .pgn sélectionné.</span>";
+    return;
+  }
+
+  let done = 0;
+  const results = [];
+  toRead.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      results[idx] = {name: file.name, content: e.target.result};
+      done++;
+      if (done === toRead.length) {
+        _outilsPgnFiles = results;
+        _outilsPgnPreviewAll();
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  });
+}
+
+function _outilsPgnPreviewAll() {
+  const list = document.getElementById("outils-pgn-preview-list");
+  list.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  let pending = _outilsPgnFiles.length;
+  const items = new Array(pending);
+
+  _outilsPgnFiles.forEach((f, idx) => {
+    socket.emit("outils_pgn_preview", {name: f.name, content: f.content});
+    const handler = (res) => {
+      if (res.name !== f.name) return;
+      socket.off("outils_pgn_preview_result", handler);
+      items[idx] = res;
+      pending--;
+      if (pending === 0) _outilsPgnRenderPreview(items);
+    };
+    socket.on("outils_pgn_preview_result", handler);
+  });
+}
+
+function _outilsPgnRenderPreview(items) {
+  const list = document.getElementById("outils-pgn-preview-list");
+  let html = '<table style="width:100%; border-collapse:collapse; font-size:0.85rem;">';
+  html += '<tr style="background:#c2d4e8;"><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">Fichier</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">Nom</th><th style="padding:4px 8px; color:#1a2a3a;">ECO</th><th style="padding:4px 8px; color:#1a2a3a;">Camp</th><th style="padding:4px 8px; color:#1a2a3a;">Coups</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">Statut</th></tr>';
+  let hasOk = false;
+  items.forEach((r, i) => {
+    const bg = i % 2 === 0 ? "#f0f4f8" : "#fff";
+    if (r.ok) {
+      hasOk = true;
+      html += `<tr style="background:${bg};">
+        <td style="padding:4px 8px; color:#3a5a7a;">${r.name}</td>
+        <td style="padding:4px 8px; color:#1a2a3a; font-weight:600;">${r.nom}</td>
+        <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${r.eco || "—"}</td>
+        <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${r.camp}</td>
+        <td style="padding:4px 8px; text-align:center; color:#1a2a3a;">${r.nb_coups}</td>
+        <td style="padding:4px 8px; color:#2e7d32;">✓ OK</td>
+      </tr>`;
+    } else {
+      html += `<tr style="background:${bg};">
+        <td style="padding:4px 8px; color:#3a5a7a;">${r.name}</td>
+        <td colspan="4" style="padding:4px 8px; color:#e94560;">${r.error}</td>
+        <td style="padding:4px 8px; color:#e94560;">✗ Erreur</td>
+      </tr>`;
+    }
+  });
+  html += "</table>";
+  list.innerHTML = html;
+  document.getElementById("outils-pgn-btn-clear").style.display = "inline-block";
+  if (hasOk) document.getElementById("outils-pgn-btn-import").style.display = "inline-block";
+}
+
+function outilsPgnImport() {
+  if (!_outilsPgnFiles.length) return;
+  const btn = document.getElementById("outils-pgn-btn-import");
+  btn.disabled = true;
+  btn.textContent = "Import en cours…";
+  const res = document.getElementById("outils-pgn-result");
+  res.style.display = "none";
+  socket.emit("outils_pgn_import", {files: _outilsPgnFiles});
+}
+
+function outilsPgnClear() {
+  _outilsPgnFiles = [];
+  document.getElementById("outils-pgn-input").value = "";
+  document.getElementById("outils-pgn-preview-list").style.display = "none";
+  document.getElementById("outils-pgn-preview-list").innerHTML = "";
+  document.getElementById("outils-pgn-result").style.display = "none";
+  document.getElementById("outils-pgn-btn-import").style.display = "none";
+  document.getElementById("outils-pgn-btn-clear").style.display = "none";
+}
+
+socket.on("outils_pgn_import_result", (data) => {
+  const btn = document.getElementById("outils-pgn-btn-import");
+  btn.disabled = false;
+  btn.textContent = "✅ Importer";
+  const res = document.getElementById("outils-pgn-result");
+  if (data.ok) {
+    let msg = `<strong style="color:#2e7d32">✓ ${data.imported} ligne(s) importée(s) sur ${data.total}.</strong>`;
+    if (data.errors && data.errors.length) {
+      msg += `<br><span style="color:#e94560">${data.errors.length} erreur(s) :</span><ul style="margin:4px 0 0 16px;">`;
+      data.errors.forEach(e => { msg += `<li style="color:#e94560">${e.name} — ${e.error}</li>`; });
+      msg += "</ul>";
+    }
+    res.style.background = "#e8f5e9";
+    res.style.border = "1px solid #4caf50";
+    res.style.color = "#1a2a3a";
+    res.innerHTML = msg;
+    afficherToast(`✓ ${data.imported} ligne(s) importée(s)`, "success");
+  } else {
+    let msg = `<strong style="color:#e94560">✗ Aucune ligne importée.</strong>`;
+    if (data.errors && data.errors.length) {
+      msg += `<ul style="margin:4px 0 0 16px;">`;
+      data.errors.forEach(e => { msg += `<li style="color:#e94560">${e.name} — ${e.error}</li>`; });
+      msg += "</ul>";
+    }
+    res.style.background = "#ffebee";
+    res.style.border = "1px solid #e94560";
+    res.style.color = "#1a2a3a";
+    res.innerHTML = msg;
+  }
+  res.style.display = "block";
+});
+
+function outilsSanToUci() {
+  const pgn = document.getElementById("outils-uci-input").value.trim();
+  if (!pgn) return;
+  const res = document.getElementById("outils-uci-result");
+  res.innerHTML = "<em style='color:#888'>Conversion…</em>";
+  res.style.display = "block";
+  socket.emit("outils_san_to_uci", {pgn});
+}
+
+socket.on("outils_san_to_uci_result", (data) => {
+  const res = document.getElementById("outils-uci-result");
+  if (!data.ok) {
+    res.innerHTML = `<span style="color:#e94560">✗ ${data.error}</span>`;
+    return;
+  }
+  let html = '<table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:8px;">';
+  html += '<tr style="background:#c2d4e8;"><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">SAN</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">UCI</th></tr>';
+  data.moves.forEach((m, i) => {
+    const bg = i % 2 === 0 ? "#f0f4f8" : "#fff";
+    html += `<tr style="background:${bg};"><td style="padding:4px 8px; color:#1a2a3a; font-family:monospace;">${m.san}</td><td style="padding:4px 8px; color:#2e7d32; font-family:monospace;">${m.uci}</td></tr>`;
+  });
+  html += "</table>";
+  const uciLine = data.moves.map(m => m.uci).join(" ");
+  html += `<div style="background:#f0f4f8; border:1px solid #a0b8d0; border-radius:6px; padding:8px 12px; font-family:monospace; font-size:0.88rem; color:#1a2a3a; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <span style="color:#3a5a7a; font-weight:600;">InitMoves :</span>
+    <span id="outils-uci-line">${uciLine}</span>
+    <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="navigator.clipboard.writeText('${uciLine}').then(()=>afficherToast('Copié !','success'))">📋 Copier</button>
+  </div>`;
+  res.innerHTML = html;
+  res.style.display = "block";
+});

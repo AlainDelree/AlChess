@@ -63,6 +63,11 @@
     <div class="menu-btn-desc" id="desc-retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
   </div>
 
+  <div class="menu-btn-wrap">
+    <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'outils_exercices'})">🛠️ Outils Exercices</button>
+    <div class="menu-btn-desc">Importez vos lignes PGN, convertissez SAN&nbsp;→&nbsp;UCI et gérez le catalogue d'ouvertures.</div>
+  </div>
+
   <button class="menu-btn menu-btn-secondary" id="btn-reconnect" onclick="sendAction({type:'reconnect_board'})" style="font-size:0.85rem; opacity:0.5; cursor:default;" disabled>✓ Échiquier connecté</button>
 
   <!-- Toggle mode virtuel -->
@@ -982,6 +987,89 @@
     </div>
 
   </div>
+</div>
+
+
+<!-- ── Écran Outils Exercices ── -->
+<div id="screen-outils-exercices" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%;">
+
+  <div style="width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <h2 style="margin:0; color:#1a2a3a; font-size:1.4rem;">🛠️ Outils Exercices</h2>
+    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
+  </div>
+
+  <!-- Outil 6 : Import mes lignes PGN -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-num">6</span>
+      <span class="outil-title">📥 Importer mes lignes PGN</span>
+    </div>
+    <p class="outil-desc">Sélectionnez un ou plusieurs fichiers .pgn pour les importer dans vos exercices personnels (<em>mes_lignes.json</em>).</p>
+
+    <!-- Zone d'upload -->
+    <div id="outils-pgn-dropzone" style="border:2px dashed #a0b8d0; border-radius:8px; padding:20px; text-align:center; cursor:pointer; color:#3a5a7a; margin-bottom:12px;"
+         onclick="document.getElementById('outils-pgn-input').click()"
+         ondragover="event.preventDefault(); this.style.borderColor='#e94560';"
+         ondragleave="this.style.borderColor='#a0b8d0';"
+         ondrop="outilsPgnDrop(event)">
+      <div style="font-size:1.8rem; margin-bottom:6px;">📄</div>
+      <div>Cliquez ou déposez vos fichiers <strong>.pgn</strong> ici</div>
+    </div>
+    <input type="file" id="outils-pgn-input" accept=".pgn" multiple style="display:none;" onchange="outilsPgnFilesSelected(this.files)">
+
+    <!-- Liste de prévisualisation -->
+    <div id="outils-pgn-preview-list" style="display:none; margin-bottom:12px;"></div>
+
+    <!-- Boutons d'action -->
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button id="outils-pgn-btn-import" class="btn btn-continuer" style="display:none;" onclick="outilsPgnImport()">✅ Importer</button>
+      <button id="outils-pgn-btn-clear" class="btn" style="display:none; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="outilsPgnClear()">✕ Effacer</button>
+    </div>
+
+    <!-- Résultat import -->
+    <div id="outils-pgn-result" style="display:none; margin-top:12px; padding:12px; border-radius:6px;"></div>
+  </div>
+
+  <!-- Outil 7 : Convertir SAN → UCI -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-num">7</span>
+      <span class="outil-title">🔄 Convertir SAN → UCI</span>
+    </div>
+    <p class="outil-desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
+    <textarea id="outils-uci-input" placeholder="Collez votre PGN ici…" rows="3"
+      style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.9rem; padding:8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; resize:vertical;"></textarea>
+    <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
+      <button class="btn btn-continuer" onclick="outilsSanToUci()">Convertir</button>
+      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="document.getElementById('outils-uci-input').value=''; document.getElementById('outils-uci-result').style.display='none';">Effacer</button>
+    </div>
+    <div id="outils-uci-result" style="display:none; margin-top:12px;"></div>
+  </div>
+
+  <!-- Outils à venir -->
+  <div style="width:100%; max-width:860px; display:flex; gap:12px; flex-wrap:wrap;">
+    <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
+      <span class="outil-num">1</span> <span class="outil-title">➕ Ajouter une ouverture</span>
+      <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
+    </div>
+    <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
+      <span class="outil-num">2</span> <span class="outil-title">📊 Import ECO Lichess</span>
+      <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
+    </div>
+    <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
+      <span class="outil-num">3</span> <span class="outil-title">📖 Explorer Polyglot</span>
+      <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
+    </div>
+    <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
+      <span class="outil-num">4</span> <span class="outil-title">✏️ Modifier une ouverture</span>
+      <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
+    </div>
+    <div class="outil-card outil-disabled" style="flex:1; min-width:200px;">
+      <span class="outil-num">5</span> <span class="outil-title">🌐 Màj ECO Wikipedia</span>
+      <p class="outil-desc" style="margin-top:4px; color:#888;">Prochainement</p>
+    </div>
+  </div>
+
 </div>
 
 

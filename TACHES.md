@@ -13,7 +13,16 @@
 ## 💡 Fonctionnalités à venir
 
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
-- **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
+- **Outils Exercices** — Écran web intégré (commit en cours). Outils 6 (Import PGN) et 7 (SAN→UCI) fonctionnels ; outils 1–5 affichés "Prochainement".
+- **Corbeille de session**
+Un système de parties PGN temporaires partagées entre tous les modules, valables le temps de la session (disparaissent à la fermeture du programme).
+Concept :
+- Une liste de PGN en mémoire dans server.py (ex: _session_basket = [])
+- Chaque entrée : {"label": "Partie vs Stockfish 14h32", "pgn": "...", "source": "pedagogique"}
+- Depuis n'importe quel module qui produit une partie (Pédagogique, HH, Retranscription) : bouton "Ajouter à la corbeille"
+- Depuis n'importe quel module qui consomme une partie (Analyse, Labo, Exercices/création ouverture) : liste déroulante "Charger depuis la corbeille"
+- Maximum ~10 entrées (FIFO si dépassé)
+- Disparaît à la fermeture du programme (pas de persistance disque)
 
 ## 🧪 Stratégie de tests
 

@@ -30,13 +30,12 @@ MES_LIGNES_DIR  = pathlib.Path.home() / "NicLink" / "data" / "mes_lignes"
 MES_LIGNES_JSON = pathlib.Path.home() / "NicLink" / "data" / "mes_lignes.json"
 
 
-def _parse_pgn_file(path: pathlib.Path) -> dict | None:
+def _parse_pgn_content(name: str, content: str) -> tuple:
     """
-    Lit un fichier PGN simple et retourne un dict compatible OUVERTURES.
-    Retourne None si le fichier est invalide.
+    Parse un PGN depuis une chaîne.
+    Retourne (entry_dict, error_str) — entry est None si échec.
     """
     try:
-        content = path.read_text(encoding="utf-8")
         import sys as _sys
         _stderr_cap = io.StringIO()
         _old_stderr = _sys.stderr
@@ -47,29 +46,26 @@ def _parse_pgn_file(path: pathlib.Path) -> dict | None:
             _sys.stderr = _old_stderr
 
         if game is None:
-            return None
+            return None, "PGN invalide"
 
-        # Headers
-        event      = game.headers.get("Event", "")
-        eco        = game.headers.get("ECO", "")
-        white      = game.headers.get("White", "")
-        black      = game.headers.get("Black", "")
-        camp       = game.headers.get("CampSuggere", "")
+        event          = game.headers.get("Event", "")
+        eco            = game.headers.get("ECO", "")
+        white          = game.headers.get("White", "")
+        black          = game.headers.get("Black", "")
+        camp           = game.headers.get("CampSuggere", "")
         init_moves_str = game.headers.get("InitMoves", "")
 
-        # Deviner camp_suggere depuis White/Black si pas explicite
         if not camp:
             if white and white.lower() not in ("blancs", "white", "?", ""):
                 camp = "white"
             elif black and black.lower() not in ("noirs", "black", "?", ""):
                 camp = "black"
             else:
-                camp = "white"  # défaut
+                camp = "white"
 
-        # Nom : Event ou nom du fichier sans extension
-        nom = event if event and event != "?" else path.stem.replace("_", " ")
+        stem = pathlib.Path(name).stem
+        nom  = event if event and event != "?" else stem.replace("_", " ")
 
-        # Description : chercher un commentaire dans le premier nœud
         desc = ""
         node = game
         while node.variations:
@@ -80,41 +76,29 @@ def _parse_pgn_file(path: pathlib.Path) -> dict | None:
         if not desc and game.comment:
             desc = game.comment.strip()
 
-        # Compter les coups attendus dans le texte brut
-        # Un coup SAN commence par une lettre majuscule de pièce ou une lettre de colonne
         _SAN_TOKEN = re.compile(
             r'^([KQRBN][a-h]?[1-8]?x?[a-h][1-8]|[a-h]x?[a-h]?[1-8]|O-O-O|O-O)'
         )
-        _raw = re.sub(r'\{[^}]*\}', '', content)  # retirer commentaires
-        _raw = re.sub(r'\[[^\]]*\]', '', _raw)    # retirer headers
-        _raw_tokens = [t.rstrip('+#!?=') for t in _raw.split()]
-        expected_moves = sum(1 for t in _raw_tokens if _SAN_TOKEN.match(t))
+        _raw = re.sub(r'\{[^}]*\}', '', content)
+        _raw = re.sub(r'\[[^\]]*\]', '', _raw)
+        _raw_tokens     = [t.rstrip('+#!?=') for t in _raw.split()]
+        expected_moves  = sum(1 for t in _raw_tokens if _SAN_TOKEN.match(t))
 
-        # Extraire tous les coups UCI de la ligne
-        board = game.board()
+        board   = game.board()
         all_uci = []
-        node = game
+        node    = game
         while node.variations:
             node = node.variations[0]
-            move = node.move
-            all_uci.append(move.uci())
-            board.push(move)
+            all_uci.append(node.move.uci())
+            board.push(node.move)
 
         if not all_uci:
-            print(red(f"  ✗ {path.name} — aucun coup trouvé dans la ligne"))
-            print(dim("    Vérifiez la notation SAN (anglaise) et la syntaxe PGN."))
-            return None
+            return None, "Aucun coup valide trouvé — vérifiez la notation SAN"
 
-        # Vérifier si des coups ont été ignorés (python-chess s'arrête sur un coup illégal)
         if len(all_uci) < expected_moves:
-            print(red(f"  ✗ {path.name} — coup illégal au coup #{len(all_uci)+1}"))
-            print(dim(f"    Ligne tronquée : {len(all_uci)} coups parsés / {expected_moves} attendus"))
-            print(dim("    Corrigez le coup et réimportez."))
-            return None
+            return None, f"Coup illégal au coup #{len(all_uci)+1} ({len(all_uci)}/{expected_moves} coups parsés)"
 
-        # Déterminer les coups d'init (position de départ)
         if init_moves_str:
-            # Convertir InitMoves UCI en liste validée
             init_uci = []
             b = chess.Board()
             for uci in init_moves_str.split():
@@ -126,13 +110,11 @@ def _parse_pgn_file(path: pathlib.Path) -> dict | None:
                 except Exception:
                     break
         else:
-            # Pas d'InitMoves → position de départ = vide (tous les coups sont la ligne)
             init_uci = []
 
-        # ID basé sur le nom du fichier
         base_id = re.sub(
             r'[^a-z0-9]+', '_',
-            path.stem.lower()
+            stem.lower()
             .replace("é","e").replace("è","e").replace("ê","e")
             .replace("à","a").replace("ç","c").replace("ô","o")
             .replace("î","i").replace("û","u").replace("â","a")
@@ -142,17 +124,29 @@ def _parse_pgn_file(path: pathlib.Path) -> dict | None:
             "id":           base_id,
             "eco":          eco,
             "nom":          nom,
-            "desc":         desc or f"Ligne importée depuis {path.name}",
-            "init":         init_uci,    # coups de départ (position initiale)
-            "line":         all_uci,     # tous les coups de la ligne
+            "desc":         desc or f"Ligne importée depuis {name}",
+            "init":         init_uci,
+            "line":         all_uci,
             "camp_suggere": camp,
             "book":         "",
-            "source":       path.name,
-        }
+            "source":       name,
+        }, ""
 
     except Exception as e:
-        print(red(f"  ✗ {path.name} — erreur : {e}"))
+        return None, str(e)
+
+
+def _parse_pgn_file(path: pathlib.Path) -> dict | None:
+    """Lit un fichier PGN et retourne un dict compatible OUVERTURES."""
+    try:
+        content = path.read_text(encoding="utf-8")
+    except Exception as e:
+        print(red(f"  ✗ {path.name} — erreur lecture : {e}"))
         return None
+    entry, error = _parse_pgn_content(path.name, content)
+    if entry is None:
+        print(red(f"  ✗ {path.name} — {error}"))
+    return entry
 
 
 def _deduplicate(lignes: list[dict]) -> list[dict]:
@@ -234,6 +228,51 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def preview_from_web(filename: str, content: str) -> dict:
+    """Aperçu d'un fichier PGN uploadé depuis le navigateur."""
+    entry, error = _parse_pgn_content(filename, content)
+    if entry is None:
+        return {"ok": False, "error": error, "name": filename}
+    return {
+        "ok": True,
+        "name": filename,
+        "id": entry["id"],
+        "nom": entry["nom"],
+        "eco": entry["eco"],
+        "camp": entry["camp_suggere"],
+        "nb_coups": len(entry["line"]),
+        "nb_init": len(entry["init"]),
+        "line_preview": entry["line"][:6],
+    }
+
+
+def import_from_web(files: list) -> dict:
+    """
+    Importe une liste de fichiers PGN depuis le navigateur.
+    files : liste de dicts {name, content}
+    """
+    lignes = []
+    errors = []
+    for f in files:
+        name = f.get("name", "inconnu.pgn")
+        content = f.get("content", "")
+        entry, error = _parse_pgn_content(name, content)
+        if entry is None:
+            errors.append({"name": name, "error": error})
+        else:
+            lignes.append(entry)
+
+    if not lignes:
+        return {"ok": False, "imported": 0, "errors": errors, "total": len(files)}
+
+    lignes = _deduplicate(lignes)
+    MES_LIGNES_JSON.write_text(
+        json.dumps(lignes, ensure_ascii=False, indent=2),
+        encoding="utf-8"
+    )
+    return {"ok": True, "imported": len(lignes), "errors": errors, "total": len(files)}
 
 
 def show_uci(pgn_text: str = None) -> None:

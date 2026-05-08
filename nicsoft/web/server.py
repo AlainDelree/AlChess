@@ -283,6 +283,48 @@ def on_analyser_pgn(data):
 
     threading.Thread(target=run, daemon=True).start()
 
+@socketio.on("outils_pgn_preview")
+def on_outils_pgn_preview(data):
+    """Aperçu d'un fichier PGN uploadé depuis le navigateur."""
+    from nicsoft.modes.exercices.import_lignes import preview_from_web
+    result = preview_from_web(data.get("name", "inconnu.pgn"), data.get("content", ""))
+    emit("outils_pgn_preview_result", result)
+
+
+@socketio.on("outils_pgn_import")
+def on_outils_pgn_import(data):
+    """Importe une liste de fichiers PGN uploadés depuis le navigateur."""
+    from nicsoft.modes.exercices.import_lignes import import_from_web
+    result = import_from_web(data.get("files", []))
+    emit("outils_pgn_import_result", result)
+
+
+@socketio.on("outils_san_to_uci")
+def on_outils_san_to_uci(data):
+    """Convertit une ligne PGN SAN → liste UCI."""
+    import io as _io, sys as _sys
+    import chess, chess.pgn
+    pgn_text = data.get("pgn", "")
+    _cap = _io.StringIO()
+    _old = _sys.stderr
+    _sys.stderr = _cap
+    try:
+        game = chess.pgn.read_game(_io.StringIO(pgn_text))
+    finally:
+        _sys.stderr = _old
+    if game is None:
+        emit("outils_san_to_uci_result", {"ok": False, "error": "PGN invalide"})
+        return
+    board = game.board()
+    moves = []
+    node = game
+    while node.variations:
+        node = node.variations[0]
+        moves.append({"san": board.san(node.move), "uci": node.move.uci()})
+        board.push(node.move)
+    emit("outils_san_to_uci_result", {"ok": True, "moves": moves})
+
+
 # ── Thread de dispatch des événements ────────────────────────────────────────
 
 def _dispatch_loop():
