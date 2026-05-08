@@ -4,11 +4,8 @@
 
 ## 🐛 Bugs connus
 
-### Priorité moyenne
-
-- **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Le 1er bip vient du `connect()` USB initial qui échoue (plateau pas encore prêt), le 2e vient du retry 1s plus tard qui réussit. Piste : éviter le double appel `_niclink.connect()` en séparant connect et get_fen dans `_check_board_at_startup`.
-
 ### Priorité basse (existants avant refactoring)
+- **2 bips au démarrage** *(en veille)* — réduit de 4 à 2 (commit 216cd09) en espaçant la reconnexion d'1s. Plus gênant en pratique. Même nature que la race condition LEDs (hardware/USB).
 - **Race condition LEDs** *(en veille)* — synchronisation des camps LED parfois incorrecte. Rare, se produit même après redémarrage du programme → cause probable hardware/USB, pas logicielle. À surveiller si ça s'aggrave.
 
 ---
