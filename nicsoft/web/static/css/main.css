@@ -321,10 +321,10 @@
       display: flex;
       gap: 5px;
       padding: 2px 0;
-      border-bottom: 1px solid #b8cce0;
+      border-bottom: 1px solid #8aabcc;
     }
     .jlog-time {
-      color: #445;
+      color: #3a5a7a;
       flex-shrink: 0;
       font-size: 0.68rem;
       padding-top: 1px;
