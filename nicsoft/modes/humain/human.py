@@ -25,7 +25,7 @@ from nicsoft.engine.players import (
     find_existing_player,
     normalize_player_name,
 )
-from nicsoft.engine.board_utils import wait_for_initial_position
+from nicsoft.engine.board_utils import wait_for_initial_position, san_ep
 from nicsoft.web.server import send_event, get_action, set_app_state, _game_state
 from nicsoft.niclink import NicLinkManager
 
@@ -387,7 +387,7 @@ class Game(threading.Thread):
                 self._leds_showing_turn = False
 
             is_white_turn = (self.board.turn == chess.WHITE)
-            san = self.board.san(move)
+            san = san_ep(self.board, move)
             self.board.push(move)
             self.node = self.node.add_variation(move)
 
@@ -837,7 +837,7 @@ class GameWeb(threading.Thread):
             move_obj = chess.Move.from_uci(move)
             if move_obj not in self.board.legal_moves:
                 return None
-            san = self.board.san(move_obj)
+            san = san_ep(self.board, move_obj)
         except Exception:
             return None
 
@@ -958,7 +958,7 @@ class GameWeb(threading.Thread):
         resume_fens  = [board_tmp2.board_fen()]
         resume_moves = []
         for mv in self.board.move_stack:
-            san_mv = board_tmp2.san(mv)
+            san_mv = san_ep(board_tmp2, mv)
             col    = "white" if board_tmp2.turn == chess.WHITE else "black"
             plr    = self.white_name if board_tmp2.turn == chess.WHITE else self.black_name
             board_tmp2.push(mv)
@@ -982,7 +982,7 @@ class GameWeb(threading.Thread):
         fens  = [b.board_fen()]
         moves = []
         for mv in self.board.move_stack:
-            san = b.san(mv)
+            san = san_ep(b, mv)
             col = "white" if b.turn == chess.WHITE else "black"
             b.push(mv)
             fens.append(b.board_fen())

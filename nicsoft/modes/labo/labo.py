@@ -11,6 +11,7 @@ Principes :
 """
 
 import chess
+from nicsoft.engine.board_utils import san_ep
 import logging
 import threading
 import time
@@ -163,7 +164,7 @@ class LaboSession:
                 if not bm:
                     return
                 try:
-                    best_san = board_copy.san(chess.Move.from_uci(bm))
+                    best_san = san_ep(board_copy, chess.Move.from_uci(bm))
                 except Exception:
                     best_san = bm
                 self.nl_inst.set_move_leds(bm)
@@ -205,7 +206,7 @@ class LaboSession:
                 if move is None:
                     return
                 uci = move.uci()
-                san = self.board.san(move)
+                san = san_ep(self.board, move)
                 self._placement_in_progress = True  # bloquer le watcher avant push
                 self.board.push(move)
                 self.active_turn = "white" if self.board.turn == chess.WHITE else "black"
@@ -237,7 +238,7 @@ class LaboSession:
                 wdl = self.engine.wdl_to_bar(eval_info.get("wdl"))
                 best_san = None
                 if bm:
-                    try: best_san = board_copy.san(chess.Move.from_uci(bm))
+                    try: best_san = san_ep(board_copy, chess.Move.from_uci(bm))
                     except Exception: best_san = bm
                     self.nl_inst.set_move_leds(bm)
                 send_event("labo_analyse", {
@@ -381,7 +382,7 @@ class LaboSession:
 
             # Coup légal
             uci   = move_found.uci()
-            san   = self.board.san(move_found)
+            san   = san_ep(self.board, move_found)
             color = "white" if self.board.turn == chess.WHITE else "black"
             fen_avant = self.board.fen()
 

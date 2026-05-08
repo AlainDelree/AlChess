@@ -12,6 +12,7 @@ Flux :
 """
 
 import chess
+from nicsoft.engine.board_utils import san_ep
 import chess.polyglot
 import logging
 import pathlib
@@ -992,7 +993,7 @@ class ExerciceSession:
 
                 if move.uci() in book_ucis:
                     # Coup théorique
-                    san = self.board.san(move)
+                    san = san_ep(self.board, move)
                     self.board.push(move)
                     self.nl_inst.game_board = self.board.copy()
                     send_event("exercice_move_ok", {
@@ -1005,13 +1006,13 @@ class ExerciceSession:
                     self._send_position(move.uci())
                 else:
                     # Hors théorie
-                    san = self.board.san(move)
-                    best_san = self.board.san(book_moves[0].move) if book_moves else "?"
+                    san = san_ep(self.board, move)
+                    best_san = san_ep(self.board, book_moves[0].move) if book_moves else "?"
                     # Revenir en arrière physiquement (ne pas pousser)
                     # Construire la liste des coups valides
                     valid_moves = []
                     for e in book_moves[:5]:
-                        try: valid_moves.append({"san": self.board.san(e.move), "uci": e.move.uci()})
+                        try: valid_moves.append({"san": san_ep(self.board, e.move), "uci": e.move.uci()})
                         except Exception: pass
                     send_event("exercice_out_of_book", {
                         "san":         san,
@@ -1042,7 +1043,7 @@ class ExerciceSession:
                         self._run_free()
                     return
 
-                san = self.board.san(adv_move)
+                san = san_ep(self.board, adv_move)
                 uci = adv_move.uci()
                 self.board.push(adv_move)
                 self.nl_inst.game_board = self.board.copy()
@@ -1117,7 +1118,7 @@ class ExerciceSession:
                     self._restart()
                     self.run()
                     return
-                san = self.board.san(move)
+                san = san_ep(self.board, move)
                 self.board.push(move)
                 self.nl_inst.game_board = self.board.copy()
                 send_event("move", {
@@ -1135,7 +1136,7 @@ class ExerciceSession:
                     if adv_move is None:
                         return
                     uci = adv_move.uci()
-                    san = self.board.san(adv_move)
+                    san = san_ep(self.board, adv_move)
                     self.board.push(adv_move)
                     self.nl_inst.game_board = self.board.copy()
                     from nicsoft.niclink.virtual_board import VirtualBoard
@@ -1189,7 +1190,7 @@ class ExerciceSession:
         for e in book_entries[:5]:
             try:
                 book_moves.append({
-                    "san": self.board.san(e.move),
+                    "san": san_ep(self.board, e.move),
                     "uci": e.move.uci(),
                 })
             except Exception:

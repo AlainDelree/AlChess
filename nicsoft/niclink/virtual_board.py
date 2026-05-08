@@ -14,6 +14,7 @@ import threading
 import time
 
 import chess
+from nicsoft.engine.board_utils import san_ep
 
 from .nl_exceptions import ExitNicLink
 
@@ -249,7 +250,7 @@ class VirtualBoard:
                 if session._engine_busy or session._placement_in_progress:
                     continue
 
-                san   = session.board.san(move)
+                san   = san_ep(session.board, move)
                 color = "white" if session.board.turn == chess.WHITE else "black"
                 fen_avant = session.board.fen()
 
