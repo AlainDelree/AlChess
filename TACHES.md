@@ -16,7 +16,6 @@
 
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
-- **Supprimer les `[DEBUG]` prints** une fois le programme stable
 - **Time logs permanents** — remplacer `tlog()` (DEBUG only) par logging structuré toujours actif, timings `await_move` et `WAIT_FISH` dans le fichier log sans polluer le terminal
 
 ## 🧪 Stratégie de tests
@@ -57,6 +56,8 @@
 ## ✅ Bugs résolus récemment
 
 - **Pièces clouées** *(résolu)* — `analyser_position_illegale()` dans `board_utils.py` retourne `"⚠ Ce coup met votre roi en échec — pièce clouée."` pour les coups pseudo-légaux non légaux. ✓
+
+- **Prints debug silencieux** *(commit 33c7b89, 2026-05-08)* — 15 prints informatifs entourés de `if DEBUG_MODE` via `nicsoft/utils/debug.py`. Réactivation : `NICLINK_LOG=DEBUG python -m nicsoft.web`. ✓
 
 - **Beep timing** *(non reproductible, 2026-05-08)* — Le bip sonne maintenant au moment de la gaffe en pédagogique. Probablement résolu par les refactorings récents. ✓ Validé sur plateau physique.
 
