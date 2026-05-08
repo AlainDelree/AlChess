@@ -397,6 +397,36 @@ def on_outils_san_to_uci(data):
     emit("outils_san_to_uci_result", {"ok": True, "moves": moves})
 
 
+# ── Corbeille de session ─────────────────────────────────────────────────────
+
+_session_basket: list[dict] = []
+_BASKET_MAX = 10
+
+
+@socketio.on("basket_add")
+def on_basket_add(data):
+    label = data.get("label", "partie.pgn")
+    pgn   = data.get("pgn", "").strip()
+    if not pgn:
+        return
+    _session_basket.append({"label": label, "pgn": pgn})
+    if len(_session_basket) > _BASKET_MAX:
+        _session_basket.pop(0)
+    socketio.emit("basket_updated", {"entries": [{"label": e["label"]} for e in _session_basket]})
+
+
+@socketio.on("basket_load")
+def on_basket_load(data):
+    idx = data.get("idx", -1)
+    if 0 <= idx < len(_session_basket):
+        emit("basket_load_result", {
+            "pgn":   _session_basket[idx]["pgn"],
+            "label": _session_basket[idx]["label"],
+        })
+    else:
+        emit("basket_load_result", {"pgn": "", "label": ""})
+
+
 # ── Thread de dispatch des événements ────────────────────────────────────────
 
 def _dispatch_loop():

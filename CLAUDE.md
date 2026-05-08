@@ -20,6 +20,8 @@ Toujours faire en début de session :
 - Mettre à jour `TACHES.md` immédiatement après chaque correction (déplacer le bug dans "Bugs résolus récemment", noter le commit).
 - Committer après chaque étape stable, avec un message descriptif.
 - En cas d'interruption : l'état exact est dans `git log --oneline` (dernière étape stable) et `TACHES.md` (ce qui reste à faire).
+- Signaler toute fin de tâche et toute question interactive par : python3 ~/NicLink/bip.py
+
 
 ## Commandes
 

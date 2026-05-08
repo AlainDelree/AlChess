@@ -504,6 +504,15 @@ socket.on("app_state", (data) => {
       }
     }
   }
+  // Mettre à jour la source corbeille selon l'état entrant
+  if (data.state === "connecting") {
+    if (!_basketSource || _basketSource === "Retrans" || _basketSource === "Labo")
+      _basketSource = "Pedagogique";
+  } else if (data.state === "labo") {
+    _basketSource = "Labo";
+  } else if (data.state === "retrans_playing") {
+    _basketSource = "Retrans";
+  }
   // Quand on entre dans le labo, réinitialiser la position virtuelle
   if (data.state === "labo") {
     _laboVirtualFen = "";
@@ -1480,6 +1489,7 @@ function startGameHH() {
   const white = document.getElementById("cfg-white-name")?.value.trim() || "Anonyme1";
   const black = document.getElementById("cfg-black-name")?.value.trim() || "Anonyme2";
   const type  = document.getElementById("cfg-hh-type")?.value || "serieuse";
+  _basketSource = "HH";
   sendAction({ type: "start_humain", white, black, color: _hhColor, game_type: type });
 }
 
@@ -2151,37 +2161,38 @@ function laboLoadPgn(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const chess = new Chess();
-      if (!chess.load_pgn(e.target.result)) { afficherToast("PGN invalide", "warning"); return; }
-      const history = chess.history({ verbose: true });
-      const white   = chess.header().White || "Blancs";
-      const black   = chess.header().Black || "Noirs";
-      const chess2  = new Chess();
-      _laboPgnFens  = [chess2.fen().split(" ")[0]];
-      _laboPgnMoves = [];
-      for (const m of history) {
-        chess2.move(m);
-        _laboPgnFens.push(chess2.fen().split(" ")[0]);
-        _laboPgnMoves.push(m.san);
-      }
-      _laboPgnIdx = _laboPgnFens.length - 1;
-      _laboVirtualFen = _laboPgnFens[_laboPgnIdx];
-      laboShowVirtualFen();
-      const nav = document.getElementById("labo-pgn-nav");
-      if (nav) nav.style.display = "flex";
-      const info = document.getElementById("labo-pgn-info");
-      if (info) info.textContent = `${white} vs ${black} — ${history.length} coups`;
-      const copyBtn = document.getElementById("labo-btn-copy");
-      if (copyBtn) copyBtn.style.display = "block";
-      // Remplir l'historique
-      _laboRenderPgnHistory();
-      laboJournalAdd("config", `📂 PGN : ${file.name} (${history.length} coups)`);
-      afficherToast("PGN chargé", "success");
-    } catch(err) { afficherToast("Erreur PGN : " + err.message, "warning"); }
-  };
+  reader.onload = (e) => laboLoadPgnText(e.target.result, file.name);
   reader.readAsText(file);
+}
+
+function laboLoadPgnText(pgnText, label) {
+  try {
+    const chess = new Chess();
+    if (!chess.load_pgn(pgnText)) { afficherToast("PGN invalide", "warning"); return; }
+    const history = chess.history({ verbose: true });
+    const white   = chess.header().White || "Blancs";
+    const black   = chess.header().Black || "Noirs";
+    const chess2  = new Chess();
+    _laboPgnFens  = [chess2.fen().split(" ")[0]];
+    _laboPgnMoves = [];
+    for (const m of history) {
+      chess2.move(m);
+      _laboPgnFens.push(chess2.fen().split(" ")[0]);
+      _laboPgnMoves.push(m.san);
+    }
+    _laboPgnIdx = _laboPgnFens.length - 1;
+    _laboVirtualFen = _laboPgnFens[_laboPgnIdx];
+    laboShowVirtualFen();
+    const nav = document.getElementById("labo-pgn-nav");
+    if (nav) nav.style.display = "flex";
+    const info = document.getElementById("labo-pgn-info");
+    if (info) info.textContent = `${white} vs ${black} — ${history.length} coups`;
+    const copyBtn = document.getElementById("labo-btn-copy");
+    if (copyBtn) copyBtn.style.display = "block";
+    _laboRenderPgnHistory();
+    laboJournalAdd("config", `📂 PGN : ${label || (white + " vs " + black)} (${history.length} coups)`);
+    afficherToast("PGN chargé", "success");
+  } catch(err) { afficherToast("Erreur PGN : " + err.message, "warning"); }
 }
 
 function _laboRenderPgnHistory() {
@@ -3843,12 +3854,103 @@ socket.on("virtual_move_illegal", (data) => {
   showToast("Coup illégal : " + (data.uci || ""), "warning");
 });
 
+// ── Corbeille de session ──────────────────────────────────────────────────────
+
+let _basket       = [];   // [{label}] — miroir côté JS
+let _basketN      = 0;    // compteur d'itération global
+let _basketSource = "";   // source courante (Pedagogique, HH, Retrans, Labo)
+
+function _basketLabel() {
+  const now = new Date();
+  const HH = String(now.getHours()).padStart(2, "0");
+  const MM = String(now.getMinutes()).padStart(2, "0");
+  const SS = String(now.getSeconds()).padStart(2, "0");
+  _basketN++;
+  return `${_basketSource || "Partie"}_${HH}_${MM}_${SS}_${_basketN}.pgn`;
+}
+
+function _buildPgnForBasket() {
+  if (!reviewMoves.length) return "";
+  const white  = document.getElementById("player-bottom-name")?.textContent || "Blancs";
+  const black  = document.getElementById("player-top-name")?.textContent    || "Noirs";
+  const result = document.getElementById("gameover-result")?.textContent.trim() || "*";
+  let pgn = `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n\n`;
+  for (let i = 0; i < reviewMoves.length; i++) {
+    const m = reviewMoves[i];
+    if (m.color === "white") pgn += `${Math.floor(i / 2) + 1}. `;
+    pgn += m.san + " ";
+  }
+  return pgn.trimEnd() + " " + result;
+}
+
+function basketAdd() {
+  const pgn = _buildPgnForBasket();
+  if (!pgn) { afficherToast("Aucune partie à ajouter", "warning"); return; }
+  socket.emit("basket_add", { label: _basketLabel(), pgn });
+}
+
+function basketAddRetrans() {
+  if (!_retransMoves.length) { afficherToast("Aucun coup à ajouter", "warning"); return; }
+  const white  = _retransWhite || "Blancs";
+  const black  = _retransBlack || "Noirs";
+  const result = _retransResult || "*";
+  let pgn = `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n\n`;
+  for (let i = 0; i < _retransMoves.length; i++) {
+    if (i % 2 === 0) pgn += `${Math.floor(i / 2) + 1}. `;
+    pgn += _retransMoves[i] + " ";
+  }
+  pgn = pgn.trimEnd() + " " + result;
+  _basketSource = "Retrans";
+  socket.emit("basket_add", { label: _basketLabel(), pgn });
+}
+
+function _renderBasketSelects() {
+  document.querySelectorAll(".basket-select").forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = _basket.length
+      ? _basket.map((e, i) => `<option value="${i}">${e.label}</option>`).join("")
+      : '<option value="" disabled>— corbeille vide —</option>';
+    if (cur !== "" && sel.querySelector(`option[value="${cur}"]`)) sel.value = cur;
+  });
+  document.querySelectorAll(".basket-load-btn").forEach(btn => {
+    btn.disabled = _basket.length === 0;
+  });
+}
+
+function basketLoadToAnalyse() {
+  const sel = document.getElementById("basket-select-analyse");
+  const idx = sel ? parseInt(sel.value) : -1;
+  if (isNaN(idx) || idx < 0) return;
+  socket.emit("basket_load", { idx });
+  socket.once("basket_load_result", (data) => {
+    if (data.pgn) parsePgn(data.pgn);
+  });
+}
+
+function basketLoadToLabo() {
+  const sel = document.getElementById("basket-select-labo");
+  const idx = sel ? parseInt(sel.value) : -1;
+  if (isNaN(idx) || idx < 0) return;
+  socket.emit("basket_load", { idx });
+  socket.once("basket_load_result", (data) => {
+    if (data.pgn) laboLoadPgnText(data.pgn);
+  });
+}
+
+socket.on("basket_updated", (data) => {
+  _basket = data.entries || [];
+  _renderBasketSelects();
+  if (_basket.length) afficherToast(`🧺 Corbeille : ${_basket.length} partie(s)`, "success");
+});
+
 // ── Retranscription ───────────────────────────────────────────────────────────
 
 let _retransResult  = "*";
 let _retransMoves   = [];
 let _retransUciLine = "";
 let _retransChess   = null;
+let _retransWhite   = "";
+let _retransBlack   = "";
 let _retransResume  = false;
 let _retransTab     = "partie";
 let _retransCamp    = "white";
@@ -4134,6 +4236,7 @@ socket.on("retranscription_init", (data) => {
   document.getElementById("screen-retranscription").style.display = "none";
   document.getElementById("screen-retrans-game").style.display    = "grid";
   _retransMoves = []; _retransUciLine = ""; _retransChess = new Chess();
+  _retransWhite = data.white || "Blancs"; _retransBlack = data.black || "Noirs";
   _rtFlipped = (data.mode === "exercice" && data.camp_suggere === "black");
   _rtFlippedBuilt = null;
   if (data.moves && data.moves.length) {
