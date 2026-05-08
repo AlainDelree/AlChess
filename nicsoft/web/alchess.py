@@ -817,6 +817,7 @@ def _run_drill(config: dict) -> None:
 
 def _launch_labo():
     """Lance le labo — polling plateau physique ou VirtualBoard selon le mode."""
+    _copy_cancel.set()  # annuler tout thread copy en cours
     web_server._app_state = "labo"
     set_app_state("labo")
     if _virtual_mode:
@@ -1078,17 +1079,18 @@ def _run_labo_session():
         elif atype == "labo_copy_to_board":
             target_fen = action.get("fen", "")
             if target_fen:
-                # Lancer la copie en thread séparé pour rester réactif
+                _copy_cancel.set()  # annuler tout copy précédent
+                time.sleep(0.1)     # laisser l'ancien thread s'arrêter
                 def _copy_thread(fen=target_fen):
                     _do_copy_to_board(fen)
                     if not _copy_cancel.is_set():
-                        # Copie réussie — syncer la session
                         try:
                             session.set_board_from_fen(fen)
                         except Exception as e:
                             print(f"[LABO] set_board_from_fen : {e}")
                 threading.Thread(target=_copy_thread, daemon=True).start()
 
+    _copy_cancel.set()  # annuler tout copy en cours à la sortie du labo
     session.quit()
     web_server._app_state = "menu"
     set_app_state("menu")
@@ -1108,21 +1110,25 @@ def _do_copy_to_board(target_fen: str) -> None:
 
     send_event("labo_copy_start", {"target_fen": target})
 
+    prev_fen = None
     while not _copy_cancel.is_set():
         try:
             raw = nl.get_fen()
             board_fen = raw.strip().split()[0] if raw else ""
-            if board_fen == target:
-                nl.turn_off_all_leds()
-                send_event("position_ok", {"fen": target})
-                return
-            send_event("position_error", {
-                "expected_fen": target,
-                "physical_fen": board_fen,
-            })
+            # N'agir que si le FEN est stable (identique à la lecture précédente)
+            if board_fen == prev_fen:
+                if board_fen == target:
+                    nl.turn_off_all_leds()
+                    send_event("position_ok", {"fen": target})
+                    return
+                send_event("position_error", {
+                    "expected_fen": target,
+                    "physical_fen": board_fen,
+                })
+            prev_fen = board_fen
         except Exception:
             pass
-        time.sleep(0.5)
+        time.sleep(0.3)
     # Annulé — éteindre les LEDs
     nl.turn_off_all_leds()
 

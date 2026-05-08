@@ -503,6 +503,7 @@ socket.on("app_state", (data) => {
   // Quand on entre dans le labo, réinitialiser la position virtuelle
   if (data.state === "labo") {
     _laboVirtualFen = "";
+    _laboCopyMode = false;
     const copyBtn = document.getElementById("labo-btn-copy");
     if (copyBtn) copyBtn.style.display = "none";
     const loadingEl = document.getElementById("labo-loading");
@@ -1788,16 +1789,6 @@ socket.on("game_folders", (data) => {
       og.appendChild(opt);
     }
     sel.appendChild(og);
-  }
-});
-
-socket.on("position_error", (data) => {
-  const laboScreen = document.getElementById("screen-labo");
-  if (laboScreen && laboScreen.style.display !== "none") {
-    // En mode labo : afficher les erreurs sur labo-board
-    laboRenderBoardWithErrors(data.expected_fen, data.physical_fen);
-  } else {
-    renderBoardWithErrors(data.expected_fen, data.physical_fen);
   }
 });
 
