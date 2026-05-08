@@ -505,6 +505,8 @@ socket.on("app_state", (data) => {
     _laboVirtualFen = "";
     const copyBtn = document.getElementById("labo-btn-copy");
     if (copyBtn) copyBtn.style.display = "none";
+    const loadingEl = document.getElementById("labo-loading");
+    if (loadingEl) loadingEl.style.display = _virtualMode ? "none" : "flex";
   }
   document.getElementById("screen-connecting").style.display = data.state === "connecting" ? "flex" : "none";
   document.getElementById("screen-pos-init").style.display = data.state === "position_initiale" ? "flex" : "none";
@@ -2270,6 +2272,8 @@ function laboSyncPhysique() {
 socket.on("board_fen_update", (data) => {
   const screen = document.getElementById("screen-labo");
   if (!screen || screen.style.display === "none") return;
+  const loadingEl = document.getElementById("labo-loading");
+  if (loadingEl) loadingEl.style.display = "none";
   if (_laboEnginePlacing) return; // plateau pas encore à jour — ignorer
   if (!_laboVirtualFen) {
     laboRenderBoard(data.fen, null, null);
