@@ -2174,10 +2174,6 @@ function laboLoadPgn(event) {
       // Remplir l'historique
       _laboRenderPgnHistory();
       laboJournalAdd("config", `📂 PGN : ${file.name} (${history.length} coups)`);
-      // Afficher l'onglet PGN
-      const tabPgn = document.getElementById("labo-tab-pgn");
-      if (tabPgn) tabPgn.style.display = "inline-block";
-      _laboRenderPgnLeft();
       afficherToast("PGN chargé", "success");
     } catch(err) { afficherToast("Erreur PGN : " + err.message, "warning"); }
   };
@@ -2225,7 +2221,6 @@ function laboPgnPrev() {
     _laboVirtualFen = _laboPgnFens[_laboPgnIdx];
     laboShowVirtualFen();
     _laboRenderPgnHistory();
-    _laboRenderPgnLeft();
   }
 }
 function laboPgnNext() {
@@ -2234,7 +2229,6 @@ function laboPgnNext() {
     _laboVirtualFen = _laboPgnFens[_laboPgnIdx];
     laboShowVirtualFen();
     _laboRenderPgnHistory();
-    _laboRenderPgnLeft();
   }
 }
 
@@ -2308,55 +2302,6 @@ function laboJournalVider() {
   if (j) j.innerHTML = "";
 }
 
-function laboSwitchTab(tab) {
-  const tabJ = document.getElementById("labo-tab-journal");
-  const tabP = document.getElementById("labo-tab-pgn");
-  const panJ = document.getElementById("labo-tab-panel-journal");
-  const panP = document.getElementById("labo-tab-panel-pgn");
-  if (tab === "journal") {
-    if (tabJ) { tabJ.style.borderBottomColor = "#e94560"; tabJ.style.color = "#e0e0e0"; }
-    if (tabP) { tabP.style.borderBottomColor = "transparent"; tabP.style.color = "#556"; }
-    if (panJ) panJ.style.display = "flex";
-    if (panP) panP.style.display = "none";
-  } else {
-    if (tabP) { tabP.style.borderBottomColor = "#e94560"; tabP.style.color = "#e0e0e0"; }
-    if (tabJ) { tabJ.style.borderBottomColor = "transparent"; tabJ.style.color = "#556"; }
-    if (panJ) panJ.style.display = "none";
-    if (panP) panP.style.display = "flex";
-  }
-}
-
-function _laboRenderPgnLeft() {
-  const moves = document.getElementById("labo-pgn-moves");
-  const info  = document.getElementById("labo-pgn-info-left");
-  if (!moves || !_laboPgnMoves.length) return;
-  if (info) info.textContent = document.getElementById("labo-pgn-info")?.textContent || "";
-  let html = '<table style="width:100%;border-collapse:collapse;">';
-  const total = Math.ceil(_laboPgnMoves.length / 2);
-  for (let i = 0; i < total; i++) {
-    const wIdx = i * 2;
-    const bIdx = i * 2 + 1;
-    const active = _laboPgnIdx - 1;
-    const cwW = active === wIdx ? "color:#e94560;font-weight:bold;" : "color:#ccc;";
-    const cwB = active === bIdx ? "color:#e94560;font-weight:bold;" : "color:#888;";
-    html += `<tr>`;
-    html += `<td style="color:#444;text-align:right;padding-right:4px;font-size:0.68rem;width:20px;">${i+1}.</td>`;
-    html += _laboPgnMoves[wIdx]
-      ? `<td style="padding:1px 3px;cursor:pointer;${cwW}" onclick="laboPgnGoTo(${wIdx+1})">${_laboPgnMoves[wIdx]}</td>`
-      : `<td></td>`;
-    html += _laboPgnMoves[bIdx]
-      ? `<td style="padding:1px 3px;cursor:pointer;${cwB}" onclick="laboPgnGoTo(${bIdx+1})">${_laboPgnMoves[bIdx]}</td>`
-      : `<td></td>`;
-    html += `</tr>`;
-  }
-  html += '</table>';
-  moves.innerHTML = html;
-  // Scroller vers le coup actif
-  setTimeout(() => {
-    const active = moves.querySelector('[style*="color:#e94560"]');
-    if (active) active.scrollIntoView({ block: "center" });
-  }, 50);
-}
 
 function laboJournalToggleFilt(cat) {
   const btn = document.getElementById(`jfilt-${cat}`);
