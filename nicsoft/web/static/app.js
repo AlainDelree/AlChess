@@ -2288,10 +2288,10 @@ let _laboAutoOn  = false;
 
 const _JOURNAL_MAX = 50;
 const _COLORS = {
-  coups:   "#e0e0e0",
-  alertes: "#ff9800",
-  analyse: "#4caf50",
-  config:  "#aac4e0",
+  coups:   "#1a2a3a",
+  alertes: "#c65100",
+  analyse: "#2e7d32",
+  config:  "#2a5a8a",
 };
 let _journalFiltres = new Set(["coups", "alertes", "analyse", "config"]);
 
