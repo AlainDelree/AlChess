@@ -998,10 +998,9 @@
     <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})">← Retour au menu</button>
   </div>
 
-  <!-- Outil 6 : Import mes lignes PGN -->
+  <!-- Importer mes lignes PGN -->
   <div class="outil-card" style="width:100%; max-width:860px;">
     <div class="outil-card-header">
-      <span class="outil-num">6</span>
       <span class="outil-title">📥 Importer mes lignes PGN</span>
     </div>
     <p class="outil-desc">Sélectionnez un ou plusieurs fichiers .pgn pour les importer dans vos exercices personnels (<em>mes_lignes.json</em>).</p>
@@ -1030,10 +1029,9 @@
     <div id="outils-pgn-result" style="display:none; margin-top:12px; padding:12px; border-radius:6px;"></div>
   </div>
 
-  <!-- Outil 7 : Convertir SAN → UCI -->
+  <!-- Convertir SAN → UCI -->
   <div class="outil-card" style="width:100%; max-width:860px;">
     <div class="outil-card-header">
-      <span class="outil-num">7</span>
       <span class="outil-title">🔄 Convertir SAN → UCI</span>
     </div>
     <p class="outil-desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
@@ -1051,64 +1049,59 @@
     <div id="outils-uci-result" style="display:none; margin-top:12px;"></div>
   </div>
 
-  <!-- Outil 1 : Ajouter une ouverture manuellement -->
+  <!-- Importer depuis ECO Lichess -->
   <div class="outil-card" style="width:100%; max-width:860px;">
     <div class="outil-card-header">
-      <span class="outil-num">1</span>
-      <span class="outil-title">➕ Ajouter une ouverture au catalogue</span>
+      <span class="outil-title">📊 Importer depuis ECO Lichess</span>
     </div>
-    <p class="outil-desc">Saisissez les informations et les coups (en UCI, ex&nbsp;: <code>e2e4 e7e5 g1f3</code>). Utilisez l'outil&nbsp;7 pour convertir depuis PGN.</p>
+    <p class="outil-desc">Filtrez par code ECO (ex&nbsp;: <code>C65</code>, <code>C60-C67</code>, <code>D</code>, <code>C02,D4</code>) et importez les lignes sélectionnées dans le catalogue.</p>
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+      <input id="eco-filter" type="text" class="add-input" placeholder="C65 ou C60-C67 ou D ou C02,D4…"
+        style="flex:1; min-width:160px; text-transform:uppercase; font-family:monospace;"
+        onkeydown="if(event.key==='Enter') outilsEcoSearch()">
+      <button class="btn btn-continuer" onclick="outilsEcoSearch()">🔍 Rechercher</button>
+    </div>
 
-      <div class="add-field">
-        <label class="add-label">Nom <span style="color:#e94560">*</span></label>
-        <input id="add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin"
-          oninput="outilsAddAutoId()">
+    <div id="eco-results-wrap" style="display:none;">
+      <!-- Table des résultats -->
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;">
+        <span id="eco-results-info" style="font-size:0.83rem; color:#3a5a7a;"></span>
+        <label style="font-size:0.83rem; color:#3a5a7a; display:flex; align-items:center; gap:4px; cursor:pointer;">
+          <input type="checkbox" id="eco-check-all" onchange="outilsEcoToggleAll(this.checked)"> Tout sélectionner
+        </label>
+      </div>
+      <div style="max-height:280px; overflow-y:auto; border:1px solid #a0b8d0; border-radius:6px; background:#f8fafc; margin-bottom:10px;">
+        <table id="eco-results-table" style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+          <thead><tr style="background:#c2d4e8; position:sticky; top:0;">
+            <th style="padding:5px 8px; width:28px;"></th>
+            <th style="padding:5px 8px; text-align:left; color:#1a2a3a;">ECO</th>
+            <th style="padding:5px 8px; text-align:left; color:#1a2a3a;">Nom</th>
+            <th style="padding:5px 8px; color:#1a2a3a;">Coups</th>
+            <th style="padding:5px 8px; color:#1a2a3a;">Statut</th>
+          </tr></thead>
+          <tbody id="eco-results-body"></tbody>
+        </table>
       </div>
 
-      <div class="add-field">
-        <label class="add-label">ID unique <span style="color:#e94560">*</span></label>
-        <input id="add-id" type="text" class="add-input" placeholder="ruy_lopez_berlin">
-      </div>
-
-      <div class="add-field">
-        <label class="add-label">Code ECO</label>
-        <input id="add-eco" type="text" class="add-input" placeholder="C65" maxlength="4" style="text-transform:uppercase;">
-      </div>
-
-      <div class="add-field">
-        <label class="add-label">Camp</label>
-        <select id="add-camp" class="add-input">
+      <!-- Camp + import -->
+      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+        <label class="add-label" style="margin:0;">Camp :</label>
+        <select id="eco-camp" class="add-input" style="width:auto;">
           <option value="white">Blancs</option>
           <option value="black">Noirs</option>
         </select>
+        <button class="btn btn-continuer" onclick="outilsEcoImport()">✅ Importer la sélection</button>
+        <span id="eco-selected-count" style="font-size:0.82rem; color:#888;"></span>
       </div>
 
-      <div class="add-field" style="grid-column:1/-1;">
-        <label class="add-label">Description</label>
-        <input id="add-desc" type="text" class="add-input" placeholder="Description courte de la ligne">
-      </div>
-
-      <div class="add-field" style="grid-column:1/-1;">
-        <label class="add-label">Coups UCI <span style="color:#e94560">*</span></label>
-        <input id="add-moves" type="text" class="add-input" placeholder="e2e4 e7e5 g1f3 b8c6 f1b5" style="font-family:monospace;">
-      </div>
-
+      <div id="eco-import-result" style="display:none; margin-top:10px;"></div>
     </div>
-
-    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
-      <button class="btn btn-continuer" onclick="outilsAddVerify()">🔍 Vérifier</button>
-      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="outilsAddReset()">✕ Effacer</button>
-    </div>
-
-    <div id="outils-add-preview" style="display:none; margin-top:14px;"></div>
   </div>
 
-  <!-- Outil 3 : Explorateur Polyglot -->
+  <!-- Explorer un livre Polyglot -->
   <div class="outil-card" style="width:100%; max-width:860px;">
     <div class="outil-card-header">
-      <span class="outil-num">3</span>
       <span class="outil-title">📖 Explorer un livre Polyglot</span>
     </div>
     <p class="outil-desc">Naviguez dans un livre d'ouvertures, consultez les coups pondérés et ajoutez une ligne au catalogue.</p>
@@ -1190,10 +1183,62 @@
     </div>
   </div>
 
-  <!-- Outil 4 : Modifier une ouverture -->
+  <!-- Ajouter une ouverture manuellement -->
   <div class="outil-card" style="width:100%; max-width:860px;">
     <div class="outil-card-header">
-      <span class="outil-num">4</span>
+      <span class="outil-title">➕ Ajouter une ouverture au catalogue</span>
+    </div>
+    <p class="outil-desc">Saisissez les informations et les coups (en UCI, ex&nbsp;: <code>e2e4 e7e5 g1f3</code>). Utilisez <strong>Convertir SAN → UCI</strong> ci-dessus pour convertir depuis PGN.</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
+
+      <div class="add-field">
+        <label class="add-label">Nom <span style="color:#e94560">*</span></label>
+        <input id="add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin"
+          oninput="outilsAddAutoId()">
+      </div>
+
+      <div class="add-field">
+        <label class="add-label">ID unique <span style="color:#e94560">*</span></label>
+        <input id="add-id" type="text" class="add-input" placeholder="ruy_lopez_berlin">
+      </div>
+
+      <div class="add-field">
+        <label class="add-label">Code ECO</label>
+        <input id="add-eco" type="text" class="add-input" placeholder="C65" maxlength="4" style="text-transform:uppercase;">
+      </div>
+
+      <div class="add-field">
+        <label class="add-label">Camp</label>
+        <select id="add-camp" class="add-input">
+          <option value="white">Blancs</option>
+          <option value="black">Noirs</option>
+        </select>
+      </div>
+
+      <div class="add-field" style="grid-column:1/-1;">
+        <label class="add-label">Description</label>
+        <input id="add-desc" type="text" class="add-input" placeholder="Description courte de la ligne">
+      </div>
+
+      <div class="add-field" style="grid-column:1/-1;">
+        <label class="add-label">Coups UCI <span style="color:#e94560">*</span></label>
+        <input id="add-moves" type="text" class="add-input" placeholder="e2e4 e7e5 g1f3 b8c6 f1b5" style="font-family:monospace;">
+      </div>
+
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+      <button class="btn btn-continuer" onclick="outilsAddVerify()">🔍 Vérifier</button>
+      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="outilsAddReset()">✕ Effacer</button>
+    </div>
+
+    <div id="outils-add-preview" style="display:none; margin-top:14px;"></div>
+  </div>
+
+  <!-- Modifier une ouverture -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
       <span class="outil-title">✏️ Modifier une ouverture du catalogue</span>
     </div>
     <p class="outil-desc">Recherchez une ouverture, cliquez dessus et modifiez ses champs.</p>
@@ -1254,64 +1299,12 @@
     </div>
   </div>
 
-  <!-- Outil 2 : Import ECO Lichess -->
+  <!-- Màj ECO Wikipedia -->
   <div class="outil-card" style="width:100%; max-width:860px;">
     <div class="outil-card-header">
-      <span class="outil-num">2</span>
-      <span class="outil-title">📊 Importer depuis ECO Lichess</span>
-    </div>
-    <p class="outil-desc">Filtrez par code ECO (ex&nbsp;: <code>C65</code>, <code>C60-C67</code>, <code>D</code>, <code>C02,D4</code>) et importez les lignes sélectionnées dans le catalogue.</p>
-
-    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-      <input id="eco-filter" type="text" class="add-input" placeholder="C65 ou C60-C67 ou D ou C02,D4…"
-        style="flex:1; min-width:160px; text-transform:uppercase; font-family:monospace;"
-        onkeydown="if(event.key==='Enter') outilsEcoSearch()">
-      <button class="btn btn-continuer" onclick="outilsEcoSearch()">🔍 Rechercher</button>
-    </div>
-
-    <div id="eco-results-wrap" style="display:none;">
-      <!-- Table des résultats -->
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;">
-        <span id="eco-results-info" style="font-size:0.83rem; color:#3a5a7a;"></span>
-        <label style="font-size:0.83rem; color:#3a5a7a; display:flex; align-items:center; gap:4px; cursor:pointer;">
-          <input type="checkbox" id="eco-check-all" onchange="outilsEcoToggleAll(this.checked)"> Tout sélectionner
-        </label>
-      </div>
-      <div style="max-height:280px; overflow-y:auto; border:1px solid #a0b8d0; border-radius:6px; background:#f8fafc; margin-bottom:10px;">
-        <table id="eco-results-table" style="width:100%; border-collapse:collapse; font-size:0.82rem;">
-          <thead><tr style="background:#c2d4e8; position:sticky; top:0;">
-            <th style="padding:5px 8px; width:28px;"></th>
-            <th style="padding:5px 8px; text-align:left; color:#1a2a3a;">ECO</th>
-            <th style="padding:5px 8px; text-align:left; color:#1a2a3a;">Nom</th>
-            <th style="padding:5px 8px; color:#1a2a3a;">Coups</th>
-            <th style="padding:5px 8px; color:#1a2a3a;">Statut</th>
-          </tr></thead>
-          <tbody id="eco-results-body"></tbody>
-        </table>
-      </div>
-
-      <!-- Camp + import -->
-      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <label class="add-label" style="margin:0;">Camp :</label>
-        <select id="eco-camp" class="add-input" style="width:auto;">
-          <option value="white">Blancs</option>
-          <option value="black">Noirs</option>
-        </select>
-        <button class="btn btn-continuer" onclick="outilsEcoImport()">✅ Importer la sélection</button>
-        <span id="eco-selected-count" style="font-size:0.82rem; color:#888;"></span>
-      </div>
-
-      <div id="eco-import-result" style="display:none; margin-top:10px;"></div>
-    </div>
-  </div>
-
-  <!-- Outil 5 : Màj ECO Wikipedia -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
-    <div class="outil-card-header">
-      <span class="outil-num">5</span>
       <span class="outil-title">🌐 Mettre à jour eco_hierarchy.json</span>
     </div>
-    <p class="outil-desc">Télécharge la liste ECO depuis Wikipedia et reconstruit <code>eco_hierarchy.json</code> — utilisé pour les codes parent ECO dans les outils 1 et 2.</p>
+    <p class="outil-desc">Télécharge la liste ECO depuis Wikipedia et reconstruit <code>eco_hierarchy.json</code> — utilisé pour les codes parent ECO lors de l'ajout et l'import ECO.</p>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <button id="wiki-btn" class="btn btn-continuer" onclick="outilsWikiUpdate()">🌐 Mettre à jour depuis Wikipedia</button>
