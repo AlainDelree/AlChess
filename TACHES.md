@@ -12,8 +12,6 @@
 
 ## 💡 Fonctionnalités à venir
 
-- **Exercices : choix moteur/force pour mode libre** — après fin de ligne, le bouton "Continuer" lance Stockfish à la force de config.json. À faire : proposer un choix de moteur (Stockfish/Maia/Rodent) et de niveau au moment du clic.
-
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
 
