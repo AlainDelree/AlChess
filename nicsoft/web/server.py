@@ -299,6 +299,20 @@ def on_outils_pgn_import(data):
     emit("outils_pgn_import_result", result)
 
 
+@socketio.on("outils_edit_list")
+def on_outils_edit_list(_data):
+    """Retourne toutes les ouvertures du catalogue."""
+    from nicsoft.modes.exercices.edit_ouverture import list_from_web
+    emit("outils_edit_list_result", {"ouvertures": list_from_web()})
+
+
+@socketio.on("outils_edit_save")
+def on_outils_edit_save(data):
+    """Sauvegarde les modifications d'une ouverture."""
+    from nicsoft.modes.exercices.edit_ouverture import save_from_web
+    emit("outils_edit_save_result", save_from_web(data))
+
+
 @socketio.on("outils_explore_list")
 def on_outils_explore_list(_data):
     """Retourne la liste des livres Polyglot disponibles."""

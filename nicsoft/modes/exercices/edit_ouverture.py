@@ -81,3 +81,43 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+def list_from_web() -> list:
+    """Retourne toutes les ouvertures du catalogue pour l'interface web."""
+    return [
+        {
+            "id":           o["id"],
+            "eco":          o.get("eco", ""),
+            "nom":          o.get("nom", ""),
+            "desc":         o.get("desc", ""),
+            "camp_suggere": o.get("camp_suggere", ""),
+            "book":         o.get("book", ""),
+            "parent_eco":   o.get("parent_eco", ""),
+            "init":         o.get("init", []),
+        }
+        for o in parse_ouvertures()
+    ]
+
+
+def save_from_web(data: dict) -> dict:
+    """Sauvegarde les modifications d'une ouverture depuis l'interface web."""
+    oid     = data.get("id", "")
+    updated = {k: v for k, v in data.get("updated", {}).items() if k in dict(EDITABLE_FIELDS)}
+
+    ouvertures = parse_ouvertures()
+    o = next((x for x in ouvertures if x["id"] == oid), None)
+    if not o:
+        return {"ok": False, "error": f"ID '{oid}' introuvable."}
+
+    if "camp_suggere" in updated:
+        camp = updated["camp_suggere"].lower()
+        if camp not in ("white", "black"):
+            return {"ok": False, "error": "Camp doit être 'white' ou 'black'."}
+        updated["camp_suggere"] = camp
+
+    if not updated:
+        return {"ok": True, "message": "Aucune modification."}
+
+    save_ouverture(o, updated)
+    return {"ok": True, "message": f"'{oid}' mis à jour."}
