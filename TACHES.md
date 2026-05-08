@@ -9,7 +9,6 @@
 - **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Le 1er bip vient du `connect()` USB initial qui échoue (plateau pas encore prêt), le 2e vient du retry 1s plus tard qui réussit. Piste : éviter le double appel `_niclink.connect()` en séparant connect et get_fen dans `_check_board_at_startup`.
 
 ### Priorité basse (existants avant refactoring)
-- **Beep timing** — le bip sonore se déclenche sur la correction plutôt que sur l'erreur
 - **Race condition LEDs** — synchronisation des camps LED parfois incorrecte
 - **Pièces clouées** — pas de signal pour coup illégal sur pièce clouée
 
@@ -60,6 +59,8 @@
 - **Logs** : consulter via le bouton 📋 en haut à droite du programme.
 
 ## ✅ Bugs résolus récemment
+
+- **Beep timing** *(non reproductible, 2026-05-08)* — Le bip sonne maintenant au moment de la gaffe en pédagogique. Probablement résolu par les refactorings récents. ✓ Validé sur plateau physique.
 
 - **En passant** *(commit ae1c6ef, 2026-05-08)* — Notation `exd6 e.p.` ajoutée via `san_ep()` dans `board_utils.py`, remplace `board.san()` dans les 6 fichiers actifs (24 occurrences). ✓
 
