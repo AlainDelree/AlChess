@@ -575,3 +575,11 @@
 .feedback-box-pause.erreur     { background:#b71c1c; border-left:4px solid #f44336; }
 .feedback-box-pause.blunder    { background:#4a148c; border-left:4px solid #9c27b0; }
 .ghost-piece img { opacity: 0.45; }
+
+/* ── Outils Exercices ── */
+.outil-card { background:#fff; border:1px solid #a0b8d0; border-radius:10px; padding:18px 20px; }
+.outil-card.outil-disabled { opacity:0.5; }
+.outil-card-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.outil-num { background:#e94560; color:#fff; border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; flex-shrink:0; }
+.outil-title { font-weight:700; font-size:1.05rem; color:#1a2a3a; }
+.outil-desc { color:#3a5a7a; font-size:0.88rem; margin-bottom:10px; }

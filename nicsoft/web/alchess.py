@@ -176,6 +176,8 @@ def main():
                 _launch_labo()
             elif atype == "mode" and action.get("value") == "exercices":
                 _launch_exercices()
+            elif atype == "mode" and action.get("value") == "outils_exercices":
+                set_app_state("outils_exercices")
             elif atype == "start_exercice":
                 global _ex_thread, _exercice_running
                 if _ex_thread and _ex_thread.is_alive():
