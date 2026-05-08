@@ -1037,8 +1037,13 @@
       <span class="outil-title">🔄 Convertir SAN → UCI</span>
     </div>
     <p class="outil-desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
-    <textarea id="outils-uci-input" placeholder="Collez votre PGN ici…" rows="3"
-      style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.9rem; padding:8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; resize:vertical;"></textarea>
+    <div style="position:relative;">
+      <textarea id="outils-uci-input" placeholder="Collez votre PGN ici…" rows="3"
+        style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.9rem; padding:8px 36px 8px 8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; resize:vertical;"></textarea>
+      <button title="Copier" onclick="navigator.clipboard.writeText(document.getElementById('outils-uci-input').value).then(()=>afficherToast('Copié !','success'))"
+        style="position:absolute; top:6px; right:6px; background:none; border:none; cursor:pointer; font-size:0.95rem; color:#a0b8d0; padding:2px 4px; line-height:1; border-radius:4px; transition:color 0.15s;"
+        onmouseover="this.style.color='#3a5a7a'" onmouseout="this.style.color='#a0b8d0'">📋</button>
+    </div>
     <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
       <button class="btn btn-continuer" onclick="outilsSanToUci()">Convertir</button>
       <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="document.getElementById('outils-uci-input').value=''; document.getElementById('outils-uci-result').style.display='none';">Effacer</button>
