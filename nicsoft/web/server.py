@@ -299,6 +299,20 @@ def on_outils_pgn_import(data):
     emit("outils_pgn_import_result", result)
 
 
+@socketio.on("outils_eco_search")
+def on_outils_eco_search(data):
+    """Recherche dans les fichiers ECO Lichess."""
+    from nicsoft.modes.exercices.eco_import import search_eco_from_web
+    emit("outils_eco_search_result", search_eco_from_web(data))
+
+
+@socketio.on("outils_eco_import")
+def on_outils_eco_import(data):
+    """Importe des entrées ECO sélectionnées dans le catalogue."""
+    from nicsoft.modes.exercices.eco_import import import_eco_from_web
+    emit("outils_eco_import_result", import_eco_from_web(data))
+
+
 @socketio.on("outils_edit_list")
 def on_outils_edit_list(_data):
     """Retourne toutes les ouvertures du catalogue."""
