@@ -470,3 +470,11 @@ ImportError: cannot import name 'get_ouvertures' from 'nicsoft.exercices.__main_
 === DÉMARRAGE — 2026-05-09 00:48:52 ===
 ============================================================
 2026-05-09 00:48:52 [WARNING] werkzeug — Werkzeug appears to be used in a production deployment. Consider switching to a production web server instead.
+
+============================================================
+=== DÉMARRAGE [DEBUG] — 2026-05-09 00:55:27 ===
+============================================================
+
+============================================================
+=== DÉMARRAGE [DEBUG] — 2026-05-09 00:56:47 ===
+============================================================

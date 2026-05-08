@@ -1,4 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="15" fill="#1a1a2e"/>
-  <text y=".9em" font-size="90" x="5">♟</text>
+  <rect width="100" height="100" rx="15" fill="white"/>
+  <rect x="2" y="2" width="96" height="96" rx="13" fill="none" stroke="#1a1a2e" stroke-width="4"/>
+  <!-- base large -->
+  <rect x="25" y="80" width="50" height="10" rx="5" fill="#e94560"/>
+  <!-- corps large -->
+  <ellipse cx="50" cy="72" rx="20" ry="7" fill="#e94560"/>
+  <path d="M34 70 Q36 52 50 36 Q64 52 66 70 Z" fill="#e94560"/>
+  <!-- tête ronde -->
+  <circle cx="50" cy="30" r="14" fill="#e94560"/>
+  <!-- pointe courte -->
+  <circle cx="50" cy="13" r="5" fill="#e94560"/>
 </svg>
