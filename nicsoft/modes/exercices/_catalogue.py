@@ -12,7 +12,7 @@ import re
 
 # ── Chemins ───────────────────────────────────────────────────────────────────
 
-CATALOGUE  = pathlib.Path(__file__).parent / "__main__.py"
+CATALOGUE  = pathlib.Path(__file__).parent / "exercices.py"
 BOOKS_DIR  = pathlib.Path.home() / "NicLink" / "data" / "books"
 DATA_DIR   = pathlib.Path.home() / "NicLink" / "data"
 ECO_HIER_F = DATA_DIR / "eco_hierarchy.json"
