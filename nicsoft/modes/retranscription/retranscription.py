@@ -9,6 +9,7 @@ Deux modes :
 """
 
 import chess
+from nicsoft.engine.board_utils import san_ep
 import json
 import pathlib
 import re
@@ -227,7 +228,7 @@ def run_retranscription(config: dict,
             try:
                 move = chess.Move.from_uci(uci)
                 if move in board.legal_moves:
-                    san = board.san(move)
+                    san = san_ep(board, move)
                     board.push(move)
                     vb.game_board = board.copy()
                     moves_uci.append(uci)

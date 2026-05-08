@@ -12,6 +12,14 @@ logger = logging.getLogger(__name__)
 INITIAL_FEN = chess.Board().board_fen()
 
 
+def san_ep(board: chess.Board, move: chess.Move) -> str:
+    """Retourne la notation SAN du coup, avec ' e.p.' si prise en passant."""
+    s = board.san(move)
+    if board.is_en_passant(move):
+        s += " e.p."
+    return s
+
+
 def analyser_position_illegale(board: chess.Board, fen_physique: str) -> str:
     """
     Analyse pourquoi une position physique est illégale par rapport à board.

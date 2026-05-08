@@ -47,7 +47,7 @@ from nicsoft.engine.pgn_manager import (
     save_game,
 )
 from nicsoft.niclink import NicLinkManager
-from nicsoft.engine.board_utils import wait_for_initial_position
+from nicsoft.engine.board_utils import wait_for_initial_position, san_ep
 
 class BackMenuExit(Exception):
     """Levée pour sortir proprement vers le menu sans tuer le processus."""
@@ -622,7 +622,7 @@ class Game(threading.Thread):
         def _get_best_san():
             try:
                 tmp = chess.Board(self._fen_avant_coup)
-                return tmp.san(chess.Move.from_uci(best_move))
+                return san_ep(tmp, chess.Move.from_uci(best_move))
             except Exception:
                 return best_move
 
@@ -709,7 +709,7 @@ class Game(threading.Thread):
                         termios.tcsetattr(fd, termios.TCSADRAIN, old_attr)
                         try:
                             tmp = chess.Board(self._fen_avant_coup)
-                            best_san = tmp.san(chess.Move.from_uci(best_move))
+                            best_san = san_ep(tmp, chess.Move.from_uci(best_move))
                         except Exception:
                             best_san = best_move
                         print(f"\n  Meilleur coup : {best_san}")
@@ -730,7 +730,7 @@ class Game(threading.Thread):
                         termios.tcsetattr(fd, termios.TCSADRAIN, old_attr)
                         try:
                             tmp = chess.Board(self._fen_avant_coup)
-                            best_san = tmp.san(chess.Move.from_uci(best_move))
+                            best_san = san_ep(tmp, chess.Move.from_uci(best_move))
                         except Exception:
                             best_san = best_move
                         print(f"\n  Meilleur coup : {best_san}")
@@ -880,7 +880,7 @@ class Game(threading.Thread):
                 if bm:
                     try:
                         tmp = chess.Board(self.nl_inst.game_board.fen())
-                        best_san = tmp.san(chess.Move.from_uci(bm))
+                        best_san = san_ep(tmp, chess.Move.from_uci(bm))
                     except Exception:
                         best_san = bm
                     print(f"  [PAUSE] Meilleur coup : {best_san}")
@@ -1269,7 +1269,7 @@ class Game(threading.Thread):
             return False
 
         move_obj = chess.Move.from_uci(move)
-        san = self.nl_inst.game_board.san(move_obj)
+        san = san_ep(self.nl_inst.game_board, move_obj)
 
         self.nl_inst.last_move = None  # pas de LEDs coup humain en pédagogique
         self.nl_inst.make_move_game_board(move)
@@ -1433,7 +1433,7 @@ class Game(threading.Thread):
         if fish_move_obj is None:
             return
         fish_move = fish_move_obj.uci()
-        san = self.nl_inst.game_board.san(fish_move_obj)
+        san = san_ep(self.nl_inst.game_board, fish_move_obj)
 
         _t_step = time.time()
         self.nl_inst.make_move_game_board(fish_move)
