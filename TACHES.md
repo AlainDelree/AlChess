@@ -16,7 +16,6 @@
 
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
 - **Intégrer `manage.py`** dans l'interface web pour faciliter la gestion des ouvertures
-- **Time logs permanents** — remplacer `tlog()` (DEBUG only) par logging structuré toujours actif, timings `await_move` et `WAIT_FISH` dans le fichier log sans polluer le terminal
 
 ## 🧪 Stratégie de tests
 
