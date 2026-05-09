@@ -374,7 +374,7 @@
       gap: 16px;
       width: 450px;
       min-width: 0;
-      overflow: hidden;
+      overflow-x: hidden;
     }
     #panel-playing, #panel-gameover, #panel-pause {
       display: flex;
