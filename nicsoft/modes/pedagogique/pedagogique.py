@@ -350,6 +350,8 @@ class Game(threading.Thread):
         self.move_gaps            = []
         self.last_move_time       = time.time()
 
+        self._cancel_led_off = False  # True = annuler le turn_off_all_leds en attente
+
         # Pipeline : précalcul du coup moteur en parallèle de l'évaluation humaine
         self._prefetched_fish_move: chess.Move | None = None
         self._fish_gen: int = 0
@@ -557,6 +559,8 @@ class Game(threading.Thread):
         threading.Thread(target=_think, daemon=True).start()
 
     def signal_turn(self) -> None:
+        # Annuler turn_off_all_leds en attente (thread WAIT_FISH) avant d'allumer les LEDs
+        self._cancel_led_off = True
         # Bip + LEDs camp humain — fire-and-forget via queue LED
         if self.bip_active:
             print("\a", end="", flush=True)
@@ -1572,9 +1576,14 @@ class Game(threading.Thread):
                     tlog("[WAIT_FISH] placement confirmé en %.2fs", time.time()-_t_wait)
                     # turn_off_all_leds peut bloquer plusieurs secondes sur USB Chessnut Air
                     # → thread daemon pour ne pas retarder le tour suivant
-                    threading.Thread(
-                        target=self.nl_inst.turn_off_all_leds, daemon=True
-                    ).start()
+                    self._cancel_led_off = False
+                    def _do_led_off(cancel_ref=self):
+                        if not cancel_ref._cancel_led_off:
+                            try:
+                                cancel_ref.nl_inst.turn_off_all_leds()
+                            except Exception:
+                                pass
+                    threading.Thread(target=_do_led_off, daemon=True).start()
                     if warning_shown:
                         print("   Position rétablie. Continuez.")
                         send_event("turn", {
