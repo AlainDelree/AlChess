@@ -625,11 +625,11 @@
         <input type="file" id="pgn-file-input" accept=".pgn" style="display:none" onchange="loadPgnFile(event)">
         <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()">📂 Importer PGN</button>
         <!-- Corbeille de session -->
-        <div id="basket-row-analyse" style="display:flex; gap:6px; align-items:center;">
-          <select id="basket-select-analyse" class="basket-select" style="flex:1; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#1a2a3a; padding:6px 8px; font-size:0.82rem;">
-            <option value="" disabled>— corbeille vide —</option>
+        <div id="basket-row-analyse" style="display:flex; gap:6px; align-items:stretch;">
+          <select id="basket-select-analyse" class="basket-select" style="flex:1; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#1a2a3a; padding:4px 8px; font-size:0.82rem; height:34px; box-sizing:border-box;">
+            <option value="">— corbeille vide —</option>
           </select>
-          <button class="btn basket-load-btn" style="margin-bottom:0; padding:6px 10px; white-space:nowrap;" disabled onclick="basketLoadToAnalyse()">🧺 Charger</button>
+          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToAnalyse()">🧺 Charger</button>
         </div>
         <!-- Sélecteur nombre de coups séquence -->
         <div id="rv-seq-row" style="display:none; align-items:center; gap:8px;">
@@ -977,11 +977,11 @@
       <div id="labo-sec-pos" style="padding:0 14px 12px; display:none; flex-direction:column; gap:7px;">
         <input type="file" id="labo-pgn-input" accept=".pgn" style="display:none" onchange="laboLoadPgn(event)">
         <button class="btn btn-best" style="margin-bottom:0;" onclick="document.getElementById('labo-pgn-input').click()">📂 Importer PGN</button>
-        <div style="display:flex; gap:6px; align-items:center;">
-          <select id="basket-select-labo" class="basket-select" style="flex:1; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#1a2a3a; padding:6px 8px; font-size:0.82rem;">
-            <option value="" disabled>— corbeille vide —</option>
+        <div style="display:flex; gap:6px; align-items:stretch;">
+          <select id="basket-select-labo" class="basket-select" style="flex:1; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#1a2a3a; padding:4px 8px; font-size:0.82rem; height:34px; box-sizing:border-box;">
+            <option value="">— corbeille vide —</option>
           </select>
-          <button class="btn basket-load-btn" style="margin-bottom:0; padding:6px 10px; white-space:nowrap;" disabled onclick="basketLoadToLabo()">🧺 Charger</button>
+          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToLabo()">🧺 Charger</button>
         </div>
         <div id="labo-pgn-nav" style="display:none; flex-direction:column; gap:5px;">
           <div id="labo-pgn-info" style="font-size:0.75rem; color:#3a5a7a; text-align:center;"></div>
