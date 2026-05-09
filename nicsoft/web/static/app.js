@@ -40,38 +40,59 @@ if (_testMode) {
 const _TEST_NAMES  = ["Magnus","Hikaru","Fabiano","Alireza","Ding","Gukesh","Pragg","Arjun","Vidit","Vincent"];
 const _TEST_EVENTS = ["Tournoi du club","Championnat régional","Partie amicale","Blitz du vendredi","Simultanée"];
 
+// Cache des dernières valeurs randomisées — persiste même quand le DOM est effacé
+let _lastPeda    = null;
+let _lastHH      = null;
+let _lastRetrans = null;
+
 function _pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function _randBool() { return Math.random() < 0.5; }
 
 function _randomizeConfigPeda() {
-  document.getElementById("cfg-player").value = _pick(_TEST_NAMES);
-  selectColor(_pick(["white", "black", "random"]));
+  const joueur = _pick(_TEST_NAMES);
+  const couleur = _pick(["white", "black", "random"]);
   const engine = _pick(["stockfish", "maia", "rodent"]);
+  document.getElementById("cfg-player").value = joueur;
+  selectColor(couleur);
   selectEngine(engine);
+  let eloSF = document.getElementById("cfg-elo")?.value || "1500";
+  let eloMaia = document.getElementById("cfg-maia-elo")?.value || "1500";
+  let eloRodent = document.getElementById("cfg-rodent-elo")?.value || "800";
+  let rodentSimple = false;
   if (engine === "stockfish") {
-    const elo = Math.round((Math.random() * (3190 - 1320) + 1320) / 50) * 50;
+    eloSF = String(Math.round((Math.random() * (3190 - 1320) + 1320) / 50) * 50);
     const inp = document.getElementById("cfg-elo");
-    if (inp) { inp.value = elo; _updateEloLabel(elo); }
+    if (inp) { inp.value = eloSF; _updateEloLabel(parseInt(eloSF)); }
   } else if (engine === "maia") {
+    eloMaia = _pick(["1100","1200","1300","1400","1500","1600","1700","1800","1900"]);
     const sel = document.getElementById("cfg-maia-elo");
-    if (sel) sel.value = _pick(["1100","1200","1300","1400","1500","1600","1700","1800","1900"]);
+    if (sel) sel.value = eloMaia;
   } else {
-    const elo = Math.round((Math.random() * (2800 - 800) + 800) / 100) * 100;
+    eloRodent = String(Math.round((Math.random() * (2800 - 800) + 800) / 100) * 100);
     const inp = document.getElementById("cfg-rodent-elo");
-    if (inp) { inp.value = elo; _updateRodentLabel(elo); }
+    if (inp) { inp.value = eloRodent; _updateRodentLabel(parseInt(eloRodent)); }
+    rodentSimple = _randBool();
     const simple = document.getElementById("cfg-rodent-simple");
-    if (simple) simple.checked = _randBool();
+    if (simple) simple.checked = rodentSimple;
   }
+  const pause = _pick(["toujours","imprecision","erreur","blunder","jamais"]);
   const pauseSel = document.getElementById("cfg-pause");
-  if (pauseSel) pauseSel.value = _pick(["toujours","imprecision","erreur","blunder","jamais"]);
+  if (pauseSel) pauseSel.value = pause;
   const analyseChk = document.getElementById("cfg-analyse");
   const analyseLbl = document.getElementById("cfg-analyse-label");
-  if (analyseChk) { analyseChk.checked = _randBool(); if (analyseLbl) analyseLbl.textContent = analyseChk.checked ? "Activée" : "Désactivée"; }
+  const analyse = _randBool();
+  if (analyseChk) { analyseChk.checked = analyse; if (analyseLbl) analyseLbl.textContent = analyse ? "Activée" : "Désactivée"; }
+  const bip = _randBool();
   const bipChk = document.getElementById("cfg-bip");
-  if (bipChk) bipChk.checked = _randBool();
+  if (bipChk) bipChk.checked = bip;
+  const legal = _randBool();
   const legalChk = document.getElementById("cfg-show-legal");
   const legalLbl = document.getElementById("cfg-show-legal-label");
-  if (legalChk) { legalChk.checked = _randBool(); if (legalLbl) legalLbl.textContent = legalChk.checked ? "Activé" : "Désactivé"; }
+  if (legalChk) { legalChk.checked = legal; if (legalLbl) legalLbl.textContent = legal ? "Activé" : "Désactivé"; }
+  _lastPeda = { joueur, couleur, moteur: engine, eloSF, eloMaia, eloRodent,
+                rodentSimple: rodentSimple ? "oui" : "non", pause,
+                analyse: analyse ? "on" : "off", bip: bip ? "on" : "off",
+                legal: legal ? "on" : "off" };
 }
 
 function _randomizeConfigHH() {
@@ -81,9 +102,12 @@ function _randomizeConfigHH() {
   const bEl = document.getElementById("cfg-black-name");
   if (wEl) wEl.value = white;
   if (bEl) bEl.value = black;
-  selectColorHH(_pick(["white", "black", "random"]));
+  const couleur = _pick(["white", "black", "random"]);
+  selectColorHH(couleur);
+  const type = _pick(["serieuse", "amusement", "club"]);
   const typeEl = document.getElementById("cfg-hh-type");
-  if (typeEl) typeEl.value = _pick(["serieuse", "amusement", "club"]);
+  if (typeEl) typeEl.value = type;
+  _lastHH = { blancs: white, noirs: black, couleur, type };
 }
 
 function _randomizeConfigRetrans() {
@@ -95,39 +119,45 @@ function _randomizeConfigRetrans() {
   if (bEl) bEl.value = black;
   const start = new Date("2020-01-01").getTime();
   const randDate = new Date(start + Math.random() * (Date.now() - start));
+  const date = randDate.toISOString().split("T")[0];
   const dateEl = document.getElementById("retrans-date");
-  if (dateEl) dateEl.value = randDate.toISOString().split("T")[0];
+  if (dateEl) dateEl.value = date;
+  const event = _pick(_TEST_EVENTS);
   const evEl = document.getElementById("retrans-event");
-  if (evEl) evEl.value = _pick(_TEST_EVENTS);
+  if (evEl) evEl.value = event;
+  _lastRetrans = { blancs: white, noirs: black, date, evenement: event };
 }
 
 function saveTestConfig(e) {
   if (e) e.preventDefault();
+  const p = _lastPeda || {};
+  const h = _lastHH   || {};
+  const r = _lastRetrans || {};
   const config = {
     "Pédagogique": {
-      "Joueur":       document.getElementById("cfg-player")?.value || "",
-      "Couleur":      _selectedColor,
-      "Moteur":       _selectedEngine,
-      "ELO SF":       document.getElementById("cfg-elo")?.value || "",
-      "ELO Maia":     document.getElementById("cfg-maia-elo")?.value || "",
-      "ELO Rodent":   document.getElementById("cfg-rodent-elo")?.value || "",
-      "Rodent simple":document.getElementById("cfg-rodent-simple")?.checked ? "oui" : "non",
-      "Pause":        document.getElementById("cfg-pause")?.value || "",
-      "Analyse":      document.getElementById("cfg-analyse")?.checked ? "on" : "off",
-      "Bip":          document.getElementById("cfg-bip")?.checked ? "on" : "off",
-      "Coups légaux": document.getElementById("cfg-show-legal")?.checked ? "on" : "off",
+      "Joueur":       p.joueur       || document.getElementById("cfg-player")?.value || "(non visité)",
+      "Couleur":      p.couleur      || _selectedColor,
+      "Moteur":       p.moteur       || _selectedEngine,
+      "ELO SF":       p.eloSF        || document.getElementById("cfg-elo")?.value || "",
+      "ELO Maia":     p.eloMaia      || document.getElementById("cfg-maia-elo")?.value || "",
+      "ELO Rodent":   p.eloRodent    || document.getElementById("cfg-rodent-elo")?.value || "",
+      "Rodent simple":p.rodentSimple || (document.getElementById("cfg-rodent-simple")?.checked ? "oui" : "non"),
+      "Pause":        p.pause        || document.getElementById("cfg-pause")?.value || "",
+      "Analyse":      p.analyse      || (document.getElementById("cfg-analyse")?.checked ? "on" : "off"),
+      "Bip":          p.bip          || (document.getElementById("cfg-bip")?.checked ? "on" : "off"),
+      "Coups légaux": p.legal        || (document.getElementById("cfg-show-legal")?.checked ? "on" : "off"),
     },
     "HH": {
-      "Blancs": document.getElementById("cfg-white-name")?.value || "",
-      "Noirs":  document.getElementById("cfg-black-name")?.value || "",
-      "Couleur":document.getElementById("cfg-hh-white")?.classList.contains("selected") ? "white" : document.getElementById("cfg-hh-black")?.classList.contains("selected") ? "black" : "random",
-      "Type":   document.getElementById("cfg-hh-type")?.value || "",
+      "Blancs":  h.blancs  || "(non visité)",
+      "Noirs":   h.noirs   || "(non visité)",
+      "Couleur": h.couleur || _hhColor,
+      "Type":    h.type    || document.getElementById("cfg-hh-type")?.value || "",
     },
     "Retranscription": {
-      "Blancs":     document.getElementById("retrans-white")?.value || "",
-      "Noirs":      document.getElementById("retrans-black")?.value || "",
-      "Date":       document.getElementById("retrans-date")?.value || "",
-      "Événement":  document.getElementById("retrans-event")?.value || "",
+      "Blancs":    r.blancs    || "(non visité)",
+      "Noirs":     r.noirs     || "(non visité)",
+      "Date":      r.date      || "(non visité)",
+      "Événement": r.evenement || "(non visité)",
     },
   };
   fetch("/test/save-config", {
