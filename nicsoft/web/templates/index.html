@@ -264,14 +264,10 @@
       <div class="card" style="padding:14px 16px;">
         <h2>Couleurs</h2>
         <div class="color-btns">
-          <button class="color-btn selected" onclick="selectColorHH('white')">♔ Blancs en bas</button>
-          <button class="color-btn"          onclick="selectColorHH('black')">♚ Noirs en bas</button>
-          <button class="color-btn"          onclick="selectColorHH('random')">🎲 Aléatoire</button>
+          <button class="color-btn selected" id="cfg-hh-white"  onclick="selectColorHH('white')">♔ Blancs en bas</button>
+          <button class="color-btn"          id="cfg-hh-black"  onclick="selectColorHH('black')">♚ Noirs en bas</button>
+          <button class="color-btn"          id="cfg-hh-random" onclick="selectColorHH('random')">🎲 Aléatoire</button>
         </div>
-        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; color:#3a5a7a; font-size:0.85rem; cursor:pointer;">
-          <input type="checkbox" id="hh-random" onchange="selectColorHH(this.checked ? 'random' : 'white')">
-          Couleurs aléatoires
-        </label>
       </div>
 
       <div class="card" style="padding:14px 16px;">
