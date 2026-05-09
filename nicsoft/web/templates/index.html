@@ -15,6 +15,7 @@
       var cls = w >= 1360 ? 'res-large' : w >= 1024 ? 'res-medium' : 'res-small';
       document.documentElement.className = cls;
     })();
+    window._NICLINK_TEST = "{{ test_mode }}";
   </script>
 </head>
 <body>
@@ -25,7 +26,7 @@
   <span id="status-text">Connexion...</span>
   <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:auto; font-size:0.75rem; color:#3a5a7a; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
   <a id="btn-debug-mark" href="#" title="Insérer un marqueur debug dans les logs" onclick="debugMark(event)" style="display:none; font-size:0.75rem; color:#e94560; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🔖</a>
-  <a id="btn-debug-mark" href="#" title="Insérer un marqueur debug dans les logs" onclick="debugMark(event)" style="display:none; font-size:0.75rem; color:#e94560; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🔖</a>
+  <a id="btn-test-save" href="#" title="Sauvegarder la config test courante" onclick="saveTestConfig(event)" style="display:none; font-size:0.75rem; color:#2196F3; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🎲 save</a>
 </header>
 
 <!-- ── Écran menu ── -->
