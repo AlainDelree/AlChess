@@ -819,7 +819,13 @@ def _run_drill(config: dict) -> None:
 
 def _launch_labo():
     """Lance le labo — polling plateau physique ou VirtualBoard selon le mode."""
+    import queue as _queue
     _copy_cancel.set()  # annuler tout thread copy en cours
+    while True:
+        try:
+            web_server.action_queue.get_nowait()
+        except _queue.Empty:
+            break
     web_server._app_state = "labo"
     set_app_state("labo")
     if _virtual_mode:
