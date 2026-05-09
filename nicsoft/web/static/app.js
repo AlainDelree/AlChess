@@ -3938,7 +3938,7 @@ function _renderBasketSelects() {
       const selIdx = curIdx >= 0 ? curIdx : 0;
       sel.dataset.value = String(selIdx);
       labelEl.textContent = _basket[selIdx].label;
-      labelEl.style.color = _basketOptionColor(_basket[selIdx].label);
+      labelEl.style.color = "#1a2a3a";
       listEl.innerHTML = _basket.map((e, i) =>
         `<div class="basket-sel-opt" data-value="${i}"
           style="color:${_basketOptionColor(e.label)};padding:5px 8px;cursor:pointer;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
