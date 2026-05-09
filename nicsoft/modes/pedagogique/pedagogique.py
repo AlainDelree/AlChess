@@ -1570,12 +1570,11 @@ class Game(threading.Thread):
                 if board_fen == expected_fen:
                     print("[WAIT_FISH] confirmé en %.2fs (%d it.)" % (time.time()-_t_wait, _loop_count), flush=True)
                     tlog("[WAIT_FISH] placement confirmé en %.2fs", time.time()-_t_wait)
-                    _t_leds = time.time()
-                    try:
-                        self.nl_inst.turn_off_all_leds()
-                    except Exception:
-                        pass
-                    tlog("[WAIT_FISH] turn_off_leds: %.3fs", time.time()-_t_leds)
+                    # turn_off_all_leds peut bloquer plusieurs secondes sur USB Chessnut Air
+                    # → thread daemon pour ne pas retarder le tour suivant
+                    threading.Thread(
+                        target=self.nl_inst.turn_off_all_leds, daemon=True
+                    ).start()
                     if warning_shown:
                         print("   Position rétablie. Continuez.")
                         send_event("turn", {
