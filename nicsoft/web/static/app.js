@@ -1472,10 +1472,9 @@ let _gameMode = "pedagogique";  // "pedagogique" ou "humain"
 
 function selectColorHH(c) {
   _hhColor = c;
-  // Sync checkbox si appelé programmatiquement
-  const chk = document.getElementById("hh-random");
-  if (chk) chk.checked = (c === "random");
-  // Changer les labels selon le mode
+  document.getElementById("cfg-hh-white") ?.classList.toggle("selected", c === "white");
+  document.getElementById("cfg-hh-black") ?.classList.toggle("selected", c === "black");
+  document.getElementById("cfg-hh-random")?.classList.toggle("selected", c === "random");
   const lblWhite = document.getElementById("label-white-name");
   const lblBlack = document.getElementById("label-black-name");
   if (c === "random") {
