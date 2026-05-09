@@ -13,6 +13,7 @@
 ---
 
 ## 💡 Fonctionnalités à venir
+- **Changer les icones du programme** On a installé une nouvelle favicon(une tour).  Il faut changer les pions présent comme logo dans le programme par une tour, ce sera plus cohérent.
 - **Implémenter corbeille dans Outils exercices** Pour "Importer mes lignes" et "Convertir SAN en UCI" 
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
 - **Outils Exercices** ✅ — Les 7 outils sont intégrés dans l'interface web (commits d0d28ed→0891570). Plus besoin du terminal pour gérer le catalogue.
