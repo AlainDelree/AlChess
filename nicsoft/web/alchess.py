@@ -1090,16 +1090,24 @@ def _run_labo_session():
         elif atype == "labo_copy_to_board":
             target_fen = action.get("fen", "")
             if target_fen:
-                _copy_cancel.set()  # annuler tout copy précédent
-                time.sleep(0.1)     # laisser l'ancien thread s'arrêter
-                def _copy_thread(fen=target_fen):
-                    _do_copy_to_board(fen)
-                    if not _copy_cancel.is_set():
-                        try:
-                            session.set_board_from_fen(fen)
-                        except Exception as e:
-                            print(f"[LABO] set_board_from_fen : {e}")
-                threading.Thread(target=_copy_thread, daemon=True).start()
+                if _virtual_mode:
+                    try:
+                        fen_clean = target_fen.strip().split()[0] if " " in target_fen else target_fen
+                        session.set_board_from_fen(target_fen)   # envoie labo_position
+                        send_event("position_ok", {"fen": fen_clean})
+                    except Exception as e:
+                        print(f"[LABO] set_board_from_fen virtuel : {e}")
+                else:
+                    _copy_cancel.set()  # annuler tout copy précédent
+                    time.sleep(0.1)     # laisser l'ancien thread s'arrêter
+                    def _copy_thread(fen=target_fen):
+                        _do_copy_to_board(fen)
+                        if not _copy_cancel.is_set():
+                            try:
+                                session.set_board_from_fen(fen)
+                            except Exception as e:
+                                print(f"[LABO] set_board_from_fen : {e}")
+                    threading.Thread(target=_copy_thread, daemon=True).start()
 
     _copy_cancel.set()  # annuler tout copy en cours à la sortie du labo
     session.quit()

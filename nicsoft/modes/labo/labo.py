@@ -112,6 +112,7 @@ class LaboSession:
             to_sq   = f"{files.index(last_uci[2])}-{int(last_uci[3])-1}"
         send_event("labo_position", {
             "fen":          self._fen_short(),
+            "full_fen":     self.board.fen(),
             "from":         from_sq,
             "to":           to_sq,
             "turn":         "white" if self.board.turn == chess.WHITE else "black",
