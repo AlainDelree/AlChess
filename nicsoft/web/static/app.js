@@ -511,6 +511,8 @@ socket.on("app_state", (data) => {
     _basketSource = "Labo";
   } else if (data.state === "retrans_playing") {
     _basketSource = "Retrans";
+  } else if (data.mode === "analyse") {
+    _basketSource = "Analyse";
   }
   // Quand on entre dans le labo, réinitialiser la position virtuelle
   if (data.state === "labo") {

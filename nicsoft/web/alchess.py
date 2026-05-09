@@ -171,6 +171,7 @@ def main():
                     "history_fen": [],
                     "history_moves": [],
                     "init": {},
+                    "mode": "analyse",
                 })
             elif atype == "mode" and action.get("value") == "analyse_libre":
                 _launch_labo()
