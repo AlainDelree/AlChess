@@ -2683,7 +2683,13 @@ socket.on("labo_position", (data) => {
   _laboUpdateAutoBtn(data.auto);
   // Source physique toujours disponible
   const btnSrcPhys = document.getElementById("labo-btn-source-physique");
-  if (btnSrcPhys) btnSrcPhys.style.display = "block";
+  if (btnSrcPhys) btnSrcPhys.style.display = _virtualMode ? "none" : "block";
+  // Mode virtuel : synchroniser chess.js et activer les clics
+  if (_virtualMode) {
+    const fullFen = data.full_fen || (data.fen + " " + (data.turn === "white" ? "w" : "b") + " - - 0 1");
+    try { _chessInstance = new Chess(); _chessInstance.load(fullFen); } catch(e) { _chessInstance = null; }
+    if (!data.engine_turn || !data.auto) { _virtActivateLaboBoard(); } else { _virtDeactivateLaboBoard(); }
+  }
 });
 
 socket.on("labo_best_move", (data) => {
@@ -2730,6 +2736,7 @@ socket.on("labo_engine_played", (data) => {
     turnEl.style.color = "#ff9800";
   }
   laboJournalAdd("coups", `♟ ${data.engine} : ${data.san}`);
+  if (_virtualMode) _virtDeactivateLaboBoard();
 });
 
 socket.on("labo_free_position", (data) => {
@@ -3940,6 +3947,77 @@ function _virtOnExSquareClick(e) {
     }
   }
 }
+function _virtActivateLaboBoard() {
+  const board = document.getElementById("labo-board");
+  if (!board) return;
+  board.removeEventListener("click", _virtOnLaboSquareClick);
+  board.addEventListener("click", _virtOnLaboSquareClick);
+}
+
+function _virtDeactivateLaboBoard() {
+  const board = document.getElementById("labo-board");
+  if (!board) return;
+  board.removeEventListener("click", _virtOnLaboSquareClick);
+  _virtClearLaboHighlights();
+  _virtSelected   = null;
+  _virtLegalDests = [];
+}
+
+function _virtClearLaboHighlights() {
+  document.querySelectorAll("#labo-board .virt-selected, #labo-board .virt-legal, #labo-board .virt-legal-capture")
+    .forEach(sq => sq.classList.remove("virt-selected", "virt-legal", "virt-legal-capture"));
+}
+
+function _virtOnLaboSquareClick(e) {
+  const sq = e.target.closest(".square");
+  if (!sq || !sq.id.startsWith("labo-sq-")) return;
+  const coord = sq.id.replace("labo-sq-", "");
+  const alg   = _coordToAlg(coord);
+
+  if (_virtSelected === null) {
+    if (!_chessInstance) return;
+    const piece = _chessInstance.get(alg);
+    if (!piece || piece.color !== _chessInstance.turn()) return;
+    const dests = _virtGetLegalDests(alg);
+    if (dests.length === 0) return;
+    _virtSelected   = coord;
+    _virtLegalDests = dests;
+    _virtClearLaboHighlights();
+    sq.classList.add("virt-selected");
+    if (_virtShowLegal) {
+      dests.forEach(destCoord => {
+        const destSq = document.getElementById(`labo-sq-${destCoord}`);
+        if (!destSq) return;
+        const hasPiece = _chessInstance.get(_coordToAlg(destCoord));
+        destSq.classList.add(hasPiece ? "virt-legal-capture" : "virt-legal");
+      });
+    }
+  } else {
+    if (coord === _virtSelected) {
+      _virtClearLaboHighlights(); _virtSelected = null; _virtLegalDests = []; return;
+    }
+    if (_virtLegalDests.includes(coord)) {
+      const fromAlg = _coordToAlg(_virtSelected);
+      const toAlg   = _coordToAlg(coord);
+      const uci     = fromAlg + toAlg;
+      _virtClearLaboHighlights(); _virtSelected = null; _virtLegalDests = [];
+      if (_virtIsPromotion(fromAlg, toAlg)) {
+        _virtAskPromotion(promo => socket.emit("virtual_move", { uci: uci + promo }));
+      } else {
+        socket.emit("virtual_move", { uci: uci });
+      }
+    } else {
+      const piece = _chessInstance ? _chessInstance.get(alg) : null;
+      if (piece && piece.color === _chessInstance.turn()) {
+        _virtClearLaboHighlights(); _virtSelected = null; _virtLegalDests = [];
+        _virtOnLaboSquareClick(e);
+      } else {
+        _virtClearLaboHighlights(); _virtSelected = null; _virtLegalDests = [];
+      }
+    }
+  }
+}
+
 function _virtSyncChess(fen) {
   if (!_virtualMode) return;
   try {
