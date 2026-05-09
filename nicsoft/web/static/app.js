@@ -1722,6 +1722,7 @@ function parsePgn(pgn) {
     reviewFens  = fens;
     reviewMoves = moves;
     reviewIdx   = fens.length - 1;
+    _basketSource = "Analyse";
     // Détecter si la partie est déjà analysée (au moins un coup non-"bon")
     _isAnalysed = moves.some(m => m.qualite && m.qualite !== "bon");
     // Afficher les noms
@@ -3906,14 +3907,15 @@ function basketAddRetrans() {
 
 const _BASKET_SOURCE_COLORS = {
   Pedagogique: "#e94560",
-  HH:          "#3a4ab0",
+  HH:          "#7a9aee",
   Retrans:     "#c47820",
-  Labo:        "#2a7a6a",
+  Labo:        "#4aaa8a",
+  Analyse:     "#9ab8d8",
 };
 
 function _basketOptionColor(label) {
   const prefix = label.split("_")[0];
-  return _BASKET_SOURCE_COLORS[prefix] || "#1a2a3a";
+  return _BASKET_SOURCE_COLORS[prefix] || "#e0e0e0";
 }
 
 function _renderBasketSelects() {
