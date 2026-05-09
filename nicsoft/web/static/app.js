@@ -2312,7 +2312,7 @@ function laboLoadPgnText(pgnText, label) {
     const info = document.getElementById("labo-pgn-info");
     if (info) info.textContent = `${white} vs ${black} — ${history.length} coups`;
     const copyBtn = document.getElementById("labo-btn-copy");
-    if (copyBtn) copyBtn.style.display = "block";
+    if (copyBtn) copyBtn.style.display = _virtualMode ? "none" : "block";
     _laboRenderPgnHistory();
     laboJournalAdd("config", `📂 PGN : ${label || (white + " vs " + black)} (${history.length} coups)`);
     afficherToast("PGN chargé", "success");
