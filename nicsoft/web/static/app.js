@@ -2297,11 +2297,11 @@ function laboLoadPgnText(pgnText, label) {
     const white   = chess.header().White || "Blancs";
     const black   = chess.header().Black || "Noirs";
     const chess2  = new Chess();
-    _laboPgnFens  = [chess2.fen().split(" ")[0]];
+    _laboPgnFens  = [chess2.fen()];
     _laboPgnMoves = [];
     for (const m of history) {
       chess2.move(m);
-      _laboPgnFens.push(chess2.fen().split(" ")[0]);
+      _laboPgnFens.push(chess2.fen());
       _laboPgnMoves.push(m.san);
     }
     _laboPgnIdx = _laboPgnFens.length - 1;
@@ -2372,8 +2372,8 @@ function laboPgnNext() {
 }
 
 function laboShowVirtualFen() {
-  // Afficher la position virtuelle sur l'échiquier labo
-  laboRenderBoard(_laboVirtualFen, null, null);
+  // Afficher la position virtuelle sur l'échiquier labo (strip le tour/roque si FEN complet)
+  laboRenderBoard(_laboVirtualFen.split(" ")[0], null, null);
   const sanEl = document.getElementById("labo-pgn-san");
   if (sanEl) {
     sanEl.textContent = _laboPgnIdx > 0 ? (_laboPgnMoves[_laboPgnIdx - 1] || "") : "Position initiale";
@@ -2594,6 +2594,15 @@ function laboRenderBoard(fen, from, to) {
 function laboSetAuto(val) {
   if (_laboAutoOn === val) return;
   _laboAutoOn = val;
+  // Mode virtuel : si une position PGN est affichée, la copier dans la session avant d'activer l'auto
+  if (_virtualMode && val && _laboVirtualFen) {
+    sendAction({ type: "labo_copy_to_board", fen: _laboVirtualFen });
+    _laboVirtualFen = "";
+    const copyBtn = document.getElementById("labo-btn-copy");
+    if (copyBtn) copyBtn.style.display = "none";
+    const nav = document.getElementById("labo-pgn-nav");
+    if (nav) nav.style.display = "none";
+  }
   sendAction({type: "engine_auto", value: _laboAutoOn});
   laboJournalAdd("config", `Auto ${val ? "ON ▶" : "OFF ■"}`);
 }
