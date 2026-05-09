@@ -237,6 +237,8 @@ def _check_board_at_startup():
             if web_server._app_state == "menu":
                 break
         time.sleep(1.0)
+        if web_server._app_state != "menu":
+            return  # l'utilisateur a navigué ailleurs — ne pas connecter le hardware
         from nicsoft.niclink import NicLinkManager
         _logger = logging.getLogger("NicLink_startup")
         for attempt in range(4):
