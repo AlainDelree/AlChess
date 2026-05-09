@@ -4,6 +4,9 @@
 
 ## 🐛 Bugs connus
 
+### Priorité normale
+- **Corbeille — 3ème item tronqué** — Dans l'écran Analyse, quand la liste déroulante de la corbeille contient plus de 2 fichiers, le 3ème item est coupé en bas (overflow du parent). Cause probable : `overflow:hidden` sur un conteneur parent qui clip la liste `position:absolute`.
+
 ### Priorité basse (existants avant refactoring)
 - **2 bips au démarrage** *(en veille)* — réduit de 4 à 2 (commit 216cd09) en espaçant la reconnexion d'1s. Plus gênant en pratique. Même nature que la race condition LEDs (hardware/USB).
 - **Race condition LEDs** *(en veille)* — synchronisation des camps LED parfois incorrecte. Rare, se produit même après redémarrage du programme → cause probable hardware/USB, pas logicielle. À surveiller si ça s'aggrave.
@@ -11,7 +14,7 @@
 ---
 
 ## 💡 Fonctionnalités à venir
-
+- **Implémenter corbeille dans Outils exercices** Pour "Importer mes lignes" et "Convertir SAN en UCI" 
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
 - **Outils Exercices** ✅ — Les 7 outils sont intégrés dans l'interface web (commits d0d28ed→0891570). Plus besoin du terminal pour gérer le catalogue.
 - **Corbeille de session** ✅ — Partage PGN entre modules, max 10 FIFO, disparaît à la fermeture (commits 096e6cf→783e05f). Bouton 🧺 dans Pédagogique/HH/Retranscription ; sélecteur 🧺 Charger dans Analyse et Labo.
@@ -94,6 +97,8 @@
 ---
 
 ## 🐛 Bugs récents
+- **Analyse charger un pgn importer dans la corbeille est impossible** Dans Analyse, si on charge un pgn, on ne peux pas le mettre dans la corbeille car le bouton rester grisé
+- **HH ecran de config, doublons fonctionnalité alétoire** Dans HH Il y a un bouton Aléatoire et une case à cocher aléatoire.  Il faut enlever la case a cocher et s'assurer que le code derriere le bouotn aléatoire est bon
 - **Partie Nulle Pedagogique physique** *(commits 976188c + 297a687 + 8ad3c7f, 2026-05-07)* — Bouton Nulle grisé pendant WAIT_FISH + pas de feedback si clic sans placer la pièce. Fix : `abandon_nulle_ok` dès le début du tour moteur (élimine clignotement) ; nulle pendant WAIT_FISH évalue immédiatement avec le board interne (sans attendre le placement) ; si refusée, WAIT_FISH reprend. ✓ Validé sur plateau physique.
 - **HH délai avant d'afficher le coup** — *(commit 8b46117, 2026-05-06)* — `save_pgn_tmp()` était appelé avant `send_event("move")`, l'I/O disque retardait l'affichage. Corrigé : send_event en premier. ✓ Validé sur plateau physique.
 - **Partie pédagogique** — Délai avant d'afficher le 1er coup blanc. *(confirmé résolu en test, 2026-05-06)*
