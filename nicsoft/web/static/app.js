@@ -29,28 +29,115 @@ function debugMark(e) {
     .catch(() => {});
 }
 
-// ── MODE DEBUG ────────────────────────────────────────────
-// Vérifie si le mode debug est actif et affiche le bouton 🔖
-fetch("/debug/mode")
-  .then(r => r.json())
-  .then(data => {
-    if (data.debug) {
-      const btn = document.getElementById("btn-debug-mark");
-      if (btn) btn.style.display = "inline";
-    }
-  })
-  .catch(() => {});
+// ── MODE TEST ALÉATOIRE ───────────────────────────────────
+const _testMode = (window._NICLINK_TEST || "") === "random";
 
-function debugMark(e) {
-  e.preventDefault();
-  fetch("/debug/mark")
+if (_testMode) {
+  const btn = document.getElementById("btn-test-save");
+  if (btn) btn.style.display = "inline";
+}
+
+const _TEST_NAMES  = ["Magnus","Hikaru","Fabiano","Alireza","Ding","Gukesh","Pragg","Arjun","Vidit","Vincent"];
+const _TEST_EVENTS = ["Tournoi du club","Championnat régional","Partie amicale","Blitz du vendredi","Simultanée"];
+
+function _pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function _randBool() { return Math.random() < 0.5; }
+
+function _randomizeConfigPeda() {
+  document.getElementById("cfg-player").value = _pick(_TEST_NAMES);
+  selectColor(_pick(["white", "black", "random"]));
+  const engine = _pick(["stockfish", "maia", "rodent"]);
+  selectEngine(engine);
+  if (engine === "stockfish") {
+    const elo = Math.round((Math.random() * (3190 - 1320) + 1320) / 50) * 50;
+    const inp = document.getElementById("cfg-elo");
+    if (inp) { inp.value = elo; _updateEloLabel(elo); }
+  } else if (engine === "maia") {
+    const sel = document.getElementById("cfg-maia-elo");
+    if (sel) sel.value = _pick(["1100","1200","1300","1400","1500","1600","1700","1800","1900"]);
+  } else {
+    const elo = Math.round((Math.random() * (2800 - 800) + 800) / 100) * 100;
+    const inp = document.getElementById("cfg-rodent-elo");
+    if (inp) { inp.value = elo; _updateRodentLabel(elo); }
+    const simple = document.getElementById("cfg-rodent-simple");
+    if (simple) simple.checked = _randBool();
+  }
+  const pauseSel = document.getElementById("cfg-pause");
+  if (pauseSel) pauseSel.value = _pick(["toujours","imprecision","erreur","blunder","jamais"]);
+  const analyseChk = document.getElementById("cfg-analyse");
+  const analyseLbl = document.getElementById("cfg-analyse-label");
+  if (analyseChk) { analyseChk.checked = _randBool(); if (analyseLbl) analyseLbl.textContent = analyseChk.checked ? "Activée" : "Désactivée"; }
+  const bipChk = document.getElementById("cfg-bip");
+  if (bipChk) bipChk.checked = _randBool();
+  const legalChk = document.getElementById("cfg-show-legal");
+  const legalLbl = document.getElementById("cfg-show-legal-label");
+  if (legalChk) { legalChk.checked = _randBool(); if (legalLbl) legalLbl.textContent = legalChk.checked ? "Activé" : "Désactivé"; }
+}
+
+function _randomizeConfigHH() {
+  const white = _pick(_TEST_NAMES);
+  const black = _pick(_TEST_NAMES.filter(n => n !== white));
+  const wEl = document.getElementById("cfg-white-name");
+  const bEl = document.getElementById("cfg-black-name");
+  if (wEl) wEl.value = white;
+  if (bEl) bEl.value = black;
+  selectColorHH(_pick(["white", "black", "random"]));
+  const typeEl = document.getElementById("cfg-hh-type");
+  if (typeEl) typeEl.value = _pick(["serieuse", "amusement", "club"]);
+}
+
+function _randomizeConfigRetrans() {
+  const white = _pick(_TEST_NAMES);
+  const black = _pick(_TEST_NAMES.filter(n => n !== white));
+  const wEl = document.getElementById("retrans-white");
+  const bEl = document.getElementById("retrans-black");
+  if (wEl) wEl.value = white;
+  if (bEl) bEl.value = black;
+  const start = new Date("2020-01-01").getTime();
+  const randDate = new Date(start + Math.random() * (Date.now() - start));
+  const dateEl = document.getElementById("retrans-date");
+  if (dateEl) dateEl.value = randDate.toISOString().split("T")[0];
+  const evEl = document.getElementById("retrans-event");
+  if (evEl) evEl.value = _pick(_TEST_EVENTS);
+}
+
+function saveTestConfig(e) {
+  if (e) e.preventDefault();
+  const config = {
+    "Pédagogique": {
+      "Joueur":       document.getElementById("cfg-player")?.value || "",
+      "Couleur":      _selectedColor,
+      "Moteur":       _selectedEngine,
+      "ELO SF":       document.getElementById("cfg-elo")?.value || "",
+      "ELO Maia":     document.getElementById("cfg-maia-elo")?.value || "",
+      "ELO Rodent":   document.getElementById("cfg-rodent-elo")?.value || "",
+      "Rodent simple":document.getElementById("cfg-rodent-simple")?.checked ? "oui" : "non",
+      "Pause":        document.getElementById("cfg-pause")?.value || "",
+      "Analyse":      document.getElementById("cfg-analyse")?.checked ? "on" : "off",
+      "Bip":          document.getElementById("cfg-bip")?.checked ? "on" : "off",
+      "Coups légaux": document.getElementById("cfg-show-legal")?.checked ? "on" : "off",
+    },
+    "HH": {
+      "Blancs": document.getElementById("cfg-white-name")?.value || "",
+      "Noirs":  document.getElementById("cfg-black-name")?.value || "",
+      "Couleur":document.getElementById("cfg-hh-white")?.classList.contains("selected") ? "white" : document.getElementById("cfg-hh-black")?.classList.contains("selected") ? "black" : "random",
+      "Type":   document.getElementById("cfg-hh-type")?.value || "",
+    },
+    "Retranscription": {
+      "Blancs":     document.getElementById("retrans-white")?.value || "",
+      "Noirs":      document.getElementById("retrans-black")?.value || "",
+      "Date":       document.getElementById("retrans-date")?.value || "",
+      "Événement":  document.getElementById("retrans-event")?.value || "",
+    },
+  };
+  fetch("/test/save-config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(config),
+  })
     .then(() => {
-      const btn = document.getElementById("btn-debug-mark");
-      if (btn) {
-        const orig = btn.textContent;
-        btn.textContent = "✅";
-        setTimeout(() => { btn.textContent = orig; }, 1000);
-      }
+      const btn = document.getElementById("btn-test-save");
+      if (btn) { const o = btn.textContent; btn.textContent = "✅"; setTimeout(() => { btn.textContent = o; }, 1200); }
     })
     .catch(() => {});
 }
@@ -538,6 +625,10 @@ socket.on("app_state", (data) => {
   }
   if (data.state === "config") {
     _virtInitLegalCheckbox();
+    if (_testMode) _randomizeConfigPeda();
+  }
+  if (data.state === "config_humain" && _testMode) {
+    _randomizeConfigHH();
   }
 
   if (data.state === "game_over" && !data.skip) {
@@ -577,6 +668,7 @@ socket.on("app_state", (data) => {
     if (data.black && data.black !== "Noirs")  { const el = document.getElementById("retrans-black"); if (el) el.value = data.black; }
     if (data.date)  { const el = document.getElementById("retrans-date");  if (el) el.value = data.date; }
     if (data.event) { const el = document.getElementById("retrans-event"); if (el) el.value = data.event; }
+    if (_testMode) _randomizeConfigRetrans();
   }
   if (data.state === "menu") {
     _gameSource = "externe";

@@ -21,6 +21,9 @@ LOG_FILE = pathlib.Path.home() / "NicLink" / "logs" / "niclink.log"
 # Mode debug — activé via variable d'environnement NICLINK_LOG=DEBUG
 DEBUG_MODE = os.environ.get("NICLINK_LOG", "").upper() == "DEBUG"
 
+# Mode test — activé via variable d'environnement NICLINK_TEST=random
+TEST_MODE = os.environ.get("NICLINK_TEST", "")
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "niclink_pedagogique"
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading", )
@@ -54,7 +57,7 @@ _virtual_board_ref = None
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", test_mode=TEST_MODE)
 
 @app.route("/logs")
 def get_logs():
@@ -84,6 +87,27 @@ def debug_mode_status():
     """Retourne si le mode debug est actif — utilisé par le JS au démarrage."""
     from flask import jsonify
     return jsonify({"debug": DEBUG_MODE})
+
+TEST_CONFIG_LOG = pathlib.Path.home() / "NicLink" / "logs" / "test_config.log"
+
+@app.route("/test/save-config", methods=["POST"])
+def test_save_config():
+    """Sauvegarde la config de test courante dans logs/test_config.log."""
+    from flask import request, jsonify
+    from datetime import datetime
+    if TEST_MODE != "random":
+        return jsonify({"ok": False, "error": "test mode inactif"}), 403
+    data = request.get_json(silent=True) or {}
+    TEST_CONFIG_LOG.parent.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    lines = [f"\n{'='*50}", f"Config test — {ts}", f"{'='*50}"]
+    for section, fields in data.items():
+        lines.append(f"\n[{section}]")
+        for k, v in fields.items():
+            lines.append(f"  {k}: {v}")
+    with open(TEST_CONFIG_LOG, "a", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    return jsonify({"ok": True})
 
 
 # ── SocketIO events ───────────────────────────────────────────────────────────
