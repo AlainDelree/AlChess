@@ -1222,6 +1222,7 @@ class Game(threading.Thread):
             move = self.nl_inst.await_move()
             # Annuler le signal de tour dès que le coup est joué
             self.nl_inst.turn_off_all_leds()
+            print("[TIMING] await_move: %.2fs — move=%s" % (time.time()-_t_await, move))
             tlog("[TIMING] await_move: %.2fs — move=%s", time.time()-_t_await, move)
         except KeyboardInterrupt:
             watch_stop.set()
@@ -1426,10 +1427,12 @@ class Game(threading.Thread):
         if self._prefetched_fish_move is not None:
             fish_move_obj = self._prefetched_fish_move
             self._prefetched_fish_move = None
+            print("[TIMING] get_move: préchargé (%.3fs attente)" % (time.time()-_t_fish))
             tlog("[TIMING] get_move: préchargé (%.3fs attente)", time.time()-_t_fish)
         else:
             board_courant = self.nl_inst.game_board.copy()
             fish_move_obj = self.engine.get_move(board_courant, think_time=self._think_time)
+            print("[TIMING] get_move: %.2fs" % (time.time()-_t_fish))
             tlog("[TIMING] get_move: %.2fs", time.time()-_t_fish)
         if fish_move_obj is None:
             return
@@ -1481,6 +1484,7 @@ class Game(threading.Thread):
         while True:
             _t_step = time.time()
             self._wait_for_fish_move_on_board(fish_move)
+            print("[TIMING-F] wait_fish_total: %.3fs" % (time.time()-_t_step))
             tlog("[TIMING-F] wait_fish_total: %.3fs", time.time()-_t_step)
             if self._abandon_demande:
                 self.nl_inst.kill_switch.clear()
@@ -1502,6 +1506,7 @@ class Game(threading.Thread):
         self.nl_inst.set_move_leds(fish_move)
         print(f"   Exécutez le coup de Stockfish sur l'échiquier ({fish_move})...")
         _t_wait = time.time()
+        print("[WAIT_FISH] début attente placement %s" % fish_move)
         tlog("[WAIT_FISH] début attente placement %s", fish_move)
 
         bad_fen_since = None; last_bad_fen = None
@@ -1535,7 +1540,8 @@ class Game(threading.Thread):
         _abort_thread = threading.Thread(target=_poll_abort, daemon=True)
         _abort_thread.start()
 
-        _last_log = time.time()
+        _last_log   = time.time()
+        _last_print = time.time()
         _loop_count = 0
         try:
             while True:
@@ -1556,7 +1562,13 @@ class Game(threading.Thread):
                          time.time()-_t_wait, _loop_count,
                          board_fen == expected_fen, board_fen[:25])
 
+                if time.time() - _last_print >= 5.0:
+                    _last_print = time.time()
+                    print("[WAIT_FISH] %.0fs en attente... (%d it.) fen_ok=%s" % (
+                        time.time()-_t_wait, _loop_count, board_fen == expected_fen))
+
                 if board_fen == expected_fen:
+                    print("[WAIT_FISH] confirmé en %.2fs (%d it.)" % (time.time()-_t_wait, _loop_count))
                     tlog("[WAIT_FISH] placement confirmé en %.2fs", time.time()-_t_wait)
                     _t_leds = time.time()
                     try:
