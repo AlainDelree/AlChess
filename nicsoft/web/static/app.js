@@ -3975,7 +3975,7 @@ function _initBasketSelects() {
       sel.dataset.value = String(idx);
       const labelEl = sel.querySelector(".basket-sel-label");
       labelEl.textContent = _basket[idx].label;
-      labelEl.style.color = _basketOptionColor(_basket[idx].label);
+      labelEl.style.color = "#1a2a3a";
       listEl.style.display = "none";
     });
   });
