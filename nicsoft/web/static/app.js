@@ -459,6 +459,7 @@ socket.on("connect", () => {
   if (overlay) setTimeout(() => { overlay.style.display = "none"; }, 5000);
   document.getElementById("status-dot").classList.add("connected");
   document.getElementById("status-text").textContent = "Connecté";
+  _initBasketSelects();
   _renderBasketSelects();
 });
 
@@ -506,10 +507,7 @@ socket.on("app_state", (data) => {
     }
   }
   // Mettre à jour la source corbeille selon l'état entrant
-  if (data.state === "connecting") {
-    if (!_basketSource || _basketSource === "Retrans" || _basketSource === "Labo")
-      _basketSource = "Pedagogique";
-  } else if (data.state === "labo") {
+  if (data.state === "labo") {
     _basketSource = "Labo";
   } else if (data.state === "retrans_playing") {
     _basketSource = "Retrans";
@@ -788,6 +786,7 @@ socket.on("game_over", (data) => {
 
 socket.on("init", (data) => {
   _gameMode = "pedagogique";
+  _basketSource = "Pedagogique";
   currentPlayerColor = data.color || "white";
   _pendingMove = null;
   _histMoves   = [];
@@ -844,6 +843,7 @@ socket.on("init", (data) => {
 
 socket.on("init_hh", (data) => {
   _gameMode = "humain";
+  _basketSource = "HH";
   currentPlayerColor = "white";
   _pendingMove = null;
   reviewFens  = [data.fen || currentFen];
@@ -3905,27 +3905,85 @@ function basketAddRetrans() {
   socket.emit("basket_add", { label: _basketLabel(), pgn });
 }
 
+const _BASKET_SOURCE_COLORS = {
+  Pedagogique: "#e94560",
+  HH:          "#3a4ab0",
+  Retrans:     "#c47820",
+  Labo:        "#2a7a6a",
+};
+
+function _basketOptionColor(label) {
+  const prefix = label.split("_")[0];
+  return _BASKET_SOURCE_COLORS[prefix] || "#1a2a3a";
+}
+
 function _renderBasketSelects() {
   const empty = _basket.length === 0;
   document.querySelectorAll(".basket-select").forEach(sel => {
-    const cur = sel.value;
-    sel.innerHTML = empty
-      ? '<option value="">— corbeille vide —</option>'
-      : _basket.map((e, i) => `<option value="${i}">${e.label}</option>`).join("");
-    sel.disabled = empty;
-    sel.style.opacity  = empty ? "0.45" : "1";
-    sel.style.background = "#a0b8d0";
-    sel.style.color      = empty ? "#556" : "#1a2a3a";
-    if (!empty && cur !== "" && sel.querySelector(`option[value="${cur}"]`)) sel.value = cur;
+    const labelEl = sel.querySelector(".basket-sel-label");
+    const listEl  = sel.querySelector(".basket-sel-list");
+    if (!labelEl || !listEl) return;
+    listEl.style.display = "none";
+    if (empty) {
+      sel.dataset.value = "";
+      labelEl.textContent = "— corbeille vide —";
+      labelEl.style.color = "#556";
+      listEl.innerHTML = "";
+      sel.style.opacity = "0.45";
+      sel.style.pointerEvents = "none";
+    } else {
+      const cur = sel.dataset.value;
+      const curIdx = _basket.findIndex((_, i) => String(i) === cur);
+      const selIdx = curIdx >= 0 ? curIdx : 0;
+      sel.dataset.value = String(selIdx);
+      labelEl.textContent = _basket[selIdx].label;
+      labelEl.style.color = _basketOptionColor(_basket[selIdx].label);
+      listEl.innerHTML = _basket.map((e, i) =>
+        `<div class="basket-sel-opt" data-value="${i}"
+          style="color:${_basketOptionColor(e.label)};padding:5px 8px;cursor:pointer;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+          onmouseover="this.style.background='#2a3a4a'" onmouseout="this.style.background=''"
+        >${e.label}</div>`
+      ).join("");
+      sel.style.opacity = "1";
+      sel.style.pointerEvents = "";
+    }
   });
   document.querySelectorAll(".basket-load-btn").forEach(btn => {
     btn.disabled = empty;
   });
 }
 
+function _initBasketSelects() {
+  document.querySelectorAll(".basket-select").forEach(sel => {
+    const listEl = sel.querySelector(".basket-sel-list");
+    if (!listEl) return;
+    sel.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = listEl.style.display !== "none";
+      document.querySelectorAll(".basket-sel-list").forEach(l => l.style.display = "none");
+      if (!isOpen) listEl.style.display = "block";
+    });
+    listEl.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const opt = e.target.closest(".basket-sel-opt");
+      if (!opt) return;
+      const idx = parseInt(opt.dataset.value);
+      if (isNaN(idx) || !_basket[idx]) return;
+      sel.dataset.value = String(idx);
+      const labelEl = sel.querySelector(".basket-sel-label");
+      labelEl.textContent = _basket[idx].label;
+      labelEl.style.color = _basketOptionColor(_basket[idx].label);
+      listEl.style.display = "none";
+    });
+  });
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".basket-sel-list").forEach(l => l.style.display = "none");
+  });
+}
+
 function basketLoadToAnalyse() {
   const sel = document.getElementById("basket-select-analyse");
-  const idx = sel ? parseInt(sel.value) : -1;
+  const idx = sel ? parseInt(sel.dataset.value) : -1;
   if (isNaN(idx) || idx < 0) return;
   socket.emit("basket_load", { idx });
   socket.once("basket_load_result", (data) => {
@@ -3935,7 +3993,7 @@ function basketLoadToAnalyse() {
 
 function basketLoadToLabo() {
   const sel = document.getElementById("basket-select-labo");
-  const idx = sel ? parseInt(sel.value) : -1;
+  const idx = sel ? parseInt(sel.dataset.value) : -1;
   if (isNaN(idx) || idx < 0) return;
   socket.emit("basket_load", { idx });
   socket.once("basket_load_result", (data) => {
