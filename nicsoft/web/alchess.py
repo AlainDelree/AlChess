@@ -1040,8 +1040,8 @@ def _run_labo_session():
             session._auto_on = val
             send_event("labo_auto", {"auto": val})
             if val:
-                # Toujours synchroniser depuis le plateau physique au démarrage Auto
-                session.sync_from_physical(turn=labo_config.get("active_turn", session.active_turn))
+                if not _virtual_mode:
+                    session.sync_from_physical(turn=labo_config.get("active_turn", session.active_turn))
                 time.sleep(0.1)
                 # Drainer les toggles Auto en attente (clic rapide ON→OFF)
                 from nicsoft.web.server import action_queue as _aq
