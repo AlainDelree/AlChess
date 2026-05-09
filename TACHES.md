@@ -97,6 +97,7 @@
 ---
 
 ## 🐛 Bugs récents
+- **Le plateau beep quand on rentre dans Retranscription** C'est un ecran exclusivement virtuel, ce n'est pas normal que l'echiquier beep comme avec Pédagogique ou HH.
 - **Corbeille Analyse — série de bugs** *(commits f874bda→0c3291a, 2026-05-09)* — (1) bouton 🧺 grisé après import PGN (`hasGame`) ; (2) dropdown clippé par `overflow:hidden` du `#panel` (retiré) ; (3) dropdown s'ouvre vers le haut (`bottom:100%`) ; (4) label sélectionné invisible (`#1a2a3a` fixe sur fond clair) ; (5) couleurs items illisibles sur fond sombre (fallback `#e0e0e0`) ; (6) `_basketSource` remis à "Pedagogique" par reconnexion SocketIO (`mode:"analyse"` dans le payload). ✓
 - **HH ecran de config, doublons fonctionnalité alétoire** Dans HH Il y a un bouton Aléatoire et une case à cocher aléatoire.  Il faut enlever la case a cocher et s'assurer que le code derriere le bouotn aléatoire est bon
 - **Partie Nulle Pedagogique physique** *(commits 976188c + 297a687 + 8ad3c7f, 2026-05-07)* — Bouton Nulle grisé pendant WAIT_FISH + pas de feedback si clic sans placer la pièce. Fix : `abandon_nulle_ok` dès le début du tour moteur (élimine clignotement) ; nulle pendant WAIT_FISH évalue immédiatement avec le board interne (sans attendre le placement) ; si refusée, WAIT_FISH reprend. ✓ Validé sur plateau physique.
