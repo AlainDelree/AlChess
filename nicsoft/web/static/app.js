@@ -459,6 +459,7 @@ socket.on("connect", () => {
   if (overlay) setTimeout(() => { overlay.style.display = "none"; }, 5000);
   document.getElementById("status-dot").classList.add("connected");
   document.getElementById("status-text").textContent = "Connecté";
+  _renderBasketSelects();
 });
 
 socket.on("disconnect", () => {
