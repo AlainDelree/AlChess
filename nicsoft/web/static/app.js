@@ -3905,15 +3905,20 @@ function basketAddRetrans() {
 }
 
 function _renderBasketSelects() {
+  const empty = _basket.length === 0;
   document.querySelectorAll(".basket-select").forEach(sel => {
     const cur = sel.value;
-    sel.innerHTML = _basket.length
-      ? _basket.map((e, i) => `<option value="${i}">${e.label}</option>`).join("")
-      : '<option value="" disabled>— corbeille vide —</option>';
-    if (cur !== "" && sel.querySelector(`option[value="${cur}"]`)) sel.value = cur;
+    sel.innerHTML = empty
+      ? '<option value="">— corbeille vide —</option>'
+      : _basket.map((e, i) => `<option value="${i}">${e.label}</option>`).join("");
+    sel.disabled = empty;
+    sel.style.opacity  = empty ? "0.45" : "1";
+    sel.style.background = "#a0b8d0";
+    sel.style.color      = empty ? "#556" : "#1a2a3a";
+    if (!empty && cur !== "" && sel.querySelector(`option[value="${cur}"]`)) sel.value = cur;
   });
   document.querySelectorAll(".basket-load-btn").forEach(btn => {
-    btn.disabled = _basket.length === 0;
+    btn.disabled = empty;
   });
 }
 
