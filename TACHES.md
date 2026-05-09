@@ -14,15 +14,7 @@
 
 - **Labo — mode virtuel non conçu** — l'écran s'affiche (échiquier + composants visibles), mais le mode virtuel n'a pas encore été conçu : aucune interaction ne fonctionne.
 - **Outils Exercices** ✅ — Les 7 outils sont intégrés dans l'interface web (commits d0d28ed→0891570). Plus besoin du terminal pour gérer le catalogue.
-- **Corbeille de session**
-Un système de parties PGN temporaires partagées entre tous les modules, valables le temps de la session (disparaissent à la fermeture du programme).
-Concept :
-- Une liste de PGN en mémoire dans server.py (ex: _session_basket = [])
-- Chaque entrée : {"label": "Partie vs Stockfish 14h32", "pgn": "...", "source": "pedagogique"}
-- Depuis n'importe quel module qui produit une partie (Pédagogique, HH, Retranscription) : bouton "Ajouter à la corbeille"
-- Depuis n'importe quel module qui consomme une partie (Analyse, Labo, Exercices/création ouverture) : liste déroulante "Charger depuis la corbeille"
-- Maximum ~10 entrées (FIFO si dépassé)
-- Disparaît à la fermeture du programme (pas de persistance disque)
+- **Corbeille de session** ✅ — Partage PGN entre modules, max 10 FIFO, disparaît à la fermeture (commits 096e6cf→783e05f). Bouton 🧺 dans Pédagogique/HH/Retranscription ; sélecteur 🧺 Charger dans Analyse et Labo.
 
 ## 🧪 Stratégie de tests
 
@@ -39,13 +31,7 @@ Concept :
 
 ### Niveau 3 — Tests end-to-end Playwright ✅ FAIT (commit c004ffc, 2026-05-07)
 `nicsoft/tests/e2e/` — Playwright + Chromium headless, serveur lancé en subprocess, mode virtuel.
-12 tests : menu, navigation pédagogique (config→jeu→retour), analyse, exercices, retranscription, transitions.
-- Lancer : `python -m pytest nicsoft/tests/e2e/ -v`
-- Non couvert : bips hardware, détection position physique (nécessite échiquier réel)
-
-### Niveau 3 — Tests end-to-end Playwright ✅ FAIT (commit c004ffc, 2026-05-07)
-`nicsoft/tests/e2e/` — Playwright + Chromium headless, serveur lancé en subprocess, mode virtuel.
-12 tests : menu, navigation pédagogique (config→jeu→retour), analyse, exercices, retranscription, transitions.
+35 tests : menu, navigation pédagogique, analyse, exercices, retranscription, transitions, Outils Exercices (23 tests, commit 7c2accd).
 - Lancer : `python -m pytest nicsoft/tests/e2e/ -v`
 - Non couvert : bips hardware, détection position physique (nécessite échiquier réel)
 
