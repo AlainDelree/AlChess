@@ -926,8 +926,7 @@ function _updateActionButtons() {
   if (seqRow) seqRow.style.display = (hasGame && !_isAnalysed) ? "flex" : "none";
   if (btnD)   btnD.style.display   = _isAnalysed ? "inline-block" : "none";
   if (btnV)   btnV.style.display   = hasGame ? "inline-block" : "none";
-  // card-save-block : visible si partie NicLink OU si partie analysée
-  if (saveBlock) saveBlock.style.display = (_gameSource === "niclink" || _isAnalysed) ? "" : "none";
+  if (saveBlock) saveBlock.style.display = hasGame ? "" : "none";
 }
 
 function _viderAnalyse() {
