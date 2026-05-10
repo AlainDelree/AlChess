@@ -7,3 +7,12 @@ data/
 *.egg-info/
 dist/
 build/
+
+# Logs
+logs/*.log
+
+# Parties temporaires
+games/tmp/*.pgn
+
+# Fichiers de test lenteur
+Lenteur*
