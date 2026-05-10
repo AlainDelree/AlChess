@@ -2312,7 +2312,10 @@ function laboLoadPgnText(pgnText, label) {
     const info = document.getElementById("labo-pgn-info");
     if (info) info.textContent = `${white} vs ${black} — ${history.length} coups`;
     const copyBtn = document.getElementById("labo-btn-copy");
-    if (copyBtn) copyBtn.style.display = _virtualMode ? "none" : "block";
+    if (copyBtn) {
+      copyBtn.style.display = "block";
+      copyBtn.textContent = _virtualMode ? "▶ Jouer depuis cette position" : "📋 Source virtuelle → Plateau";
+    }
     _laboRenderPgnHistory();
     laboJournalAdd("config", `📂 PGN : ${label || (white + " vs " + black)} (${history.length} coups)`);
     afficherToast("PGN chargé", "success");
@@ -2374,6 +2377,7 @@ function laboPgnNext() {
 function laboShowVirtualFen() {
   // Afficher la position virtuelle sur l'échiquier labo (strip le tour/roque si FEN complet)
   laboRenderBoard(_laboVirtualFen.split(" ")[0], null, null);
+  if (_virtualMode && _laboVirtualFen) _virtSyncChess(_laboVirtualFen);
   const sanEl = document.getElementById("labo-pgn-san");
   if (sanEl) {
     sanEl.textContent = _laboPgnIdx > 0 ? (_laboPgnMoves[_laboPgnIdx - 1] || "") : "Position initiale";
@@ -2382,9 +2386,14 @@ function laboShowVirtualFen() {
 
 function laboCopyToBoard() {
   if (!_laboVirtualFen) return;
-  _laboCopyMode = true;
+  if (!_virtualMode) _laboCopyMode = true;
   sendAction({ type: "labo_copy_to_board", fen: _laboVirtualFen });
-  laboJournalAdd("config", "📋 Source virtuelle → Plateau activé");
+  laboJournalAdd("config", _virtualMode ? "▶ Jouer depuis cette position" : "📋 Source virtuelle → Plateau activé");
+}
+
+function laboReset() {
+  sendAction({ type: "labo_copy_to_board", fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" });
+  laboJournalAdd("config", "🔄 Réinitialiser — position de départ");
 }
 
 function laboSyncPhysique() {

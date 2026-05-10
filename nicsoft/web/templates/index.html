@@ -907,6 +907,9 @@
           <button id="labo-btn-auto-stop" onclick="laboSetAuto(false)"
             style="flex:1; border:none; padding:7px 0; font-size:1.1rem; cursor:pointer; background:#7b1a1a; color:#fff;">■</button>
         </div>
+        <button class="btn" id="labo-btn-undo" style="margin-bottom:0; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" onclick="sendAction({type:'undo_labo'})" disabled>↩ Annuler coup</button>
+        <button class="btn btn-best" style="margin-bottom:0;" onclick="sendAction({type:'analyse_position'})">🔍 Analyser position</button>
+        <button class="btn" style="margin-bottom:0; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="laboReset()">🔄 Réinitialiser</button>
 
       </div>
     </div>
