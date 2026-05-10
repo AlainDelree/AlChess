@@ -226,7 +226,7 @@ function toggleVirtualMode(enabled) {
   });
 
   if (enabled) {
-    if (sub) { sub.textContent = "Mode sans échiquier — choisissez un mode"; sub.style.color = "#e94560"; }
+    if (sub) { sub.textContent = "Mode sans échiquier — choisissez un menu"; sub.style.color = "#e94560"; }
     if (btn) { btn.style.display = "none"; }
     document.querySelectorAll(".menu-btn[data-needs-board]:not([data-physical-only])")
       .forEach(b => { b.disabled = false; });
