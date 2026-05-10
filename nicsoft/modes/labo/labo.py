@@ -253,6 +253,21 @@ class LaboSession:
         threading.Thread(target=_run, daemon=True).start()
 
 
+    def do_undo(self) -> None:
+        """Annule le dernier coup (retour dans _fen_history)."""
+        if len(self._fen_history) <= 1:
+            return
+        self._fen_history.pop()
+        prev_fen = self._fen_history[-1]
+        try:
+            self.board = chess.Board(prev_fen)
+            self.active_turn = "white" if self.board.turn == chess.WHITE else "black"
+            self.nl_inst.game_board = self.board.copy()
+            self.nl_inst.turn_off_all_leds()
+            self._send_position()
+        except Exception as e:
+            logger.error(f"do_undo : {e}")
+
     def set_board_from_fen(self, fen: str) -> None:
         """Réinitialise le board depuis un FEN (après copie physique réussie)."""
         try:
