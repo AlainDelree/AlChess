@@ -2223,6 +2223,7 @@ let _laboPgnFens  = [];
 let _laboPgnMoves = [];
 let _laboPgnIdx   = 0;
 let _laboVirtualFen = ""; // FEN de la position virtuelle courante
+let _laboVirtSyncTimer = null; // debounce sync backend PGN→virtuel
 
 function laboSelectEngine(e) {
   _laboEngine = e;
@@ -2377,7 +2378,15 @@ function laboPgnNext() {
 function laboShowVirtualFen() {
   // Afficher la position virtuelle sur l'échiquier labo (strip le tour/roque si FEN complet)
   laboRenderBoard(_laboVirtualFen.split(" ")[0], null, null);
-  if (_virtualMode && _laboVirtualFen) _virtSyncChess(_laboVirtualFen);
+  if (_virtualMode && _laboVirtualFen) {
+    _virtSyncChess(_laboVirtualFen);
+    // Sync le backend avec debounce (navigation rapide PGN)
+    if (_laboVirtSyncTimer) clearTimeout(_laboVirtSyncTimer);
+    const fenToSync = _laboVirtualFen;
+    _laboVirtSyncTimer = setTimeout(() => {
+      sendAction({ type: "labo_copy_to_board", fen: fenToSync });
+    }, 300);
+  }
   const sanEl = document.getElementById("labo-pgn-san");
   if (sanEl) {
     sanEl.textContent = _laboPgnIdx > 0 ? (_laboPgnMoves[_laboPgnIdx - 1] || "") : "Position initiale";
