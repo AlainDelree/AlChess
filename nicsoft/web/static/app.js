@@ -233,7 +233,7 @@ function toggleVirtualMode(enabled) {
   } else {
     if (btn) { btn.style.display = ""; }
     if (_boardOk) {
-      if (sub) { sub.textContent = "Échiquier connecté — choisissez un mode"; sub.style.color = ""; }
+      if (sub) { sub.textContent = "Échiquier connecté — choisissez un menu"; sub.style.color = ""; }
     } else {
       if (sub) { sub.textContent = "Vérification de l'échiquier…"; sub.style.color = ""; }
       document.querySelectorAll(".menu-btn[data-needs-board]")
@@ -546,7 +546,7 @@ socket.on("board_error", (data) => {
 socket.on("board_ok", () => {
   _boardOk = true;
   const sub = document.querySelector(".menu-subtitle");
-  if (sub) { sub.textContent = "Échiquier connecté — choisissez un mode"; sub.style.color = ""; }
+  if (sub) { sub.textContent = "Échiquier connecté — choisissez un menu"; sub.style.color = ""; }
   document.querySelectorAll(".menu-btn[data-needs-board]")
     .forEach(btn => { btn.disabled = false; });
   const btn = document.getElementById("btn-reconnect");
