@@ -1010,7 +1010,10 @@ def _run_labo_session():
                     session._fen_history  = old_history
                     nl.game_board         = session.board.copy()
                     session._running      = True
-                    threading.Thread(target=session.board_watcher, daemon=True).start()
+                    if _virtual_mode:
+                        nl.make_virtual_board_watcher(session).start()
+                    else:
+                        threading.Thread(target=session.board_watcher, daemon=True).start()
                     send_event("labo_init", {
                         "fen":          session.board.board_fen(),
                         "human_color":  labo_config["human_color"],
