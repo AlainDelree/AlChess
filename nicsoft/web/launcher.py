@@ -36,7 +36,7 @@ class SplashWindow(Gtk.Window):
         box.set_margin_start(24)
         box.set_margin_end(24)
 
-        title = Gtk.Label(label="♟  NicLink")
+        title = Gtk.Label(label="♜  AlChess")
         title.get_style_context().add_class("title")
 
         self.spinner = Gtk.Spinner()
