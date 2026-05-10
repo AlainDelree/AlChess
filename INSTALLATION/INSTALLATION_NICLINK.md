@@ -2,6 +2,7 @@
 
 Basé sur l'installation réelle du 13 avril 2026 sur ThinkPad X1 Carbon Gen 13.
 Mis à jour le 30 avril 2026 — launcher GTK, port automatique.
+Mis à jour le 10 mai 2026 — installation depuis GitHub, moteurs, .gitignore.
 
 ---
 
@@ -20,6 +21,8 @@ sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0
 
 ## 2. Copie du projet
 
+### Option A — Depuis une machine existante (rsync)
+
 Copier le dossier `~/NicLink/` depuis la machine source **sans le venv** :
 
 ```bash
@@ -30,6 +33,21 @@ rsync -av --exclude=venv alain@machine-source:~/NicLink/ ~/NicLink/
 > "Erreur lors de la copie — le système ne gère pas les liens symboliques" peuvent
 > apparaître. Ces liens concernent uniquement `venv/lib64` qui est recréé
 > automatiquement — ils peuvent être ignorés sans problème.
+
+### Option B — Depuis GitHub
+
+```bash
+git clone https://github.com/AlainDelree/AlChess.git ~/NicLink
+```
+
+> ⚠️ Les binaires `engines/maia/lc0` et `engines/rodent-iv/rodentIV` sont inclus
+> dans le repo et compilés pour une architecture **x86_64 Linux**. Sur une autre
+> architecture (ARM, etc.), il faudra les recompiler depuis leurs sources respectives
+> (voir section 7).
+
+> ⚠️ Le driver Rust `_niclink.so` (interface USB Chessnut) n'est **pas** dans le repo
+> car il est compilé pour la machine cible. Il doit être copié depuis une machine
+> fonctionnelle ou recompilé depuis les sources (voir section 7).
 
 ---
 
@@ -115,29 +133,61 @@ echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governo
 
 ---
 
-## 7. Moteurs
+## 7. Moteurs et driver
 
 ### Stockfish
+Installé via apt (inclus dans `requirements.txt`, installé automatiquement via pip) :
 ```bash
 sudo apt install stockfish
 ```
 
-### Maia et Rodent IV
-Copier le dossier `engines` depuis la machine source :
+### Maia (lc0) et Rodent IV
+
+**Option A — depuis une machine existante (recommandé) :**
 ```bash
 rsync -av alain@machine-source:~/NicLink/engines/ ~/NicLink/engines/
 ```
 
-Rendre les binaires exécutables :
+**Option B — depuis GitHub :**
+Les binaires sont inclus dans le repo (x86_64 Linux uniquement).
+Après `git clone`, rendre les binaires exécutables :
 ```bash
 chmod +x ~/NicLink/engines/maia/lc0
 chmod +x ~/NicLink/engines/rodent-iv/rodentIV
 ```
 
-Tester :
+**Option C — recompiler depuis les sources (autre architecture) :**
+- Rodent IV : https://github.com/nescior/Rodent_IV — `make` dans le dossier sources
+- lc0/Maia : https://github.com/LeelaChessZero/lc0 — voir leur guide de compilation
+
+Tester après installation :
 ```bash
 ~/NicLink/engines/maia/lc0 --help
 echo "quit" | ~/NicLink/engines/rodent-iv/rodentIV
+```
+
+### Driver Rust `_niclink.so`
+
+Ce fichier est l'interface bas niveau entre Python et le Chessnut Air via USB.
+Il est compilé pour la machine cible et **n'est pas dans le repo GitHub**.
+
+**Option A — copier depuis une machine existante :**
+```bash
+rsync -av alain@machine-source:~/NicLink/nicsoft/niclink/_niclink.so ~/NicLink/nicsoft/niclink/
+```
+
+**Option B — recompiler depuis les sources :**
+Les sources Rust se trouvent dans `nicsoft/niclink/src/`. Compiler avec :
+```bash
+cd ~/NicLink/nicsoft/niclink
+source ~/NicLink/venv/bin/activate
+pip install maturin
+maturin develop
+```
+
+Vérifier :
+```bash
+ls ~/NicLink/nicsoft/niclink/_niclink.so && echo "driver OK"
 ```
 
 ---
@@ -208,6 +258,9 @@ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor  # attendu : performan
 # GTK disponible pour le launcher
 /usr/bin/python3 -c "import gi; print('GTK OK')"
 
+# Driver Rust présent
+ls ~/NicLink/nicsoft/niclink/_niclink.so && echo "driver OK"
+
 # Lancement via launcher
 /usr/bin/python3 ~/NicLink/nicsoft/web/launcher.py
 ```
@@ -229,6 +282,8 @@ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor  # attendu : performan
 | `ModuleNotFoundError: No module named 'gi'` | GTK non installé ou venv actif | `sudo apt install python3-gi` et utiliser `/usr/bin/python3` pour le launcher |
 | `Address already in use` sur port 5000 | Instance déjà en cours | NicLink trouve automatiquement le prochain port libre — relancer normalement |
 | Fenêtre GTK n'apparaît pas au clic | launcher.py lancé avec le venv python | Vérifier que le `.desktop` utilise `/usr/bin/python3` |
+| `_niclink.so` manquant après git clone | Driver non inclus dans le repo | Copier depuis machine source ou recompiler (voir section 7) |
+| Binaires engines non exécutables après git clone | Permissions non préservées par git | `chmod +x engines/maia/lc0 engines/rodent-iv/rodentIV` |
 
 ---
 
@@ -247,8 +302,14 @@ utiliser le zoom du navigateur (Ctrl+ / Ctrl-).
 sudo apt install libhidapi-hidraw0 libopenblas0 cpufrequtils stockfish
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0
 
-# 2. Copie du projet
+# 2a. Copie du projet depuis machine source
 rsync -av --exclude=venv alain@machine-source:~/NicLink/ ~/NicLink/
+# OU
+# 2b. Cloner depuis GitHub
+git clone https://github.com/AlainDelree/AlChess.git ~/NicLink
+# → Si depuis GitHub : copier _niclink.so et rendre les binaires exécutables
+#   rsync -av alain@machine-source:~/NicLink/nicsoft/niclink/_niclink.so ~/NicLink/nicsoft/niclink/
+#   chmod +x ~/NicLink/engines/maia/lc0 ~/NicLink/engines/rodent-iv/rodentIV
 
 # 3. Venv
 cd ~/NicLink
