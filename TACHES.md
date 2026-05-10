@@ -11,14 +11,14 @@
 
 ### À corriger
 - **`test_pgn.py` en erreur** — import `build_output_path` disparu. À corriger séparément.
-
+- **Mode sans échiquier — choisissez un mode** - Message au dessus des menus.  Ca n'est pas clair pour moi.  Je propose Mode sans échiquier — choisissez un menu
 ---
 
 ## 💡 Fonctionnalités à venir
 
 - **Changer les icônes du programme** — Remplacer les pions (logo) par une tour pour cohérence avec la favicon.
 - **Corbeille dans Outils Exercices** — Pour "Importer mes lignes" et "Convertir SAN en UCI".
-- **Labo — mode virtuel** — L'écran s'affiche mais aucune interaction ne fonctionne. Mode à concevoir.
+- **Labo — mode virtuel** — ✅ Terminé (commits d4b1779→43bc11f). Undo, auto, PGN, promotions validés.
 
 ---
 
