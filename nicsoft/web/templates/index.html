@@ -7,6 +7,7 @@
   <title>AlChess</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+  <script src="/static/i18n.js"></script>
   <link rel="stylesheet" href="/static/css/main.css">
   <script>
     // Détection résolution physique — applique res-large/res-medium/res-small sur <html>
@@ -24,7 +25,13 @@
   <h1><span style="font-size:1.4em; line-height:1;">♜</span> AlChess</h1>
   <div id="status-dot"></div>
   <span id="status-text">Connexion...</span>
-  <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:auto; font-size:0.75rem; color:#3a5a7a; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
+  <select id="lang-selector" onchange="i18n.load(this.value)"
+    style="margin-left:auto; font-size:0.75rem; color:#3a5a7a; background:transparent; border:none; cursor:pointer; opacity:0.6; transition:opacity 0.2s;"
+    onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
+    <option value="fr">🇫🇷 FR</option>
+    <option value="en">🇬🇧 EN</option>
+  </select>
+  <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:8px; font-size:0.75rem; color:#3a5a7a; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
   <a id="btn-debug-mark" href="#" title="Insérer un marqueur debug dans les logs" onclick="debugMark(event)" style="display:none; font-size:0.75rem; color:#e94560; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🔖</a>
   <a id="btn-test-save" href="#" title="Sauvegarder la config test courante" onclick="saveTestConfig(event)" style="display:none; font-size:0.75rem; color:#2196F3; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🎲 save</a>
 </header>
@@ -35,37 +42,37 @@
   <div class="menu-subtitle">Vérification de l'échiquier…</div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-primary" data-needs-board disabled onclick="sendAction({type:'mode', value:'pedagogique'})">🎓 Mode Pédagogique</button>
+    <button class="menu-btn menu-btn-primary" data-needs-board disabled onclick="sendAction({type:'mode', value:'pedagogique'})" data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</button>
     <div class="menu-btn-desc" id="desc-pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})">⚔️ Humain vs Humain</button>
+    <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})" data-i18n="menu.btn.humain">⚔️ Humain vs Humain</button>
     <div class="menu-btn-desc" id="desc-humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})">🔍 Analyse de partie</button>
+    <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})" data-i18n="menu.btn.analyse">📊 Analyse de partie</button>
     <div class="menu-btn-desc" id="desc-analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'analyse_libre'})">🔬 Laboratoire</button>
+    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'analyse_libre'})" data-i18n="menu.btn.labo">🔬 Laboratoire</button>
     <div class="menu-btn-desc" id="desc-labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'exercices'})">📚 Exercices</button>
+    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'exercices'})" data-i18n="menu.btn.exercices">📚 Exercices</button>
     <div class="menu-btn-desc" id="desc-exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})">📝 Retranscrire une partie</button>
+    <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})" data-i18n="menu.btn.retranscrire">✏️ Retranscrire</button>
     <div class="menu-btn-desc" id="desc-retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'outils_exercices'})">🛠️ Outils Exercices</button>
+    <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'outils_exercices'})" data-i18n="menu.btn.outils">🛠️ Outils Exercices</button>
     <div class="menu-btn-desc">Importez vos lignes PGN, convertissez SAN&nbsp;→&nbsp;UCI et gérez le catalogue d'ouvertures.</div>
   </div>
 
