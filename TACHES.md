@@ -15,7 +15,6 @@
 
 ## 💡 Fonctionnalités à venir
 
-- **Corbeille dans Outils Exercices** — Pour "Importer mes lignes" et "Convertir SAN en UCI".
 - **Labo — mode virtuel** — ✅ Terminé (commits d4b1779→43bc11f). Undo, auto, PGN, promotions validés.
 
 ---
