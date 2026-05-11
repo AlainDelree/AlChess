@@ -15,7 +15,6 @@
 
 ## 💡 Fonctionnalités à venir
 
-- **Changer les icônes du programme** — Remplacer les pions (logo) par une tour pour cohérence avec la favicon.
 - **Corbeille dans Outils Exercices** — Pour "Importer mes lignes" et "Convertir SAN en UCI".
 - **Labo — mode virtuel** — ✅ Terminé (commits d4b1779→43bc11f). Undo, auto, PGN, promotions validés.
 
