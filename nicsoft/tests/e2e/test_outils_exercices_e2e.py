@@ -3,7 +3,7 @@ Tests e2e — Outils Exercices (7 outils).
 
 Couvre : navigation, ordre des cartes, Convertir SAN→UCI, Ajouter (auto-ID + vérifier),
 Import ECO (recherche), Explorer Polyglot (livres), Modifier (liste + filtre),
-Import PGN (dropzone).
+Import PGN (dropzone), Corbeille dans Import PGN et Convertir SAN→UCI.
 
 Non couvert : Wikipedia update (nécessite internet), upload fichier PGN réel.
 
@@ -274,3 +274,52 @@ def test_wikipedia_bouton_present(at_outils):
     """Bouton 'Mettre à jour depuis Wikipedia' présent (pas cliqué — évite appel réseau)."""
     assert at_outils.locator("#wiki-btn").is_visible()
     assert not at_outils.locator("#wiki-result").is_visible()
+
+
+# ── Corbeille dans Outils Exercices ───────────────────────────────────────────
+# IMPORTANT : les 2 premiers tests vérifient l'état corbeille vide — ils doivent
+# s'exécuter avant tout ajout en corbeille (aucun autre test de ce fichier n'ajoute).
+
+def test_corbeille_import_pgn_selecteur_present(at_outils):
+    """Sélecteur corbeille présent dans la carte 'Importer mes lignes PGN'."""
+    assert at_outils.locator("#basket-select-outils-pgn").is_visible()
+
+
+def test_corbeille_uci_selecteur_present(at_outils):
+    """Sélecteur corbeille présent dans la carte 'Convertir SAN → UCI'."""
+    assert at_outils.locator("#basket-select-outils-uci").is_visible()
+
+
+def test_corbeille_labels_vides(at_outils):
+    """Les deux sélecteurs affichent '— corbeille vide —' quand la corbeille est vide."""
+    assert "corbeille vide" in at_outils.locator("#basket-select-outils-pgn .basket-sel-label").text_content()
+    assert "corbeille vide" in at_outils.locator("#basket-select-outils-uci .basket-sel-label").text_content()
+
+
+def test_corbeille_boutons_charger_desactives_si_vide(at_outils):
+    """Boutons 🧺 Charger désactivés quand la corbeille est vide."""
+    assert at_outils.locator("button[onclick='basketLoadToOutilsPgn()']").is_disabled()
+    assert at_outils.locator("button[onclick='basketLoadToOutilsUci()']").is_disabled()
+
+
+def test_corbeille_boutons_actives_apres_ajout(at_outils):
+    """Après ajout d'une partie en corbeille, les boutons Charger s'activent."""
+    at_outils.evaluate("socket.emit('basket_add', {label: 'test_e2e.pgn', pgn: '1. e4 e5 *'})")
+    at_outils.wait_for_function("typeof _basket !== 'undefined' && _basket.length > 0", timeout=5000)
+    assert not at_outils.locator("button[onclick='basketLoadToOutilsPgn()']").is_disabled()
+    assert not at_outils.locator("button[onclick='basketLoadToOutilsUci()']").is_disabled()
+
+
+def test_corbeille_charger_uci_remplit_textarea(at_outils):
+    """Charger depuis corbeille dans 'Convertir SAN → UCI' remplit le textarea."""
+    at_outils.locator("#outils-uci-input").fill("")
+    at_outils.locator("button[onclick='basketLoadToOutilsUci()']").click()
+    at_outils.wait_for_function("document.getElementById('outils-uci-input').value.length > 0", timeout=5000)
+    assert len(at_outils.locator("#outils-uci-input").input_value()) > 0
+
+
+def test_corbeille_charger_pgn_affiche_preview(at_outils):
+    """Charger depuis corbeille dans 'Importer mes lignes PGN' affiche la prévisualisation."""
+    at_outils.locator("button[onclick='basketLoadToOutilsPgn()']").click()
+    at_outils.locator("#outils-pgn-preview-list").wait_for(state="visible", timeout=8000)
+    assert at_outils.locator("#outils-pgn-preview-list").is_visible()
