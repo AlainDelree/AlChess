@@ -17,6 +17,8 @@ Application d'entraînement aux échecs connectant un échiquier physique **Ches
 - 📝 **Retranscription PGN** — rejouez et exportez vos parties
 - 🧪 **Mode Labo** — échiquier virtuel sans matériel physique
 
+> ℹ️ Tous les modes (sauf Humain vs Humain) fonctionnent sans échiquier physique grâce à un échiquier virtuel intégré.
+
 ### Matériel requis
 
 - Échiquier **Chessnut Air** (USB, `idVendor=2d80 idProduct=8003`)
@@ -71,6 +73,8 @@ A chess training application connecting a **Chessnut Air** physical chessboard t
 - 🔍 **Game analysis** — move-by-move navigation, import external PGN files (e.g. from Chess.com)
 - 📝 **PGN retranscription** — replay and export your games
 - 🧪 **Lab mode** — virtual board without physical hardware
+
+> ℹ️ All modes (except Human vs Human) work without a physical board thanks to a built-in virtual chessboard.
 
 ### Hardware required
 
