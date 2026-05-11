@@ -4230,6 +4230,33 @@ function basketLoadToLabo() {
   });
 }
 
+function basketLoadToOutilsPgn() {
+  const sel = document.getElementById("basket-select-outils-pgn");
+  const idx = sel ? parseInt(sel.dataset.value) : -1;
+  if (isNaN(idx) || idx < 0) return;
+  socket.emit("basket_load", { idx });
+  socket.once("basket_load_result", (data) => {
+    if (!data.pgn) return;
+    _outilsPgnFiles = [{ name: data.label || "corbeille.pgn", content: data.pgn }];
+    document.getElementById("outils-pgn-preview-list").style.display = "none";
+    document.getElementById("outils-pgn-preview-list").innerHTML = "";
+    document.getElementById("outils-pgn-result").style.display = "none";
+    document.getElementById("outils-pgn-btn-import").style.display = "none";
+    document.getElementById("outils-pgn-btn-clear").style.display = "none";
+    _outilsPgnPreviewAll();
+  });
+}
+
+function basketLoadToOutilsUci() {
+  const sel = document.getElementById("basket-select-outils-uci");
+  const idx = sel ? parseInt(sel.dataset.value) : -1;
+  if (isNaN(idx) || idx < 0) return;
+  socket.emit("basket_load", { idx });
+  socket.once("basket_load_result", (data) => {
+    if (data.pgn) document.getElementById("outils-uci-input").value = data.pgn;
+  });
+}
+
 socket.on("basket_updated", (data) => {
   _basket = data.entries || [];
   _renderBasketSelects();
@@ -4698,6 +4725,7 @@ function _outilsPgnRenderPreview(items) {
     }
   });
   html += "</table>";
+  list.style.display = "block";
   list.innerHTML = html;
   document.getElementById("outils-pgn-btn-clear").style.display = "inline-block";
   if (hasOk) document.getElementById("outils-pgn-btn-import").style.display = "inline-block";

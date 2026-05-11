@@ -1035,6 +1035,16 @@
     </div>
     <input type="file" id="outils-pgn-input" accept=".pgn" multiple style="display:none;" onchange="outilsPgnFilesSelected(this.files)">
 
+    <!-- Corbeille de session -->
+    <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
+      <div id="basket-select-outils-pgn" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
+        <span class="basket-sel-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
+        <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
+        <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
+      </div>
+      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsPgn()">🧺 Charger</button>
+    </div>
+
     <!-- Liste de prévisualisation -->
     <div id="outils-pgn-preview-list" style="display:none; margin-bottom:12px;"></div>
 
@@ -1054,6 +1064,16 @@
       <span class="outil-title">🔄 Convertir SAN → UCI</span>
     </div>
     <p class="outil-desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
+    <!-- Corbeille de session -->
+    <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
+      <div id="basket-select-outils-uci" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
+        <span class="basket-sel-label" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
+        <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
+        <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
+      </div>
+      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsUci()">🧺 Charger</button>
+    </div>
+
     <div style="position:relative;">
       <textarea id="outils-uci-input" placeholder="Collez votre PGN ici…" rows="3"
         style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.9rem; padding:8px 36px 8px 8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; resize:vertical;"></textarea>
