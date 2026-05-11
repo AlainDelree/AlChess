@@ -85,7 +85,7 @@ def test_hh_ouvre_config(at_menu):
     """Clic HH → écran config HH (non disponible en mode virtuel — bouton absent)."""
     # HH a data-physical-only donc désactivé en mode virtuel
     btn_hh = at_menu.locator("button", has_text="Humain vs Humain")
-    if btn_hh.is_disabled():
+    if not btn_hh.is_visible() or btn_hh.is_disabled():
         pytest.skip("HH désactivé en mode virtuel (data-physical-only) — OK")
     btn_hh.click()
     at_menu.wait_for_selector("#screen-config-humain", state="visible", timeout=5000)
@@ -118,7 +118,7 @@ def test_retour_depuis_analyse(at_menu):
 
 def test_exercices_liste_affichee(at_menu):
     """Exercices → liste des ouvertures s'affiche."""
-    btn_ex = at_menu.locator("button", has_text="Exercices")
+    btn_ex = at_menu.locator("button", has_text="📚 Exercices")
     if btn_ex.is_disabled():
         pytest.skip("Exercices nécessite un échiquier ou mode virtuel non détecté")
     btn_ex.click()
@@ -129,7 +129,7 @@ def test_exercices_liste_affichee(at_menu):
 def test_retour_depuis_exercices(at_menu):
     """Exercices → retour menu propre."""
     if not at_menu.locator("#screen-exercices").is_visible():
-        at_menu.locator("button", has_text="Exercices").click()
+        at_menu.locator("button", has_text="📚 Exercices").click()
         at_menu.wait_for_selector("#screen-exercices", state="visible", timeout=5000)
 
     at_menu.locator("#screen-exercices button", has_text="Menu").first.click()
