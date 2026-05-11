@@ -13,6 +13,7 @@ Application d'entraînement aux échecs connectant un échiquier physique **Ches
 - ♟️ **Partie pédagogique** — jouez contre Stockfish avec évaluation et feedback à chaque coup
 - 👥 **Humain vs Humain** — deux joueurs sur le même échiquier physique
 - 📖 **Exercices d'ouvertures** — entraînement sur des lignes personnalisées ou des livres Polyglot
+- 🔍 **Analyse de partie** — navigation coup par coup, import de PGN externes (ex: Chess.com)
 - 📝 **Retranscription PGN** — rejouez et exportez vos parties
 - 🧪 **Mode Labo** — échiquier virtuel sans matériel physique
 
@@ -67,6 +68,7 @@ A chess training application connecting a **Chessnut Air** physical chessboard t
 - ♟️ **Pedagogical mode** — play against Stockfish with per-move evaluation and feedback
 - 👥 **Human vs Human** — two players on the same physical board
 - 📖 **Opening exercises** — train on custom lines or Polyglot opening books
+- 🔍 **Game analysis** — move-by-move navigation, import external PGN files (e.g. from Chess.com)
 - 📝 **PGN retranscription** — replay and export your games
 - 🧪 **Lab mode** — virtual board without physical hardware
 
