@@ -10,8 +10,7 @@
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
 
 ### À corriger
-- **`test_pgn.py` en erreur** — import `build_output_path` disparu. À corriger séparément.
-- **Mode sans échiquier — choisissez un mode** - Message au dessus des menus.  Ca n'est pas clair pour moi.  Je propose Mode sans échiquier — choisissez un menu
+
 ---
 
 ## 💡 Fonctionnalités à venir
@@ -28,6 +27,12 @@
 - **Niveau 2** — `nicsoft/tests/test_app_state.py` — 25 tests pytest (`python -m pytest nicsoft/tests/test_app_state.py -v`)
 - **Niveau 3** — `nicsoft/tests/e2e/` — 35 tests Playwright headless (`python -m pytest nicsoft/tests/e2e/ -v`)
 - **Mode test aléatoire** — `NICLINK_TEST=random python -m nicsoft.web` + bouton 🎲 save → `logs/Test config/`
+
+### GitHub Actions — à améliorer
+- **Matrix multi-versions** — tester automatiquement sur plusieurs configs à chaque push :
+  - Python 3.10, 3.11, 3.12 en parallèle
+  - Ubuntu 22.04 et 24.04
+  - Modifier `.github/workflows/python-app.yml` : remplacer `python-version: "3.12"` par une `matrix` strategy
 
 ---
 
