@@ -26,6 +26,7 @@ const i18n = (() => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _data   = await res.json();
       _locale = locale;
+      localStorage.setItem('alchess_locale', locale);
       applyToDOM();
       _updateSelector(locale);
     } catch (e) {
@@ -80,7 +81,8 @@ const i18n = (() => {
 /** Raccourci global utilisé dans app.js et le HTML inline. */
 function t(key, vars) { return i18n.t(key, vars); }
 
-/** Initialisation au chargement de la page — toujours FR au démarrage. */
+/** Initialisation au chargement de la page. */
 (function _initI18n() {
-  window.i18nReady = i18n.load(DEFAULT_LOCALE);
+  const saved = localStorage.getItem('alchess_locale') || DEFAULT_LOCALE;
+  window.i18nReady = i18n.load(saved);
 })();
