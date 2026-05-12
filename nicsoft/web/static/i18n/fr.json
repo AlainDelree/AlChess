@@ -117,6 +117,7 @@
   "game.h2.navigation":        "Navigation",
   "game.btn.reprendre_partie": "▶ Reprendre la partie",
   "game.btn.changer_couleur":  "🔄 Changer de couleur",
+  "game.btn.annuler_changement": "🔄 Annuler changement",
   "game.nav.vitesse":          "Vitesse",
   "game.nav.precedent":        "← Précédent",
   "game.nav.suivant":          "Suivant →",
@@ -247,6 +248,7 @@
   "menu.verification_echiquier": "Vérification de l'échiquier…",
   "menu.board_error_long":     "⚠ Échiquier non détecté — vérifiez l'USB et allumez le plateau puis redémarrez le jeu",
   "menu.btn.reconnect_label":  "⟳ Reconnecter l'échiquier",
+  "menu.btn.reconnect_connecte": "✓ Échiquier connecté",
 
   "game.demarrage_virtuel":    "Démarrage de la partie…",
   "game.mode_sans_echiquier":  "Mode sans échiquier physique.",

@@ -551,7 +551,7 @@ socket.on("board_ok", () => {
   document.querySelectorAll(".menu-btn[data-needs-board]")
     .forEach(btn => { btn.disabled = false; });
   const btn = document.getElementById("btn-reconnect");
-  if (btn) { btn.textContent = "✓ Échiquier connecté"; btn.disabled = true; btn.style.opacity = "0.5"; btn.style.cursor = "default"; btn.style.background = ""; }
+  if (btn) { btn.textContent = t("menu.btn.reconnect_connecte"); btn.disabled = true; btn.style.opacity = "0.5"; btn.style.cursor = "default"; btn.style.background = ""; }
 });
 
 socket.on("virtual_mode_active", () => {
@@ -1066,6 +1066,14 @@ function _refreshDynamicLabels() {
     Array.from(maiaSel.options).forEach(opt => {
       if (maiaKeys[opt.value]) opt.textContent = `Maia ${opt.value} — ${t(maiaKeys[opt.value])}`;
     });
+  }
+
+  // Bouton reconnect (texte selon état board)
+  const reconnectBtn = document.getElementById("btn-reconnect");
+  if (reconnectBtn && reconnectBtn.disabled) {
+    reconnectBtn.textContent = t("menu.btn.reconnect_connecte");
+  } else if (reconnectBtn && !reconnectBtn.disabled) {
+    reconnectBtn.textContent = t("menu.btn.reconnect_label");
   }
 
   // Sous-titre menu
@@ -2179,12 +2187,12 @@ function _updateChangerCouleurBtn() {
     btn.style.background = "#e94560";
     btn.style.borderColor = "#e94560";
     btn.style.color = "#fff";
-    btn.textContent = "🔄 Annuler changement";
+    btn.textContent = t("game.btn.annuler_changement");
   } else {
     btn.style.background  = "#0f3460";
     btn.style.borderColor = "#e94560";
     btn.style.color       = "#e0e0e0";
-    btn.textContent = "🔄 Changer de couleur";
+    btn.textContent = t("game.btn.changer_couleur");
   }
 }
 
