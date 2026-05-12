@@ -9,6 +9,7 @@
   "common.charger":            "🧺 Load",
   "common.actualiser":         "🔄 Refresh",
   "common.corbeille_vide":     "— basket empty —",
+  "common.n_coups":            "{n} moves",
   "common.chargement":         "Loading…",
   "common.conversion":         "Converting…",
   "common.verification":       "Checking…",
@@ -323,7 +324,10 @@
   "game.fin_partie_default":   "Game over",
   "game.titre_libre":          "Free game",
   "game.titre_pedagogique":    "Training game",
+  "game.titre_mat":            "Checkmate!",
+  "game.titre_pat":            "Stalemate!",
   "game.label.pause":          "Pause:",
+  "game.label.sequence":       "Sequence:",
   "game.revision_pgn":         "PGN Review",
 
   "analyse.titre":             "Game analysis",
@@ -405,5 +409,14 @@
   "elo.expert":                "Expert",
   "elo.maitre":                "Master",
   "elo.grand_maitre":          "Grand Master",
-  "elo.niveau_max":            "Max level"
+  "elo.niveau_max":            "Max level",
+
+  "pgn.mode.Humain":           "Human",
+  "pgn.mode.Stockfish":        "Stockfish",
+  "pgn.mode.Retranscription":  "Transcription",
+  "pgn.type.Amusement":        "Leisure",
+  "pgn.type.Pedagogique":      "Training",
+  "pgn.type.Serieuse":         "Serious",
+  "pgn.type.Club":             "Club",
+  "pgn.type.Chesscom":         "Chess.com"
 }

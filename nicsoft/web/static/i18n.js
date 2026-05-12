@@ -29,10 +29,15 @@ const i18n = (() => {
       localStorage.setItem('alchess_locale', locale);
       applyToDOM();
       _updateSelector(locale);
+      // Resynchronise les éléments dynamiques après chaque chargement de locale
+      if (typeof window._refreshDynamicLabels === 'function') window._refreshDynamicLabels();
     } catch (e) {
       console.warn(`[i18n] Impossible de charger ${locale}.json :`, e);
     }
   }
+
+  /** Retourne une Promise qui se résout dès que _data est chargé pour la locale actuelle. */
+  function ready() { return window.i18nReady || Promise.resolve(); }
 
   /**
    * Traduit une clé avec interpolation optionnelle.
@@ -75,7 +80,7 @@ const i18n = (() => {
     if (sel) sel.value = locale;
   }
 
-  return { load, t, applyToDOM, locale };
+  return { load, t, applyToDOM, locale, ready };
 })();
 
 /** Raccourci global utilisé dans app.js et le HTML inline. */
@@ -86,3 +91,10 @@ function t(key, vars) { return i18n.t(key, vars); }
   const saved = localStorage.getItem('alchess_locale') || DEFAULT_LOCALE;
   window.i18nReady = i18n.load(saved);
 })();
+
+/** Surcharge load() pour que window.i18nReady pointe toujours vers le chargement en cours. */
+const _origLoad = i18n.load.bind(i18n);
+i18n.load = function(locale) {
+  window.i18nReady = _origLoad(locale);
+  return window.i18nReady;
+};
