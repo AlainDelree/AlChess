@@ -346,7 +346,7 @@ function flipBoard() {
   buildBoard();
   // Mettre à jour le titre du bouton
   const btn = document.getElementById("btn-flip");
-  if (btn) btn.title = _boardFlipped ? "Blancs en bas" : "Noirs en bas";
+  if (btn) btn.title = t(_boardFlipped ? "game.flip_blancs" : "game.flip_noirs");
   // Inverser les noms et matériaux
   const topName  = document.getElementById("player-top-name");
   const botName  = document.getElementById("player-bottom-name");
@@ -385,24 +385,24 @@ function buildBoardReview() {
 
 // ── CONFIG PÉDAGOGIQUE — ELO, moteur, couleur, démarrage ──
 
-const ELO_LABELS = [
-  [1320, "Débutant"],
-  [1400, "Débutant confirmé"],
-  [1500, "Joueur confirmé"],
-  [1600, "Intermédiaire"],
-  [1700, "Intermédiaire+"],
-  [1800, "Avancé"],
-  [1900, "Avancé+"],
-  [2000, "Expert"],
-  [2200, "Maître"],
-  [2400, "Grand Maître"],
-  [3190, "Niveau max"],
+const ELO_LABEL_KEYS = [
+  [1320, "elo.debutant"],
+  [1400, "elo.debutant_confirme"],
+  [1500, "elo.joueur_confirme"],
+  [1600, "elo.intermediaire"],
+  [1700, "elo.intermediaire_plus"],
+  [1800, "elo.avance"],
+  [1900, "elo.avance_plus"],
+  [2000, "elo.expert"],
+  [2200, "elo.maitre"],
+  [2400, "elo.grand_maitre"],
+  [3190, "elo.niveau_max"],
 ];
 
 function eloLabel(elo) {
-  let label = ELO_LABELS[0][1];
-  for (const [seuil, lbl] of ELO_LABELS) {
-    if (elo >= seuil) label = lbl;
+  let label = t(ELO_LABEL_KEYS[0][1]);
+  for (const [seuil, key] of ELO_LABEL_KEYS) {
+    if (elo >= seuil) label = t(key);
   }
   return label;
 }
@@ -1164,7 +1164,7 @@ function showFeedback(data) {
     box.style.display  = "block";
     box.className      = data.qualite;
     label.textContent  = LABELS[data.qualite] || data.qualite;
-    detail.textContent = `${data.san} — ${data.delta_cp}cp de perte`;
+    detail.textContent = t("game.delta_cp", {san: data.san, delta: data.delta_cp});
     document.getElementById("btn-best").disabled      = !data.best_move_uci;
     document.getElementById("btn-continuer").disabled = false;
     // Bouton séquence — actif si une ligne punitive est disponible
@@ -2666,7 +2666,7 @@ socket.on("labo_init", (data) => {
   _laboUpdateCampBtn();
   const sub   = document.getElementById("labo-game-subtitle");
   const engEl = document.getElementById("labo-engine-label");
-  if (sub)   sub.textContent = `Laboratoire — ${data.engine_label}`;
+  if (sub)   sub.textContent = t("labo.subtitle", {engine: data.engine_label});
   if (engEl) engEl.textContent = data.engine_label || "";
   const engInfoEl = document.getElementById("labo-engine-info");
   if (engInfoEl) engInfoEl.textContent = data.engine_label || "";
@@ -2779,7 +2779,7 @@ socket.on("labo_engine_played", (data) => {
   }
   const turnEl = document.getElementById("labo-turn-info");
   if (turnEl) {
-    turnEl.textContent = `Placez le coup de ${data.engine}`;
+    turnEl.textContent = t("labo.placer_coup", {engine: data.engine});
     turnEl.style.color = "#ff9800";
   }
   laboJournalAdd("coups", `♟ ${data.engine} : ${data.san}`);
@@ -3618,7 +3618,7 @@ socket.on("exercice_out_of_book", (data) => {
     bookEl.innerHTML = "";
     const title = document.createElement("div");
     title.style.cssText = "color:#e94560;margin-bottom:4px;";
-    title.textContent = "Coups théoriques :";
+    title.textContent = t("exercices.coups_theoriques");
     bookEl.appendChild(title);
     moves.forEach((m, i) => {
       const span = document.createElement("span");
@@ -3746,7 +3746,7 @@ function virtSaveLegalPref(enabled) {
   _virtShowLegal = enabled;
   localStorage.setItem("niclink_show_legal", enabled ? "true" : "false");
   const lbl = document.getElementById("cfg-show-legal-label");
-  if (lbl) lbl.textContent = enabled ? "Activé" : "Désactivé";
+  if (lbl) lbl.textContent = t(enabled ? "common.active" : "common.desactive");
 }
 
 // Initialise la checkbox depuis localStorage au chargement de la config
@@ -3754,7 +3754,7 @@ function _virtInitLegalCheckbox() {
   const chk = document.getElementById("cfg-show-legal");
   const lbl = document.getElementById("cfg-show-legal-label");
   if (chk) chk.checked = _virtShowLegal;
-  if (lbl) lbl.textContent = _virtShowLegal ? "Activé" : "Désactivé";
+  if (lbl) lbl.textContent = t(_virtShowLegal ? "common.active" : "common.desactive");
 }
 
 // Initialise chess.js avec le FEN courant
@@ -4414,13 +4414,13 @@ function retransEnd(result) {
     return;
   }
   // Résultat définitif — demander confirmation
-  const labels = {"1-0": "Blancs gagnent (1-0)", "0-1": "Noirs gagnent (0-1)", "1/2-1/2": "Nulle (½-½)"};
-  const label = labels[result] || result;
+  const labelKeys = {"1-0": "retrans.blancs_gagnent", "0-1": "retrans.noirs_gagnent", "1/2-1/2": "retrans.nulle"};
+  const label = labelKeys[result] ? t(labelKeys[result]) : result;
   const btn = document.getElementById("modal-confirm");
   if (btn) {
-    document.getElementById("modal-title").textContent = `Terminer la partie — ${label}`;
+    document.getElementById("modal-title").textContent = t("retrans.modal.terminer", {label});
     const sub = document.getElementById("modal-subtitle");
-    if (sub) sub.textContent = "Le PGN sera sauvegardé avec ce résultat.";
+    if (sub) sub.textContent = t("retrans.modal.pgn_resultat");
     btn.textContent = "✓ Confirmer";
     btn.className = "btn btn-reprendre";
     btn.onclick = () => { fermerModal(); sendAction({ type: "retranscription_end", result }); };
@@ -4564,7 +4564,7 @@ function _retransRenderHistory() {
 function _retransUpdateTurn() {
   const el = document.getElementById("retrans-turn");
   if (!el || !_retransChess) return;
-  el.textContent = `Coup ${Math.floor(_retransMoves.length / 2) + 1} — Au tour des ${_retransChess.turn() === "w" ? "Blancs" : "Noirs"}`;
+  el.textContent = t("retrans.tour", {n: Math.floor(_retransMoves.length / 2) + 1, color: t(_retransChess.turn() === "w" ? "config.blancs" : "config.noirs")});
 }
 
 socket.on("retranscription_en_cours", (data) => {
@@ -4592,11 +4592,11 @@ socket.on("retranscription_init", (data) => {
   const top = document.getElementById("retrans-player-top");
   const bot = document.getElementById("retrans-player-bottom");
   if (data.mode === "exercice") {
-    if (top) top.textContent = data.camp_suggere === "black" ? "♚ Noirs (vous)" : "♚ Noirs";
-    if (bot) bot.textContent = data.camp_suggere === "white" ? "♔ Blancs (vous)" : "♔ Blancs";
+    if (top) top.textContent = t(data.camp_suggere === "black" ? "retrans.noirs_vous" : "retrans.noirs_sym");
+    if (bot) bot.textContent = t(data.camp_suggere === "white" ? "retrans.blancs_vous" : "retrans.blancs_sym");
   } else {
-    if (top) top.textContent = `♚ ${data.black} (Noirs)`;
-    if (bot) bot.textContent = `♔ ${data.white} (Blancs)`;
+    if (top) top.textContent = t("retrans.joueur_noirs", {name: data.black});
+    if (bot) bot.textContent = t("retrans.joueur_blancs", {name: data.white});
   }
   retransBuildBoard(); retransRenderBoard(data.fen, null, null);
   _rtActivateBoard(); _retransRenderHistory(); _retransUpdateTurn();
@@ -4624,17 +4624,18 @@ socket.on("retranscription_undo", (data) => {
 
 socket.on("retranscription_end", (data) => {
   const statusEl = document.getElementById("retrans-status");
-  const reasons  = { checkmate: "Échec et mat !", stalemate: "Pat !", material: "Matériel insuffisant" };
-  if (statusEl) { statusEl.textContent = `${reasons[data.reason] || "Partie terminée"} — ${data.result}`; statusEl.style.color = "#4caf50"; }
+  const reasonKeys = { checkmate: "retrans.fin.checkmate", stalemate: "retrans.fin.stalemate", material: "retrans.fin.material" };
+  const reasonTxt = reasonKeys[data.reason] ? t(reasonKeys[data.reason]) : t("game.fin_partie_default");
+  if (statusEl) { statusEl.textContent = `${reasonTxt} — ${data.result}`; statusEl.style.color = "#4caf50"; }
   sendAction({ type: "retranscription_end", result: data.result });
 });
 
 socket.on("retranscription_path_preview", (data) => {
   const btn = document.getElementById("modal-confirm");
   if (!btn) return;
-  document.getElementById("modal-title").textContent = "Sauver et quitter ?";
+  document.getElementById("modal-title").textContent = t("retrans.modal.sauver_quitter");
   const sub = document.getElementById("modal-subtitle");
-  if (sub) sub.textContent = `Le fichier PGN sera enregistré dans :\n${data.path}`;
+  if (sub) sub.textContent = t("retrans.pgn_path", {path: data.path});
   btn.textContent = "✓ Confirmer";
   btn.className = "btn btn-reprendre";
   btn.onclick = () => { fermerModal(); sendAction({ type: "retranscription_end", result: "*" }); };

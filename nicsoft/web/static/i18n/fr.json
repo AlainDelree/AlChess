@@ -328,5 +328,40 @@
 
   "toast.nulle_refusee_eval":  "Impossible d'évaluer la position.",
 
-  "exercices.recommencer_instruction": "Cliquez <b>Recommencer</b> pour rejouer."
+  "exercices.recommencer_instruction": "Cliquez <b>Recommencer</b> pour rejouer.",
+
+  "game.flip_blancs":          "Blancs en bas",
+  "game.flip_noirs":           "Noirs en bas",
+
+  "labo.subtitle":             "Laboratoire — {engine}",
+  "labo.placer_coup":          "Placez le coup de {engine}",
+
+  "exercices.coups_theoriques": "Coups théoriques :",
+
+  "retrans.modal.sauver_quitter": "Sauver et quitter ?",
+  "retrans.modal.terminer":    "Terminer la partie — {label}",
+  "retrans.modal.pgn_resultat": "Le PGN sera sauvegardé avec ce résultat.",
+  "retrans.tour":              "Coup {n} — Au tour des {color}",
+  "retrans.joueur_noirs":      "♚ {name} (Noirs)",
+  "retrans.joueur_blancs":     "♔ {name} (Blancs)",
+  "retrans.noirs_sym":         "♚ Noirs",
+  "retrans.blancs_sym":        "♔ Blancs",
+  "retrans.noirs_vous":        "♚ Noirs (vous)",
+  "retrans.blancs_vous":       "♔ Blancs (vous)",
+  "retrans.fin.checkmate":     "Échec et mat !",
+  "retrans.fin.stalemate":     "Pat !",
+  "retrans.fin.material":      "Matériel insuffisant",
+  "retrans.pgn_path":          "Le fichier PGN sera enregistré dans :\n{path}",
+
+  "elo.debutant":              "Débutant",
+  "elo.debutant_confirme":     "Débutant confirmé",
+  "elo.joueur_confirme":       "Joueur confirmé",
+  "elo.intermediaire":         "Intermédiaire",
+  "elo.intermediaire_plus":    "Intermédiaire+",
+  "elo.avance":                "Avancé",
+  "elo.avance_plus":           "Avancé+",
+  "elo.expert":                "Expert",
+  "elo.maitre":                "Maître",
+  "elo.grand_maitre":          "Grand Maître",
+  "elo.niveau_max":            "Niveau max"
 }
