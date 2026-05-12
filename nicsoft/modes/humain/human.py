@@ -1004,6 +1004,8 @@ class GameWeb(threading.Thread):
             result  = "0-1" if self.board.turn == chess.WHITE else "1-0"
             gagnant = self.black_name if self.board.turn == chess.WHITE else self.white_name
         title = f"{gagnant} gagne" if gagnant else "Partie terminée"
+        title_key  = "game.titre_gagne" if gagnant else "game.fin_partie_default"
+        title_vars = {"winner": gagnant} if gagnant else {}
         self.game_over = True
         self.save_pgn_tmp(result)
         _hist_fens, _hist_moves = self._build_history_from_stack()
@@ -1011,7 +1013,9 @@ class GameWeb(threading.Thread):
             "result": result,
             "reason": "Abandon",
             "source": "niclink",
-            "title":  title,
+            "title":      title,
+            "title_key":  title_key,
+            "title_vars": title_vars,
             "skip":   skip,
         })
         from nicsoft.web import server as _web_server
@@ -1034,12 +1038,14 @@ class GameWeb(threading.Thread):
     def _check_game_over(self):
         if self.board.is_checkmate():
             winner = "Noirs" if self.board.turn == chess.WHITE else "Blancs"
+            winner_key = "config.noirs" if self.board.turn == chess.WHITE else "config.blancs"
             result = "0-1" if self.board.turn == chess.WHITE else "1-0"
             self.game_over = True
             self.save_pgn_tmp(result)
             send_event("game_over", {
                 "result": result, "reason": f"Échec et mat — {winner} gagnent",
                 "source": "niclink", "title": "Fin de partie",
+                "title_key": "game.fin_partie_default",
             })
             from nicsoft.web import server as _web_server
             _web_server._app_state = "game_over"
@@ -1056,6 +1062,7 @@ class GameWeb(threading.Thread):
             send_event("game_over", {
                 "result": "1/2-1/2", "reason": "Nulle",
                 "source": "niclink", "title": "Nulle",
+                "title_key": "game.titre_nulle",
             })
             from nicsoft.web import server as _web_server
             _web_server._app_state = "game_over"

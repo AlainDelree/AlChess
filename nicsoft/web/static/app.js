@@ -872,7 +872,7 @@ socket.on("qualite", (data) => {
 
 socket.on("popup", (data) => {
   // Popup simple avec bouton OK — utilisé pour échec et mat, pat, etc.
-  document.getElementById("modal-title").textContent = data.message || t("game.fin_partie_default");
+  document.getElementById("modal-title").textContent = _i18nMsg(data) || t("game.fin_partie_default");
   const std  = document.getElementById("modal-btns-standard");
   const coul = document.getElementById("modal-btns-couleur");
   if (std)  std.style.display  = "flex";
@@ -899,7 +899,10 @@ socket.on("game_over", (data) => {
   hideFeedback();
   stopCountdown();
   _gameSource = data.source || "externe";
-  if (data.title)  document.getElementById("gameover-title").textContent  = data.title;
+  const gameTitle = data.title_key
+    ? t(data.title_key, data.title_vars || {})
+    : data.title;
+  if (gameTitle) document.getElementById("gameover-title").textContent  = gameTitle;
   if (data.result) document.getElementById("gameover-result").textContent = data.result;
   document.getElementById("rv-game-info").textContent = "";
   const fenToRender = reviewFens[reviewIdx] || currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -1009,7 +1012,8 @@ socket.on("history", (data) => {
   _pendingMove = null;
 });
 socket.on("nulle_refusee", (data) => {
-  afficherToast(t("toast.nulle_refusee", {reason: data.reason || t("toast.nulle_refusee_default")}), "warning");
+  const reason = _i18nMsg(data, "reason", "reason_key") || t("toast.nulle_refusee_default");
+  afficherToast(t("toast.nulle_refusee", {reason}), "warning");
 });
 
 socket.on("pgn_sauvegarde", (data) => {
@@ -1029,6 +1033,17 @@ socket.on("position_initiale", (data) => {
 });
 
 // ── UI — utilitaires (toast, boutons, historique, PGN) ────
+
+// Résout un message venant du backend : si message_key présent, on traduit ;
+// sinon on utilise le champ texte brut (fallback rétro-compatible).
+function _i18nMsg(data, field = "message", keyField = "message_key") {
+  if (data[keyField]) {
+    const vars = {...(data.vars || {})};
+    if (vars.color_key) vars.color = t(vars.color_key);
+    return t(data[keyField], vars);
+  }
+  return data[field] || "";
+}
 
 function afficherToast(message, type) {
   const toast = document.getElementById("toast");
@@ -1976,7 +1991,7 @@ socket.on("position_ok", (data) => {
 socket.on("illegal_position", (data) => {
   const turnInfo = document.getElementById("turn-info");
   if (turnInfo) {
-    turnInfo.textContent = data.message || "⚠ Position illégale";
+    turnInfo.textContent = _i18nMsg(data) || t("game.illegal_position_default");
     turnInfo.className = "warning";
   }
 });
@@ -1998,7 +2013,7 @@ socket.on("resume", (data) => {
 
 socket.on("pause", (data) => {
   const player = data.player || "Joueur";
-  const color  = data.playing_white ? "Blancs" : "Noirs";
+  const color  = t(data.playing_white ? "config.blancs" : "config.noirs");
 
   // Stocker les infos du coup pour la séquence punitive
   if (data.best_move) bestMove = data.best_move;
@@ -2007,7 +2022,7 @@ socket.on("pause", (data) => {
 
   // ── Info joueur ──
   const el = document.getElementById("pause-info");
-  if (el) el.textContent = `${player} joue les ${color}`;
+  if (el) el.textContent = t("game.pause_info", {player, color});
 
   // ── Feedback du coup (pause auto) ──
   const feedbackBox   = document.getElementById("pause-feedback-box");
@@ -2015,11 +2030,16 @@ socket.on("pause", (data) => {
   const feedbackDetail= document.getElementById("pause-feedback-detail");
   if (feedbackBox) {
     if (data.auto && data.qualite) {
-      const LABELS = { bon:"✓ Bon coup", imprecision:"?! Imprécision", erreur:"? Erreur", blunder:"?? Gaffe" };
+      const LABELS = {
+        bon:        "✓ " + t("feedback.bon"),
+        imprecision:"?! " + t("feedback.imprecision"),
+        erreur:     "? " + t("feedback.erreur"),
+        blunder:    "?? " + t("feedback.blunder"),
+      };
       feedbackBox.style.display  = "block";
       feedbackBox.className      = "feedback-box-pause " + data.qualite;
       if (feedbackLabel)  feedbackLabel.textContent  = LABELS[data.qualite] || data.qualite;
-      if (feedbackDetail) feedbackDetail.textContent = data.san ? `${data.san} — ${data.delta_cp}cp de perte` : "";
+      if (feedbackDetail) feedbackDetail.textContent = data.san ? t("game.delta_cp", {san: data.san, delta: data.delta_cp}) : "";
     } else {
       feedbackBox.style.display = "none";
     }
@@ -2829,18 +2849,19 @@ socket.on("labo_analyse", (data) => {
 
 socket.on("labo_info", (data) => {
   const lastEl = document.getElementById("labo-last-move");
+  const laboMsg = _i18nMsg(data);
   if (lastEl) {
-    lastEl.textContent = data.message;
+    lastEl.textContent = laboMsg;
     lastEl.style.color = data.type === "sync" ? "#4caf50" : "#e94560";
   }
   if (data.type !== "sync") {
     const turnEl = document.getElementById("labo-turn-info");
-    if (turnEl) { turnEl.textContent = data.message; turnEl.style.color = "#e94560"; }
+    if (turnEl) { turnEl.textContent = laboMsg; turnEl.style.color = "#e94560"; }
   }
   // Journal
   const cat = ["sync","config"].includes(data.type) ? "config" : "alertes";
-  laboJournalAdd(cat, data.message);
-  afficherToast(data.message, data.type === "sync" ? "success" : "info");
+  laboJournalAdd(cat, laboMsg);
+  afficherToast(laboMsg, data.type === "sync" ? "success" : "info");
 });
 
 socket.on("labo_copy_start", (data) => {
@@ -2848,7 +2869,7 @@ socket.on("labo_copy_start", (data) => {
     laboRenderBoard(data.target_fen, null, null);
     const turnEl = document.getElementById("labo-turn-info");
     if (turnEl) {
-      turnEl.textContent = "Reproduisez cette position sur le plateau";
+      turnEl.textContent = t("labo.reproduire_position");
       turnEl.style.color = "#ff9800";
     }
     // Effacer le message précédent (ex: "Synchronisé")
@@ -3678,18 +3699,19 @@ socket.on("exercice_end_of_line", (data) => {
 socket.on("exercice_free_mode", (data) => {
   const btnContinuer = document.getElementById("ex-btn-continuer");
   if (btnContinuer) btnContinuer.style.display = "none";
-  exSetFeedback("Théorie terminée — continuez la partie !", "#2196f3", 0);
+  exSetFeedback(t("exercices.theorie_terminee"), "#2196f3", 0);
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "Partie libre"; statusEl.style.color = "#2196f3"; }
-  exSetInstructions("La théorie est terminée. Continuez la partie contre Stockfish !");
+  if (statusEl) { statusEl.textContent = t("exercices.partie_libre"); statusEl.style.color = "#2196f3"; }
+  exSetInstructions(t("exercices.theorie_description"));
   if (data.fen) exRenderBoard(data.fen);
 });
 
 socket.on("exercice_free_gameover", (data) => {
-  exSetFeedback(data.reason || "Partie terminée", "#e57373", 0);
+  const reasonMsg = _i18nMsg(data, "reason", "reason_key") || t("exercices.partie_terminee");
+  exSetFeedback(reasonMsg, "#e57373", 0);
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "Partie terminée"; statusEl.style.color = "#e57373"; }
-  exSetInstructions(`<b>${data.reason || "Partie terminée"}</b><br>Cliquez <b>Recommencer</b> pour rejouer.`);
+  if (statusEl) { statusEl.textContent = t("exercices.partie_terminee"); statusEl.style.color = "#e57373"; }
+  exSetInstructions(`<b>${reasonMsg}</b><br>${t("exercices.recommencer_instruction")}`);
 });
 
 socket.on("exercice_back", () => {

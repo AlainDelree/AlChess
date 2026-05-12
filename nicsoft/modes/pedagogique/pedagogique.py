@@ -496,9 +496,9 @@ class Game(threading.Thread):
         from nicsoft.web.server import socketio as _sio
         try:
             if "checkmate" in reason.lower():
-                _sio.emit("popup", {"message": "♚ Échec et mat !", "type": "gameover"})
+                _sio.emit("popup", {"message": "♚ Échec et mat !", "message_key": "server.popup.mat", "type": "gameover"})
             elif "stalemate" in reason.lower():
-                _sio.emit("popup", {"message": "Pat !", "type": "gameover"})
+                _sio.emit("popup", {"message": "Pat !", "message_key": "server.popup.pat", "type": "gameover"})
         except Exception:
             pass
         self._end_game(result, reason)
@@ -802,11 +802,13 @@ class Game(threading.Thread):
                 print("  Stockfish refuse la nulle — la partie continue.")
                 send_event("nulle_refusee", {
                     "reason": "Stockfish estime avoir l'avantage.",
+                    "reason_key": "toast.nulle_refusee_default",
                 })
         except Exception as e:
             logger.error(f"Erreur évaluation nulle: {e}")
             send_event("nulle_refusee", {
                 "reason": "Impossible d'évaluer la position.",
+                "reason_key": "toast.nulle_refusee_eval",
             })
     def _traiter_abandon(self) -> None:
         """Traite un abandon confirmé (appeler depuis le thread principal)."""
@@ -1243,7 +1245,7 @@ class Game(threading.Thread):
                 if any(k in err_msg for k in ("usb", "serial", "device", "timeout", "fen", "connection")):
                     print("\n⚠  Échiquier déconnecté ou éteint.")
                     print("   Vérifiez l'USB et rallumez le plateau, puis relancez le programme.")
-                    send_event("board_error", {"message": "Échiquier déconnecté ou éteint. Relancez le programme."})
+                    send_event("board_error", {"message": "Échiquier déconnecté ou éteint. Relancez le programme.", "message_key": "error.board.deconnecte"})
                     sys.exit(1)
                 raise
         finally:

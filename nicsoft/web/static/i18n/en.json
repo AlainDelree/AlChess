@@ -304,5 +304,29 @@
   "exercices.adversaire_reflechit": "Opponent is thinking…",
   "exercices.cliquer_jouer_virtuel": "Click on your pieces to play.",
 
-  "error.pgn_non_reconnu":     "Invalid or unrecognised PGN."
+  "error.pgn_non_reconnu":     "Invalid or unrecognised PGN.",
+  "error.board.deconnecte":    "Board disconnected or off. Restart the program.",
+
+  "game.pause_info":           "{player} plays {color}",
+  "game.delta_cp":             "{san} — {delta}cp loss",
+  "game.illegal_position_default": "⚠ Illegal position",
+  "game.titre_nulle":          "Draw",
+  "game.titre_gagne":          "{winner} wins",
+
+  "labo.echec_mat":            "♚ Checkmate — {color} win",
+  "labo.pat":                  "Stalemate — draw",
+  "labo.materiel_insuffisant": "Insufficient material",
+  "labo.echec_aux":            "⚠ Check for {color}!",
+  "labo.position_incoherente": "⚠ Inconsistent position — sync the board",
+  "labo.synchronise":          "✓ Synced with physical board",
+  "labo.reproduire_position":  "Reproduce this position on the board",
+
+  "exercices.theorie_terminee": "Theory complete — continue the game!",
+  "exercices.theorie_description": "Theory is complete. Continue the game against Stockfish!",
+  "exercices.partie_terminee": "Game over",
+  "exercices.partie_libre":    "Free game",
+
+  "toast.nulle_refusee_eval":  "Unable to evaluate the position.",
+
+  "exercices.recommencer_instruction": "Click <b>Restart</b> to play again."
 }

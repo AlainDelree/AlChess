@@ -1096,16 +1096,20 @@ class ExerciceSession:
         send_event("exercice_free_mode", {
             "fen": self.board.board_fen(),
             "message": "Théorie terminée — continuez la partie !",
+            "message_key": "exercices.theorie_terminee",
         })
 
         while self._running:
             if self.board.is_game_over():
                 reason = "Partie terminée"
+                reason_key = "exercices.partie_terminee"
                 if self.board.is_checkmate():
                     reason = "Échec et mat"
+                    reason_key = "server.popup.mat"
                 elif self.board.is_stalemate():
                     reason = "Pat"
-                send_event("exercice_free_gameover", {"reason": reason})
+                    reason_key = "server.popup.pat"
+                send_event("exercice_free_gameover", {"reason": reason, "reason_key": reason_key})
                 self._wait_action_end()
                 return
 

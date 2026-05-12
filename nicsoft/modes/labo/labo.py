@@ -125,20 +125,26 @@ class LaboSession:
     def _check_end(self, signal_check: bool = True) -> bool:
         if self.board.is_checkmate():
             w = "Noirs" if self.board.turn == chess.WHITE else "Blancs"
-            send_event("labo_info", {"type": "checkmate", "message": f"♚ Échec et mat — {w} gagnent"})
+            w_key = "config.noirs" if self.board.turn == chess.WHITE else "config.blancs"
+            send_event("labo_info", {"type": "checkmate", "message": f"♚ Échec et mat — {w} gagnent",
+                                     "message_key": "labo.echec_mat", "vars": {"color_key": w_key}})
             self._auto_on = False
             return True
         if self.board.is_stalemate():
-            send_event("labo_info", {"type": "stalemate", "message": "Pat — nulle"})
+            send_event("labo_info", {"type": "stalemate", "message": "Pat — nulle",
+                                     "message_key": "labo.pat"})
             self._auto_on = False
             return True
         if self.board.is_insufficient_material():
-            send_event("labo_info", {"type": "draw", "message": "Matériel insuffisant"})
+            send_event("labo_info", {"type": "draw", "message": "Matériel insuffisant",
+                                     "message_key": "labo.materiel_insuffisant"})
             self._auto_on = False
             return True
         if signal_check and self.board.is_check():
             c = "Blancs" if self.board.turn == chess.WHITE else "Noirs"
-            send_event("labo_info", {"type": "check", "message": f"⚠ Échec aux {c} !"})
+            c_key = "config.blancs" if self.board.turn == chess.WHITE else "config.noirs"
+            send_event("labo_info", {"type": "check", "message": f"⚠ Échec aux {c} !",
+                                     "message_key": "labo.echec_aux", "vars": {"color_key": c_key}})
         return False
 
     # ── Actions ───────────────────────────────────────────────────────────
@@ -202,7 +208,8 @@ class LaboSession:
                 except Exception as engine_err:
                     logger.warning(f"Moteur : position illégale ou incohérente — {engine_err}")
                     send_event("labo_info", {"type": "error",
-                        "message": "⚠ Position incohérente — synchronisez le plateau"})
+                        "message": "⚠ Position incohérente — synchronisez le plateau",
+                        "message_key": "labo.position_incoherente"})
                     self._placement_in_progress = False
                     return
                 if move is None:
@@ -293,7 +300,8 @@ class LaboSession:
                 self.nl_inst.game_board = self.board.copy()
                 self.nl_inst.turn_off_all_leds()
                 self._send_position()
-                send_event("labo_info", {"type": "sync", "message": "✓ Synchronisé avec le plateau physique"})
+                send_event("labo_info", {"type": "sync", "message": "✓ Synchronisé avec le plateau physique",
+                                         "message_key": "labo.synchronise"})
         except Exception as e:
             logger.error(f"sync_from_physical : {e}")
 
