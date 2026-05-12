@@ -141,7 +141,7 @@ def on_connect():
         _disconnect_timer.cancel()
         _disconnect_timer = None
     print("[WEB] Navigateur connecté")
-    emit("status", {"message": "Connecté au serveur NicLink"})
+    emit("status", {"message": "Connecté au serveur NicLink", "message_key": "status.connecte"})
     emit("app_state", {"state": _app_state})
     emit("game_folders", {"folders": _get_game_folders()})
     # Renvoyer le statut échiquier au navigateur qui arrive/rafraîchit

@@ -428,14 +428,15 @@ class Game(threading.Thread):
         reason_str = reason or "Fin de partie"
         # Titre adapté selon la raison
         if "checkmate" in reason_str.lower() or "mat" in reason_str.lower():
-            title = "Échec et mat !"
+            title = "Échec et mat !"; title_key = "game.titre_mat"
         elif "stalemate" in reason_str.lower() or "pat" in reason_str.lower():
-            title = "Pat !"
+            title = "Pat !";           title_key = "game.titre_pat"
         else:
-            title = "Partie terminée"
+            title = "Partie terminée"; title_key = "game.fin_partie_default"
         if not skip_save:
             set_app_state("game_over", {
-                "title": title,
+                "title":     title,
+                "title_key": title_key,
                 "result": f"{result} — {reason_str}",
                 "source": "niclink",
                 "skip": False,

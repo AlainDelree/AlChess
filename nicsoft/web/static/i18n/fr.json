@@ -9,6 +9,7 @@
   "common.charger":            "🧺 Charger",
   "common.actualiser":         "🔄 Actualiser",
   "common.corbeille_vide":     "— corbeille vide —",
+  "common.n_coups":            "{n} coups",
   "common.chargement":         "Chargement…",
   "common.conversion":         "Conversion…",
   "common.verification":       "Vérification…",
@@ -323,7 +324,10 @@
   "game.fin_partie_default":   "Fin de partie",
   "game.titre_libre":          "Partie libre",
   "game.titre_pedagogique":    "Partie Pédagogique",
+  "game.titre_mat":            "Échec et mat !",
+  "game.titre_pat":            "Pat !",
   "game.label.pause":          "Pause :",
+  "game.label.sequence":       "Séquence :",
   "game.revision_pgn":         "Révision PGN",
 
   "analyse.titre":             "Analyse de partie",
@@ -405,5 +409,14 @@
   "elo.expert":                "Expert",
   "elo.maitre":                "Maître",
   "elo.grand_maitre":          "Grand Maître",
-  "elo.niveau_max":            "Niveau max"
+  "elo.niveau_max":            "Niveau max",
+
+  "pgn.mode.Humain":           "Humain",
+  "pgn.mode.Stockfish":        "Stockfish",
+  "pgn.mode.Retranscription":  "Retranscription",
+  "pgn.type.Amusement":        "Amusement",
+  "pgn.type.Pedagogique":      "Pédagogique",
+  "pgn.type.Serieuse":         "Sérieuse",
+  "pgn.type.Club":             "Club",
+  "pgn.type.Chesscom":         "Chess.com"
 }

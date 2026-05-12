@@ -11,7 +11,8 @@
 
 ### À corriger
 
-- ~~**Chevauchement textes mode virtuel**~~ ✅ — desc-outils n'avait pas d'id et échappait au système d'alternance gauche/droite. Corrigé.
+- **Sous-titre menu EN persistant** 🔴 — Le sous-titre affiche le texte EN ("⚠ Board not detected…" ou "Checking board…") même quand l'interface est en FR. Reproduit même en fermant en FR et rouvrant. Cause probable : `t()` appelé dans les handlers `board_error`/`board_ok` avant que `_data` soit chargé dans le bon locale. Trois tentatives de fix effectuées (i18n.js `_refreshDynamicLabels`, `window.i18nReady.then()` dans app.js, override `i18n.load` + handlers via `_refreshDynamicLabels`) — toutes insuffisantes. À déboguer plus finement (console.log dans le handler pour voir `_data` et `_locale` au moment du déclenchement).
+
 - **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
 
@@ -29,7 +30,8 @@
   - ✅ Phase 6 : Corrections i18n menu + pédagogique (CORRECTION_TRADUCTION.md).
   - ✅ Phase 6b : Finitions — panel-playing-title (conflit data-i18n/JS), label "Pause :", _refreshDynamicLabels au chargement config.
   - ✅ Phase 6c : btn-reconnect, cfg-pause options, bouton "Changer de couleur".
-  - Phase 7 (à faire) : parcourir labo, exercices, retranscription, outils.
+  - ✅ Phase 6d : Écran Analyse — title_key game_over, btn-analyser, corbeille vide, Séquence:, status-text, combobox PGN save (pgn.mode.*/pgn.type.*), Blancs/Noirs HISTORY, combobox séquence n_coups.
+  - Phase 7 (à faire) : parcourir labo, exercices, retranscription, outils. + corriger bug sous-titre.
 
 ---
 ## 🧪 Tests automatisés

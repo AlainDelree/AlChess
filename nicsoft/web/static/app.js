@@ -201,6 +201,8 @@ let _boardOk         = false;
 let _boardError      = false;
 let _virtualMode     = false;
 let _panelPlayingTitleKey = null;
+let _socketConnected = false;
+let _gameFolders     = null;
 
 
 // ── MODE VIRTUEL ──────────────────────────────────────────
@@ -540,23 +542,27 @@ const socket = io();
 
 socket.on("board_error", (data) => {
   _boardError = true;
-  if (!_virtualMode) {
-    const sub = document.querySelector(".menu-subtitle");
-    if (sub) { sub.textContent = t("menu.board_error_long"); sub.style.color = "#e94560"; }
-    const btn = document.getElementById("btn-reconnect");
-    if (btn) { btn.textContent = t("menu.btn.reconnect_label"); btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; btn.style.background = "#e94560"; btn.style.color = "white"; }
+  // État visuel du bouton reconnect (hors texte — le texte est géré par _refreshDynamicLabels)
+  const _errBtn = document.getElementById("btn-reconnect");
+  if (_errBtn && !_virtualMode) {
+    _errBtn.disabled = false; _errBtn.style.opacity = "1"; _errBtn.style.cursor = "pointer";
+    _errBtn.style.background = "#e94560"; _errBtn.style.color = "white";
   }
+  // Texte subtitle + reconnect via _refreshDynamicLabels après i18nReady → bon locale garanti
+  (window.i18nReady || Promise.resolve()).then(() => _refreshDynamicLabels());
 });
 
 socket.on("board_ok", () => {
   _boardOk    = true;
   _boardError = false;
-  const sub = document.querySelector(".menu-subtitle");
-  if (sub) { sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = ""; }
   document.querySelectorAll(".menu-btn[data-needs-board]")
     .forEach(btn => { btn.disabled = false; });
-  const btn = document.getElementById("btn-reconnect");
-  if (btn) { btn.textContent = t("menu.btn.reconnect_connecte"); btn.disabled = true; btn.style.opacity = "0.5"; btn.style.cursor = "default"; btn.style.background = ""; }
+  const _okBtn = document.getElementById("btn-reconnect");
+  if (_okBtn) {
+    _okBtn.disabled = true; _okBtn.style.opacity = "0.5"; _okBtn.style.cursor = "default";
+    _okBtn.style.background = ""; _okBtn.style.color = "";
+  }
+  (window.i18nReady || Promise.resolve()).then(() => _refreshDynamicLabels());
 });
 
 socket.on("virtual_mode_active", () => {
@@ -582,6 +588,7 @@ socket.on("connect", () => {
   if (overlay) setTimeout(() => { overlay.style.display = "none"; }, 5000);
   document.getElementById("status-dot").classList.add("connected");
   document.getElementById("status-text").textContent = t("status.connecte");
+  _socketConnected = true;
   _initBasketSelects();
   _renderBasketSelects();
 });
@@ -589,10 +596,12 @@ socket.on("connect", () => {
 socket.on("disconnect", () => {
   document.getElementById("status-dot").classList.remove("connected");
   document.getElementById("status-text").textContent = t("status.deconnecte");
+  _socketConnected = false;
 });
 
 socket.on("status", (data) => {
-  document.getElementById("status-text").textContent = data.message;
+  const _stEl = document.getElementById("status-text");
+  if (_stEl) _stEl.textContent = data.message_key ? t(data.message_key) : data.message;
 });
 
 socket.on("app_state", (data) => {
@@ -671,7 +680,7 @@ socket.on("app_state", (data) => {
   if (data.state === "game_over" && !data.skip) {
     // Restaurer le fond par défaut — l'écran d'analyse est neutre
     document.body.setAttribute("style", "background: #d8e4f0 !important;");
-    if (data.title) document.getElementById("gameover-title").textContent = data.title;
+    if (data.title_key || data.title) document.getElementById("gameover-title").textContent = data.title_key ? t(data.title_key) : data.title;
     // data.result peut contenir un score ("0-1", "1-0", "1/2-1/2") ou un message texte
     const isScore = data.result && /^(1-0|0-1|1\/2-1\/2|\*)$/.test(data.result.trim());
     document.getElementById("gameover-result").textContent = isScore ? data.result : "";
@@ -1109,9 +1118,25 @@ function _refreshDynamicLabels() {
     if (titleEl) titleEl.textContent = t(_panelPlayingTitleKey);
   }
 
+  // Statut connexion serveur
+  const statusText = document.getElementById("status-text");
+  if (statusText) statusText.textContent = t(_socketConnected ? "status.connecte" : "status.deconnecte");
+
+  // Options combobox séquence
+  const seqSel = document.getElementById("rv-seq-moves");
+  if (seqSel) Array.from(seqSel.options).forEach(opt => { opt.textContent = t("common.n_coups", {n: opt.value}); });
+
+  // Combobox enregistrement PGN
+  if (_gameFolders) _populateGameFolders();
+
   // Réafficher l'historique si une partie est en cours
   if (document.getElementById("historique")?.innerHTML) _renderHistory();
 }
+
+// Garantit que _refreshDynamicLabels s'exécute après le chargement initial de la locale
+// (i18n.js démarre le fetch avant que app.js soit parsé, donc la callback dans i18n.js
+// peut s'exécuter avant que _refreshDynamicLabels soit défini — ce chaînage corrige ça)
+if (window.i18nReady) window.i18nReady.then(() => _refreshDynamicLabels());
 
 // Résout un message venant du backend : si message_key présent, on traduit ;
 // sinon on utilise le champ texte brut (fallback rétro-compatible).
@@ -1167,7 +1192,7 @@ function _viderAnalyse() {
   const btnD      = document.getElementById("btn-telecharger");
   const btnV      = document.getElementById("btn-vider-analyse");
   const saveBlock = document.getElementById("card-save-block");
-  if (btnA) { btnA.style.display = "none"; btnA.textContent = "🔍 Analyser la partie"; btnA.disabled = false; delete btnA._movesUci; }
+  if (btnA) { btnA.style.display = "none"; btnA.textContent = t("labo.btn.analyser"); btnA.disabled = false; delete btnA._movesUci; }
   if (btnD) btnD.style.display = "none";
   if (btnV) btnV.style.display = "none";
   if (saveBlock) saveBlock.style.display = "none";
@@ -1833,7 +1858,7 @@ function renderHistory(activeIdx) {
   const blacks = reviewMoves.map((m, i) => ({...m, _idx: i + 1})).filter(m => m.color === "black");
   const total  = Math.max(whites.length, blacks.length);
   let html = '<table style="width:100%;border-collapse:collapse;">';
-  html += '<tr><th style="color:#1a2a3a;font-weight:600;padding:2px 4px;">Blancs</th><th style="color:#1a2a3a;font-weight:600;padding:2px 4px;">Noirs</th></tr>';
+  html += `<tr><th style="color:#1a2a3a;font-weight:600;padding:2px 4px;">${t("config.blancs")}</th><th style="color:#1a2a3a;font-weight:600;padding:2px 4px;">${t("config.noirs")}</th></tr>`;
   for (let i = 0; i < total; i++) {
       const mw   = whites[i];
       const mb   = blacks[i];
@@ -1957,7 +1982,7 @@ function parsePgn(pgn) {
     if (btnAnalyse) {
       const dejaAnalyse = allComments.length === history.length && allComments.some(c => c.includes("cp"));
       btnAnalyse.style.display = dejaAnalyse ? "none" : "inline-block";
-      btnAnalyse.textContent = "🔍 Analyser la partie";
+      btnAnalyse.textContent = t("labo.btn.analyser");
       btnAnalyse.disabled = false;
       btnAnalyse._movesUci = moves.map(m => m.uci);
     }
@@ -2000,28 +2025,34 @@ function renderBoardWithErrors(expectedFen, physicalFen) {
   }
 }
 
-socket.on("game_folders", (data) => {
-  // data.folders = [{ mode: "Stockfish", type: "Pedagogique" }, ...]
+function _populateGameFolders() {
   const sel = document.getElementById("save-type");
-  if (!sel || !data.folders) return;
-  // Regrouper par mode
+  if (!sel || !_gameFolders) return;
+  const cur = sel.value;
   const groups = {};
-  for (const f of data.folders) {
+  for (const f of _gameFolders) {
     if (!groups[f.mode]) groups[f.mode] = [];
     groups[f.mode].push(f.type);
   }
   sel.innerHTML = "";
   for (const [mode, types] of Object.entries(groups)) {
     const og = document.createElement("optgroup");
-    og.label = `── ${mode} ──`;
+    og.label = `── ${t("pgn.mode." + mode)} ──`;
     for (const type of types) {
       const opt = document.createElement("option");
       opt.value = `${mode}-${type}`;
-      opt.textContent = `${mode} — ${type}`;
+      opt.textContent = `${t("pgn.mode." + mode)} — ${t("pgn.type." + type)}`;
       og.appendChild(opt);
     }
     sel.appendChild(og);
   }
+  if (cur) sel.value = cur;
+}
+
+socket.on("game_folders", (data) => {
+  if (!data.folders) return;
+  _gameFolders = data.folders;
+  _populateGameFolders();
 });
 
 function laboRenderBoardWithErrors(expectedFen, physicalFen) {
@@ -4250,7 +4281,7 @@ function _renderBasketSelects() {
     listEl.style.display = "none";
     if (empty) {
       sel.dataset.value = "";
-      labelEl.textContent = "— corbeille vide —";
+      labelEl.textContent = t("common.corbeille_vide");
       labelEl.style.color = "#556";
       listEl.innerHTML = "";
       sel.style.opacity = "0.45";
