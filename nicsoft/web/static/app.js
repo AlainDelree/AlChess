@@ -199,6 +199,7 @@ let currentPlayerColor = "white";
 let _selectedColor   = "white";
 let _boardOk         = false;
 let _virtualMode     = false;
+let _panelPlayingTitleKey = null;
 
 
 // ── MODE VIRTUEL ──────────────────────────────────────────
@@ -655,6 +656,7 @@ socket.on("app_state", (data) => {
   }
   if (data.state === "config") {
     _virtInitLegalCheckbox();
+    _refreshDynamicLabels();
     if (_testMode) _randomizeConfigPeda();
   }
   if (data.state === "config_humain" && _testMode) {
@@ -951,8 +953,9 @@ socket.on("init", (data) => {
     const wdlBar = document.getElementById("wdl-bar-container");
     if (wdlBar) wdlBar.style.display = "none";
   }
+  _panelPlayingTitleKey = data.analyse === false ? "game.titre_libre" : "game.titre_pedagogique";
   const titleEl = document.getElementById("panel-playing-title");
-  if (titleEl) titleEl.textContent = data.analyse === false ? t("game.titre_libre") : t("game.titre_pedagogique");
+  if (titleEl) titleEl.textContent = t(_panelPlayingTitleKey);
   const pauseRow = document.getElementById("pause-select-row");
   if (pauseRow) pauseRow.style.display = data.analyse === false ? "none" : "flex";
   const btnPause = document.getElementById("btn-pause");
@@ -987,8 +990,9 @@ socket.on("init_hh", (data) => {
     `<span style="color:#f0f0f0;">♔ ${data.white}</span>`+
     `<span style="color:#666; margin:0 8px;">vs</span>`+
     `<span style="color:#888;">♚ ${data.black}</span>`;
+  _panelPlayingTitleKey = "config.titre.humain";
   const titleElHH = document.getElementById("panel-playing-title");
-  if (titleElHH) titleElHH.textContent = t("config.titre.humain");
+  if (titleElHH) titleElHH.textContent = t(_panelPlayingTitleKey);
   const pauseRowHH = document.getElementById("pause-select-row");
   if (pauseRowHH) pauseRowHH.style.display = "none";
   const btnPauseHH = document.getElementById("btn-pause");
@@ -1083,6 +1087,12 @@ function _refreshDynamicLabels() {
   // Label Rodent courant
   const rodentVal = parseInt(document.getElementById("cfg-rodent-elo")?.value || "800");
   if (!isNaN(rodentVal)) _updateRodentLabel(rodentVal);
+
+  // Titre panel-playing (évite le conflit data-i18n / JS)
+  if (_panelPlayingTitleKey) {
+    const titleEl = document.getElementById("panel-playing-title");
+    if (titleEl) titleEl.textContent = t(_panelPlayingTitleKey);
+  }
 
   // Réafficher l'historique si une partie est en cours
   if (document.getElementById("historique")?.innerHTML) _renderHistory();
@@ -2084,12 +2094,6 @@ socket.on("pause", (data) => {
   const feedbackDetail= document.getElementById("pause-feedback-detail");
   if (feedbackBox) {
     if (data.auto && data.qualite) {
-      const LABELS = {
-        bon:        "✓ " + t("feedback.bon"),
-        imprecision:"?! " + t("feedback.imprecision"),
-        erreur:     "? " + t("feedback.erreur"),
-        blunder:    "?? " + t("feedback.blunder"),
-      };
       feedbackBox.style.display  = "block";
       feedbackBox.className      = "feedback-box-pause " + data.qualite;
       if (feedbackLabel)  feedbackLabel.textContent  = LABEL_KEYS[data.qualite] ? t(LABEL_KEYS[data.qualite]) : data.qualite;

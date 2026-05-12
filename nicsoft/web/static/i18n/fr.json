@@ -321,6 +321,7 @@
   "game.fin_partie_default":   "Fin de partie",
   "game.titre_libre":          "Partie libre",
   "game.titre_pedagogique":    "Partie Pédagogique",
+  "game.label.pause":          "Pause :",
   "game.revision_pgn":         "Révision PGN",
 
   "analyse.titre":             "Analyse de partie",
