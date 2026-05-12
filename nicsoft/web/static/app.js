@@ -540,10 +540,12 @@ const socket = io();
 
 socket.on("board_error", (data) => {
   _boardError = true;
-  const sub = document.querySelector(".menu-subtitle");
-  if (sub) { sub.textContent = t("menu.board_error_long"); sub.style.color = "#e94560"; }
-  const btn = document.getElementById("btn-reconnect");
-  if (btn) { btn.textContent = t("menu.btn.reconnect_label"); btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; btn.style.background = "#e94560"; btn.style.color = "white"; }
+  if (!_virtualMode) {
+    const sub = document.querySelector(".menu-subtitle");
+    if (sub) { sub.textContent = t("menu.board_error_long"); sub.style.color = "#e94560"; }
+    const btn = document.getElementById("btn-reconnect");
+    if (btn) { btn.textContent = t("menu.btn.reconnect_label"); btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; btn.style.background = "#e94560"; btn.style.color = "white"; }
+  }
 });
 
 socket.on("board_ok", () => {
