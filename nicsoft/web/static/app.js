@@ -219,11 +219,11 @@ function toggleVirtualMode(enabled) {
   // Physique : Péda G, HH D, Analyse G, Labo D, Exercices G, Retrans D
   // Virtuel  : Péda G, Analyse D, Labo G, Exercices D, Retrans G
   const descRight = enabled
-    ? ["desc-analyse", "desc-exercices"]
+    ? ["desc-analyse", "desc-exercices", "desc-outils"]
     : ["desc-humain", "desc-labo", "desc-retrans"];
-  ["desc-pedagogique","desc-humain","desc-analyse","desc-labo","desc-exercices","desc-retrans"].forEach(id => {
+  ["desc-pedagogique","desc-humain","desc-analyse","desc-labo","desc-exercices","desc-retrans","desc-outils"].forEach(id => {
     const el = document.getElementById(id);
-    el.classList.toggle("desc-right", descRight.includes(id));
+    if (el) el.classList.toggle("desc-right", descRight.includes(id));
   });
 
   if (enabled) {
