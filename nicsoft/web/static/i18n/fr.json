@@ -203,5 +203,106 @@
   "server.popup.mat":          "♚ Échec et mat !",
   "server.popup.pat":          "Pat !",
   "server.popup.nulle_acceptee": "Nulle acceptée",
-  "server.popup.abandon":      "Abandon"
+  "server.popup.abandon":      "Abandon",
+
+  "menu.verification_echiquier": "Vérification de l'échiquier…",
+  "menu.board_error_long":     "⚠ Échiquier non détecté — vérifiez l'USB et allumez le plateau puis redémarrez le jeu",
+  "menu.btn.reconnect_label":  "⟳ Reconnecter l'échiquier",
+
+  "game.demarrage_virtuel":    "Démarrage de la partie…",
+  "game.mode_sans_echiquier":  "Mode sans échiquier physique.",
+  "game.a_joue":               "{player} ({color}) a joué {san}",
+  "game.au_tour":              "Au tour de {player} ({color})",
+  "game.echec":                "⚠ Échec ! Au tour de {player} ({color})",
+  "game.en_attente":           "En attente...",
+
+  "toast.nulle_refusee":       "🤝 Nulle refusée — {reason}",
+  "toast.nulle_refusee_default": "Stockfish estime avoir l'avantage.",
+  "toast.pgn_sauvegarde_fichier": "💾 Sauvegardé : {nom}",
+  "toast.pgn_charge":          "PGN chargé",
+  "toast.erreur_pgn":          "Erreur PGN : {msg}",
+  "toast.sauvegarde_continu":  "✓ Sauvegardé : {fname}",
+  "toast.pgn_fichier":         "✓ PGN sauvegardé : {fname}",
+  "toast.aucune_partie":       "Aucune partie à ajouter",
+  "toast.aucun_coup":          "Aucun coup à ajouter",
+  "toast.pgn_importees":       "✓ {n} ligne(s) importée(s)",
+
+  "modal.qui_abandonne":       "Qui abandonne la partie ?",
+  "modal.abandonner_titre":    "Abandonner la partie ?",
+  "modal.confirmer_abandon":   "Confirmer l'abandon",
+  "modal.abandonner_nom":      "🏳 {nom} abandonne",
+  "modal.nulle_hh_titre":      "Les deux joueurs acceptent la nulle ?",
+  "modal.confirmer_nulle":     "Confirmer la nulle",
+  "modal.nulle_stockfish_titre": "Proposer la nulle à Stockfish ?",
+  "modal.proposer_nulle":      "Proposer la nulle",
+  "modal.quitter_hh":          "Quitter ? La partie en cours sera perdue.",
+  "modal.quitter_moteur":      "Quitter et revenir au menu ?",
+  "modal.quitter_btn":         "Quitter",
+  "modal.quitter_alchess":     "Quitter AlChess ?",
+  "modal.ferme_titre":         "AlChess est fermé",
+  "modal.ferme_sous":          "Vous pouvez fermer cet onglet.",
+
+  "labo.pgn_info":             "{white} vs {black} — {n} coups",
+
+  "exercices.n_ouvertures":    "{n} ouverture(s)",
+  "exercices.n_lignes":        "{n} ligne(s)",
+  "exercices.aucune_dans_onglet": "Aucune ouverture dans cet onglet.",
+  "exercices.aucune_ligne_perso": "Aucune ligne personnelle trouvée.",
+
+  "outils.aucun_pgn":          "Aucun fichier .pgn sélectionné.",
+  "outils.pgn_import_ok":      "✓ {n} ligne(s) importée(s) sur {total}.",
+  "outils.pgn_aucune_import":  "✗ Aucune ligne importée.",
+  "outils.import_en_cours":    "Import en cours…",
+  "outils.aucune_modif":       "Aucune modification.",
+  "outils.enregistrement":     "Enregistrement…",
+  "outils.aucun_resultat":     "Aucun résultat.",
+  "outils.n_selectionnes":     "{n} sélectionné(s)",
+  "outils.eco_importees":      "✓ {n} ouverture(s) importée(s)",
+  "outils.aucune_ouverture":   "Aucune ouverture trouvée.",
+
+  "outils.polyglot.position_initiale": "(position initiale)",
+  "outils.polyglot.profondeur": "Profondeur : {n} coup(s)",
+  "outils.polyglot.fin_livre": "Fin du livre — aucun coup depuis cette position.",
+  "outils.polyglot.deja_catalogue": "✓ Déjà dans le catalogue : « {nom} »",
+
+  "confirm.save_continue":     "Sauver la ligne actuelle et continuer ?",
+  "confirm.quitter_sans_sauver": "Quitter sans sauver ?\nLa session en cours sera perdue.",
+
+  "common.activee":            "Activée",
+  "common.desactivee":         "Désactivée",
+  "common.active":             "Activé",
+  "common.desactive":          "Désactivé",
+  "common.a_votre_tour":       "À votre tour",
+  "common.position_initiale":  "Position initiale",
+  "common.coup_num":           "Coup {n}",
+
+  "status.connecte":           "Connecté",
+  "status.deconnecte":         "Déconnecté",
+
+  "game.fin_partie_default":   "Fin de partie",
+  "game.titre_libre":          "Partie libre",
+  "game.titre_pedagogique":    "Partie Pédagogique",
+  "game.revision_pgn":         "Révision PGN",
+
+  "analyse.titre":             "Analyse de partie",
+  "analyse.importer_pgn":      "Importez un fichier PGN",
+
+  "config.joueur1":            "Joueur 1",
+  "config.joueur2":            "Joueur 2",
+  "config.joueur_blancs":      "Joueur Blancs",
+  "config.joueur_noirs":       "Joueur Noirs",
+
+  "labo.tour_moteur":          "Tour du moteur...",
+  "labo.tour_moteur_auto_off": "Tour du moteur (Auto OFF)",
+  "labo.echec":                "⚠ Échec !",
+
+  "exercices.adversaire_livre": "Adversaire (livre)",
+  "exercices.vous_blancs":     "Vous (Blancs)",
+  "exercices.vous_noirs":      "Vous (Noirs)",
+  "exercices.placer_pieces":   "Placez les pièces…",
+  "exercices.variete_n":       "Variété adversaire : {n} réponse(s)",
+  "exercices.adversaire_reflechit": "Adversaire réfléchit…",
+  "exercices.cliquer_jouer_virtuel": "Cliquez sur vos pièces pour jouer.",
+
+  "error.pgn_non_reconnu":     "PGN invalide ou non reconnu."
 }

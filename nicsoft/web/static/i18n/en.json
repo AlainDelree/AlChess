@@ -203,5 +203,106 @@
   "server.popup.mat":          "♚ Checkmate!",
   "server.popup.pat":          "Stalemate!",
   "server.popup.nulle_acceptee": "Draw accepted",
-  "server.popup.abandon":      "Resignation"
+  "server.popup.abandon":      "Resignation",
+
+  "menu.verification_echiquier": "Checking board…",
+  "menu.board_error_long":     "⚠ Board not detected — check USB, power on the board and restart",
+  "menu.btn.reconnect_label":  "⟳ Reconnect board",
+
+  "game.demarrage_virtuel":    "Starting game…",
+  "game.mode_sans_echiquier":  "Boardless mode.",
+  "game.a_joue":               "{player} ({color}) played {san}",
+  "game.au_tour":              "{player}'s turn ({color})",
+  "game.echec":                "⚠ Check! {player}'s turn ({color})",
+  "game.en_attente":           "Waiting...",
+
+  "toast.nulle_refusee":       "🤝 Draw declined — {reason}",
+  "toast.nulle_refusee_default": "Stockfish believes it has an advantage.",
+  "toast.pgn_sauvegarde_fichier": "💾 Saved: {nom}",
+  "toast.pgn_charge":          "PGN loaded",
+  "toast.erreur_pgn":          "PGN error: {msg}",
+  "toast.sauvegarde_continu":  "✓ Saved: {fname}",
+  "toast.pgn_fichier":         "✓ PGN saved: {fname}",
+  "toast.aucune_partie":       "No game to add",
+  "toast.aucun_coup":          "No moves to add",
+  "toast.pgn_importees":       "✓ {n} line(s) imported",
+
+  "modal.qui_abandonne":       "Who resigns?",
+  "modal.abandonner_titre":    "Resign?",
+  "modal.confirmer_abandon":   "Confirm resignation",
+  "modal.abandonner_nom":      "🏳 {nom} resigns",
+  "modal.nulle_hh_titre":      "Both players accept draw?",
+  "modal.confirmer_nulle":     "Confirm draw",
+  "modal.nulle_stockfish_titre": "Offer draw to Stockfish?",
+  "modal.proposer_nulle":      "Offer draw",
+  "modal.quitter_hh":          "Quit? The current game will be lost.",
+  "modal.quitter_moteur":      "Quit and return to menu?",
+  "modal.quitter_btn":         "Quit",
+  "modal.quitter_alchess":     "Quit AlChess?",
+  "modal.ferme_titre":         "AlChess is closed",
+  "modal.ferme_sous":          "You can close this tab.",
+
+  "labo.pgn_info":             "{white} vs {black} — {n} moves",
+
+  "exercices.n_ouvertures":    "{n} opening(s)",
+  "exercices.n_lignes":        "{n} line(s)",
+  "exercices.aucune_dans_onglet": "No openings in this tab.",
+  "exercices.aucune_ligne_perso": "No personal lines found.",
+
+  "outils.aucun_pgn":          "No .pgn file selected.",
+  "outils.pgn_import_ok":      "✓ {n} line(s) imported out of {total}.",
+  "outils.pgn_aucune_import":  "✗ No lines imported.",
+  "outils.import_en_cours":    "Importing…",
+  "outils.aucune_modif":       "No changes.",
+  "outils.enregistrement":     "Saving…",
+  "outils.aucun_resultat":     "No results.",
+  "outils.n_selectionnes":     "{n} selected",
+  "outils.eco_importees":      "✓ {n} opening(s) imported",
+  "outils.aucune_ouverture":   "No openings found.",
+
+  "outils.polyglot.position_initiale": "(starting position)",
+  "outils.polyglot.profondeur": "Depth: {n} move(s)",
+  "outils.polyglot.fin_livre": "End of book — no moves from this position.",
+  "outils.polyglot.deja_catalogue": "✓ Already in catalogue: «{nom}»",
+
+  "confirm.save_continue":     "Save current line and continue?",
+  "confirm.quitter_sans_sauver": "Quit without saving?\nThe current session will be lost.",
+
+  "common.activee":            "Enabled",
+  "common.desactivee":         "Disabled",
+  "common.active":             "Enabled",
+  "common.desactive":          "Disabled",
+  "common.a_votre_tour":       "Your turn",
+  "common.position_initiale":  "Starting position",
+  "common.coup_num":           "Move {n}",
+
+  "status.connecte":           "Connected",
+  "status.deconnecte":         "Disconnected",
+
+  "game.fin_partie_default":   "Game over",
+  "game.titre_libre":          "Free game",
+  "game.titre_pedagogique":    "Training game",
+  "game.revision_pgn":         "PGN Review",
+
+  "analyse.titre":             "Game analysis",
+  "analyse.importer_pgn":      "Import a PGN file",
+
+  "config.joueur1":            "Player 1",
+  "config.joueur2":            "Player 2",
+  "config.joueur_blancs":      "White player",
+  "config.joueur_noirs":       "Black player",
+
+  "labo.tour_moteur":          "Engine's turn...",
+  "labo.tour_moteur_auto_off": "Engine's turn (Auto OFF)",
+  "labo.echec":                "⚠ Check!",
+
+  "exercices.adversaire_livre": "Opponent (book)",
+  "exercices.vous_blancs":     "You (White)",
+  "exercices.vous_noirs":      "You (Black)",
+  "exercices.placer_pieces":   "Set up pieces…",
+  "exercices.variete_n":       "Opponent variety: {n} response(s)",
+  "exercices.adversaire_reflechit": "Opponent is thinking…",
+  "exercices.cliquer_jouer_virtuel": "Click on your pieces to play.",
+
+  "error.pgn_non_reconnu":     "Invalid or unrecognised PGN."
 }
