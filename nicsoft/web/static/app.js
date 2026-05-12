@@ -81,14 +81,14 @@ function _randomizeConfigPeda() {
   const analyseChk = document.getElementById("cfg-analyse");
   const analyseLbl = document.getElementById("cfg-analyse-label");
   const analyse = _randBool();
-  if (analyseChk) { analyseChk.checked = analyse; if (analyseLbl) analyseLbl.textContent = analyse ? "Activée" : "Désactivée"; }
+  if (analyseChk) { analyseChk.checked = analyse; if (analyseLbl) analyseLbl.textContent = analyse ? t("common.activee") : t("common.desactivee"); }
   const bip = _randBool();
   const bipChk = document.getElementById("cfg-bip");
   if (bipChk) bipChk.checked = bip;
   const legal = _randBool();
   const legalChk = document.getElementById("cfg-show-legal");
   const legalLbl = document.getElementById("cfg-show-legal-label");
-  if (legalChk) { legalChk.checked = legal; if (legalLbl) legalLbl.textContent = legal ? "Activé" : "Désactivé"; }
+  if (legalChk) { legalChk.checked = legal; if (legalLbl) legalLbl.textContent = legal ? t("common.active") : t("common.desactive"); }
   _lastPeda = { joueur, couleur, moteur: engine, eloSF, eloMaia, eloRodent,
                 rodentSimple: rodentSimple ? "oui" : "non", pause,
                 analyse: analyse ? "on" : "off", bip: bip ? "on" : "off",
@@ -233,9 +233,9 @@ function toggleVirtualMode(enabled) {
   } else {
     if (btn) { btn.style.display = ""; }
     if (_boardOk) {
-      if (sub) { sub.textContent = "Échiquier connecté — choisissez un menu"; sub.style.color = ""; }
+      if (sub) { sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = ""; }
     } else {
-      if (sub) { sub.textContent = "Vérification de l'échiquier…"; sub.style.color = ""; }
+      if (sub) { sub.textContent = t("menu.verification_echiquier"); sub.style.color = ""; }
       document.querySelectorAll(".menu-btn[data-needs-board]")
         .forEach(b => { b.disabled = true; });
     }
@@ -429,7 +429,7 @@ function _updateEloLabel(elo) {
   const analyseLbl = document.getElementById("cfg-analyse-label");
   const analyseChk = document.getElementById("cfg-analyse");
   if (analyseLbl && analyseChk) {
-    analyseLbl.textContent = analyseChk.checked ? "Activée" : "Désactivée";
+    analyseLbl.textContent = analyseChk.checked ? t("common.activee") : t("common.desactivee");
   }
 }
 
@@ -538,15 +538,15 @@ const socket = io();
 
 socket.on("board_error", (data) => {
   const sub = document.querySelector(".menu-subtitle");
-  if (sub) { sub.textContent = "⚠ Échiquier non détecté — vérifiez l'USB et allumez le plateau puis redémarrez le jeu"; sub.style.color = "#e94560"; }
+  if (sub) { sub.textContent = t("menu.board_error_long"); sub.style.color = "#e94560"; }
   const btn = document.getElementById("btn-reconnect");
-  if (btn) { btn.textContent = "⟳ Reconnecter l'échiquier"; btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; btn.style.background = "#e94560"; btn.style.color = "white"; }
+  if (btn) { btn.textContent = t("menu.btn.reconnect_label"); btn.disabled = false; btn.style.opacity = "1"; btn.style.cursor = "pointer"; btn.style.background = "#e94560"; btn.style.color = "white"; }
 });
 
 socket.on("board_ok", () => {
   _boardOk = true;
   const sub = document.querySelector(".menu-subtitle");
-  if (sub) { sub.textContent = "Échiquier connecté — choisissez un menu"; sub.style.color = ""; }
+  if (sub) { sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = ""; }
   document.querySelectorAll(".menu-btn[data-needs-board]")
     .forEach(btn => { btn.disabled = false; });
   const btn = document.getElementById("btn-reconnect");
@@ -559,8 +559,8 @@ socket.on("virtual_mode_active", () => {
   // Adapter le message de l'écran connecting
   const msg = document.getElementById("connecting-msg");
   const sub = document.getElementById("connecting-sub");
-  if (msg) msg.textContent = "Démarrage de la partie…";
-  if (sub) sub.textContent = "Mode sans échiquier physique.";
+  if (msg) msg.textContent = t("game.demarrage_virtuel");
+  if (sub) sub.textContent = t("game.mode_sans_echiquier");
 });
 
 socket.on("abandon_nulle_ok", () => {
@@ -575,14 +575,14 @@ socket.on("connect", () => {
   const overlay = document.getElementById("startup-overlay");
   if (overlay) setTimeout(() => { overlay.style.display = "none"; }, 5000);
   document.getElementById("status-dot").classList.add("connected");
-  document.getElementById("status-text").textContent = "Connecté";
+  document.getElementById("status-text").textContent = t("status.connecte");
   _initBasketSelects();
   _renderBasketSelects();
 });
 
 socket.on("disconnect", () => {
   document.getElementById("status-dot").classList.remove("connected");
-  document.getElementById("status-text").textContent = "Déconnecté";
+  document.getElementById("status-text").textContent = t("status.deconnecte");
 });
 
 socket.on("status", (data) => {
@@ -718,11 +718,11 @@ socket.on("app_state", (data) => {
     const cMsg = document.getElementById("connecting-msg");
     const cSub = document.getElementById("connecting-sub");
     if (_virtualMode) {
-      if (cMsg) cMsg.textContent = "Démarrage de la partie…";
-      if (cSub) cSub.textContent = "Mode sans échiquier physique.";
+      if (cMsg) cMsg.textContent = t("game.demarrage_virtuel");
+      if (cSub) cSub.textContent = t("game.mode_sans_echiquier");
     } else {
-      if (cMsg) cMsg.textContent = "Connexion à l'échiquier…";
-      if (cSub) cSub.textContent = "Vérifiez que le plateau est allumé et en position initiale.";
+      if (cMsg) cMsg.textContent = t("connecting.msg");
+      if (cSub) cSub.textContent = t("connecting.sub");
     }
     // Réactiver les boutons si échiquier connecté OU mode virtuel
     if (_boardOk || _virtualMode) {
@@ -798,7 +798,7 @@ socket.on("move", (data) => {
   if (_virtualMode) _virtSyncChess(data.fen);
 
   const turnInfo = document.getElementById("turn-info");
-  turnInfo.textContent = `${data.player} (${data.color === 'white' ? 'Blancs' : 'Noirs'}) a joué ${data.san}`;
+  turnInfo.textContent = t("game.a_joue", {player: data.player, color: t(data.color === 'white' ? "config.blancs" : "config.noirs"), san: data.san});
   turnInfo.className = data.color;
 });
 
@@ -821,10 +821,10 @@ socket.on("turn", (data) => {
   if (!data.player || !data.color) return;
   const turnInfo = document.getElementById("turn-info");
   if (data.in_check) {
-    turnInfo.textContent = `⚠ Échec ! Au tour de ${data.player} (${data.color === 'white' ? 'Blancs' : 'Noirs'})`;
+    turnInfo.textContent = t("game.echec", {player: data.player, color: t(data.color === 'white' ? "config.blancs" : "config.noirs")});
     turnInfo.className = "warning";
   } else {
-    turnInfo.textContent = `Au tour de ${data.player} (${data.color === 'white' ? 'Blancs' : 'Noirs'})`;
+    turnInfo.textContent = t("game.au_tour", {player: data.player, color: t(data.color === 'white' ? "config.blancs" : "config.noirs")});
     turnInfo.className = data.color;
   }
 
@@ -872,7 +872,7 @@ socket.on("qualite", (data) => {
 
 socket.on("popup", (data) => {
   // Popup simple avec bouton OK — utilisé pour échec et mat, pat, etc.
-  document.getElementById("modal-title").textContent = data.message || "Fin de partie";
+  document.getElementById("modal-title").textContent = data.message || t("game.fin_partie_default");
   const std  = document.getElementById("modal-btns-standard");
   const coul = document.getElementById("modal-btns-couleur");
   if (std)  std.style.display  = "flex";
@@ -949,14 +949,14 @@ socket.on("init", (data) => {
     if (wdlBar) wdlBar.style.display = "none";
   }
   const titleEl = document.getElementById("panel-playing-title");
-  if (titleEl) titleEl.textContent = data.analyse === false ? "Partie libre" : "Partie Pédagogique";
+  if (titleEl) titleEl.textContent = data.analyse === false ? t("game.titre_libre") : t("game.titre_pedagogique");
   const pauseRow = document.getElementById("pause-select-row");
   if (pauseRow) pauseRow.style.display = data.analyse === false ? "none" : "flex";
   const btnPause = document.getElementById("btn-pause");
   if (btnPause) { btnPause.style.display = ""; }
   const btnNulle = document.getElementById("btn-nulle");
-  if (btnNulle) btnNulle.textContent = "🤝 Partie Nulle";
-  document.getElementById("turn-info").textContent = "En attente...";
+  if (btnNulle) btnNulle.textContent = t("game.btn.nulle");
+  document.getElementById("turn-info").textContent = t("game.en_attente");
   const pauseSel = document.getElementById("pause-select");
   if (pauseSel && data.pause) {
     pauseSel.value = data.pause;
@@ -976,8 +976,8 @@ socket.on("init_hh", (data) => {
   currentFen  = data.fen || currentFen;
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
-  topName.textContent  = data.black || "Noirs";
-  botName.textContent  = data.white || "Blancs";
+  topName.textContent  = data.black || t("config.noirs");
+  botName.textContent  = data.white || t("config.blancs");
   topName.style.color  = "#3a5a7a";
   botName.style.color  = "#1a2a3a";
   document.getElementById("game-subtitle").innerHTML =
@@ -985,14 +985,14 @@ socket.on("init_hh", (data) => {
     `<span style="color:#666; margin:0 8px;">vs</span>`+
     `<span style="color:#888;">♚ ${data.black}</span>`;
   const titleElHH = document.getElementById("panel-playing-title");
-  if (titleElHH) titleElHH.textContent = "Humain vs Humain";
+  if (titleElHH) titleElHH.textContent = t("config.titre.humain");
   const pauseRowHH = document.getElementById("pause-select-row");
   if (pauseRowHH) pauseRowHH.style.display = "none";
   const btnPauseHH = document.getElementById("btn-pause");
   if (btnPauseHH) { btnPauseHH.style.display = ""; }
   const btnNulleHH = document.getElementById("btn-nulle");
-  if (btnNulleHH) btnNulleHH.textContent = "🤝 Proposer Nulle";
-  document.getElementById("turn-info").textContent = "En attente...";
+  if (btnNulleHH) btnNulleHH.textContent = t("game.btn.nulle");
+  document.getElementById("turn-info").textContent = t("game.en_attente");
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
   document.getElementById("historique").innerHTML = "";
@@ -1001,20 +1001,20 @@ socket.on("init_hh", (data) => {
 socket.on("swap_color_hh", (data) => {
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
-  topName.textContent = data.black || "Noirs";
-  botName.textContent = data.white || "Blancs";
+  topName.textContent = data.black || t("config.noirs");
+  botName.textContent = data.white || t("config.blancs");
 });
 
 socket.on("history", (data) => {
   _pendingMove = null;
 });
 socket.on("nulle_refusee", (data) => {
-  afficherToast("🤝 Nulle refusée — " + (data.reason || "Stockfish estime avoir l'avantage."), "warning");
+  afficherToast(t("toast.nulle_refusee", {reason: data.reason || t("toast.nulle_refusee_default")}), "warning");
 });
 
 socket.on("pgn_sauvegarde", (data) => {
   const nom = data.path ? data.path.split("/").pop() : "fichier";
-  afficherToast("💾 Sauvegardé : " + nom, "success");
+  afficherToast(t("toast.pgn_sauvegarde_fichier", {nom}), "success");
 });
 
 socket.on("position_initiale", (data) => {
@@ -1066,9 +1066,9 @@ function _viderAnalyse() {
   const titre  = document.getElementById("gameover-title");
   const result = document.getElementById("gameover-result");
   const info   = document.getElementById("rv-game-info");
-  if (titre)  titre.textContent  = "Analyse de partie";
+  if (titre)  titre.textContent  = t("analyse.titre");
   if (result) result.textContent = "";
-  if (info)   info.textContent   = "Importez un fichier PGN";
+  if (info)   info.textContent   = t("analyse.importer_pgn");
   const btnA      = document.getElementById("btn-analyser");
   const btnD      = document.getElementById("btn-telecharger");
   const btnV      = document.getElementById("btn-vider-analyse");
@@ -1397,20 +1397,20 @@ function ouvrirModalAbandonner() {
   const std  = document.getElementById("modal-btns-standard");
   const coul = document.getElementById("modal-btns-couleur");
   if (_gameMode === "humain") {
-    document.getElementById("modal-title").textContent = "Qui abandonne la partie ?";
+    document.getElementById("modal-title").textContent = t("modal.qui_abandonne");
     // Mettre les vrais noms sur les boutons
     const btnBlanc = document.getElementById("modal-btn-blanc");
     const btnNoir  = document.getElementById("modal-btn-noir");
-    const nomBlanc = document.getElementById("player-bottom-name")?.textContent || "Blancs";
-    const nomNoir  = document.getElementById("player-top-name")?.textContent  || "Noirs";
-    if (btnBlanc) { btnBlanc.textContent = `🏳 ${nomBlanc} abandonne`; }
-    if (btnNoir)  { btnNoir.textContent  = `🏳 ${nomNoir} abandonne`; }
+    const nomBlanc = document.getElementById("player-bottom-name")?.textContent || t("config.blancs");
+    const nomNoir  = document.getElementById("player-top-name")?.textContent  || t("config.noirs");
+    if (btnBlanc) { btnBlanc.textContent = t("modal.abandonner_nom", {nom: nomBlanc}); }
+    if (btnNoir)  { btnNoir.textContent  = t("modal.abandonner_nom", {nom: nomNoir}); }
     if (std)  std.style.display  = "none";
     if (coul) coul.style.display = "flex";
   } else {
-    document.getElementById("modal-title").textContent = "Abandonner la partie ?";
+    document.getElementById("modal-title").textContent = t("modal.abandonner_titre");
     const btn = document.getElementById("modal-confirm");
-    btn.textContent = "Confirmer l'abandon";
+    btn.textContent = t("modal.confirmer_abandon");
     btn.className   = "btn btn-warning";
     btn.onclick = () => { fermerModal(); sendAction({ type: "abandonner" }); };
     if (std)  std.style.display  = "flex";
@@ -1426,13 +1426,13 @@ function ouvrirModalNulle() {
   if (coul) coul.style.display = "none";
   const btn = document.getElementById("modal-confirm");
   if (_gameMode === "humain") {
-    document.getElementById("modal-title").textContent = "Les deux joueurs acceptent la nulle ?";
-    btn.textContent = "Confirmer la nulle";
+    document.getElementById("modal-title").textContent = t("modal.nulle_hh_titre");
+    btn.textContent = t("modal.confirmer_nulle");
     btn.className   = "btn btn-reprendre";
     btn.onclick = () => { fermerModal(); sendAction({ type: "nulle_hh" }); };
   } else {
-    document.getElementById("modal-title").textContent = "Proposer la nulle à Stockfish ?";
-    btn.textContent = "Proposer la nulle";
+    document.getElementById("modal-title").textContent = t("modal.nulle_stockfish_titre");
+    btn.textContent = t("modal.proposer_nulle");
     btn.className   = "btn";
     btn.onclick = () => { fermerModal(); sendAction({ type: "nulle" }); };
   }
@@ -1441,9 +1441,9 @@ function ouvrirModalNulle() {
 
 function ouvrirModalBackMenu() {
   const msg = _gameMode === "humain"
-    ? "Quitter ? La partie en cours sera perdue."
-    : "Quitter et revenir au menu ?";
-  ouvrirModal("back_menu", msg, "Quitter", "");
+    ? t("modal.quitter_hh")
+    : t("modal.quitter_moteur");
+  ouvrirModal("back_menu", msg, t("modal.quitter_btn"), "");
 }
 
 function ouvrirModal(actionType, titre, labelConfirm, btnClass) {
@@ -1459,8 +1459,8 @@ function ouvrirModal(actionType, titre, labelConfirm, btnClass) {
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
                     height:100vh;background:#1a2a3a;color:#c8d8e8;font-family:sans-serif;gap:1rem;">
           <div style="font-size:2rem;">✕</div>
-          <div style="font-size:1.2rem;font-weight:bold;">AlChess est fermé</div>
-          <div style="font-size:0.9rem;color:#7a9ab8;">Vous pouvez fermer cet onglet.</div>
+          <div style="font-size:1.2rem;font-weight:bold;">${t("modal.ferme_titre")}</div>
+          <div style="font-size:0.9rem;color:#7a9ab8;">${t("modal.ferme_sous")}</div>
         </div>`;
       setTimeout(() => window.close(), 600);
     }
@@ -1600,11 +1600,11 @@ function selectColorHH(c) {
   const lblWhite = document.getElementById("label-white-name");
   const lblBlack = document.getElementById("label-black-name");
   if (c === "random") {
-    if (lblWhite) lblWhite.textContent = "Joueur 1";
-    if (lblBlack) lblBlack.textContent = "Joueur 2";
+    if (lblWhite) lblWhite.textContent = t("config.joueur1");
+    if (lblBlack) lblBlack.textContent = t("config.joueur2");
   } else {
-    if (lblWhite) lblWhite.textContent = "Joueur Blancs";
-    if (lblBlack) lblBlack.textContent = "Joueur Noirs";
+    if (lblWhite) lblWhite.textContent = t("config.joueur_blancs");
+    if (lblBlack) lblBlack.textContent = t("config.joueur_noirs");
   }
 }
 
@@ -1782,11 +1782,11 @@ function renderReview() {
   const moveInfo = document.getElementById("review-move-info");
   const moveSan  = document.getElementById("review-move-san");
   if (reviewIdx === 0) {
-    if (moveInfo) moveInfo.textContent = "Position initiale";
+    if (moveInfo) moveInfo.textContent = t("common.position_initiale");
     if (moveSan)  moveSan.textContent  = "";
   } else {
     const m = reviewMoves[reviewIdx - 1];
-    if (moveInfo) moveInfo.textContent = `Coup ${reviewIdx}`;
+    if (moveInfo) moveInfo.textContent = t("common.coup_num", {n: reviewIdx});
     if (moveSan)  moveSan.textContent  = m ? m.san : "";
   }
   renderHistory(reviewIdx);
@@ -1809,12 +1809,12 @@ function parsePgn(pgn) {
   try {
     const chess = new Chess();
     if (!chess.load_pgn(pgn)) {
-      alert("PGN invalide ou non reconnu.");
+      alert(t("error.pgn_non_reconnu"));
       return;
     }
     // Extraire les métadonnées
-    const white  = chess.header().White  || "Blancs";
-    const black  = chess.header().Black  || "Noirs";
+    const white  = chess.header().White  || t("config.blancs");
+    const black  = chess.header().Black  || t("config.noirs");
     const result = chess.header().Result || "*";
     // Reconstruire les FEN et la liste des coups
     const history = chess.history({ verbose: true });
@@ -1851,7 +1851,7 @@ function parsePgn(pgn) {
     // Afficher les noms
     document.getElementById("player-top-name").textContent    = black;
     document.getElementById("player-bottom-name").textContent = white;
-    document.getElementById("gameover-title").textContent  = "Révision PGN";
+    document.getElementById("gameover-title").textContent  = t("game.revision_pgn");
     document.getElementById("gameover-result").textContent = result;
     document.getElementById("rv-game-info").textContent    = `${white} vs ${black}`;
     _setNavControls(true);
@@ -2293,10 +2293,10 @@ function laboLoadPgn(event) {
 function laboLoadPgnText(pgnText, label) {
   try {
     const chess = new Chess();
-    if (!chess.load_pgn(pgnText)) { afficherToast("PGN invalide", "warning"); return; }
+    if (!chess.load_pgn(pgnText)) { afficherToast(t("error.pgn_invalide"), "warning"); return; }
     const history = chess.history({ verbose: true });
-    const white   = chess.header().White || "Blancs";
-    const black   = chess.header().Black || "Noirs";
+    const white   = chess.header().White || t("config.blancs");
+    const black   = chess.header().Black || t("config.noirs");
     const chess2  = new Chess();
     _laboPgnFens  = [chess2.fen()];
     _laboPgnMoves = [];
@@ -2311,7 +2311,7 @@ function laboLoadPgnText(pgnText, label) {
     const nav = document.getElementById("labo-pgn-nav");
     if (nav) nav.style.display = "flex";
     const info = document.getElementById("labo-pgn-info");
-    if (info) info.textContent = `${white} vs ${black} — ${history.length} coups`;
+    if (info) info.textContent = t("labo.pgn_info", {white, black, n: history.length});
     const copyBtn = document.getElementById("labo-btn-copy");
     if (copyBtn) {
       copyBtn.style.display = "block";
@@ -2319,8 +2319,8 @@ function laboLoadPgnText(pgnText, label) {
     }
     _laboRenderPgnHistory();
     laboJournalAdd("config", `📂 PGN : ${label || (white + " vs " + black)} (${history.length} coups)`);
-    afficherToast("PGN chargé", "success");
-  } catch(err) { afficherToast("Erreur PGN : " + err.message, "warning"); }
+    afficherToast(t("toast.pgn_charge"), "success");
+  } catch(err) { afficherToast(t("toast.erreur_pgn", {msg: err.message}), "warning"); }
 }
 
 function _laboRenderPgnHistory() {
@@ -2331,8 +2331,8 @@ function _laboRenderPgnHistory() {
   const total  = Math.max(whites.length, blacks.length);
   let html = '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">';
   html += '<tr><th style="color:#556;width:20px;text-align:right;padding-right:4px;"></th>';
-  html += '<th style="color:#aaa;text-align:left;padding:2px 3px;">Blancs</th>';
-  html += '<th style="color:#aaa;text-align:left;padding:2px 3px;">Noirs</th></tr>';
+  html += `<th style="color:#aaa;text-align:left;padding:2px 3px;">${t("config.blancs")}</th>`;
+  html += `<th style="color:#aaa;text-align:left;padding:2px 3px;">${t("config.noirs")}</th></tr>`;
   for (let i = 0; i < total; i++) {
     const wIdx = i * 2;
     const bIdx = i * 2 + 1;
@@ -2389,7 +2389,7 @@ function laboShowVirtualFen() {
   }
   const sanEl = document.getElementById("labo-pgn-san");
   if (sanEl) {
-    sanEl.textContent = _laboPgnIdx > 0 ? (_laboPgnMoves[_laboPgnIdx - 1] || "") : "Position initiale";
+    sanEl.textContent = _laboPgnIdx > 0 ? (_laboPgnMoves[_laboPgnIdx - 1] || "") : t("common.position_initiale");
   }
 }
 
@@ -2652,8 +2652,8 @@ socket.on("labo_init", (data) => {
   if (engInfoEl) engInfoEl.textContent = data.engine_label || "";
   const topEl = document.getElementById("labo-player-top");
   const botEl = document.getElementById("labo-player-bottom");
-  if (topEl) topEl.textContent = "Noirs";
-  if (botEl) botEl.textContent = "Blancs ★";
+  if (topEl) topEl.textContent = t("config.noirs");
+  if (botEl) botEl.textContent = t("config.blancs") + " ★";
   _laboUpdateAutoBtn(false);
   const fb = document.getElementById("labo-feedback");
   if (fb) fb.style.display = "none";
@@ -2674,25 +2674,25 @@ socket.on("labo_position", (data) => {
   }
   if (turnEl) {
     if (data.in_check) {
-      turnEl.textContent = "⚠ Échec !";
+      turnEl.textContent = t("labo.echec");
       turnEl.style.color = "#ff9800";
     } else if (data.engine_turn && data.auto) {
       // Moteur va jouer — message placez le coup sera envoyé par labo_engine_played
-      turnEl.textContent = "Tour du moteur...";
+      turnEl.textContent = t("labo.tour_moteur");
       turnEl.style.color = "#2a3a4a";
     } else if (data.engine_turn && !data.auto) {
-      turnEl.textContent = "Tour du moteur (Auto OFF)";
+      turnEl.textContent = t("labo.tour_moteur_auto_off");
       turnEl.style.color = "#556";
     } else {
-      turnEl.textContent = "À votre tour";
+      turnEl.textContent = t("common.a_votre_tour");
       turnEl.style.color = "#e0e0e0";
     }
   }
   // ★ sur le camp dont c'est le tour
   const topEl2 = document.getElementById("labo-player-top");
   const botEl2 = document.getElementById("labo-player-bottom");
-  if (topEl2) topEl2.textContent = "Noirs" + (turnIsWhite ? "" : " ★");
-  if (botEl2) botEl2.textContent = "Blancs" + (turnIsWhite ? " ★" : "");
+  if (topEl2) topEl2.textContent = t("config.noirs") + (turnIsWhite ? "" : " ★");
+  if (botEl2) botEl2.textContent = t("config.blancs") + (turnIsWhite ? " ★" : "");
   // Mettre à jour le toggle Tour pour refléter le tour courant
   // Un coup joué (from+to présents) prime sur le forçage manuel
   if (data.from !== null && data.to !== null) {
@@ -3102,7 +3102,7 @@ function exRenderOuvertures(ouvertures) {
     const isOpen = sessionStorage.getItem(domKey) !== "closed";
     const totalItems = items.reduce((n, o) => n + 1 + (variantsByRoot[o.id] || []).length, 0);
     header.style.cssText = `display:flex; align-items:center; gap:10px; padding:8px 14px; background:${color}22; border-left:4px solid ${color}; border-radius:4px; cursor:pointer; user-select:none; margin-bottom:${isOpen ? "10px" : "0"};`;
-    header.innerHTML = `<span style="color:${color}; font-weight:bold; font-size:0.95rem;">${label}</span><span style="color:#aaa; font-size:0.82rem;">${totalItems} ouverture${totalItems > 1 ? "s" : ""}</span><span style="margin-left:auto; color:${color}; font-size:1rem;">${isOpen ? "▲" : "▼"}</span>`;
+    header.innerHTML = `<span style="color:${color}; font-weight:bold; font-size:0.95rem;">${label}</span><span style="color:#aaa; font-size:0.82rem;">${t("exercices.n_ouvertures", {n: totalItems})}</span><span style="margin-left:auto; color:${color}; font-size:1rem;">${isOpen ? "▲" : "▼"}</span>`;
 
     const famContent = document.createElement("div");
     famContent.style.cssText = `display:${isOpen ? "block" : "none"};`;
@@ -3203,7 +3203,7 @@ function exRenderOuvertures(ouvertures) {
   }
 
   if (!filtered.length) {
-    list.innerHTML = `<div style="color:#556; text-align:center; padding:20px;">Aucune ouverture dans cet onglet.</div>`;
+    list.innerHTML = `<div style="color:#556; text-align:center; padding:20px;">${t("exercices.aucune_dans_onglet")}</div>`;
   }
 }
 
@@ -3233,7 +3233,7 @@ function exRenderMesLignes(lignes) {
   list.innerHTML = "";
   if (!lignes || lignes.length === 0) {
     list.innerHTML = `<div style="color:#556; text-align:center; padding:30px; line-height:1.8;">
-      <div style="font-size:1.1rem; margin-bottom:8px;">Aucune ligne personnelle trouvée.</div>
+      <div style="font-size:1.1rem; margin-bottom:8px;">${t("exercices.aucune_ligne_perso")}</div>
       <div style="font-size:0.82rem;">Placez vos fichiers <b>.pgn</b> dans<br>
       <code style="color:#e94560;">~/NicLink/data/mes_lignes/</code><br>
       puis lancez : <code style="color:#e94560;">python -m nicsoft.exercices.manage</code> → option 6</div>
@@ -3257,7 +3257,7 @@ function exRenderMesLignes(lignes) {
         style="accent-color:#e94560; width:16px; height:16px; cursor:pointer;"
         onchange="exDrillToggleGroup('${groupId}', this.checked)">
       <label for="${groupId}" style="font-size:0.85rem; font-weight:700; color:#e94560; letter-spacing:1px; text-transform:uppercase; cursor:pointer;">
-        ${group} <span style="color:#556; font-weight:400; font-size:0.75rem;">(${items.length} ligne${items.length > 1 ? "s" : ""})</span>
+        ${group} <span style="color:#556; font-weight:400; font-size:0.75rem;">(${t("exercices.n_lignes", {n: items.length})})</span>
       </label>`;
     section.appendChild(header);
     items.forEach((o, idx) => {
@@ -3475,13 +3475,13 @@ socket.on("exercice_init", (data) => {
   const nomEl = document.getElementById("ex-run-nom");
   if (nomEl) nomEl.textContent = `${o.eco} — ${o.nom}`;
   const varEl = document.getElementById("ex-run-variete");
-  if (varEl) varEl.textContent = `Variété adversaire : ${data.variete} réponse${data.variete > 1 ? "s" : ""}`;
+  if (varEl) varEl.textContent = t("exercices.variete_n", {n: data.variete});
   const topEl = document.getElementById("ex-player-top");
   const botEl = document.getElementById("ex-player-bottom");
-  if (topEl) topEl.textContent = "Adversaire (livre)";
-  if (botEl) botEl.textContent = data.human_color === "white" ? "Vous (Blancs)" : "Vous (Noirs)";
+  if (topEl) topEl.textContent = t("exercices.adversaire_livre");
+  if (botEl) botEl.textContent = data.human_color === "white" ? t("exercices.vous_blancs") : t("exercices.vous_noirs");
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "Placez les pièces…"; statusEl.style.color = "#ff9800"; }
+  if (statusEl) { statusEl.textContent = t("exercices.placer_pieces"); statusEl.style.color = "#ff9800"; }
   const infoEl = document.getElementById("ex-run-info");
   if (infoEl) infoEl.textContent = o.desc;
 
@@ -3490,8 +3490,8 @@ socket.on("exercice_init", (data) => {
   if (_virtualMode) {
     if (syncBtn) syncBtn.style.display = "none";
     const statusEl2 = document.getElementById("ex-run-status");
-    if (statusEl2) { statusEl2.textContent = "À votre tour"; statusEl2.style.color = "#e0e0e0"; }
-    exSetInstructions("Cliquez sur vos pièces pour jouer.");
+    if (statusEl2) { statusEl2.textContent = t("common.a_votre_tour"); statusEl2.style.color = "#e0e0e0"; }
+    exSetInstructions(t("exercices.cliquer_jouer_virtuel"));
   } else {
     if (syncBtn) syncBtn.style.display = "";
     exSetSyncBtn(true);
@@ -3518,10 +3518,10 @@ function _exHandlePosition(data) {
     _virtActivateExBoard();
   }
   const movesEl = document.getElementById("ex-run-moves-count");
-  if (movesEl) movesEl.textContent = `Coup ${data.move_num}`;
+  if (movesEl) movesEl.textContent = t("common.coup_num", {n: data.move_num});
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) {
-    statusEl.textContent = data.human_turn ? "À votre tour" : "Adversaire réfléchit…";
+    statusEl.textContent = data.human_turn ? t("common.a_votre_tour") : t("exercices.adversaire_reflechit");
     statusEl.style.color = data.human_turn ? "#e0e0e0" : "#aaa";
   }
   const bookEl = document.getElementById("ex-run-book-moves");
@@ -4100,8 +4100,8 @@ function _basketLabel() {
 
 function _buildPgnForBasket() {
   if (!reviewMoves.length) return "";
-  const white  = document.getElementById("player-bottom-name")?.textContent || "Blancs";
-  const black  = document.getElementById("player-top-name")?.textContent    || "Noirs";
+  const white  = document.getElementById("player-bottom-name")?.textContent || t("config.blancs");
+  const black  = document.getElementById("player-top-name")?.textContent    || t("config.noirs");
   const result = document.getElementById("gameover-result")?.textContent.trim() || "*";
   let pgn = `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n\n`;
   for (let i = 0; i < reviewMoves.length; i++) {
@@ -4114,14 +4114,14 @@ function _buildPgnForBasket() {
 
 function basketAdd() {
   const pgn = _buildPgnForBasket();
-  if (!pgn) { afficherToast("Aucune partie à ajouter", "warning"); return; }
+  if (!pgn) { afficherToast(t("toast.aucune_partie"), "warning"); return; }
   socket.emit("basket_add", { label: _basketLabel(), pgn });
 }
 
 function basketAddRetrans() {
-  if (!_retransMoves.length) { afficherToast("Aucun coup à ajouter", "warning"); return; }
-  const white  = _retransWhite || "Blancs";
-  const black  = _retransBlack || "Noirs";
+  if (!_retransMoves.length) { afficherToast(t("toast.aucun_coup"), "warning"); return; }
+  const white  = _retransWhite || t("config.blancs");
+  const black  = _retransBlack || t("config.noirs");
   const result = _retransResult || "*";
   let pgn = `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n\n`;
   for (let i = 0; i < _retransMoves.length; i++) {
@@ -4260,7 +4260,7 @@ function basketLoadToOutilsUci() {
 socket.on("basket_updated", (data) => {
   _basket = data.entries || [];
   _renderBasketSelects();
-  if (_basket.length) afficherToast(`🧺 Corbeille : ${_basket.length} partie(s)`, "success");
+  if (_basket.length) afficherToast(t("toast.corbeille", {n: _basket.length}), "success");
 });
 
 // ── Retranscription ───────────────────────────────────────────────────────────
@@ -4369,7 +4369,7 @@ function retransSaveContinue() {
     if (cancel) cancel.style.display = "";
     document.getElementById("modal-overlay").classList.add("open");
   } else {
-    if (confirm("Sauver la ligne actuelle et continuer ?"))
+    if (confirm(t("confirm.save_continue")))
       sendAction({ type: "retranscription_save_continue", result: "*", init_moves: [] });
   }
 }
@@ -4378,11 +4378,11 @@ socket.on("retranscription_saved_continue", (data) => {
   // Extraire juste le nom du fichier
   const parts = data.path.split("/");
   const fname = parts[parts.length - 1];
-  afficherToast(`✓ Sauvegardé : ${fname}`, "success");
+  afficherToast(t("toast.sauvegarde_continu", {fname}), "success");
 });
 
 function retransQuitSansSauver() {
-  if (!confirm("Quitter sans sauver ?\nLa session en cours sera perdue.")) return;
+  if (!confirm(t("confirm.quitter_sans_sauver"))) return;
   sendAction({ type: "retrans_quit_no_save" });
 }
 
@@ -4629,7 +4629,7 @@ socket.on("retranscription_saved", (data) => {
   fermerModal();
   const parts = (data.path || "").split("/");
   const fname = parts[parts.length - 1];
-  afficherToast(`✓ PGN sauvegardé : ${fname}`, "success");
+  afficherToast(t("toast.pgn_fichier", {fname}), "success");
 });
 
 buildBoard();
@@ -4660,7 +4660,7 @@ function outilsPgnFilesSelected(fileList) {
 
   const toRead = Array.from(fileList).filter(f => f.name.endsWith(".pgn"));
   if (!toRead.length) {
-    list.innerHTML = "<span style='color:#e94560'>Aucun fichier .pgn sélectionné.</span>";
+    list.innerHTML = `<span style='color:#e94560'>${t("outils.aucun_pgn")}</span>`;
     return;
   }
 
@@ -4754,10 +4754,10 @@ function outilsPgnClear() {
 socket.on("outils_pgn_import_result", (data) => {
   const btn = document.getElementById("outils-pgn-btn-import");
   btn.disabled = false;
-  btn.textContent = "✅ Importer";
+  btn.textContent = t("outils.import_pgn.btn");
   const res = document.getElementById("outils-pgn-result");
   if (data.ok) {
-    let msg = `<strong style="color:#2e7d32">✓ ${data.imported} ligne(s) importée(s) sur ${data.total}.</strong>`;
+    let msg = `<strong style="color:#2e7d32">${t("outils.pgn_import_ok", {n: data.imported, total: data.total})}</strong>`;
     if (data.errors && data.errors.length) {
       msg += `<br><span style="color:#e94560">${data.errors.length} erreur(s) :</span><ul style="margin:4px 0 0 16px;">`;
       data.errors.forEach(e => { msg += `<li style="color:#e94560">${e.name} — ${e.error}</li>`; });
@@ -4767,9 +4767,9 @@ socket.on("outils_pgn_import_result", (data) => {
     res.style.border = "1px solid #4caf50";
     res.style.color = "#1a2a3a";
     res.innerHTML = msg;
-    afficherToast(`✓ ${data.imported} ligne(s) importée(s)`, "success");
+    afficherToast(t("toast.pgn_importees", {n: data.imported}), "success");
   } else {
-    let msg = `<strong style="color:#e94560">✗ Aucune ligne importée.</strong>`;
+    let msg = `<strong style="color:#e94560">${t("outils.pgn_aucune_import")}</strong>`;
     if (data.errors && data.errors.length) {
       msg += `<ul style="margin:4px 0 0 16px;">`;
       data.errors.forEach(e => { msg += `<li style="color:#e94560">${e.name} — ${e.error}</li>`; });
@@ -4787,7 +4787,7 @@ function outilsSanToUci() {
   const pgn = document.getElementById("outils-uci-input").value.trim();
   if (!pgn) return;
   const res = document.getElementById("outils-uci-result");
-  res.innerHTML = "<em style='color:#888'>Conversion…</em>";
+  res.innerHTML = `<em style='color:#888'>${t("common.conversion")}</em>`;
   res.style.display = "block";
   socket.emit("outils_san_to_uci", {pgn});
 }
@@ -4809,7 +4809,7 @@ socket.on("outils_san_to_uci_result", (data) => {
   html += `<div style="background:#f0f4f8; border:1px solid #a0b8d0; border-radius:6px; padding:8px 12px; font-family:monospace; font-size:0.88rem; color:#1a2a3a; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
     <span style="color:#3a5a7a; font-weight:600;">InitMoves :</span>
     <span id="outils-uci-line">${uciLine}</span>
-    <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="navigator.clipboard.writeText('${uciLine}').then(()=>afficherToast('Copié !','success'))">📋 Copier</button>
+    <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="navigator.clipboard.writeText('${uciLine}').then(()=>afficherToast(t('toast.copie'),'success'))">${t("common.copier")}</button>
   </div>`;
   res.innerHTML = html;
   res.style.display = "block";
@@ -5077,13 +5077,13 @@ socket.on("outils_explore_moves_result", (data) => {
       });
       histEl.textContent = line.trim();
     } else {
-      histEl.textContent = "(position initiale)";
+      histEl.textContent = t("common.position_initiale");
     }
   }
 
   // Profondeur + bouton retour
   const depthEl = document.getElementById("explore-depth");
-  if (depthEl) depthEl.textContent = `Profondeur : ${data.depth} coup${data.depth !== 1 ? "s" : ""}`;
+  if (depthEl) depthEl.textContent = t("outils.polyglot.profondeur", {n: data.depth});
   const backBtn = document.getElementById("explore-btn-back");
   if (backBtn) backBtn.disabled = data.depth === 0;
 
@@ -5091,7 +5091,7 @@ socket.on("outils_explore_moves_result", (data) => {
   const ml = document.getElementById("explore-moves-list");
   if (ml) {
     if (!data.moves || !data.moves.length) {
-      ml.innerHTML = `<span style="color:#888; font-size:0.85rem; font-style:italic;">Fin du livre — aucun coup depuis cette position.</span>`;
+      ml.innerHTML = `<span style="color:#888; font-size:0.85rem; font-style:italic;">${t("outils.polyglot.fin_livre")}</span>`;
     } else {
       let html = "";
       data.moves.forEach((m, i) => {
@@ -5114,7 +5114,7 @@ socket.on("outils_explore_moves_result", (data) => {
   const catEl = document.getElementById("explore-in-catalogue");
   if (catEl) {
     if (data.in_catalogue && data.depth > 0) {
-      catEl.textContent = `✓ Déjà dans le catalogue : « ${data.in_catalogue} »`;
+      catEl.textContent = t("outils.polyglot.deja_catalogue", {nom: data.in_catalogue});
       catEl.style.display = "block";
     } else {
       catEl.style.display = "none";
@@ -5185,7 +5185,7 @@ function outilsEditRender(list) {
   const wrap = document.getElementById("edit-list-wrap");
   if (!wrap) return;
   if (!list.length) {
-    wrap.innerHTML = "<em style='color:#888; padding:10px; display:block;'>Aucune ouverture trouvée.</em>";
+    wrap.innerHTML = `<em style='color:#888; padding:10px; display:block;'>${t("outils.aucune_ouverture")}</em>`;
     return;
   }
   let html = '<table style="width:100%; border-collapse:collapse; font-size:0.82rem;">';
@@ -5246,17 +5246,17 @@ function outilsEditSave() {
     if (val !== (o[field] || "")) updated[field] = val;
   });
   if (!Object.keys(updated).length) {
-    afficherToast("Aucune modification.", "");
+    afficherToast(t("outils.aucune_modif"), "");
     return;
   }
   const btn = document.querySelector("#edit-form .btn-continuer");
-  if (btn) { btn.disabled = true; btn.textContent = "Enregistrement…"; }
+  if (btn) { btn.disabled = true; btn.textContent = t("outils.enregistrement"); }
   socket.emit("outils_edit_save", {id: o.id, updated});
 }
 
 socket.on("outils_edit_save_result", (data) => {
   const btn = document.querySelector("#edit-form .btn-continuer");
-  if (btn) { btn.disabled = false; btn.textContent = "💾 Enregistrer"; }
+  if (btn) { btn.disabled = false; btn.textContent = t("outils.modifier.enregistrer"); }
   const res = document.getElementById("edit-result");
   if (data.ok) {
     res.style.background = "#e8f5e9";
@@ -5317,7 +5317,7 @@ socket.on("outils_eco_search_result", (data) => {
   outilsEcoUpdateCount();
 
   if (!_ecoResults.length) {
-    tbody.innerHTML = `<tr><td colspan="5" style="padding:10px; text-align:center; color:#888; font-style:italic;">Aucun résultat.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="padding:10px; text-align:center; color:#888; font-style:italic;">${t("outils.aucun_resultat")}</td></tr>`;
     return;
   }
   let html = "";
@@ -5352,12 +5352,12 @@ function outilsEcoToggleAll(checked) {
 
 function outilsEcoUpdateCount() {
   const n = document.querySelectorAll(".eco-row-check:checked").length;
-  document.getElementById("eco-selected-count").textContent = n ? `${n} sélectionné(s)` : "";
+  document.getElementById("eco-selected-count").textContent = n ? t("outils.n_selectionnes", {n}) : "";
 }
 
 function outilsEcoImport() {
   const checked = Array.from(document.querySelectorAll(".eco-row-check:checked"));
-  if (!checked.length) { afficherToast("Aucune ligne sélectionnée.", "warning"); return; }
+  if (!checked.length) { afficherToast(t("error.aucune_ligne"), "warning"); return; }
 
   const entries = checked.map(cb => {
     const r = _ecoResults[+cb.dataset.idx];
@@ -5366,24 +5366,24 @@ function outilsEcoImport() {
   const camp = document.getElementById("eco-camp").value;
 
   const btn = document.querySelector("#eco-results-wrap .btn-continuer:last-of-type");
-  if (btn) { btn.disabled = true; btn.textContent = "Import en cours…"; }
+  if (btn) { btn.disabled = true; btn.textContent = t("outils.import_en_cours"); }
   document.getElementById("eco-import-result").style.display = "none";
   socket.emit("outils_eco_import", {entries, camp});
 }
 
 socket.on("outils_eco_import_result", (data) => {
   const btn = document.querySelector("#eco-results-wrap .btn-continuer:last-of-type");
-  if (btn) { btn.disabled = false; btn.textContent = "✅ Importer la sélection"; }
+  if (btn) { btn.disabled = false; btn.textContent = t("outils.eco.importer_sel"); }
   const res = document.getElementById("eco-import-result");
 
   let html = "";
   if (data.imported && data.imported.length) {
     html += `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
-      <strong style="color:#2e7d32">✓ ${data.imported.length} ouverture(s) importée(s)</strong>
+      <strong style="color:#2e7d32">${t("outils.eco_importees", {n: data.imported.length})}</strong>
       <ul style="margin:4px 0 0 16px; font-size:0.83rem;">`;
     data.imported.forEach(e => { html += `<li style="color:#1a2a3a;">${e.eco} — ${e.name} <code style="color:#888;">(${e.id})</code></li>`; });
     html += `</ul></div>`;
-    afficherToast(`✓ ${data.imported.length} ouverture(s) importée(s)`, "success");
+    afficherToast(t("outils.eco_importees", {n: data.imported.length}), "success");
     socket.emit("outils_edit_list", {});  // rafraîchir outil 4
   }
   if (data.skipped && data.skipped.length) {

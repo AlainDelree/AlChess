@@ -88,7 +88,7 @@
     </label>
   </div>
 
-  <button class="menu-btn" onclick="ouvrirModal('quit', 'Quitter AlChess ?', 'Quitter', 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
+  <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
 </div>
 
 <!-- ── Écran config ── -->
@@ -514,7 +514,7 @@
         <button class="btn" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})" data-i18n="game.btn.pause">⏸ Pause</button>
         <button class="btn btn-warning" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">🏳 Abandonner</button>
         <button class="btn" id="btn-nulle" style="background:#4a4a6a; color:#e0e0e0;" onclick="ouvrirModalNulle()" data-i18n="game.btn.nulle">🤝 Partie Nulle</button>
-        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')" data-i18n="common.retour_menu">← Retour au menu</button>
+        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', t('modal.quitter_moteur'), t('modal.quitter_btn'), '')" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
     </div>
     <!-- ── Pause ── -->
@@ -554,7 +554,7 @@
         <!-- Toujours disponibles -->
         <button class="btn" id="btn-changer-couleur" style="background:#a0b8d0; color:#e0e0e0; border:1px solid #e94560;" onclick="pauseToggleChangerCouleur()" data-i18n="game.btn.changer_couleur">🔄 Changer de couleur</button>
         <button class="btn btn-warning" style="display:none;" id="btn-pause-abandonner" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">🏳 Abandonner</button>
-        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', 'Quitter et revenir au menu ?', 'Quitter', '')" data-i18n="common.retour_menu">← Retour au menu</button>
+        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', t('modal.quitter_moteur'), t('modal.quitter_btn'), '')" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
     </div>
     <!-- ── Fin de partie ── -->
