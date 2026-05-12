@@ -19,11 +19,10 @@
 - **Version de AlChess en anglais** — i18n en cours :
   - ✅ Phase 1 : infrastructure (i18n.js, JSON, sélecteur FR/EN)
   - ✅ Phase 2 : HTML statique — 136 clés data-i18n sur tous les écrans (commit 6e52812)
-  - 🔲 Phase 3 : JS dynamique — t() dans app.js (afficherToast, HTML généré, messages inline)
-  - 🔲 Phase 4 : Backend Python — envoyer des clés au lieu de texte
+  - ✅ Phase 3 : JS dynamique — t() dans app.js (commit 69f1bb8)
+  - ✅ Phase 4 : Backend Python — message_key/title_key dans tous les modes
   - 🔲 Phase 5 : Tests + vérification complète
 ---
-
 ## 🧪 Tests automatisés
 
 - **Niveau 1** — Checklist manuelle : `TESTS.md` (smoke 5 min / régression 20 min)

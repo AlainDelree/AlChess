@@ -304,5 +304,29 @@
   "exercices.adversaire_reflechit": "Adversaire réfléchit…",
   "exercices.cliquer_jouer_virtuel": "Cliquez sur vos pièces pour jouer.",
 
-  "error.pgn_non_reconnu":     "PGN invalide ou non reconnu."
+  "error.pgn_non_reconnu":     "PGN invalide ou non reconnu.",
+  "error.board.deconnecte":    "Échiquier déconnecté ou éteint. Relancez le programme.",
+
+  "game.pause_info":           "{player} joue les {color}",
+  "game.delta_cp":             "{san} — {delta}cp de perte",
+  "game.illegal_position_default": "⚠ Position illégale",
+  "game.titre_nulle":          "Nulle",
+  "game.titre_gagne":          "{winner} gagne",
+
+  "labo.echec_mat":            "♚ Échec et mat — {color} gagnent",
+  "labo.pat":                  "Pat — nulle",
+  "labo.materiel_insuffisant": "Matériel insuffisant",
+  "labo.echec_aux":            "⚠ Échec aux {color} !",
+  "labo.position_incoherente": "⚠ Position incohérente — synchronisez le plateau",
+  "labo.synchronise":          "✓ Synchronisé avec le plateau physique",
+  "labo.reproduire_position":  "Reproduisez cette position sur le plateau",
+
+  "exercices.theorie_terminee": "Théorie terminée — continuez la partie !",
+  "exercices.theorie_description": "La théorie est terminée. Continuez la partie contre Stockfish !",
+  "exercices.partie_terminee": "Partie terminée",
+  "exercices.partie_libre":    "Partie libre",
+
+  "toast.nulle_refusee_eval":  "Impossible d'évaluer la position.",
+
+  "exercices.recommencer_instruction": "Cliquez <b>Recommencer</b> pour rejouer."
 }
