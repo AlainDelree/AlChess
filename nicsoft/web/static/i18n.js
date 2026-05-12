@@ -26,7 +26,6 @@ const i18n = (() => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       _data   = await res.json();
       _locale = locale;
-      localStorage.setItem('alchess_locale', locale);
       applyToDOM();
       _updateSelector(locale);
     } catch (e) {
@@ -81,9 +80,7 @@ const i18n = (() => {
 /** Raccourci global utilisé dans app.js et le HTML inline. */
 function t(key, vars) { return i18n.t(key, vars); }
 
-/** Initialisation au chargement de la page. */
+/** Initialisation au chargement de la page — toujours FR au démarrage. */
 (function _initI18n() {
-  const saved = localStorage.getItem('alchess_locale') || DEFAULT_LOCALE;
-  // load() est async — app.js doit attendre window.i18nReady si besoin
-  window.i18nReady = i18n.load(saved);
+  window.i18nReady = i18n.load(DEFAULT_LOCALE);
 })();
