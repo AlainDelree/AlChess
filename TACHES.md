@@ -11,6 +11,11 @@
 
 ### À corriger
 
+- **Checkbox analyse inversée** — L'état "disabled" est coché pour activer l'analyse et décoché pour la désactiver : la logique est inversée. Corriger le sens de la checkbox dans config pédagogique.
+- **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
+- **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
+- **Impossible de jouer les Noirs en virtuel (pédagogique)** — Quand la couleur est "random" et que le joueur obtient les Noirs, il n'arrive pas à jouer. À reproduire et investiguer.
+
 ---
 
 ## 💡 Fonctionnalités à venir
@@ -22,6 +27,8 @@
   - ✅ Phase 3 : JS dynamique — t() dans app.js (commit 69f1bb8)
   - ✅ Phase 4 : Backend Python — message_key/title_key dans tous les modes
   - ✅ Phase 5 : JS dynamique complet — ELO_LABELS, retranscription, labo, flip, delta_cp
+  - 🔲 Phase 6 : Corrections i18n (relevé partiel — menu + pédagogique virtuel). Voir `CORRECTION_TRADUCTION.md`. Reste à parcourir : labo, exercices, retranscription, outils.
+
 ---
 ## 🧪 Tests automatisés
 
