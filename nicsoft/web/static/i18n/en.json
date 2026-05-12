@@ -117,6 +117,7 @@
   "game.h2.navigation":        "Navigation",
   "game.btn.reprendre_partie": "▶ Resume game",
   "game.btn.changer_couleur":  "🔄 Change side",
+  "game.btn.annuler_changement": "🔄 Cancel side switch",
   "game.nav.vitesse":          "Speed",
   "game.nav.precedent":        "← Previous",
   "game.nav.suivant":          "Next →",
@@ -247,6 +248,7 @@
   "menu.verification_echiquier": "Checking board…",
   "menu.board_error_long":     "⚠ Board not detected — check USB, power on the board and restart",
   "menu.btn.reconnect_label":  "⟳ Reconnect board",
+  "menu.btn.reconnect_connecte": "✓ Board connected",
 
   "game.demarrage_virtuel":    "Starting game…",
   "game.mode_sans_echiquier":  "Boardless mode.",

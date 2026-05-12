@@ -11,6 +11,7 @@
 
 ### À corriger
 
+- **Chevauchement textes mode virtuel** — En mode virtuel coché, les descriptions des boutons "Retranscrire" et "Outils Exercices" se chevauchent dans le menu.
 - **Checkbox analyse inversée** — L'état "disabled" est coché pour activer l'analyse et décoché pour la désactiver : la logique est inversée. Corriger le sens de la checkbox dans config pédagogique.
 - **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
