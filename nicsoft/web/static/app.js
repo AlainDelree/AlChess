@@ -796,8 +796,8 @@ socket.on("move", (data) => {
   // Mettre à jour la barre WDL si présente (coup moteur)
   if (data.wdl) updateWdlBar(data.wdl);
 
-  // Mettre à jour chess.js en mode virtuel
-  if (_virtualMode) _virtSyncChess(data.fen);
+  // Mettre à jour chess.js en mode virtuel (full_fen inclut le tour)
+  if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
 
   const turnInfo = document.getElementById("turn-info");
   turnInfo.textContent = t("game.a_joue", {player: data.player, color: t(data.color === 'white' ? "config.blancs" : "config.noirs"), san: data.san});
