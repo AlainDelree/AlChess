@@ -226,7 +226,7 @@ function toggleVirtualMode(enabled) {
   });
 
   if (enabled) {
-    if (sub) { sub.textContent = "Mode sans échiquier — choisissez un menu"; sub.style.color = "#e94560"; }
+    if (sub) { sub.textContent = t("menu.sous_titre_virtuel"); sub.style.color = "#e94560"; }
     if (btn) { btn.style.display = "none"; }
     document.querySelectorAll(".menu-btn[data-needs-board]:not([data-physical-only])")
       .forEach(b => { b.disabled = false; });
@@ -452,25 +452,25 @@ function selectEngine(engine) {
   document.getElementById("cfg-section-rodent").style.display    = engine === "rodent"    ? "" : "none";
 }
 
-const _rodentLabels = [
-  [800,  "800 Elo — Grand débutant"],
-  [1000, "1000 Elo — Débutant"],
-  [1200, "1200 Elo — Débutant+"],
-  [1400, "1400 Elo — Intermédiaire bas"],
-  [1600, "1600 Elo — Intermédiaire"],
-  [1800, "1800 Elo — Avancé"],
-  [2000, "2000 Elo — Expert"],
-  [2200, "2200 Elo — Maître"],
-  [2400, "2400 Elo — Maître international"],
-  [2800, "2800 Elo — Elite"],
+const _rodentLabelKeys = [
+  [800,  "rodent.grand_debutant"],
+  [1000, "rodent.debutant"],
+  [1200, "rodent.debutant_plus"],
+  [1400, "rodent.inter_bas"],
+  [1600, "rodent.inter"],
+  [1800, "rodent.avance"],
+  [2000, "rodent.expert"],
+  [2200, "rodent.maitre"],
+  [2400, "rodent.maitre_inter"],
+  [2800, "rodent.elite"],
 ];
 
 function _updateRodentLabel(val) {
   const el = document.getElementById("cfg-rodent-elo-label");
   if (!el) return;
   let label = val + " Elo";
-  for (const [threshold, text] of _rodentLabels) {
-    if (val <= threshold) { label = text; break; }
+  for (const [threshold, key] of _rodentLabelKeys) {
+    if (val <= threshold) { label = `${val} Elo — ${t(key)}`; break; }
   }
   el.textContent = label;
 }
@@ -942,8 +942,8 @@ socket.on("init", (data) => {
 
   renderBoard(currentFen, null, null, null, null, null, null);
   document.getElementById("game-subtitle").textContent = isWhite
-    ? `${data.player} contre ${opponent}`
-    : `${opponent} contre ${data.player}`;
+    ? `${data.player} ${t("game.contre")} ${opponent}`
+    : `${opponent} ${t("game.contre")} ${data.player}`;
   // Cacher la barre WDL au départ
   updateWdlBar(null);
   // Cacher barre si analyse désactivée
@@ -1033,6 +1033,60 @@ socket.on("position_initiale", (data) => {
 });
 
 // ── UI — utilitaires (toast, boutons, historique, PGN) ────
+
+// Rafraîchit les labels dynamiques (non data-i18n) après un changement de langue.
+function _refreshDynamicLabels() {
+  // Labels checkboxes config pédagogique
+  const analyseChk = document.getElementById("cfg-analyse");
+  const analyseLbl = document.getElementById("cfg-analyse-label");
+  if (analyseChk && analyseLbl) analyseLbl.textContent = t(analyseChk.checked ? "common.activee" : "common.desactivee");
+
+  const bipChk = document.getElementById("cfg-bip");
+  const bipLbl = document.getElementById("cfg-bip-label");
+  if (bipChk && bipLbl) bipLbl.textContent = t(bipChk.checked ? "common.active" : "common.desactive");
+
+  const legalChk = document.getElementById("cfg-show-legal");
+  const legalLbl = document.getElementById("cfg-show-legal-label");
+  if (legalChk && legalLbl) legalLbl.textContent = t(legalChk.checked ? "common.active" : "common.desactive");
+
+  const rodentSimpleChk = document.getElementById("cfg-rodent-simple");
+  const rodentSimpleLbl = document.getElementById("cfg-rodent-simple-label");
+  if (rodentSimpleChk && rodentSimpleLbl) rodentSimpleLbl.textContent = t(rodentSimpleChk.checked ? "common.active" : "common.desactive");
+
+  // Options Maia (format "Maia NNNN — label")
+  const maiaSel = document.getElementById("cfg-maia-elo");
+  if (maiaSel) {
+    const maiaKeys = {"1100":"rodent.grand_debutant","1200":"rodent.debutant","1300":"rodent.debutant_plus",
+                      "1400":"rodent.inter_bas","1500":"rodent.inter","1600":"elo.intermediaire_plus",
+                      "1700":"elo.avance","1800":"elo.avance_plus","1900":"elo.expert"};
+    Array.from(maiaSel.options).forEach(opt => {
+      if (maiaKeys[opt.value]) opt.textContent = `Maia ${opt.value} — ${t(maiaKeys[opt.value])}`;
+    });
+  }
+
+  // Sous-titre menu
+  const sub = document.querySelector(".menu-subtitle");
+  if (sub) {
+    if (_virtualMode) {
+      sub.textContent = t("menu.sous_titre_virtuel");
+    } else if (_boardOk) {
+      sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = "";
+    } else {
+      sub.textContent = t("menu.verification_echiquier"); sub.style.color = "";
+    }
+  }
+
+  // Titre bouton flip
+  const flipBtn = document.getElementById("btn-flip");
+  if (flipBtn) flipBtn.title = t(_boardFlipped ? "game.flip_blancs" : "game.flip_noirs");
+
+  // Label Rodent courant
+  const rodentVal = parseInt(document.getElementById("cfg-rodent-elo")?.value || "800");
+  if (!isNaN(rodentVal)) _updateRodentLabel(rodentVal);
+
+  // Réafficher l'historique si une partie est en cours
+  if (document.getElementById("historique")?.innerHTML) _renderHistory();
+}
 
 // Résout un message venant du backend : si message_key présent, on traduit ;
 // sinon on utilise le champ texte brut (fallback rétro-compatible).
@@ -1142,11 +1196,11 @@ function renderBoardPosInit(fen) {
 // ── FEEDBACK — qualité des coups et séquence punitive ─────
 
 
-const LABELS = {
-  bon:         "✓ Bon coup",
-  imprecision: "?! Imprécision",
-  erreur:      "? Erreur",
-  blunder:     "?? Gaffe",
+const LABEL_KEYS = {
+  bon:         "feedback.label.bon",
+  imprecision: "feedback.label.imprecision",
+  erreur:      "feedback.label.erreur",
+  blunder:     "feedback.label.blunder",
 };
 
 // Séquence punitive stockée lors du feedback
@@ -1163,7 +1217,7 @@ function showFeedback(data) {
     card.style.display = "block";
     box.style.display  = "block";
     box.className      = data.qualite;
-    label.textContent  = LABELS[data.qualite] || data.qualite;
+    label.textContent  = LABEL_KEYS[data.qualite] ? t(LABEL_KEYS[data.qualite]) : data.qualite;
     detail.textContent = t("game.delta_cp", {san: data.san, delta: data.delta_cp});
     document.getElementById("btn-best").disabled      = !data.best_move_uci;
     document.getElementById("btn-continuer").disabled = false;
@@ -1361,8 +1415,8 @@ function _renderHistory() {
 
   let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
   html += '<tr><th style="color:#3a5a7a;width:24px;text-align:right;padding-right:6px"></th>';
-  html += '<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">Blancs</th>';
-  html += '<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">Noirs</th></tr>';
+  html += `<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">${t("config.blancs")}</th>`;
+  html += `<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">${t("config.noirs")}</th></tr>`;
 
   for (let i = 0; i < total; i++) {
     const w = whites[i];
@@ -2038,7 +2092,7 @@ socket.on("pause", (data) => {
       };
       feedbackBox.style.display  = "block";
       feedbackBox.className      = "feedback-box-pause " + data.qualite;
-      if (feedbackLabel)  feedbackLabel.textContent  = LABELS[data.qualite] || data.qualite;
+      if (feedbackLabel)  feedbackLabel.textContent  = LABEL_KEYS[data.qualite] ? t(LABEL_KEYS[data.qualite]) : data.qualite;
       if (feedbackDetail) feedbackDetail.textContent = data.san ? t("game.delta_cp", {san: data.san, delta: data.delta_cp}) : "";
     } else {
       feedbackBox.style.display = "none";

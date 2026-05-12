@@ -27,7 +27,7 @@
   - ✅ Phase 3 : JS dynamique — t() dans app.js (commit 69f1bb8)
   - ✅ Phase 4 : Backend Python — message_key/title_key dans tous les modes
   - ✅ Phase 5 : JS dynamique complet — ELO_LABELS, retranscription, labo, flip, delta_cp
-  - 🔲 Phase 6 : Corrections i18n (relevé partiel — menu + pédagogique virtuel). Voir `CORRECTION_TRADUCTION.md`. Reste à parcourir : labo, exercices, retranscription, outils.
+  - ✅ Phase 6 : Corrections i18n menu + pédagogique (CORRECTION_TRADUCTION.md). Reste à parcourir : labo, exercices, retranscription, outils.
 
 ---
 ## 🧪 Tests automatisés

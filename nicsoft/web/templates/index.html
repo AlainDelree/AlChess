@@ -25,7 +25,7 @@
   <h1><span style="font-size:1.4em; line-height:1;">♜</span> AlChess</h1>
   <div id="status-dot"></div>
   <span id="status-text">Connexion...</span>
-  <select id="lang-selector" onchange="i18n.load(this.value)"
+  <select id="lang-selector" onchange="i18n.load(this.value).then(_refreshDynamicLabels)"
     style="margin-left:auto; font-size:0.75rem; color:#3a5a7a; background:transparent; border:none; cursor:pointer; opacity:0.6; transition:opacity 0.2s;"
     onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
     <option value="fr">🇫🇷 FR</option>
@@ -39,41 +39,41 @@
 <!-- ── Écran menu ── -->
 <div id="screen-menu">
   <div class="menu-title"><span style="font-size:1.3em; line-height:1;">♜</span> AlChess</div>
-  <div class="menu-subtitle">Vérification de l'échiquier…</div>
+  <div class="menu-subtitle" data-i18n="menu.verification_echiquier">Vérification de l'échiquier…</div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-primary" data-needs-board disabled onclick="sendAction({type:'mode', value:'pedagogique'})" data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</button>
-    <div class="menu-btn-desc" id="desc-pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
+    <div class="menu-btn-desc" id="desc-pedagogique" data-i18n="menu.desc.pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})" data-i18n="menu.btn.humain">⚔️ Humain vs Humain</button>
-    <div class="menu-btn-desc" id="desc-humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
+    <div class="menu-btn-desc" id="desc-humain" data-i18n="menu.desc.humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})" data-i18n="menu.btn.analyse">📊 Analyse de partie</button>
-    <div class="menu-btn-desc" id="desc-analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
+    <div class="menu-btn-desc" id="desc-analyse" data-i18n="menu.desc.analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'analyse_libre'})" data-i18n="menu.btn.labo">🔬 Laboratoire</button>
-    <div class="menu-btn-desc" id="desc-labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
+    <div class="menu-btn-desc" id="desc-labo" data-i18n="menu.desc.labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'exercices'})" data-i18n="menu.btn.exercices">📚 Exercices</button>
-    <div class="menu-btn-desc" id="desc-exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
+    <div class="menu-btn-desc" id="desc-exercices" data-i18n="menu.desc.exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})" data-i18n="menu.btn.retranscrire">✏️ Retranscrire</button>
-    <div class="menu-btn-desc" id="desc-retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
+    <div class="menu-btn-desc" id="desc-retrans" data-i18n="menu.desc.retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
   </div>
 
   <div class="menu-btn-wrap">
     <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'outils_exercices'})" data-i18n="menu.btn.outils">🛠️ Outils Exercices</button>
-    <div class="menu-btn-desc">Importez vos lignes PGN, convertissez SAN&nbsp;→&nbsp;UCI et gérez le catalogue d'ouvertures.</div>
+    <div class="menu-btn-desc" data-i18n="menu.desc.outils">Importez vos lignes PGN, convertissez SAN&nbsp;→&nbsp;UCI et gérez le catalogue d'ouvertures.</div>
   </div>
 
   <button class="menu-btn menu-btn-secondary" id="btn-reconnect" onclick="sendAction({type:'reconnect_board'})" style="font-size:0.85rem; opacity:0.5; cursor:default;" disabled>✓ Échiquier connecté</button>
@@ -84,11 +84,11 @@
       <input type="checkbox" id="chk-virtual-mode"
         style="width:15px; height:15px; cursor:pointer; accent-color:#e94560;"
         onchange="toggleVirtualMode(this.checked)">
-      <span style="font-size:0.82rem; color:#3a5a7a;">Mode sans échiquier physique</span>
+      <span style="font-size:0.82rem; color:#3a5a7a;" data-i18n="menu.checkbox_virtuel">Mode sans échiquier physique</span>
     </label>
   </div>
 
-  <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;">✕ Quitter</button>
+  <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;" data-i18n="menu.btn.quitter">✕ Quitter</button>
 </div>
 
 <!-- ── Écran config ── -->
@@ -158,7 +158,7 @@
 
           <!-- Section Maia -->
           <div id="cfg-section-maia" style="display:none;">
-            <label class="cfg-label">Niveau Maia</label>
+            <label class="cfg-label" data-i18n="config.maia.niveau">Niveau Maia</label>
             <select id="cfg-maia-elo" class="cfg-input" style="margin-bottom:4px;">
               <option value="1100">Maia 1100 — Grand débutant</option>
               <option value="1200">Maia 1200 — Débutant</option>
@@ -170,12 +170,12 @@
               <option value="1800">Maia 1800 — Avancé+</option>
               <option value="1900">Maia 1900 — Expert</option>
             </select>
-            <div style="text-align:center; font-size:0.78rem; color:#3a5a7a;">Joue comme un humain de ce niveau</div>
+            <div style="text-align:center; font-size:0.78rem; color:#3a5a7a;" data-i18n="config.maia.desc">Joue comme un humain de ce niveau</div>
           </div>
 
           <!-- Section Rodent -->
           <div id="cfg-section-rodent" style="display:none;">
-            <label class="cfg-label">Force de Rodent</label>
+            <label class="cfg-label" data-i18n="config.rodent.force">Force de Rodent</label>
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
               <button onclick="adjustRodentElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-200</button>
               <button onclick="adjustRodentElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-50</button>
@@ -187,10 +187,11 @@
             </div>
             <div id="cfg-rodent-elo-label" style="text-align:center; font-size:0.78rem; color:#3a5a7a; margin-bottom:10px;">800 Elo — Grand débutant</div>
             <div style="display:flex; align-items:center; justify-content:space-between;">
-              <label class="cfg-label" style="margin-bottom:0;">Jeu simplifié</label>
+              <label class="cfg-label" style="margin-bottom:0;" data-i18n="config.rodent.simple">Jeu simplifié</label>
               <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                <input type="checkbox" id="cfg-rodent-simple" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
-                <span style="font-size:0.85rem; color:#445; display:inline-block; width:52px;">Activé</span>
+                <input type="checkbox" id="cfg-rodent-simple" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;"
+                  onchange="document.getElementById('cfg-rodent-simple-label').textContent=t(this.checked?'common.active':'common.desactive')">
+                <span id="cfg-rodent-simple-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;" data-i18n="common.desactive">Désactivé</span>
               </label>
             </div>
           </div>
@@ -202,15 +203,17 @@
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
             <label class="cfg-label" style="margin-bottom:0;" data-i18n="config.label.analyse">Analyse des coups</label>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-              <input type="checkbox" id="cfg-analyse" checked style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
-              <span id="cfg-analyse-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;">Activée</span>
+              <input type="checkbox" id="cfg-analyse" checked style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;"
+                onchange="document.getElementById('cfg-analyse-label').textContent=t(this.checked?'common.activee':'common.desactivee')">
+              <span id="cfg-analyse-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;" data-i18n="common.activee">Activée</span>
             </label>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
             <label class="cfg-label" style="margin-bottom:0;" data-i18n="config.label.bip">Bip sonore</label>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-              <input type="checkbox" id="cfg-bip" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
-              <span id="cfg-bip-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;">Activé</span>
+              <input type="checkbox" id="cfg-bip" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;"
+                onchange="document.getElementById('cfg-bip-label').textContent=t(this.checked?'common.active':'common.desactive')">
+              <span id="cfg-bip-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;" data-i18n="common.desactive">Désactivé</span>
             </label>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between;">
@@ -486,11 +489,11 @@
           <label style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;">Pause :</label>
           <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" style="flex:1; background:#a0b8d0; color:#1a2a3a; border:1px solid #7a9ab8; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
             <option value="" disabled selected>...</option>
-            <option value="toujours">Toujours</option>
-            <option value="imprecision">Imprécision + Erreur + Gaffe</option>
-            <option value="erreur">Erreur + Gaffe</option>
-            <option value="blunder">Gaffe seulement</option>
-            <option value="jamais">Jamais</option>
+            <option value="toujours" data-i18n="config.pause.toujours">Toujours</option>
+            <option value="imprecision" data-i18n="config.pause.imprecision">Imprécision + Erreur + Gaffe</option>
+            <option value="erreur" data-i18n="config.pause.erreur">Erreur + Gaffe</option>
+            <option value="blunder" data-i18n="config.pause.blunder">Gaffe seulement</option>
+            <option value="jamais" data-i18n="config.pause.jamais">Jamais</option>
           </select>
         </div>
       </div>
