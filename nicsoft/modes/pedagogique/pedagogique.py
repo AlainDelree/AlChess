@@ -1283,8 +1283,10 @@ class Game(threading.Thread):
         self.nl_inst.make_move_game_board(move)
         display_move(getattr(self, "player_name", "Joueur"), human_color, san)
         # On envoie d'abord le move, la qualite sera mise à jour après évaluation
+        _full_fen = self.nl_inst.game_board.fen()
         _move_event = {
-            "fen":    self.nl_inst.game_board.fen().split()[0],
+            "fen":      _full_fen.split()[0],
+            "full_fen": _full_fen,
             "san":    san,
             "uci":    move,
             "color":  "white" if self.playing_white == chess.WHITE else "black",
@@ -1460,13 +1462,15 @@ class Game(threading.Thread):
             tlog("[TIMING] wdl_moteur: %.2fs", time.time()-_t_wdl)
 
         _t_send = time.time()
+        _engine_full_fen = self.nl_inst.game_board.fen()
         send_event("move", {
-            "fen":    self.nl_inst.game_board.fen().split()[0],
-            "san":    san,
-            "uci":    fish_move,
-            "color":  engine_color,
-            "player": engine_label,
-            "wdl":    wdl_bar,
+            "fen":      _engine_full_fen.split()[0],
+            "full_fen": _engine_full_fen,
+            "san":      san,
+            "uci":      fish_move,
+            "color":    engine_color,
+            "player":   engine_label,
+            "wdl":      wdl_bar,
         })
         tlog("[TIMING] send_event move: %.2fs", time.time()-_t_send)
         # Pendant WAIT_FISH le joueur peut toujours abandonner ou proposer nulle

@@ -15,7 +15,7 @@
 - **Checkbox analyse inversée** — L'état "disabled" est coché pour activer l'analyse et décoché pour la désactiver : la logique est inversée. Corriger le sens de la checkbox dans config pédagogique.
 - **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
-- **Impossible de jouer les Noirs en virtuel (pédagogique)** — Quand la couleur est "random" et que le joueur obtient les Noirs, il n'arrive pas à jouer. À reproduire et investiguer.
+- ~~**Impossible de jouer les Noirs en virtuel (pédagogique)**~~ ✅ — Corrigé : le `move` event n'envoyait que le FEN partiel (sans indicateur de tour), forçant toujours le tour aux Blancs dans chess.js. Ajout de `full_fen` dans les deux émissions de `move` (coup humain + coup moteur) dans pedagogique.py.
 
 ---
 
