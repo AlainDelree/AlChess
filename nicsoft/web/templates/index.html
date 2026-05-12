@@ -483,10 +483,10 @@
     <!-- ── Pendant la partie ── -->
     <div id="panel-playing">
       <div class="card">
-        <h2 class="card-title-lg" id="panel-playing-title" data-i18n="config.titre.pedagogique">Partie Pédagogique</h2>
+        <h2 class="card-title-lg" id="panel-playing-title">Partie Pédagogique</h2>
         <div id="game-subtitle" style="color:#445; margin-bottom:14px; font-size:0.9rem;"></div>
         <div id="pause-select-row" style="display:flex; align-items:center; gap:10px;">
-          <label style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;">Pause :</label>
+          <label style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;" data-i18n="game.label.pause">Pause :</label>
           <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" style="flex:1; background:#a0b8d0; color:#1a2a3a; border:1px solid #7a9ab8; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
             <option value="" disabled selected>...</option>
             <option value="toujours" data-i18n="config.pause.toujours">Toujours</option>

@@ -321,6 +321,7 @@
   "game.fin_partie_default":   "Game over",
   "game.titre_libre":          "Free game",
   "game.titre_pedagogique":    "Training game",
+  "game.label.pause":          "Pause:",
   "game.revision_pgn":         "PGN Review",
 
   "analyse.titre":             "Game analysis",
