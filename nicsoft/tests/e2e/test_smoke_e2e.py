@@ -61,8 +61,8 @@ def test_pedagogique_demarrer_puis_retour_menu(at_menu):
     at_menu.locator("button.menu-btn-primary").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
 
-    # Démarrer la partie (VirtualBoard + Stockfish)
-    at_menu.locator("button", has_text="Démarrer la partie").click()
+    # Démarrer la partie (VirtualBoard + Stockfish) — cibler le bouton dans l'écran config pédagogique
+    at_menu.locator("#screen-config button", has_text="Démarrer la partie").click()
 
     # Attendre le panel-playing (state=playing)
     at_menu.wait_for_selector("#panel-playing", state="visible", timeout=30000)

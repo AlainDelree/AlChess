@@ -21,7 +21,7 @@
   - ✅ Phase 2 : HTML statique — 136 clés data-i18n sur tous les écrans (commit 6e52812)
   - ✅ Phase 3 : JS dynamique — t() dans app.js (commit 69f1bb8)
   - ✅ Phase 4 : Backend Python — message_key/title_key dans tous les modes
-  - 🔲 Phase 5 : Tests + vérification complète
+  - ✅ Phase 5 : JS dynamique complet — ELO_LABELS, retranscription, labo, flip, delta_cp
 ---
 ## 🧪 Tests automatisés
 

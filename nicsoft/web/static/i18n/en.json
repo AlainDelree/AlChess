@@ -328,5 +328,40 @@
 
   "toast.nulle_refusee_eval":  "Unable to evaluate the position.",
 
-  "exercices.recommencer_instruction": "Click <b>Restart</b> to play again."
+  "exercices.recommencer_instruction": "Click <b>Restart</b> to play again.",
+
+  "game.flip_blancs":          "White at bottom",
+  "game.flip_noirs":           "Black at bottom",
+
+  "labo.subtitle":             "Laboratory — {engine}",
+  "labo.placer_coup":          "Place {engine}'s move on the board",
+
+  "exercices.coups_theoriques": "Theory moves:",
+
+  "retrans.modal.sauver_quitter": "Save and quit?",
+  "retrans.modal.terminer":    "End the game — {label}",
+  "retrans.modal.pgn_resultat": "The PGN will be saved with this result.",
+  "retrans.tour":              "Move {n} — {color} to play",
+  "retrans.joueur_noirs":      "♚ {name} (Black)",
+  "retrans.joueur_blancs":     "♔ {name} (White)",
+  "retrans.noirs_sym":         "♚ Black",
+  "retrans.blancs_sym":        "♔ White",
+  "retrans.noirs_vous":        "♚ Black (you)",
+  "retrans.blancs_vous":       "♔ White (you)",
+  "retrans.fin.checkmate":     "Checkmate!",
+  "retrans.fin.stalemate":     "Stalemate!",
+  "retrans.fin.material":      "Insufficient material",
+  "retrans.pgn_path":          "PGN file will be saved to:\n{path}",
+
+  "elo.debutant":              "Beginner",
+  "elo.debutant_confirme":     "Confirmed beginner",
+  "elo.joueur_confirme":       "Confirmed player",
+  "elo.intermediaire":         "Intermediate",
+  "elo.intermediaire_plus":    "Intermediate+",
+  "elo.avance":                "Advanced",
+  "elo.avance_plus":           "Advanced+",
+  "elo.expert":                "Expert",
+  "elo.maitre":                "Master",
+  "elo.grand_maitre":          "Grand Master",
+  "elo.niveau_max":            "Max level"
 }
