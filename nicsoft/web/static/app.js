@@ -198,6 +198,7 @@ let _pendingMove     = null;
 let currentPlayerColor = "white";
 let _selectedColor   = "white";
 let _boardOk         = false;
+let _boardError      = false;
 let _virtualMode     = false;
 let _panelPlayingTitleKey = null;
 
@@ -538,6 +539,7 @@ function updateWdlBar(wdl) {
 const socket = io();
 
 socket.on("board_error", (data) => {
+  _boardError = true;
   const sub = document.querySelector(".menu-subtitle");
   if (sub) { sub.textContent = t("menu.board_error_long"); sub.style.color = "#e94560"; }
   const btn = document.getElementById("btn-reconnect");
@@ -545,7 +547,8 @@ socket.on("board_error", (data) => {
 });
 
 socket.on("board_ok", () => {
-  _boardOk = true;
+  _boardOk    = true;
+  _boardError = false;
   const sub = document.querySelector(".menu-subtitle");
   if (sub) { sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = ""; }
   document.querySelectorAll(".menu-btn[data-needs-board]")
@@ -1080,9 +1083,11 @@ function _refreshDynamicLabels() {
   const sub = document.querySelector(".menu-subtitle");
   if (sub) {
     if (_virtualMode) {
-      sub.textContent = t("menu.sous_titre_virtuel");
+      sub.textContent = t("menu.sous_titre_virtuel"); sub.style.color = "#e94560";
     } else if (_boardOk) {
       sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = "";
+    } else if (_boardError) {
+      sub.textContent = t("menu.board_error_long"); sub.style.color = "#e94560";
     } else {
       sub.textContent = t("menu.verification_echiquier"); sub.style.color = "";
     }
