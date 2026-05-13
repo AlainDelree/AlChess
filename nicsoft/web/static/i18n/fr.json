@@ -130,6 +130,8 @@
   "feedback.blunder":          "Gaffe",
 
   "labo.titre":                "Laboratoire",
+  "labo.btn.blancs":           "♔ Blancs",
+  "labo.btn.noirs":            "♚ Noirs",
   "labo.btn.analyser":         "🔍 Analyser la partie",
   "labo.btn.analyse_en_cours": "⏳ Analyse en cours...",
   "labo.btn.analyse_pct":      "⏳ Analyse... {pct}%",
@@ -460,6 +462,7 @@
   "labo.loading.echiquier": "Connexion à l'échiquier…",
   "labo.auto.on":           "Auto ON ▶",
   "labo.auto.off":          "Auto OFF ■",
+  "labo.auto_desactive":    "Auto désactivé",
 
   "outils.pgn.drop_zone":          "Cliquez ou déposez vos fichiers <strong>.pgn</strong> ici",
   "outils.polyglot.no_books":      "Aucun livre .bin trouvé dans ~/NicLink/data/books/",

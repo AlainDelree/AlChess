@@ -130,6 +130,8 @@
   "feedback.blunder":          "Blunder",
 
   "labo.titre":                "Laboratory",
+  "labo.btn.blancs":           "♔ White",
+  "labo.btn.noirs":            "♚ Black",
   "labo.btn.analyser":         "🔍 Analyse game",
   "labo.btn.analyse_en_cours": "⏳ Analysis in progress...",
   "labo.btn.analyse_pct":      "⏳ Analysis... {pct}%",
@@ -460,6 +462,7 @@
   "labo.loading.echiquier": "Connecting to board…",
   "labo.auto.on":           "Auto ON ▶",
   "labo.auto.off":          "Auto OFF ■",
+  "labo.auto_desactive":    "Auto disabled",
 
   "outils.pgn.drop_zone":          "Click or drop your <strong>.pgn</strong> files here",
   "outils.polyglot.no_books":      "No .bin book found in ~/NicLink/data/books/",
