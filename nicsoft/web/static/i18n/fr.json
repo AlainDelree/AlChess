@@ -418,5 +418,21 @@
   "pgn.type.Pedagogique":      "Pédagogique",
   "pgn.type.Serieuse":         "Sérieuse",
   "pgn.type.Club":             "Club",
-  "pgn.type.Chesscom":         "Chess.com"
+  "pgn.type.Chesscom":         "Chess.com",
+
+  "exercices.tooltip.jouer":       "Jouer cette ouverture",
+  "exercices.tooltip.variantes":   "Clic : voir variantes — Double-clic : jouer cette ligne",
+  "exercices.coup_principal":      "★ Coup principal !",
+  "exercices.coup_theorique":      "Coup théorique ({rank}/{total})",
+  "exercices.coups_valides":       " — Coups valides : {list}",
+  "exercices.coup_recommande":     " — Coup recommandé : {san}",
+  "exercices.hors_theorie":        "✗ {san} — Hors théorie !",
+  "exercices.hors_theorie_status": "✗ Hors théorie — replacez la pièce",
+  "exercices.deplacer_piece":      "Déplacez la pièce sur le plateau",
+  "exercices.adversaire_joue":     "Adversaire : {san}",
+
+  "pieces.dame":     "♛ Dame",
+  "pieces.tour":     "♜ Tour",
+  "pieces.fou":      "♝ Fou",
+  "pieces.cavalier": "♞ Cavalier"
 }

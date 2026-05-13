@@ -2439,10 +2439,10 @@ function laboLoadPgnText(pgnText, label) {
     const copyBtn = document.getElementById("labo-btn-copy");
     if (copyBtn) {
       copyBtn.style.display = "block";
-      copyBtn.textContent = _virtualMode ? "▶ Jouer depuis cette position" : "📋 Source virtuelle → Plateau";
+      copyBtn.textContent = _virtualMode ? t("labo.btn.jouer_position") : t("labo.btn.copier_virtuel");
     }
     _laboRenderPgnHistory();
-    laboJournalAdd("config", `📂 PGN : ${label || (white + " vs " + black)} (${history.length} coups)`);
+    laboJournalAdd("config", `📂 PGN : ${label || (white + " vs " + black)} (${t("common.n_coups", {n: history.length})})`);
     afficherToast(t("toast.pgn_charge"), "success");
   } catch(err) { afficherToast(t("toast.erreur_pgn", {msg: err.message}), "warning"); }
 }
@@ -2521,17 +2521,17 @@ function laboCopyToBoard() {
   if (!_laboVirtualFen) return;
   if (!_virtualMode) _laboCopyMode = true;
   sendAction({ type: "labo_copy_to_board", fen: _laboVirtualFen });
-  laboJournalAdd("config", _virtualMode ? "▶ Jouer depuis cette position" : "📋 Source virtuelle → Plateau activé");
+  laboJournalAdd("config", _virtualMode ? t("labo.btn.jouer_position") : t("labo.btn.copier_virtuel"));
 }
 
 function laboReset() {
   sendAction({ type: "labo_copy_to_board", fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" });
-  laboJournalAdd("config", "🔄 Réinitialiser — position de départ");
+  laboJournalAdd("config", t("labo.btn.reinit"));
 }
 
 function laboSyncPhysique() {
   sendAction({ type: "source_physique", turn: _laboTurn });
-  laboJournalAdd("config", "🔄 Source physique → Virtuel");
+  laboJournalAdd("config", t("labo.btn.source_physique"));
 }
 
 // Mise à jour de l'échiquier labo depuis le plateau physique
@@ -2648,7 +2648,7 @@ function laboSetCamp(camp) {
   _laboCamp = camp;
   _laboUpdateCampBtn();
   sendAction({ type: "labo_set_config", human_color: camp });
-  laboJournalAdd("config", `Je joue ${camp === "white" ? "♔ Blancs" : "♚ Noirs"}`);
+  laboJournalAdd("config", `${t("labo.label.je_joue")} ${camp === "white" ? t("config.color.blancs") : t("config.color.noirs")}`);
 }
 
 function laboSetTurn(turn) {
@@ -2657,7 +2657,7 @@ function laboSetTurn(turn) {
   _laboTurnForced = true;
   _laboUpdateTurnBtn();
   sendAction({ type: "labo_set_turn", turn: turn });
-  laboJournalAdd("config", `Tour : ${turn === "white" ? "♔ Blancs" : "♚ Noirs"}`);
+  laboJournalAdd("config", `${t("labo.label.tour")} : ${turn === "white" ? t("config.color.blancs") : t("config.color.noirs")}`);
 }
 
 function _laboUpdateTurnBtn() {
@@ -2784,7 +2784,7 @@ socket.on("labo_init", (data) => {
   const evalEl = document.getElementById("labo-eval");
   if (evalEl) evalEl.textContent = "";
   // Journal
-  laboJournalAdd("config", `⚙ ${data.engine_label} — Je joue ${data.human_color === "white" ? "Blancs" : "Noirs"}`);
+  laboJournalAdd("config", `⚙ ${data.engine_label} — ${t("labo.label.je_joue")} ${data.human_color === "white" ? t("config.color.blancs") : t("config.color.noirs")}`);
 });
 
 socket.on("labo_position", (data) => {
@@ -3189,9 +3189,9 @@ function _exBuildCard(o, color, nbVariants, onClick, isVariant) {
   if (nbVariants > 0) {
     const btn = document.createElement("button");
     btn.textContent = "▶";
-    btn.title = "Jouer cette ouverture";
+    btn.title = t("exercices.tooltip.jouer");
     btn.style.cssText = `position:absolute; top:6px; right:8px; background:none; border:none; color:${color}; font-size:0.9rem; cursor:pointer; opacity:0.5; padding:2px 4px; line-height:1; transition:opacity 0.15s;`;
-    btn.onmouseover = (e) => { e.stopPropagation(); btn.style.opacity = "1"; btn.title = "Jouer cette ouverture"; };
+    btn.onmouseover = (e) => { e.stopPropagation(); btn.style.opacity = "1"; btn.title = t("exercices.tooltip.jouer"); };
     btn.onmouseout  = (e) => { e.stopPropagation(); btn.style.opacity = "0.5"; };
     btn.onclick = (e) => { e.stopPropagation(); exLancer(o.id); };
     card.appendChild(btn);
@@ -3310,7 +3310,7 @@ function exRenderOuvertures(ouvertures) {
 
       if (hasVariants) {
         card.ondblclick = (e) => { e.stopPropagation(); exLancer(o.id); };
-        card.title = "Clic : voir variantes — Double-clic : jouer cette ligne";
+        card.title = t("exercices.tooltip.variantes");
       }
 
       famGrid.appendChild(card);
@@ -3506,36 +3506,39 @@ function exRenderBoard(fen, from, to) {
   }
 }
 
-// ── Traduction SAN → français ─────────────────────────────────────────────────
+// ── Traduction SAN selon la langue courante ───────────────────────────────────
 
-const _SAN_PIECES = { K: "Roi", Q: "Dame", R: "Tour", B: "Fou", N: "Cavalier" };
+const _SAN_PIECES_FR = { K: "Roi", Q: "Dame", R: "Tour", B: "Fou", N: "Cavalier" };
+const _SAN_PIECES_EN = { K: "King", Q: "Queen", R: "Rook", B: "Bishop", N: "Knight" };
 
-function sanToFr(san) {
+function sanToLang(san) {
   if (!san) return san;
-  if (san.startsWith("O-O-O") || san.startsWith("0-0-0")) return "Grand roque" + _sanSuffix(san.slice(5));
-  if (san.startsWith("O-O")   || san.startsWith("0-0"))   return "Petit roque"  + _sanSuffix(san.slice(3));
+  const isEn = i18n.locale() === "en";
+  const pieces = isEn ? _SAN_PIECES_EN : _SAN_PIECES_FR;
+  if (san.startsWith("O-O-O") || san.startsWith("0-0-0")) return (isEn ? "Long castling" : "Grand roque") + _sanSuffix(san.slice(5), isEn);
+  if (san.startsWith("O-O")   || san.startsWith("0-0"))   return (isEn ? "Short castling" : "Petit roque")  + _sanSuffix(san.slice(3), isEn);
   let base = san, suffix = "";
-  if (base.endsWith("#"))      { suffix = " mat";   base = base.slice(0, -1); }
-  else if (base.endsWith("+")) { suffix = " échec";  base = base.slice(0, -1); }
+  if (base.endsWith("#"))      { suffix = isEn ? " checkmate" : " mat";   base = base.slice(0, -1); }
+  else if (base.endsWith("+")) { suffix = isEn ? " check"     : " échec"; base = base.slice(0, -1); }
   let promo = "";
   const promoMatch = base.match(/=([QRBN])$/);
-  if (promoMatch) { promo = "=" + _SAN_PIECES[promoMatch[1]]; base = base.slice(0, -2); }
+  if (promoMatch) { promo = "=" + pieces[promoMatch[1]]; base = base.slice(0, -2); }
   let piece = "";
-  if (base[0] && _SAN_PIECES[base[0]]) { piece = _SAN_PIECES[base[0]]; base = base.slice(1); }
-  else piece = "pion";
+  if (base[0] && pieces[base[0]]) { piece = pieces[base[0]]; base = base.slice(1); }
+  else piece = isEn ? "pawn" : "pion";
   const capture = base.includes("x");
   base = base.replace("x", "");
   const targetSq = base.slice(-2);
   const disambig = base.slice(0, -2);
   let result = piece;
   if (disambig) result += ` (${disambig})`;
-  result += capture ? " prend en " + targetSq : " en " + targetSq;
+  result += capture ? (isEn ? " takes " : " prend en ") + targetSq : (isEn ? " to " : " en ") + targetSq;
   return result + promo + suffix;
 }
 
-function _sanSuffix(s) {
-  if (s.startsWith("#")) return " mat";
-  if (s.startsWith("+")) return " échec";
+function _sanSuffix(s, isEn) {
+  if (s.startsWith("#")) return isEn ? " checkmate" : " mat";
+  if (s.startsWith("+")) return isEn ? " check"     : " échec";
   return "";
 }
 
@@ -3655,7 +3658,7 @@ function _exHandlePosition(data) {
       bookEl.innerHTML = "";
       data.book_moves.forEach((m, i) => {
         const span = document.createElement("span");
-        const fr = sanToFr(m.san || m);
+        const fr = sanToLang(m.san || m);
         span.textContent = (i === 0 ? "★ " : "  ") + fr;
         span.style.color  = i === 0 ? "#4caf50" : "#778";
         span.style.cursor = "pointer";
@@ -3702,20 +3705,20 @@ let _exOutOfBook = false;  // true = bip déjà émis, bloquer les répétitions
 
 socket.on("exercice_move_ok", (data) => {
   _exOutOfBook = false;
-  const rank = data.rank === 1 ? "★ Coup principal !" : `Coup théorique (${data.rank}/${data.total})`;
+  const rank = data.rank === 1 ? t("exercices.coup_principal") : t("exercices.coup_theorique", {rank: data.rank, total: data.total});
   const color = data.rank === 1 ? "#4caf50" : "#2196f3";
-  exSetFeedback(`✓ ${sanToFr(data.san)} — ${rank}`, color, 2500);
+  exSetFeedback(`✓ ${sanToLang(data.san)} — ${rank}`, color, 2500);
 });
 
 socket.on("exercice_out_of_book", (data) => {
   if (!_exOutOfBook) { playBeep(); _exOutOfBook = true; }
   const moves = data.valid_moves || (data.valid_sans || []).map(s => ({ san: s, uci: "" }));
   const validList = moves.length
-    ? ` — Coups valides : ${moves.map(m => sanToFr(m.san)).join(", ")}`
-    : ` — Coup recommandé : ${sanToFr(data.best_san)}`;
-  exSetFeedback(`✗ ${sanToFr(data.san)} — Hors théorie !${validList}`, "#e94560", 0);
+    ? t("exercices.coups_valides", {list: moves.map(m => sanToLang(m.san)).join(", ")})
+    : t("exercices.coup_recommande", {san: sanToLang(data.best_san)});
+  exSetFeedback(t("exercices.hors_theorie", {san: sanToLang(data.san)}) + validList, "#e94560", 0);
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "✗ Hors théorie — replacez la pièce"; statusEl.style.color = "#e94560"; }
+  if (statusEl) { statusEl.textContent = t("exercices.hors_theorie_status"); statusEl.style.color = "#e94560"; }
   // Afficher dans le panel coups du livre avec surbrillance mousedown
   const bookEl = document.getElementById("ex-run-book-moves");
   if (bookEl && moves.length) {
@@ -3726,7 +3729,7 @@ socket.on("exercice_out_of_book", (data) => {
     bookEl.appendChild(title);
     moves.forEach((m, i) => {
       const span = document.createElement("span");
-      span.textContent = (i === 0 ? "★ " : "  ") + sanToFr(m.san);
+      span.textContent = (i === 0 ? "★ " : "  ") + sanToLang(m.san);
       span.style.color  = i === 0 ? "#4caf50" : "#778";
       span.style.cursor = "pointer";
       span.style.userSelect = "none";
@@ -3746,8 +3749,8 @@ socket.on("exercice_out_of_book", (data) => {
 socket.on("exercice_adv_move", (data) => {
   if (data.fen) exRenderBoard(data.fen, data.from || null, data.to || null);
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "Déplacez la pièce sur le plateau"; statusEl.style.color = "#aac4e0"; }
-  exSetFeedback(`Adversaire : ${sanToFr(data.san)}`, "#aac4e0", 2000);
+  if (statusEl) { statusEl.textContent = t("exercices.deplacer_piece"); statusEl.style.color = "#aac4e0"; }
+  exSetFeedback(t("exercices.adversaire_joue", {san: sanToLang(data.san)}), "#aac4e0", 2000);
 });
 
 socket.on("exercice_synced", (data) => {
@@ -3901,10 +3904,10 @@ function _virtIsPromotion(fromAlg, toAlg) {
 // Affiche le dialog de promotion et retourne la pièce choisie via callback
 function _virtAskPromotion(callback) {
   const pieces = [
-    { uci: "q", label: "♛ Dame" },
-    { uci: "r", label: "♜ Tour" },
-    { uci: "b", label: "♝ Fou" },
-    { uci: "n", label: "♞ Cavalier" },
+    { uci: "q", label: t("pieces.dame") },
+    { uci: "r", label: t("pieces.tour") },
+    { uci: "b", label: t("pieces.fou") },
+    { uci: "n", label: t("pieces.cavalier") },
   ];
   // Créer un overlay simple
   const overlay = document.createElement("div");
