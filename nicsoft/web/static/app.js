@@ -724,6 +724,7 @@ socket.on("app_state", (data) => {
   }
   if (data.state === "menu") {
     _lastTurnInfo = null;
+    _retransPlayerData = null;
     _gameSource = "externe";
     _viderAnalyse();
     _virtDeactivateBoard();
@@ -1172,10 +1173,11 @@ function _refreshDynamicLabels() {
     }
   }
 
-  // Re-rendre le tour retranscription si l'écran est visible
+  // Re-rendre les labels retranscription si l'écran est visible
   const screenRetransGame = document.getElementById("screen-retrans-game");
   if (screenRetransGame && screenRetransGame.style.display !== "none") {
     _retransUpdateTurn();
+    _retransUpdatePlayerNames();
   }
 
   // Re-rendre la liste exercices si l'écran est visible
@@ -4486,7 +4488,8 @@ let _retransWhite   = "";
 let _retransBlack   = "";
 let _retransResume  = false;
 let _retransTab     = "partie";
-let _retransCamp    = "white";
+let _retransCamp       = "white";
+let _retransPlayerData = null;  // {mode, camp_suggere, black, white} pour re-rendre au changement de langue
 
 function retransSelectTab(tab) {
   _retransTab = tab;
@@ -4631,17 +4634,27 @@ function retransEnd(result) {
 let _rtFlipped = false;
 let _rtFlippedBuilt = null;
 
+function _retransUpdatePlayerNames() {
+  if (!_retransPlayerData) return;
+  const d = _retransPlayerData;
+  let topText, botText;
+  if (d.mode === "exercice") {
+    topText = t(d.camp_suggere === "black" ? "retrans.noirs_vous" : "retrans.noirs_sym");
+    botText  = t(d.camp_suggere === "white" ? "retrans.blancs_vous" : "retrans.blancs_sym");
+  } else {
+    topText = t("retrans.joueur_noirs", {name: d.black});
+    botText  = t("retrans.joueur_blancs", {name: d.white});
+  }
+  const top = document.getElementById("retrans-player-top");
+  const bot = document.getElementById("retrans-player-bottom");
+  if (top) top.textContent = _rtFlipped ? botText : topText;
+  if (bot) bot.textContent = _rtFlipped ? topText : botText;
+}
+
 function retransFlip() {
   _rtFlipped = !_rtFlipped;
   _rtFlippedBuilt = null; // forcer rebuild
-  const top = document.getElementById("retrans-player-top");
-  const bot = document.getElementById("retrans-player-bottom");
-  // Inverser les noms
-  if (top && bot) {
-    const tmp = top.textContent;
-    top.textContent = bot.textContent;
-    bot.textContent = tmp;
-  }
+  _retransUpdatePlayerNames();
   // Re-rendre avec la position actuelle
   if (_retransChess) retransRenderBoard(_retransChess.fen(), null, null);
 }
@@ -4780,15 +4793,8 @@ socket.on("retranscription_init", (data) => {
   }
   const title = document.getElementById("retrans-title");
   if (title) title.textContent = data.mode === "exercice" ? (data.nom || "Exercice") : `${data.white} vs ${data.black}`;
-  const top = document.getElementById("retrans-player-top");
-  const bot = document.getElementById("retrans-player-bottom");
-  if (data.mode === "exercice") {
-    if (top) top.textContent = t(data.camp_suggere === "black" ? "retrans.noirs_vous" : "retrans.noirs_sym");
-    if (bot) bot.textContent = t(data.camp_suggere === "white" ? "retrans.blancs_vous" : "retrans.blancs_sym");
-  } else {
-    if (top) top.textContent = t("retrans.joueur_noirs", {name: data.black});
-    if (bot) bot.textContent = t("retrans.joueur_blancs", {name: data.white});
-  }
+  _retransPlayerData = {mode: data.mode, camp_suggere: data.camp_suggere, black: data.black, white: data.white};
+  _retransUpdatePlayerNames();
   retransBuildBoard(); retransRenderBoard(data.fen, null, null);
   _rtActivateBoard(); _retransRenderHistory(); _retransUpdateTurn();
   // Bouton "Sauver et continuer" uniquement en mode exercice
