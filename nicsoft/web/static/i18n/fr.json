@@ -152,6 +152,9 @@
   "labo.btn.copier_virtuel":   "📋 Source virtuelle → Plateau",
 
   "exercices.titre":           "Exercices",
+  "exercices.titre_ecran":     "📚 Exercices — Ouvertures",
+  "exercices.sous_titre":      "Choisissez une ouverture et entraînez-vous avec le livre de GM",
+  "exercices.autres":          "Autres",
   "exercices.btn.retour":      "← Retour",
   "exercices.choisir":         "Choisissez une ouverture",
   "exercices.aucune":          "Aucune ouverture disponible",
@@ -286,8 +289,8 @@
 
   "labo.pgn_info":             "{white} vs {black} — {n} coups",
 
-  "exercices.n_ouvertures":    "{n} ouverture(s)",
-  "exercices.n_lignes":        "{n} ligne(s)",
+  "exercices.n_ouvertures":    "{n} ouvertures",
+  "exercices.n_lignes":        "{n} lignes",
   "exercices.aucune_dans_onglet": "Aucune ouverture dans cet onglet.",
   "exercices.aucune_ligne_perso": "Aucune ligne personnelle trouvée.",
 

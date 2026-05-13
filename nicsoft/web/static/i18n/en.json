@@ -152,6 +152,9 @@
   "labo.btn.copier_virtuel":   "📋 Virtual Source → Board",
 
   "exercices.titre":           "Exercises",
+  "exercices.titre_ecran":     "📚 Exercises — Openings",
+  "exercices.sous_titre":      "Choose an opening and train with the GM book",
+  "exercices.autres":          "Others",
   "exercices.btn.retour":      "← Back",
   "exercices.choisir":         "Choose an opening",
   "exercices.aucune":          "No openings available",
@@ -286,8 +289,8 @@
 
   "labo.pgn_info":             "{white} vs {black} — {n} moves",
 
-  "exercices.n_ouvertures":    "{n} opening(s)",
-  "exercices.n_lignes":        "{n} line(s)",
+  "exercices.n_ouvertures":    "{n} openings",
+  "exercices.n_lignes":        "{n} lines",
   "exercices.aucune_dans_onglet": "No openings in this tab.",
   "exercices.aucune_ligne_perso": "No personal lines found.",
 
