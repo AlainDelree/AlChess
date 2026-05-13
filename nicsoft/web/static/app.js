@@ -203,6 +203,7 @@ let _virtualMode     = false;
 let _panelPlayingTitleKey = null;
 let _socketConnected = false;
 let _gameFolders     = null;
+let _lastTurnInfo    = null;  // {type: "move"|"turn"|"echec", player, color, san?}
 
 
 // ── MODE VIRTUEL ──────────────────────────────────────────
@@ -719,6 +720,7 @@ socket.on("app_state", (data) => {
     if (_testMode) _randomizeConfigRetrans();
   }
   if (data.state === "menu") {
+    _lastTurnInfo = null;
     _gameSource = "externe";
     _viderAnalyse();
     _virtDeactivateBoard();
@@ -815,6 +817,7 @@ socket.on("move", (data) => {
   // Mettre à jour chess.js en mode virtuel (full_fen inclut le tour)
   if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
 
+  _lastTurnInfo = {type: "move", player: data.player, color: data.color, san: data.san};
   const turnInfo = document.getElementById("turn-info");
   turnInfo.textContent = t("game.a_joue", {player: data.player, color: t(data.color === 'white' ? "config.blancs" : "config.noirs"), san: data.san});
   turnInfo.className = data.color;
@@ -837,6 +840,7 @@ socket.on("turn", (data) => {
     btnNulle.style.opacity = data.is_human ? "1" : "0.4";
   }
   if (!data.player || !data.color) return;
+  _lastTurnInfo = {type: data.in_check ? "echec" : "turn", player: data.player, color: data.color};
   const turnInfo = document.getElementById("turn-info");
   if (data.in_check) {
     turnInfo.textContent = t("game.echec", {player: data.player, color: t(data.color === 'white' ? "config.blancs" : "config.noirs")});
@@ -1133,6 +1137,24 @@ function _refreshDynamicLabels() {
 
   // Réafficher l'historique si une partie est en cours
   if (document.getElementById("historique")?.innerHTML) _renderHistory();
+
+  // Re-rendre le tour en cours (évite que "White"/"Black" reste figé après changement de langue)
+  if (_lastTurnInfo) {
+    const turnInfo = document.getElementById("turn-info");
+    if (turnInfo) {
+      const colorLabel = t(_lastTurnInfo.color === 'white' ? "config.blancs" : "config.noirs");
+      if (_lastTurnInfo.type === "move") {
+        turnInfo.textContent = t("game.a_joue", {player: _lastTurnInfo.player, color: colorLabel, san: _lastTurnInfo.san});
+        turnInfo.className = _lastTurnInfo.color;
+      } else if (_lastTurnInfo.type === "echec") {
+        turnInfo.textContent = t("game.echec", {player: _lastTurnInfo.player, color: colorLabel});
+        turnInfo.className = "warning";
+      } else {
+        turnInfo.textContent = t("game.au_tour", {player: _lastTurnInfo.player, color: colorLabel});
+        turnInfo.className = _lastTurnInfo.color;
+      }
+    }
+  }
 }
 
 // Garantit que _refreshDynamicLabels et le sélecteur s'exécutent après le chargement initial
