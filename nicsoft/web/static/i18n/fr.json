@@ -293,6 +293,11 @@
   "exercices.n_lignes":        "{n} lignes",
   "exercices.aucune_dans_onglet": "Aucune ouverture dans cet onglet.",
   "exercices.aucune_ligne_perso": "Aucune ligne personnelle trouvée.",
+  "exercices.ligne_n":         "Ligne {n}",
+  "exercices.depart_n":        "départ: {n}",
+  "exercices.jouer_blancs":    "♔ Blancs",
+  "exercices.jouer_noirs":     "♚ Noirs",
+  "exercices.drill_selection": "{sel} / {total} lignes sélectionnées",
 
   "outils.aucun_pgn":          "Aucun fichier .pgn sélectionné.",
   "outils.pgn_import_ok":      "✓ {n} ligne(s) importée(s) sur {total}.",

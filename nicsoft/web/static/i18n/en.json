@@ -293,6 +293,11 @@
   "exercices.n_lignes":        "{n} lines",
   "exercices.aucune_dans_onglet": "No openings in this tab.",
   "exercices.aucune_ligne_perso": "No personal lines found.",
+  "exercices.ligne_n":         "Line {n}",
+  "exercices.depart_n":        "start: {n}",
+  "exercices.jouer_blancs":    "♔ White",
+  "exercices.jouer_noirs":     "♚ Black",
+  "exercices.drill_selection": "{sel} / {total} lines selected",
 
   "outils.aucun_pgn":          "No .pgn file selected.",
   "outils.pgn_import_ok":      "✓ {n} line(s) imported out of {total}.",

@@ -3400,8 +3400,8 @@ function exRenderMesLignes(lignes) {
       card.onmouseout  = () => card.style.borderColor = "#0f3460";
       const nb = (o.line || o.init || []).length;
       const nbInit = (o.init || []).length;
-      const initInfo = nbInit ? ` (départ: ${nbInit})` : "";
-      const lineLabel = items.length > 1 ? `${group} — Ligne ${idx + 1}` : group;
+      const initInfo = nbInit ? ` (${t("exercices.depart_n", {n: nbInit})})` : "";
+      const lineLabel = items.length > 1 ? `${group} — ${t("exercices.ligne_n", {n: idx + 1})}` : group;
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
           <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
@@ -3410,14 +3410,14 @@ function exRenderMesLignes(lignes) {
               onchange="exDrillUpdateGroupCheck('${groupId}'); exDrillUpdateCount()">
             <span style="font-weight:600; color:#e0e0e0; font-size:0.88rem;">${lineLabel}</span>
           </label>
-          <span style="font-size:0.75rem; color:#556;">${nb} coups${initInfo}</span>
+          <span style="font-size:0.75rem; color:#556;">${t("common.n_coups", {n: nb})}${initInfo}</span>
         </div>
         <div style="font-size:0.78rem; color:#778; margin-bottom:8px;">${o.desc || ""}</div>
         <div style="display:flex; gap:8px;">
           <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:6px; font-size:0.82rem;"
-            onclick="event.stopPropagation(); _exColor='white'; exLancer('${o.id}')">♔ Blancs</button>
+            onclick="event.stopPropagation(); _exColor='white'; exLancer('${o.id}')">${t("exercices.jouer_blancs")}</button>
           <button class="btn btn-continuer" style="flex:1; margin-bottom:0; padding:6px; font-size:0.82rem;"
-            onclick="event.stopPropagation(); _exColor='black'; exLancer('${o.id}')">♚ Noirs</button>
+            onclick="event.stopPropagation(); _exColor='black'; exLancer('${o.id}')">${t("exercices.jouer_noirs")}</button>
         </div>`;
       section.appendChild(card);
     });
@@ -3443,7 +3443,7 @@ function exDrillUpdateCount() {
   const total  = document.querySelectorAll(".ex-drill-check").length;
   const count  = document.getElementById("ex-drill-count");
   const btn    = document.getElementById("ex-drill-btn");
-  if (count) count.textContent = `${checks.length} / ${total} ligne${checks.length > 1 ? "s" : ""} sélectionnée${checks.length > 1 ? "s" : ""}`;
+  if (count) count.textContent = t("exercices.drill_selection", {sel: checks.length, total});
   if (btn)   btn.disabled = checks.length === 0;
 }
 
