@@ -418,5 +418,21 @@
   "pgn.type.Pedagogique":      "Training",
   "pgn.type.Serieuse":         "Serious",
   "pgn.type.Club":             "Club",
-  "pgn.type.Chesscom":         "Chess.com"
+  "pgn.type.Chesscom":         "Chess.com",
+
+  "exercices.tooltip.jouer":       "Play this opening",
+  "exercices.tooltip.variantes":   "Click: see variants — Double-click: play this line",
+  "exercices.coup_principal":      "★ Main move!",
+  "exercices.coup_theorique":      "Theory move ({rank}/{total})",
+  "exercices.coups_valides":       " — Valid moves: {list}",
+  "exercices.coup_recommande":     " — Recommended: {san}",
+  "exercices.hors_theorie":        "✗ {san} — Out of book!",
+  "exercices.hors_theorie_status": "✗ Out of book — put the piece back",
+  "exercices.deplacer_piece":      "Move the piece on the board",
+  "exercices.adversaire_joue":     "Opponent: {san}",
+
+  "pieces.dame":     "♛ Queen",
+  "pieces.tour":     "♜ Rook",
+  "pieces.fou":      "♝ Bishop",
+  "pieces.cavalier": "♞ Knight"
 }
