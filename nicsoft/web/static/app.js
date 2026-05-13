@@ -651,7 +651,9 @@ socket.on("app_state", (data) => {
   }
   // Quand on entre dans le labo, réinitialiser la position virtuelle
   if (data.state === "labo") {
-    _laboPgnInfoData = null;
+    _laboPgnInfoData   = null;
+    _lastLaboTurnState = null;
+    _lastLaboLastMove  = null;
     _laboVirtualFen = "";
     _laboCopyMode = false;
     const copyBtn = document.getElementById("labo-btn-copy");
@@ -1149,6 +1151,25 @@ function _refreshDynamicLabels() {
     if (_laboPgnMoves.length > 0) _laboRenderPgnHistory();
     const sanEl = document.getElementById("labo-pgn-san");
     if (sanEl && _laboPgnIdx === 0) sanEl.textContent = t("common.position_initiale");
+    // Re-rendre labo-turn-info
+    if (_lastLaboTurnState) {
+      const turnEl = document.getElementById("labo-turn-info");
+      if (turnEl) {
+        const msg = _lastLaboTurnState.type === "msg"
+          ? _i18nMsg(_lastLaboTurnState.data)
+          : t(_lastLaboTurnState.key, _lastLaboTurnState.vars);
+        turnEl.textContent = msg;
+        turnEl.style.color = _lastLaboTurnState.color;
+      }
+    }
+    // Re-rendre labo-last-move (message labo_info)
+    if (_lastLaboLastMove) {
+      const lastEl = document.getElementById("labo-last-move");
+      if (lastEl) {
+        lastEl.textContent = _i18nMsg(_lastLaboLastMove.data);
+        lastEl.style.color = _lastLaboLastMove.color;
+      }
+    }
   }
 
   // Re-rendre la liste exercices si l'écran est visible
@@ -2142,8 +2163,7 @@ socket.on("position_ok", (data) => {
     _laboEnginePlacing = false; // placement confirmé → réactiver board_fen_update
     laboRenderBoard(data.fen, null, null);
     if (_laboCopyMode) {
-      const turnEl = document.getElementById("labo-turn-info");
-      if (turnEl) { turnEl.textContent = "✓ Position reproduite"; turnEl.style.color = "#4caf50"; }
+      _setLaboTurnEl("labo.synchronise", {}, "#4caf50");
       _laboCopyMode = false;
     }
   } else {
@@ -2399,7 +2419,9 @@ let _laboColor   = "white";
 let _laboPgnFens  = [];
 let _laboPgnMoves = [];
 let _laboPgnIdx   = 0;
-let _laboPgnInfoData = null;  // {white, black, n} — pour re-rendre au changement de langue
+let _laboPgnInfoData   = null;  // {white, black, n} — pour re-rendre au changement de langue
+let _lastLaboTurnState = null;  // {type:"key",key,vars,color} | {type:"msg",data,color}
+let _lastLaboLastMove  = null;  // {data, color} — dernier labo_info pour labo-last-move
 let _laboVirtualFen = ""; // FEN de la position virtuelle courante
 let _laboVirtSyncTimer = null; // debounce sync backend PGN→virtuel
 
@@ -2698,6 +2720,12 @@ function laboUpdateEvalBar(cp, mate) {
 let _laboTurn = "white"; // tour actuel pour sync_from_physical
 let _laboTurnForced = false; // true si l'utilisateur a forcé manuellement
 
+function _setLaboTurnEl(key, vars, color) {
+  _lastLaboTurnState = {type: "key", key, vars: vars || {}, color};
+  const el = document.getElementById("labo-turn-info");
+  if (el) { el.textContent = t(key, vars || {}); el.style.color = color; }
+}
+
 function laboSetCamp(camp) {
   if (_laboCamp === camp) return;
   _laboCamp = camp;
@@ -2851,21 +2879,14 @@ socket.on("labo_position", (data) => {
   if (lastEl0 && !data.in_check && lastEl0.textContent.startsWith("⚠ Échec")) {
     lastEl0.textContent = "";
   }
-  if (turnEl) {
-    if (data.in_check) {
-      turnEl.textContent = t("labo.echec");
-      turnEl.style.color = "#ff9800";
-    } else if (data.engine_turn && data.auto) {
-      // Moteur va jouer — message placez le coup sera envoyé par labo_engine_played
-      turnEl.textContent = t("labo.tour_moteur");
-      turnEl.style.color = "#2a3a4a";
-    } else if (data.engine_turn && !data.auto) {
-      turnEl.textContent = t("labo.tour_moteur_auto_off");
-      turnEl.style.color = "#556";
-    } else {
-      turnEl.textContent = t("common.a_votre_tour");
-      turnEl.style.color = "#e0e0e0";
-    }
+  if (data.in_check) {
+    _setLaboTurnEl("labo.echec", {}, "#ff9800");
+  } else if (data.engine_turn && data.auto) {
+    _setLaboTurnEl("labo.tour_moteur", {}, "#2a3a4a");
+  } else if (data.engine_turn && !data.auto) {
+    _setLaboTurnEl("labo.tour_moteur_auto_off", {}, "#556");
+  } else {
+    _setLaboTurnEl("common.a_votre_tour", {}, "#e0e0e0");
   }
   // ★ sur le camp dont c'est le tour
   const topEl2 = document.getElementById("labo-player-top");
@@ -2936,11 +2957,7 @@ socket.on("labo_engine_played", (data) => {
     lastEl.textContent = `♟ ${data.engine} : ${data.san}`;
     lastEl.style.color = "#aac4e0";
   }
-  const turnEl = document.getElementById("labo-turn-info");
-  if (turnEl) {
-    turnEl.textContent = t("labo.placer_coup", {engine: data.engine});
-    turnEl.style.color = "#ff9800";
-  }
+  _setLaboTurnEl("labo.placer_coup", {engine: data.engine}, "#ff9800");
   laboJournalAdd("coups", `♟ ${data.engine} : ${data.san}`);
   if (_virtualMode) _virtDeactivateLaboBoard();
 });
@@ -2965,8 +2982,8 @@ socket.on("labo_placement_cancelled", () => {
   _laboEnginePlacing = false; // placement annulé → réactiver board_fen_update
   const lastEl = document.getElementById("labo-last-move");
   if (lastEl) { lastEl.textContent = ""; }
-  const turnEl = document.getElementById("labo-turn-info");
-  if (turnEl) { turnEl.textContent = "Auto désactivé"; turnEl.style.color = "#556"; }
+  _lastLaboLastMove = null;
+  _setLaboTurnEl("labo.auto_desactive", {}, "#556");
 });
 
 socket.on("labo_auto", (data) => {
@@ -3008,16 +3025,15 @@ socket.on("labo_analyse", (data) => {
 
 socket.on("labo_info", (data) => {
   const lastEl = document.getElementById("labo-last-move");
+  const color = data.type === "sync" ? "#4caf50" : "#e94560";
   const laboMsg = _i18nMsg(data);
-  if (lastEl) {
-    lastEl.textContent = laboMsg;
-    lastEl.style.color = data.type === "sync" ? "#4caf50" : "#e94560";
-  }
+  _lastLaboLastMove = {data, color};
+  if (lastEl) { lastEl.textContent = laboMsg; lastEl.style.color = color; }
   if (data.type !== "sync") {
+    _lastLaboTurnState = {type: "msg", data, color: "#e94560"};
     const turnEl = document.getElementById("labo-turn-info");
     if (turnEl) { turnEl.textContent = laboMsg; turnEl.style.color = "#e94560"; }
   }
-  // Journal
   const cat = ["sync","config"].includes(data.type) ? "config" : "alertes";
   laboJournalAdd(cat, laboMsg);
   afficherToast(laboMsg, data.type === "sync" ? "success" : "info");
@@ -3026,14 +3042,11 @@ socket.on("labo_info", (data) => {
 socket.on("labo_copy_start", (data) => {
   if (data.target_fen) {
     laboRenderBoard(data.target_fen, null, null);
-    const turnEl = document.getElementById("labo-turn-info");
-    if (turnEl) {
-      turnEl.textContent = t("labo.reproduire_position");
-      turnEl.style.color = "#ff9800";
-    }
+    _setLaboTurnEl("labo.reproduire_position", {}, "#ff9800");
     // Effacer le message précédent (ex: "Synchronisé")
     const lastEl = document.getElementById("labo-last-move");
     if (lastEl) { lastEl.textContent = ""; }
+    _lastLaboLastMove = null;
   }
 });
 
