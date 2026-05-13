@@ -451,7 +451,7 @@
   "startup.demarrage":  "Starting AlChess…",
   "startup.chargement": "Loading…",
 
-  "labo.journal.titre":    "Journal",
+  "labo.journal.titre":    "Log",
   "labo.journal.coups":    "Moves",
   "labo.journal.alertes":  "Alerts",
   "labo.journal.analyse":  "Analysis",
