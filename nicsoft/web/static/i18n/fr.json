@@ -298,6 +298,7 @@
   "exercices.jouer_blancs":    "♔ Blancs",
   "exercices.jouer_noirs":     "♚ Noirs",
   "exercices.drill_selection": "{sel} / {total} lignes sélectionnées",
+  "exercices.desc_importee":   "Importé depuis {source}",
 
   "outils.aucun_pgn":          "Aucun fichier .pgn sélectionné.",
   "outils.pgn_import_ok":      "✓ {n} ligne(s) importée(s) sur {total}.",
