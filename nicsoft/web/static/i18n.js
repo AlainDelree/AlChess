@@ -7,6 +7,7 @@
  *
  * Le DOM est mis à jour via les attributs :
  *   data-i18n             → textContent
+ *   data-i18n-html        → innerHTML (pour les clés contenant du HTML)
  *   data-i18n-placeholder → placeholder
  *   data-i18n-title       → title
  */
@@ -75,6 +76,9 @@ const i18n = (() => {
       } else {
         el.textContent = t(key);
       }
+    });
+    document.querySelectorAll('[data-i18n-html]').forEach(el => {
+      el.innerHTML = t(el.dataset.i18nHtml);
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
       el.placeholder = t(el.dataset.i18nPlaceholder);

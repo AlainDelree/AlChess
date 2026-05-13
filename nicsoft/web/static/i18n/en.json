@@ -446,5 +446,20 @@
   "pieces.cavalier": "♞ Knight",
 
   "startup.demarrage":  "Starting AlChess…",
-  "startup.chargement": "Loading…"
+  "startup.chargement": "Loading…",
+
+  "labo.journal.titre":    "Journal",
+  "labo.journal.coups":    "Moves",
+  "labo.journal.alertes":  "Alerts",
+  "labo.journal.analyse":  "Analysis",
+  "labo.journal.config":   "Config",
+  "labo.journal.vider":    "Clear",
+  "labo.loading.echiquier": "Connecting to board…",
+  "labo.auto.on":           "Auto ON ▶",
+  "labo.auto.off":          "Auto OFF ■",
+
+  "outils.pgn.drop_zone":          "Click or drop your <strong>.pgn</strong> files here",
+  "outils.polyglot.no_books":      "No .bin book found in ~/NicLink/data/books/",
+  "outils.edit.filter_placeholder": "Filter by ID, ECO or name…",
+  "outils.edit.titre":              "Edit:"
 }
