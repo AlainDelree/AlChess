@@ -1172,6 +1172,12 @@ function _refreshDynamicLabels() {
     }
   }
 
+  // Re-rendre le tour retranscription si l'écran est visible
+  const screenRetransGame = document.getElementById("screen-retrans-game");
+  if (screenRetransGame && screenRetransGame.style.display !== "none") {
+    _retransUpdateTurn();
+  }
+
   // Re-rendre la liste exercices si l'écran est visible
   const screenEx = document.getElementById("screen-exercices");
   if (screenEx && screenEx.style.display !== "none") {
