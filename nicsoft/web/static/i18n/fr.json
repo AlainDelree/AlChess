@@ -434,5 +434,8 @@
   "pieces.dame":     "♛ Dame",
   "pieces.tour":     "♜ Tour",
   "pieces.fou":      "♝ Fou",
-  "pieces.cavalier": "♞ Cavalier"
+  "pieces.cavalier": "♞ Cavalier",
+
+  "startup.demarrage":  "Démarrage de AlChess…",
+  "startup.chargement": "Chargement en cours…"
 }

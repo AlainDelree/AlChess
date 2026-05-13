@@ -434,5 +434,8 @@
   "pieces.dame":     "♛ Queen",
   "pieces.tour":     "♜ Rook",
   "pieces.fou":      "♝ Bishop",
-  "pieces.cavalier": "♞ Knight"
+  "pieces.cavalier": "♞ Knight",
+
+  "startup.demarrage":  "Starting AlChess…",
+  "startup.chargement": "Loading…"
 }
