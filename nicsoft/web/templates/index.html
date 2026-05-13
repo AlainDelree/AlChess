@@ -1090,7 +1090,7 @@
     </div>
 
     <div style="position:relative;">
-      <textarea id="outils-uci-input" placeholder="Collez votre PGN ici…" rows="3"
+      <textarea id="outils-uci-input" placeholder="Collez votre PGN ici…" data-i18n-placeholder="outils.convertir.pgn_placeholder" rows="3"
         style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.9rem; padding:8px 36px 8px 8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; resize:vertical;"></textarea>
       <button title="Copier" onclick="navigator.clipboard.writeText(document.getElementById('outils-uci-input').value).then(()=>afficherToast('Copié !','success'))"
         style="position:absolute; top:6px; right:6px; background:none; border:none; cursor:pointer; font-size:0.95rem; color:#a0b8d0; padding:2px 4px; line-height:1; border-radius:4px; transition:color 0.15s;"
@@ -1111,7 +1111,7 @@
     <p class="outil-desc" data-i18n-html="outils.eco.desc">Filtrez par code ECO (ex&nbsp;: <code>C65</code>, <code>C60-C67</code>, <code>D</code>, <code>C02,D4</code>) et importez les lignes sélectionnées dans le catalogue.</p>
 
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-      <input id="eco-filter" type="text" class="add-input" placeholder="C65 ou C60-C67 ou D ou C02,D4…"
+      <input id="eco-filter" type="text" class="add-input" placeholder="C65 ou C60-C67 ou D ou C02,D4…" data-i18n-placeholder="outils.eco.filter_placeholder"
         style="flex:1; min-width:160px; text-transform:uppercase; font-family:monospace;"
         onkeydown="if(event.key==='Enter') outilsEcoSearch()">
       <button class="btn btn-continuer" onclick="outilsEcoSearch()" data-i18n="outils.eco.rechercher">🔍 Rechercher</button>
@@ -1201,7 +1201,7 @@
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
           <div class="add-field">
             <label class="add-label">Nom <span style="color:#e94560">*</span></label>
-            <input id="explore-add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin" oninput="exploreAutoId()">
+            <input id="explore-add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin" data-i18n-placeholder="outils.ajouter.nom_placeholder" oninput="exploreAutoId()">
           </div>
           <div class="add-field">
             <label class="add-label">ID unique <span style="color:#e94560">*</span></label>
@@ -1220,7 +1220,7 @@
           </div>
           <div class="add-field" style="grid-column:1/-1;">
             <label class="add-label">Description</label>
-            <input id="explore-add-desc" type="text" class="add-input" placeholder="Description courte">
+            <input id="explore-add-desc" type="text" class="add-input" placeholder="Description courte" data-i18n-placeholder="outils.polyglot.desc_placeholder">
           </div>
         </div>
         <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
@@ -1248,7 +1248,7 @@
 
       <div class="add-field">
         <label class="add-label">Nom <span style="color:#e94560">*</span></label>
-        <input id="add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin"
+        <input id="add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin" data-i18n-placeholder="outils.ajouter.nom_placeholder"
           oninput="outilsAddAutoId()">
       </div>
 
@@ -1272,7 +1272,7 @@
 
       <div class="add-field" style="grid-column:1/-1;">
         <label class="add-label">Description</label>
-        <input id="add-desc" type="text" class="add-input" placeholder="Description courte de la ligne">
+        <input id="add-desc" type="text" class="add-input" placeholder="Description courte de la ligne" data-i18n-placeholder="outils.ajouter.desc_placeholder">
       </div>
 
       <div class="add-field" style="grid-column:1/-1;">
