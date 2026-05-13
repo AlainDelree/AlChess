@@ -124,7 +124,7 @@ def _parse_pgn_content(name: str, content: str) -> tuple:
             "id":           base_id,
             "eco":          eco,
             "nom":          nom,
-            "desc":         desc or f"Ligne importée depuis {name}",
+            "desc":         desc or "",
             "init":         init_uci,
             "line":         all_uci,
             "camp_suggere": camp,

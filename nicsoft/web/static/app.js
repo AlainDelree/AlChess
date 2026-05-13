@@ -3026,6 +3026,16 @@ let _exOuvertures  = [];        // cache pour re-render au changement d'onglet
 const _EX_FAMILY_COLORS = { e4: "#1565c0", d4: "#6a1b9a", other: "#2e7d32" };
 const _EX_FAMILY_LABELS = { e4: "1.e4", d4: "1.d4", other: "exercices.autres" };
 
+// Retourne la description traduite d'une ligne personnelle.
+// Gère le pattern legacy "Ligne importée depuis X" et les entrées sans desc.
+function _exLineDesc(o) {
+  const d = o.desc || "";
+  const src = o.source || "";
+  if (!d && src) return t("exercices.desc_importee", {source: src});
+  if (d.startsWith("Ligne importée depuis ")) return t("exercices.desc_importee", {source: src || d.replace("Ligne importée depuis ", "")});
+  return d;
+}
+
 function _exFamily(o) {
   const first = (o.init || [])[0] || "";
   if (first === "e2e4") return "e4";
@@ -3412,7 +3422,7 @@ function exRenderMesLignes(lignes) {
           </label>
           <span style="font-size:0.75rem; color:#556;">${t("common.n_coups", {n: nb})}${initInfo}</span>
         </div>
-        <div style="font-size:0.78rem; color:#778; margin-bottom:8px;">${o.desc || ""}</div>
+        <div style="font-size:0.78rem; color:#778; margin-bottom:8px;">${_exLineDesc(o)}</div>
         <div style="display:flex; gap:8px;">
           <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:6px; font-size:0.82rem;"
             onclick="event.stopPropagation(); _exColor='white'; exLancer('${o.id}')">${t("exercices.jouer_blancs")}</button>
