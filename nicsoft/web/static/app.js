@@ -651,6 +651,7 @@ socket.on("app_state", (data) => {
   }
   // Quand on entre dans le labo, réinitialiser la position virtuelle
   if (data.state === "labo") {
+    _laboPgnInfoData = null;
     _laboVirtualFen = "";
     _laboCopyMode = false;
     const copyBtn = document.getElementById("labo-btn-copy");
@@ -1137,6 +1138,18 @@ function _refreshDynamicLabels() {
 
   // Réafficher l'historique si une partie est en cours
   if (document.getElementById("historique")?.innerHTML) _renderHistory();
+
+  // Re-rendre les éléments dynamiques du labo si l'écran est visible
+  const screenLabo = document.getElementById("screen-labo");
+  if (screenLabo && screenLabo.style.display !== "none") {
+    if (_laboPgnInfoData) {
+      const info = document.getElementById("labo-pgn-info");
+      if (info) info.textContent = t("labo.pgn_info", _laboPgnInfoData);
+    }
+    if (_laboPgnMoves.length > 0) _laboRenderPgnHistory();
+    const sanEl = document.getElementById("labo-pgn-san");
+    if (sanEl && _laboPgnIdx === 0) sanEl.textContent = t("common.position_initiale");
+  }
 
   // Re-rendre la liste exercices si l'écran est visible
   const screenEx = document.getElementById("screen-exercices");
@@ -2386,6 +2399,7 @@ let _laboColor   = "white";
 let _laboPgnFens  = [];
 let _laboPgnMoves = [];
 let _laboPgnIdx   = 0;
+let _laboPgnInfoData = null;  // {white, black, n} — pour re-rendre au changement de langue
 let _laboVirtualFen = ""; // FEN de la position virtuelle courante
 let _laboVirtSyncTimer = null; // debounce sync backend PGN→virtuel
 
@@ -2474,6 +2488,7 @@ function laboLoadPgnText(pgnText, label) {
     laboShowVirtualFen();
     const nav = document.getElementById("labo-pgn-nav");
     if (nav) nav.style.display = "flex";
+    _laboPgnInfoData = {white, black, n: history.length};
     const info = document.getElementById("labo-pgn-info");
     if (info) info.textContent = t("labo.pgn_info", {white, black, n: history.length});
     const copyBtn = document.getElementById("labo-btn-copy");
