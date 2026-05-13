@@ -548,7 +548,8 @@ socket.on("board_error", (data) => {
     _errBtn.disabled = false; _errBtn.style.opacity = "1"; _errBtn.style.cursor = "pointer";
     _errBtn.style.background = "#e94560"; _errBtn.style.color = "white";
   }
-  // Texte subtitle + reconnect via _refreshDynamicLabels après i18nReady → bon locale garanti
+  // Appel direct si locale déjà chargée, puis via promise pour garantir le bon locale
+  _refreshDynamicLabels();
   (window.i18nReady || Promise.resolve()).then(() => _refreshDynamicLabels());
 });
 
@@ -562,6 +563,7 @@ socket.on("board_ok", () => {
     _okBtn.disabled = true; _okBtn.style.opacity = "0.5"; _okBtn.style.cursor = "default";
     _okBtn.style.background = ""; _okBtn.style.color = "";
   }
+  _refreshDynamicLabels();
   (window.i18nReady || Promise.resolve()).then(() => _refreshDynamicLabels());
 });
 

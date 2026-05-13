@@ -92,9 +92,14 @@ function t(key, vars) { return i18n.t(key, vars); }
   window.i18nReady = i18n.load(saved);
 })();
 
-/** Surcharge load() pour que window.i18nReady pointe toujours vers le chargement en cours. */
+/** Surcharge load() pour que window.i18nReady pointe toujours vers le chargement en cours.
+ *  localStorage est sauvegardé immédiatement (avant le fetch) pour éviter la perte de préférence
+ *  si la page est fermée avant la fin du chargement. */
 const _origLoad = i18n.load.bind(i18n);
 i18n.load = function(locale) {
+  if (SUPPORTED_LOCALES.includes(locale)) {
+    localStorage.setItem('alchess_locale', locale);  // sauvegarde immédiate, avant le fetch
+  }
   window.i18nReady = _origLoad(locale);
   return window.i18nReady;
 };
