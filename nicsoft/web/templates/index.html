@@ -1037,7 +1037,7 @@
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.import_pgn.titre">📥 Importer mes lignes PGN</span>
     </div>
-    <p class="outil-desc">Sélectionnez un ou plusieurs fichiers .pgn pour les importer dans vos exercices personnels (<em>mes_lignes.json</em>).</p>
+    <p class="outil-desc" data-i18n-html="outils.import_pgn.desc">Sélectionnez un ou plusieurs fichiers .pgn pour les importer dans vos exercices personnels (<em>mes_lignes.json</em>).</p>
 
     <!-- Zone d'upload -->
     <div id="outils-pgn-dropzone" style="border:2px dashed #a0b8d0; border-radius:8px; padding:20px; text-align:center; cursor:pointer; color:#3a5a7a; margin-bottom:12px;"
@@ -1078,7 +1078,7 @@
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.convertir.titre">🔄 Convertir SAN → UCI</span>
     </div>
-    <p class="outil-desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
+    <p class="outil-desc" data-i18n-html="outils.convertir.desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
     <!-- Corbeille de session -->
     <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
       <div id="basket-select-outils-uci" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
@@ -1108,7 +1108,7 @@
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.eco.titre">📊 Importer depuis ECO Lichess</span>
     </div>
-    <p class="outil-desc">Filtrez par code ECO (ex&nbsp;: <code>C65</code>, <code>C60-C67</code>, <code>D</code>, <code>C02,D4</code>) et importez les lignes sélectionnées dans le catalogue.</p>
+    <p class="outil-desc" data-i18n-html="outils.eco.desc">Filtrez par code ECO (ex&nbsp;: <code>C65</code>, <code>C60-C67</code>, <code>D</code>, <code>C02,D4</code>) et importez les lignes sélectionnées dans le catalogue.</p>
 
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
       <input id="eco-filter" type="text" class="add-input" placeholder="C65 ou C60-C67 ou D ou C02,D4…"
@@ -1158,7 +1158,7 @@
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.polyglot.titre">📖 Explorer un livre Polyglot</span>
     </div>
-    <p class="outil-desc">Naviguez dans un livre d'ouvertures, consultez les coups pondérés et ajoutez une ligne au catalogue.</p>
+    <p class="outil-desc" data-i18n-html="outils.polyglot.desc">Naviguez dans un livre d'ouvertures, consultez les coups pondérés et ajoutez une ligne au catalogue.</p>
 
     <!-- Sélecteur de livre -->
     <div id="explore-book-selector">
@@ -1242,7 +1242,7 @@
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.ajouter.titre">➕ Ajouter une ouverture au catalogue</span>
     </div>
-    <p class="outil-desc">Saisissez les informations et les coups (en UCI, ex&nbsp;: <code>e2e4 e7e5 g1f3</code>). Utilisez <strong>Convertir SAN → UCI</strong> ci-dessus pour convertir depuis PGN.</p>
+    <p class="outil-desc" data-i18n-html="outils.ajouter.desc">Saisissez les informations et les coups (en UCI, ex&nbsp;: <code>e2e4 e7e5 g1f3</code>). Utilisez <strong>Convertir SAN → UCI</strong> ci-dessus pour convertir depuis PGN.</p>
 
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
 
@@ -1295,7 +1295,7 @@
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.modifier.titre">✏️ Modifier une ouverture du catalogue</span>
     </div>
-    <p class="outil-desc">Recherchez une ouverture, cliquez dessus et modifiez ses champs.</p>
+    <p class="outil-desc" data-i18n-html="outils.modifier.desc">Recherchez une ouverture, cliquez dessus et modifiez ses champs.</p>
 
     <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
       <input id="edit-search" type="text" class="add-input" placeholder="Filtrer par ID, ECO ou nom…" data-i18n-placeholder="outils.edit.filter_placeholder"
@@ -1358,7 +1358,7 @@
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.wiki.titre">🌐 Mettre à jour eco_hierarchy.json</span>
     </div>
-    <p class="outil-desc">Télécharge la liste ECO depuis Wikipedia et reconstruit <code>eco_hierarchy.json</code> — utilisé pour les codes parent ECO lors de l'ajout et l'import ECO.</p>
+    <p class="outil-desc" data-i18n-html="outils.wiki.desc">Télécharge la liste ECO depuis Wikipedia et reconstruit <code>eco_hierarchy.json</code> — utilisé pour les codes parent ECO lors de l'ajout et l'import ECO.</p>
 
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
       <button id="wiki-btn" class="btn btn-continuer" onclick="outilsWikiUpdate()" data-i18n="outils.wiki.btn">🌐 Mettre à jour depuis Wikipedia</button>
