@@ -1135,10 +1135,16 @@ function _refreshDynamicLabels() {
   if (document.getElementById("historique")?.innerHTML) _renderHistory();
 }
 
-// Garantit que _refreshDynamicLabels s'exécute après le chargement initial de la locale
-// (i18n.js démarre le fetch avant que app.js soit parsé, donc la callback dans i18n.js
-// peut s'exécuter avant que _refreshDynamicLabels soit défini — ce chaînage corrige ça)
-if (window.i18nReady) window.i18nReady.then(() => _refreshDynamicLabels());
+// Garantit que _refreshDynamicLabels et le sélecteur s'exécutent après le chargement initial
+// de la locale. i18n.js est dans <head> et démarre le fetch avant que le <body> soit parsé,
+// donc _updateSelector('en') dans load() trouve parfois lang-selector=null → sélecteur reste à FR.
+// Ce .then() s'exécute une fois DOM complet + locale chargée, et resynchronise le sélecteur.
+if (window.i18nReady) window.i18nReady.then(() => {
+  const _langSel = document.getElementById('lang-selector');
+  if (_langSel) _langSel.value = i18n.locale();
+  i18n.applyToDOM();
+  _refreshDynamicLabels();
+});
 
 // Résout un message venant du backend : si message_key présent, on traduit ;
 // sinon on utilise le champ texte brut (fallback rétro-compatible).
