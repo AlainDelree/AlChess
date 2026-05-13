@@ -307,7 +307,7 @@ function lancerAnalyse() {
   if (!btn || !btn._movesUci) return;
   const sel = document.getElementById("rv-seq-moves");
   const seqMoves = sel ? parseInt(sel.value) : 3;
-  btn.textContent = "⏳ Analyse en cours...";
+  btn.textContent = t("labo.btn.analyse_en_cours");
   btn.disabled = true;
   socket.emit("analyser_pgn", { moves: btn._movesUci, niveau: 20, seq_moves: seqMoves });
 }
@@ -2302,7 +2302,7 @@ socket.on("analyse_coup", (data) => {
   const btn = document.getElementById("btn-analyser");
   if (btn) {
     const pct = Math.round((data.index + 1) / data.total * 100);
-    btn.textContent = `⏳ Analyse... ${pct}%`;
+    btn.textContent = t("labo.btn.analyse_pct", {pct});
     btn.style.background = `linear-gradient(to right, #4a4a8a ${pct}%, #2a2a4a ${pct}%)`;
   }
   renderReview();
@@ -2311,7 +2311,7 @@ socket.on("analyse_coup", (data) => {
 socket.on("analyse_terminee", (data) => {
   _isAnalysed = true;
   const btn = document.getElementById("btn-analyser");
-  if (btn) { btn.textContent = "✓ Analysé"; btn.disabled = true; }
+  if (btn) { btn.textContent = t("labo.btn.analyse_ok"); btn.disabled = true; }
   _updateActionButtons();
 });
 

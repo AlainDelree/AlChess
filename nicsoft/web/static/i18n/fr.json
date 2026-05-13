@@ -131,6 +131,9 @@
 
   "labo.titre":                "Laboratoire",
   "labo.btn.analyser":         "🔍 Analyser la partie",
+  "labo.btn.analyse_en_cours": "⏳ Analyse en cours...",
+  "labo.btn.analyse_pct":      "⏳ Analyse... {pct}%",
+  "labo.btn.analyse_ok":       "✓ Analysé",
   "labo.btn.telecharger":      "⬇️ Télécharger PGN analysé",
   "labo.btn.importer_pgn":     "📂 Importer PGN",
   "labo.btn.vider":            "🗑 Enlever la partie chargée",
