@@ -166,8 +166,8 @@ def main():
                     threading.Thread(target=_check_board_at_startup, daemon=True).start()
             elif atype == "mode" and action.get("value") == "analyse":
                 set_app_state("game_over", {
-                    "title": "Analyse de partie",
-                    "result": "Importez un fichier PGN",
+                    "title_key": "analyse.titre",
+                    "result_key": "analyse.importer_pgn",
                     "history_fen": [],
                     "history_moves": [],
                     "init": {},
