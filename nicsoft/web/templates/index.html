@@ -1140,10 +1140,10 @@
 
       <!-- Camp + import -->
       <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <label class="add-label" style="margin:0;">Camp :</label>
+        <label class="add-label" style="margin:0;" data-i18n="outils.label.camp">Camp</label>
         <select id="eco-camp" class="add-input" style="width:auto;">
-          <option value="white">Blancs</option>
-          <option value="black">Noirs</option>
+          <option value="white" data-i18n="outils.camp.blancs">Blancs</option>
+          <option value="black" data-i18n="outils.camp.noirs">Noirs</option>
         </select>
         <button class="btn btn-continuer" onclick="outilsEcoImport()" data-i18n="outils.eco.importer_sel">✅ Importer la sélection</button>
         <span id="eco-selected-count" style="font-size:0.82rem; color:#888;"></span>
@@ -1200,26 +1200,26 @@
         <div style="font-weight:700; color:#1a2a3a; margin-bottom:10px; font-size:0.95rem;" data-i18n="outils.polyglot.ajouter_ligne">➕ Ajouter cette ligne au catalogue</div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
           <div class="add-field">
-            <label class="add-label">Nom <span style="color:#e94560">*</span></label>
+            <label class="add-label" data-i18n="outils.label.nom">Nom <span style="color:#e94560">*</span></label>
             <input id="explore-add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin" data-i18n-placeholder="outils.ajouter.nom_placeholder" oninput="exploreAutoId()">
           </div>
           <div class="add-field">
-            <label class="add-label">ID unique <span style="color:#e94560">*</span></label>
+            <label class="add-label" data-i18n="outils.label.id_unique">ID unique <span style="color:#e94560">*</span></label>
             <input id="explore-add-id" type="text" class="add-input">
           </div>
           <div class="add-field">
-            <label class="add-label">Code ECO</label>
+            <label class="add-label" data-i18n="outils.label.code_eco">Code ECO</label>
             <input id="explore-add-eco" type="text" class="add-input" placeholder="C65" maxlength="4" style="text-transform:uppercase;">
           </div>
           <div class="add-field">
-            <label class="add-label">Camp</label>
+            <label class="add-label" data-i18n="outils.label.camp">Camp</label>
             <select id="explore-add-camp" class="add-input">
-              <option value="white">Blancs</option>
-              <option value="black">Noirs</option>
+              <option value="white" data-i18n="outils.camp.blancs">Blancs</option>
+              <option value="black" data-i18n="outils.camp.noirs">Noirs</option>
             </select>
           </div>
           <div class="add-field" style="grid-column:1/-1;">
-            <label class="add-label">Description</label>
+            <label class="add-label" data-i18n="outils.label.description">Description</label>
             <input id="explore-add-desc" type="text" class="add-input" placeholder="Description courte" data-i18n-placeholder="outils.polyglot.desc_placeholder">
           </div>
         </div>
@@ -1247,36 +1247,36 @@
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
 
       <div class="add-field">
-        <label class="add-label">Nom <span style="color:#e94560">*</span></label>
+        <label class="add-label" data-i18n="outils.label.nom">Nom <span style="color:#e94560">*</span></label>
         <input id="add-nom" type="text" class="add-input" placeholder="Ruy Lopez — Défense de Berlin" data-i18n-placeholder="outils.ajouter.nom_placeholder"
           oninput="outilsAddAutoId()">
       </div>
 
       <div class="add-field">
-        <label class="add-label">ID unique <span style="color:#e94560">*</span></label>
+        <label class="add-label" data-i18n="outils.label.id_unique">ID unique <span style="color:#e94560">*</span></label>
         <input id="add-id" type="text" class="add-input" placeholder="ruy_lopez_berlin">
       </div>
 
       <div class="add-field">
-        <label class="add-label">Code ECO</label>
+        <label class="add-label" data-i18n="outils.label.code_eco">Code ECO</label>
         <input id="add-eco" type="text" class="add-input" placeholder="C65" maxlength="4" style="text-transform:uppercase;">
       </div>
 
       <div class="add-field">
-        <label class="add-label">Camp</label>
+        <label class="add-label" data-i18n="outils.label.camp">Camp</label>
         <select id="add-camp" class="add-input">
-          <option value="white">Blancs</option>
-          <option value="black">Noirs</option>
+          <option value="white" data-i18n="outils.camp.blancs">Blancs</option>
+          <option value="black" data-i18n="outils.camp.noirs">Noirs</option>
         </select>
       </div>
 
       <div class="add-field" style="grid-column:1/-1;">
-        <label class="add-label">Description</label>
+        <label class="add-label" data-i18n="outils.label.description">Description</label>
         <input id="add-desc" type="text" class="add-input" placeholder="Description courte de la ligne" data-i18n-placeholder="outils.ajouter.desc_placeholder">
       </div>
 
       <div class="add-field" style="grid-column:1/-1;">
-        <label class="add-label">Coups UCI <span style="color:#e94560">*</span></label>
+        <label class="add-label" data-i18n="outils.label.coups_uci">Coups UCI <span style="color:#e94560">*</span></label>
         <input id="add-moves" type="text" class="add-input" placeholder="e2e4 e7e5 g1f3 b8c6 f1b5" style="font-family:monospace;">
       </div>
 
@@ -1317,30 +1317,30 @@
       </div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
         <div class="add-field">
-          <label class="add-label">Nom</label>
+          <label class="add-label" data-i18n="outils.label.nom">Nom</label>
           <input id="edit-nom" type="text" class="add-input">
         </div>
         <div class="add-field">
-          <label class="add-label">Code ECO</label>
+          <label class="add-label" data-i18n="outils.label.code_eco">Code ECO</label>
           <input id="edit-eco" type="text" class="add-input" maxlength="4" style="text-transform:uppercase;">
         </div>
         <div class="add-field">
-          <label class="add-label">Camp</label>
+          <label class="add-label" data-i18n="outils.label.camp">Camp</label>
           <select id="edit-camp" class="add-input">
-            <option value="white">Blancs</option>
-            <option value="black">Noirs</option>
+            <option value="white" data-i18n="outils.camp.blancs">Blancs</option>
+            <option value="black" data-i18n="outils.camp.noirs">Noirs</option>
           </select>
         </div>
         <div class="add-field">
-          <label class="add-label">Livre (.bin)</label>
+          <label class="add-label" data-i18n="outils.label.livre">Livre (.bin)</label>
           <input id="edit-book" type="text" class="add-input">
         </div>
         <div class="add-field" style="grid-column:1/-1;">
-          <label class="add-label">Description</label>
+          <label class="add-label" data-i18n="outils.label.description">Description</label>
           <input id="edit-desc" type="text" class="add-input">
         </div>
         <div class="add-field" style="grid-column:1/-1;">
-          <label class="add-label">Parent ECO</label>
+          <label class="add-label" data-i18n="outils.label.parent_eco">Parent ECO</label>
           <input id="edit-parent-eco" type="text" class="add-input" maxlength="4">
         </div>
       </div>

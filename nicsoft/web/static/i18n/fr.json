@@ -478,5 +478,16 @@
   "outils.pgn.drop_zone":          "Cliquez ou déposez vos fichiers <strong>.pgn</strong> ici",
   "outils.polyglot.no_books":      "Aucun livre .bin trouvé dans ~/NicLink/data/books/",
   "outils.edit.filter_placeholder": "Filtrer par ID, ECO ou nom…",
-  "outils.edit.titre":              "Édition :"
+  "outils.edit.titre":              "Édition :",
+
+  "outils.label.nom":        "Nom ",
+  "outils.label.id_unique":  "ID unique ",
+  "outils.label.code_eco":   "Code ECO",
+  "outils.label.camp":       "Camp",
+  "outils.label.description":"Description",
+  "outils.label.coups_uci":  "Coups UCI ",
+  "outils.label.livre":      "Livre (.bin)",
+  "outils.label.parent_eco": "Parent ECO",
+  "outils.camp.blancs":      "Blancs",
+  "outils.camp.noirs":       "Noirs"
 }

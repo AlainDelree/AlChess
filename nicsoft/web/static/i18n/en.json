@@ -478,5 +478,16 @@
   "outils.pgn.drop_zone":          "Click or drop your <strong>.pgn</strong> files here",
   "outils.polyglot.no_books":      "No .bin book found in ~/NicLink/data/books/",
   "outils.edit.filter_placeholder": "Filter by ID, ECO or name…",
-  "outils.edit.titre":              "Edit:"
+  "outils.edit.titre":              "Edit:",
+
+  "outils.label.nom":        "Name ",
+  "outils.label.id_unique":  "Unique ID ",
+  "outils.label.code_eco":   "ECO Code",
+  "outils.label.camp":       "Side",
+  "outils.label.description":"Description",
+  "outils.label.coups_uci":  "UCI Moves ",
+  "outils.label.livre":      "Book (.bin)",
+  "outils.label.parent_eco": "Parent ECO",
+  "outils.camp.blancs":      "White",
+  "outils.camp.noirs":       "Black"
 }
