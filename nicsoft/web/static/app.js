@@ -204,6 +204,7 @@ let _panelPlayingTitleKey = null;
 let _socketConnected = false;
 let _gameFolders     = null;
 let _lastTurnInfo    = null;  // {type: "move"|"turn"|"echec", player, color, san?}
+let _analyseEmpty    = false; // true quand l'écran analyse est vide (titre + invite import PGN)
 
 
 // ── MODE VIRTUEL ──────────────────────────────────────────
@@ -667,6 +668,7 @@ socket.on("app_state", (data) => {
     renderBoardPosInit(data.fen);
   }
   const isGame = data.state === "playing" || (data.state === "game_over" && !data.skip) || data.state === "paused";
+  if (isGame) _analyseEmpty = false;
   document.getElementById("screen-game").style.display = isGame ? "grid" : "none";
   document.getElementById("panel-playing").style.display  = data.state === "playing"                    ? "flex" : "none";
   document.getElementById("panel-gameover").style.display = (data.state === "game_over" && !data.skip) ? "flex" : "none";
@@ -686,11 +688,16 @@ socket.on("app_state", (data) => {
   if (data.state === "game_over" && !data.skip) {
     // Restaurer le fond par défaut — l'écran d'analyse est neutre
     document.body.setAttribute("style", "background: #d8e4f0 !important;");
+    if (data.result_key) _analyseEmpty = true;
     if (data.title_key || data.title) document.getElementById("gameover-title").textContent = data.title_key ? t(data.title_key) : data.title;
     // data.result peut contenir un score ("0-1", "1-0", "1/2-1/2") ou un message texte
     const isScore = data.result && /^(1-0|0-1|1\/2-1\/2|\*)$/.test(data.result.trim());
     document.getElementById("gameover-result").textContent = isScore ? data.result : "";
-    document.getElementById("rv-game-info").textContent    = isScore ? "" : (data.result || "");
+    if (data.result_key) {
+      document.getElementById("rv-game-info").textContent = t(data.result_key);
+    } else {
+      document.getElementById("rv-game-info").textContent = isScore ? "" : (data.result || "");
+    }
     // Mettre à jour _gameSource si présent dans le payload
     if (data.source) _gameSource = data.source;
     // Toujours utiliser l'historique du serveur — source de vérité absolue
@@ -1207,6 +1214,14 @@ function _refreshDynamicLabels() {
       }
     }
   }
+
+  // Re-rendre le titre et l'invite d'import PGN quand l'écran analyse est vide
+  if (_analyseEmpty) {
+    const titre = document.getElementById("gameover-title");
+    const info  = document.getElementById("rv-game-info");
+    if (titre) titre.textContent = t("analyse.titre");
+    if (info)  info.textContent  = t("analyse.importer_pgn");
+  }
 }
 
 // Garantit que _refreshDynamicLabels et le sélecteur s'exécutent après le chargement initial
@@ -1267,6 +1282,7 @@ function _viderAnalyse() {
   const titre  = document.getElementById("gameover-title");
   const result = document.getElementById("gameover-result");
   const info   = document.getElementById("rv-game-info");
+  _analyseEmpty = true;
   if (titre)  titre.textContent  = t("analyse.titre");
   if (result) result.textContent = "";
   if (info)   info.textContent   = t("analyse.importer_pgn");
@@ -2047,6 +2063,7 @@ function parsePgn(pgn) {
     reviewMoves = moves;
     reviewIdx   = fens.length - 1;
     _basketSource = "Analyse";
+    _analyseEmpty = false;
     // Détecter si la partie est déjà analysée (au moins un coup non-"bon")
     _isAnalysed = moves.some(m => m.qualite && m.qualite !== "bon");
     // Afficher les noms
