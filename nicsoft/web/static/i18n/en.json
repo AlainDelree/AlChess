@@ -131,6 +131,9 @@
 
   "labo.titre":                "Laboratory",
   "labo.btn.analyser":         "🔍 Analyse game",
+  "labo.btn.analyse_en_cours": "⏳ Analysis in progress...",
+  "labo.btn.analyse_pct":      "⏳ Analysis... {pct}%",
+  "labo.btn.analyse_ok":       "✓ Analysed",
   "labo.btn.telecharger":      "⬇️ Download analysed PGN",
   "labo.btn.importer_pgn":     "📂 Import PGN",
   "labo.btn.vider":            "🗑 Remove loaded game",
