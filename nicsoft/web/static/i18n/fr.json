@@ -446,5 +446,20 @@
   "pieces.cavalier": "♞ Cavalier",
 
   "startup.demarrage":  "Démarrage de AlChess…",
-  "startup.chargement": "Chargement en cours…"
+  "startup.chargement": "Chargement en cours…",
+
+  "labo.journal.titre":    "Journal",
+  "labo.journal.coups":    "Coups",
+  "labo.journal.alertes":  "Alertes",
+  "labo.journal.analyse":  "Analyse",
+  "labo.journal.config":   "Config",
+  "labo.journal.vider":    "Vider",
+  "labo.loading.echiquier": "Connexion à l'échiquier…",
+  "labo.auto.on":           "Auto ON ▶",
+  "labo.auto.off":          "Auto OFF ■",
+
+  "outils.pgn.drop_zone":          "Cliquez ou déposez vos fichiers <strong>.pgn</strong> ici",
+  "outils.polyglot.no_books":      "Aucun livre .bin trouvé dans ~/NicLink/data/books/",
+  "outils.edit.filter_placeholder": "Filtrer par ID, ECO ou nom…",
+  "outils.edit.titre":              "Édition :"
 }

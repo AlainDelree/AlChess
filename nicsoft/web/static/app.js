@@ -2754,7 +2754,7 @@ function laboSetAuto(val) {
     if (nav) nav.style.display = "none";
   }
   sendAction({type: "engine_auto", value: _laboAutoOn});
-  laboJournalAdd("config", `Auto ${val ? "ON ▶" : "OFF ■"}`);
+  laboJournalAdd("config", val ? t("labo.auto.on") : t("labo.auto.off"));
 }
 function laboToggleAuto() { laboSetAuto(!_laboAutoOn); }
 
