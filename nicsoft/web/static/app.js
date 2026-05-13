@@ -3024,7 +3024,7 @@ let _exOuvertures  = [];        // cache pour re-render au changement d'onglet
 
 // Couleurs par famille
 const _EX_FAMILY_COLORS = { e4: "#1565c0", d4: "#6a1b9a", other: "#2e7d32" };
-const _EX_FAMILY_LABELS = { e4: "1.e4", d4: "1.d4", other: "Autres" };
+const _EX_FAMILY_LABELS = { e4: "1.e4", d4: "1.d4", other: "exercices.autres" };
 
 function _exFamily(o) {
   const first = (o.init || [])[0] || "";
@@ -3224,7 +3224,7 @@ function exRenderOuvertures(ouvertures) {
   for (const [fam, items] of Object.entries(groups)) {
     if (!items.length) continue;
     const color  = _EX_FAMILY_COLORS[fam];
-    const label  = _EX_FAMILY_LABELS[fam];
+    const label  = t(_EX_FAMILY_LABELS[fam]);
     const domKey = `ex-fam-open-${_exTab}-${fam}`;
 
     const section = document.createElement("div");
