@@ -1138,6 +1138,16 @@ function _refreshDynamicLabels() {
   // Réafficher l'historique si une partie est en cours
   if (document.getElementById("historique")?.innerHTML) _renderHistory();
 
+  // Re-rendre la liste exercices si l'écran est visible
+  const screenEx = document.getElementById("screen-exercices");
+  if (screenEx && screenEx.style.display !== "none") {
+    if (_exTab === "mes-lignes") {
+      exRenderMesLignes(_exMesLignes);
+    } else {
+      exRenderOuvertures(_exOuvertures);
+    }
+  }
+
   // Re-rendre le tour en cours (évite que "White"/"Black" reste figé après changement de langue)
   if (_lastTurnInfo) {
     const turnInfo = document.getElementById("turn-info");
