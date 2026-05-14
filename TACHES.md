@@ -15,7 +15,7 @@
 
 - **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
-- **Historique de Retranscrire** - Constraste entre la couleurs des coups (blanc sur bleu clair) a corriger et comme dans les autres écran, titrer Blanc Noir et mettre un espace entre les coups blanc et noir
+- ~~**Historique de Retranscrire**~~ ✅ Résolu (commit 074b8de) — tableau Blancs/Noirs avec move-chip, contraste correct.
 -  **HH continuer la partie**  Dans HH, je fais deux coups, en suite clic pause, clic sur "Reprendre la partie" ne reagit pas.
 - **Texte de titre de Variante d'ouverture illisible**  Le texte des variantes d'ouverture est en blanc sur bleu clair.
 - **Dans pédagogique retour menu apres rangement piece** Apres l'ecran config, l'ecran de correction de position s'affiche, je corrige et la retour menu.  Reproduction bug, 1er tentative pas de bug, 2eme bug.  Parametres: 
