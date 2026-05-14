@@ -15,7 +15,14 @@
 
 - **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
-
+- **Historique de Retranscrire** - Constraste entre la couleurs des coups (blanc sur bleu clair) a corriger et comme dans les autres écran, titrer Blanc Noir et mettre un espace entre les coups blanc et noir
+-  **HH continuer la partie**  Dans HH, je fais deux coups, en suite clic pause, clic sur "Reprendre la partie" ne reagit pas.
+- **Texte de titre de Variante d'ouverture illisible**  Le texte des variantes d'ouverture est en blanc sur bleu clair.
+- **Dans pédagogique retour menu apres rangement piece** Apres l'ecran config, l'ecran de correction de position s'affiche, je corrige et la retour menu.  Reproduction bug, 1er tentative pas de bug, 2eme bug.  Parametres: 
+[Pédagogique]  Joueur: Arjun  Couleur: black  Moteur: maia  ELO SF: 1500  ELO Maia: 1600  ELO Rodent: 1800  Rodent simple: non  Pause: toujours  Analyse: on  Bip: on  Coups légaux: off
+- **Labo texte "A votre tour" illisible** Le libellé "À votre tour" dans le cadre à droit en haut est en blanc sur bleu clair.
+- **Labo, centrer verticalement et horizontalement l'echiquier**
+- **Changer le nom Corbeille**  J'aimerai changer le nom Corbeille car ca évoque la poubelle.  Voir en anglais ce qu'il convient de faire.
 ---
 
 ## 💡 Fonctionnalités à venir
@@ -35,7 +42,8 @@
   - ✅ Phase 7b : Retranscription — titre config, tour "Move 1 — White to play", couleur joueur au-dessus échiquier.
   - ✅ Phase 7c : Outils Exercices — sous-titres (data-i18n-html), placeholders textarea/input, labels formulaires (Nom, Camp, Coups UCI…), options Camp Blancs/Noirs dans les selects.
   - ✅ Phase 7d : Écran Analyse — titre "Analyse de partie" et invite "Importez un fichier PGN" (fix côté serveur : title_key/result_key + _analyseEmpty flag côté client).
-  - Phase 7 reste : corriger bug sous-titre menu EN persistant (voir bug actif 🔴).
+  - ✅ Phase 7e : Corrections ciblées — labels joueurs Analyse (_localPlayerName), HH config boutons/combobox, dossiers PGN renommés en anglais (Serious/Casual/Pedagogical/Human/Transcription), HH vérification position, exercice sync error, outils exercices entêtes colonnes, bouton "Continuer avec Stockfish", badge/titre variantes exercices, labels Labo Noir/Blanc supprimés.
+  - Phase 7 reste : corriger bug sous-titre menu EN persistant (voir bug actif 🔴). Corrections i18n résiduelles au fil des tests.
 
 ---
 ## 🧪 Tests automatisés
