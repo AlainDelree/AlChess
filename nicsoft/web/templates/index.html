@@ -373,7 +373,7 @@
     <div class="card" style="padding:14px;">
       <div id="retrans-title" style="font-weight:bold; color:#e94560; margin-bottom:6px;"></div>
       <div id="retrans-turn" style="font-size:0.85rem; color:#445; margin-bottom:10px;"></div>
-      <div id="retrans-status" style="font-size:0.82rem; color:#e0e0e0;"></div>
+      <div id="retrans-status" style="font-size:0.82rem; color:#445;"></div>
     </div>
     <div class="card" style="padding:14px; flex:1; overflow-y:auto;">
       <h2 data-i18n="retrans.h2.coups">Coups</h2>
@@ -390,7 +390,7 @@
         <div id="retrans-coord-file" class="coord-file" style="width:min(500px, calc(100vw - 460px));"></div>
       </div>
     </div>
-    <div id="retrans-player-bottom" style="font-size:0.85rem; font-weight:600; color:#e0e0e0; padding:4px 0; text-align:center; width:100%;"></div>
+    <div id="retrans-player-bottom" style="font-size:0.85rem; font-weight:600; color:#1a2a3a; padding:4px 0; text-align:center; width:100%;"></div>
     <div style="font-size:0.78rem; color:#3a5a7a;" data-i18n="retrans.cliquer_jouer">Cliquez pour jouer</div>
   </div>
 
@@ -555,7 +555,7 @@
         <button class="btn btn-best"      id="btn-pause-meilleur"  disabled onclick="sendAction({type:'meilleur'})" data-i18n="game.btn.meilleur">💡 Voir le meilleur coup</button>
         <button class="btn"               id="btn-pause-sequence"  style="display:none; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" disabled onclick="jouerSequencePunitive()" data-i18n="game.btn.sequence">🎬 Voir la séquence</button>
         <!-- Toujours disponibles -->
-        <button class="btn" id="btn-changer-couleur" style="background:#a0b8d0; color:#e0e0e0; border:1px solid #e94560;" onclick="pauseToggleChangerCouleur()" data-i18n="game.btn.changer_couleur">🔄 Changer de couleur</button>
+        <button class="btn" id="btn-changer-couleur" style="background:#a0b8d0; color:#1a2a3a; border:1px solid #e94560;" onclick="pauseToggleChangerCouleur()" data-i18n="game.btn.changer_couleur">🔄 Changer de couleur</button>
         <button class="btn btn-warning" style="display:none;" id="btn-pause-abandonner" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">🏳 Abandonner</button>
         <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', t('modal.quitter_moteur'), t('modal.quitter_btn'), '')" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
@@ -644,7 +644,7 @@
         <!-- Sélecteur nombre de coups séquence -->
         <div id="rv-seq-row" style="display:none; align-items:center; gap:8px;">
           <label data-i18n="game.label.sequence" style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;">Séquence :</label>
-          <select id="rv-seq-moves" style="flex:1; background:#a0b8d0; color:#e0e0e0; border:1px solid #2a5a8a; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
+          <select id="rv-seq-moves" style="flex:1; background:#a0b8d0; color:#1a2a3a; border:1px solid #2a5a8a; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
             <option value="3" selected>3 coups</option>
             <option value="4">4 coups</option>
             <option value="5">5 coups</option>
@@ -700,7 +700,7 @@
     <div style="display:flex; align-items:center; gap:10px;">
       <span style="color:#445; font-size:0.82rem;" data-i18n="exercices.variete">Variété</span>
       <input type="range" id="ex-variete" min="1" max="8" value="3" style="width:90px; accent-color:#e94560;" oninput="exUpdateVariete()">
-      <span id="ex-variete-label" style="color:#e0e0e0; font-weight:bold; width:16px;">3</span>
+      <span id="ex-variete-label" style="color:#1a2a3a; font-weight:bold; width:16px;">3</span>
     </div>
     <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-top:0;" onclick="sendAction({type:'back'})">← Menu</button>
   </div>
@@ -741,7 +741,7 @@
   <div style="display:flex; flex-direction:column; gap:8px;">
     <div class="card" style="padding:12px 14px;">
       <h2 id="ex-run-nom" style="color:#e94560; font-size:0.85rem; margin-bottom:8px;"></h2>
-      <div id="ex-run-status" style="font-size:0.9rem; font-weight:600; color:#e0e0e0; margin-bottom:8px;">—</div>
+      <div id="ex-run-status" style="font-size:0.9rem; font-weight:600; color:#1a2a3a; margin-bottom:8px;">—</div>
       <div id="ex-run-info" style="font-size:0.8rem; color:#445; line-height:1.6;"></div>
       <div id="ex-run-instructions" style="margin-top:10px; font-size:0.78rem; color:#4caf50; line-height:1.5; padding:8px; background:#0a2a1a; border-radius:4px; border-left:3px solid #4caf50;"></div>
     </div>
@@ -776,7 +776,7 @@
 
     <div class="card" style="padding:14px 16px;">
       <h2 data-i18n="exercices.h2.progression">PROGRESSION</h2>
-      <div id="ex-run-moves-count" style="font-size:1.2rem; font-weight:bold; color:#e0e0e0; text-align:center;">Coup 0</div>
+      <div id="ex-run-moves-count" style="font-size:1.2rem; font-weight:bold; color:#1a2a3a; text-align:center;">Coup 0</div>
       <div id="ex-run-variete" style="font-size:0.75rem; color:#3a5a7a; text-align:center; margin-top:4px;"></div>
     </div>
 
@@ -888,11 +888,11 @@
     <!-- ── Position + Tour (toujours visible) ── -->
     <div class="card" style="padding:12px 14px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-        <div id="labo-turn-info" style="font-size:0.95rem; font-weight:600; color:#e0e0e0;">—</div>
+        <div id="labo-turn-info" style="font-size:0.95rem; font-weight:600; color:#1a2a3a;">—</div>
   
       </div>
 
-      <div id="labo-last-move" style="margin-top:6px; font-size:1rem; font-weight:bold; color:#aac4e0; min-height:1.2rem; text-align:center;"></div>
+      <div id="labo-last-move" style="margin-top:6px; font-size:1rem; font-weight:bold; color:#3a5a7a; min-height:1.2rem; text-align:center;"></div>
       <div id="labo-feedback" style="margin-top:4px; padding:4px 8px; border-radius:4px; font-size:0.82rem; display:none;"></div>
     </div>
 
@@ -997,7 +997,7 @@
         </div>
         <div id="labo-pgn-nav" style="display:none; flex-direction:column; gap:5px;">
           <div id="labo-pgn-info" style="font-size:0.75rem; color:#3a5a7a; text-align:center;"></div>
-          <div id="labo-pgn-san" style="text-align:center; font-size:1.1rem; font-weight:bold; color:#e0e0e0; min-height:1.4rem;"></div>
+          <div id="labo-pgn-san" style="text-align:center; font-size:1.1rem; font-weight:bold; color:#1a2a3a; min-height:1.4rem;"></div>
           <div style="display:flex; gap:6px;">
             <button class="btn btn-continuer" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnPrev()" data-i18n="labo.pgn.precedent">← Précédent</button>
             <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnNext()" data-i18n="labo.pgn.suivant">Suivant →</button>
