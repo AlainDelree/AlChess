@@ -4942,7 +4942,7 @@ function _outilsPgnPreviewAll() {
 function _outilsPgnRenderPreview(items) {
   const list = document.getElementById("outils-pgn-preview-list");
   let html = '<table style="width:100%; border-collapse:collapse; font-size:0.85rem;">';
-  html += '<tr style="background:#c2d4e8;"><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">Fichier</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">Nom</th><th style="padding:4px 8px; color:#1a2a3a;">ECO</th><th style="padding:4px 8px; color:#1a2a3a;">Camp</th><th style="padding:4px 8px; color:#1a2a3a;">Coups</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">Statut</th></tr>';
+  html += `<tr style="background:#c2d4e8;"><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">${t("outils.col.fichier")}</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">${t("outils.col.nom")}</th><th style="padding:4px 8px; color:#1a2a3a;">ECO</th><th style="padding:4px 8px; color:#1a2a3a;">${t("outils.col.camp")}</th><th style="padding:4px 8px; color:#1a2a3a;">${t("outils.col.coups")}</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">${t("outils.col.statut")}</th></tr>`;
   let hasOk = false;
   items.forEach((r, i) => {
     const bg = i % 2 === 0 ? "#f0f4f8" : "#fff";

@@ -547,6 +547,11 @@
   "outils.wiki_apercu":            "Preview C30–C35:",
   "outils.wiki_sauvegarde":        "Saved: {path}",
   "outils.wiki_maj_toast":         "✓ {n} ECO codes updated",
+  "outils.col.fichier":            "File",
+  "outils.col.nom":                "Name",
+  "outils.col.camp":               "Side",
+  "outils.col.coups":              "Moves",
+  "outils.col.statut":             "Status",
 
   "retrans.modal.sauver_continuer":   "Save line and continue",
   "retrans.cochez_initMoves":         "Check the moves to include in InitMoves:",
