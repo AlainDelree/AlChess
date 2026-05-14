@@ -4557,12 +4557,12 @@ function retransSaveContinue() {
 
   const btn = document.getElementById("modal-confirm");
   if (btn) {
-    document.getElementById("modal-title").textContent = "Sauver la ligne et continuer";
+    document.getElementById("modal-title").textContent = t("retrans.modal.sauver_continuer");
     const sub = document.getElementById("modal-subtitle");
     if (sub) {
       const moves = uciLine.trim() ? uciLine.trim().split(/\s+/) : [];
       const displayed = moves.slice(0, 8);
-      let html = '<div style="margin-bottom:6px; font-size:0.78rem; color:#aaa;">Cochez les coups à inclure dans InitMoves :</div>';
+      let html = `<div style="margin-bottom:6px; font-size:0.78rem; color:#aaa;">${t("retrans.cochez_initMoves")}</div>`;
       html += '<div id="retrans-init-checks" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">';
       displayed.forEach((uci, i) => {
         const moveNum = Math.floor(i / 2) + 1;
@@ -4573,10 +4573,10 @@ function retransSaveContinue() {
         </label>`;
       });
       html += '</div>';
-      if (moves.length > 8) html += `<div style="font-size:0.72rem;color:#556;margin-top:4px;">(${moves.length - 8} coups supplémentaires non affichés)</div>`;
+      if (moves.length > 8) html += `<div style="font-size:0.72rem;color:#556;margin-top:4px;">${t("retrans.coups_non_affiches", {n: moves.length - 8})}</div>`;
       sub.innerHTML = html;
     }
-    btn.textContent = "💾 Sauvegarder";
+    btn.textContent = t("retrans.btn.sauvegarder");
     btn.className = "btn btn-reprendre";
     btn.onclick = () => {
       const checks = document.querySelectorAll("#retrans-init-checks input[type=checkbox]");
@@ -4622,7 +4622,7 @@ function retransEnd(result) {
     document.getElementById("modal-title").textContent = t("retrans.modal.terminer", {label});
     const sub = document.getElementById("modal-subtitle");
     if (sub) sub.textContent = t("retrans.modal.pgn_resultat");
-    btn.textContent = "✓ Confirmer";
+    btn.textContent = "✓ " + t("modal.confirmer");
     btn.className = "btn btn-reprendre";
     btn.onclick = () => { fermerModal(); sendAction({ type: "retranscription_end", result }); };
     const std  = document.getElementById("modal-btns-standard");
@@ -4633,7 +4633,7 @@ function retransEnd(result) {
     if (cancel) cancel.style.display = "";
     document.getElementById("modal-overlay").classList.add("open");
   } else {
-    if (confirm(`Terminer : ${label} ?`))
+    if (confirm(t("retrans.modal.terminer", {label}) + " ?"))
       sendAction({ type: "retranscription_end", result });
   }
 }
@@ -4840,7 +4840,7 @@ socket.on("retranscription_path_preview", (data) => {
   document.getElementById("modal-title").textContent = t("retrans.modal.sauver_quitter");
   const sub = document.getElementById("modal-subtitle");
   if (sub) sub.textContent = t("retrans.pgn_path", {path: data.path});
-  btn.textContent = "✓ Confirmer";
+  btn.textContent = "✓ " + t("modal.confirmer");
   btn.className = "btn btn-reprendre";
   btn.onclick = () => { fermerModal(); sendAction({ type: "retranscription_end", result: "*" }); };
   const std  = document.getElementById("modal-btns-standard");
