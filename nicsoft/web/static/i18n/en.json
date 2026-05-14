@@ -398,6 +398,7 @@
   "labo.synchronise":          "✓ Synced with physical board",
   "labo.reproduire_position":  "Reproduce this position on the board",
 
+  "exercices.btn.continuer_stockfish": "▶ Continue with Stockfish",
   "exercices.theorie_terminee": "Theory complete — continue the game!",
   "exercices.theorie_description": "Theory is complete. Continue the game against Stockfish!",
   "exercices.partie_terminee": "Game over",
