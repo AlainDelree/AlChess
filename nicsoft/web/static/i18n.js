@@ -67,6 +67,8 @@ const i18n = (() => {
 
   /** Applique les traductions à tous les éléments data-i18n* du DOM. */
   function applyToDOM() {
+    // Met à jour lang sur <html> → le date picker Chrome suit la locale
+    document.documentElement.lang = _locale === 'en' ? 'en-GB' : 'fr-FR';
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.dataset.i18n;
       // Ne remplace que le premier nœud texte direct (préserve les enfants HTML)

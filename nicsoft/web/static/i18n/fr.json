@@ -539,6 +539,5 @@
   "retrans.placeholder.blancs":      "Nom du joueur Blancs",
   "retrans.placeholder.noirs":       "Nom du joueur Noirs",
   "retrans.placeholder.evenement":   "Tournoi, club...",
-  "retrans.placeholder.nom_ligne":   "ex: Chigorine, Ruy Lopez...",
-  "retrans.placeholder.date":        "jj/mm/aaaa"
+  "retrans.placeholder.nom_ligne":   "ex: Chigorine, Ruy Lopez..."
 }
