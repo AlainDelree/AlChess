@@ -711,6 +711,7 @@ class ExerciceSession:
             if board_fresh.board_fen() != phys:
                 send_event("exercice_sync_error", {
                     "message":      "Pièces mal placées — corrigez et resynchronisez",
+                    "message_key":  "exercices.sync_error_msg",
                     "expected_fen": board_fresh.board_fen(),
                     "physical_fen": phys,
                 })

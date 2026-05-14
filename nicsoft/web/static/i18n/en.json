@@ -512,6 +512,7 @@
   "exercices.synced_status":              "✓ Synced — your turn",
   "exercices.synced_feedback":            "✓ Board synced — play!",
   "exercices.sync_error_status":          "⚠ Incorrect position",
+  "exercices.sync_error_msg":             "Pieces misplaced — correct and sync again",
   "exercices.end_of_line_feedback":       "🎉 Line complete! {n} theory moves mastered",
   "exercices.end_of_line_status":         "🎉 Line complete!",
   "exercices.instructions_debut":         "① Set up the position on the physical board<br>② Click <b>Sync</b> to start<br>③ Play your moves — the book responds automatically<br><span style='color:#ff9800;'>If you make a mistake: put the piece back and click Sync again</span>",

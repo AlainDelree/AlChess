@@ -3888,7 +3888,7 @@ socket.on("exercice_synced", (data) => {
 });
 
 socket.on("exercice_sync_error", (data) => {
-  exSetFeedback(`⚠ ${data.message}`, "#e94560", 0);
+  exSetFeedback(`⚠ ${_i18nMsg(data)}`, "#e94560", 0);
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) { statusEl.textContent = t("exercices.sync_error_status"); statusEl.style.color = "#e94560"; }
   exSetSyncBtn(true);
