@@ -205,6 +205,9 @@
 
   "pos_init.titre":            "Position incorrecte",
   "pos_init.attente":          "En attente…",
+  "pos_init.adversaire":       "Adversaire",
+  "pos_init.joueur":           "Joueur",
+  "pos_init.texte_html":       "Le plateau n'est pas en position initiale.<br>Rangez toutes les pièces à leur place de départ.<br><br>La partie démarrera automatiquement dès que la position sera correcte.",
 
   "connecting.msg":            "Connexion à l'échiquier…",
   "connecting.sub":            "Vérifiez que le plateau est allumé et en position initiale.",
