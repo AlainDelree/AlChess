@@ -1026,9 +1026,9 @@ socket.on("init_hh", (data) => {
   botName.style.color  = "#1a2a3a";
   { const wh = _localPlayerName(data.white, "config.blancs"), bl = _localPlayerName(data.black, "config.noirs");
     document.getElementById("game-subtitle").innerHTML =
-      `<span style="color:#f0f0f0;">♔ ${wh}</span>`+
-      `<span style="color:#666; margin:0 8px;">vs</span>`+
-      `<span style="color:#888;">♚ ${bl}</span>`; }
+      `<span style="color:#1a2a3a;">♔ ${wh}</span>`+
+      `<span style="color:#445; margin:0 8px;">vs</span>`+
+      `<span style="color:#3a5a7a;">♚ ${bl}</span>`; }
   _panelPlayingTitleKey = "config.titre.humain";
   const titleElHH = document.getElementById("panel-playing-title");
   if (titleElHH) titleElHH.textContent = t(_panelPlayingTitleKey);
@@ -2919,7 +2919,7 @@ socket.on("labo_position", (data) => {
   } else if (data.engine_turn && !data.auto) {
     _setLaboTurnEl("labo.tour_moteur_auto_off", {}, "#556");
   } else {
-    _setLaboTurnEl("common.a_votre_tour", {}, "#e0e0e0");
+    _setLaboTurnEl("common.a_votre_tour", {}, "#1a2a3a");
   }
   // Mettre à jour le toggle Tour pour refléter le tour courant
   // Un coup joué (from+to présents) prime sur le forçage manuel
@@ -2983,7 +2983,7 @@ socket.on("labo_engine_played", (data) => {
   const lastEl = document.getElementById("labo-last-move");
   if (lastEl) {
     lastEl.textContent = `♟ ${data.engine} : ${data.san}`;
-    lastEl.style.color = "#aac4e0";
+    lastEl.style.color = "#3a5a7a";
   }
   _setLaboTurnEl("labo.placer_coup", {engine: data.engine}, "#ff9800");
   laboJournalAdd("coups", `♟ ${data.engine} : ${data.san}`);
@@ -3286,7 +3286,7 @@ function _exBuildCard(o, color, nbVariants, onClick, isVariant) {
     : "";
   card.innerHTML = `
     <div style="font-size:0.7rem; color:${color}${isVariant ? "cc" : "88"}; margin-bottom:3px;">${o.eco}</div>
-    <div style="font-size:0.85rem; font-weight:bold; color:#e0e0e0; margin-bottom:8px; line-height:1.3;">${o.nom}</div>
+    <div style="font-size:0.85rem; font-weight:bold; color:${isVariant ? "#1a2a3a" : "#e0e0e0"}; margin-bottom:8px; line-height:1.3;">${o.nom}</div>
     <div style="display:flex; justify-content:center;">${miniBoard}</div>
     ${badge}
   `;
