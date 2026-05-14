@@ -2894,10 +2894,6 @@ socket.on("labo_init", (data) => {
   if (engEl) engEl.textContent = data.engine_label || "";
   const engInfoEl = document.getElementById("labo-engine-info");
   if (engInfoEl) engInfoEl.textContent = data.engine_label || "";
-  const topEl = document.getElementById("labo-player-top");
-  const botEl = document.getElementById("labo-player-bottom");
-  if (topEl) topEl.textContent = t("config.noirs");
-  if (botEl) botEl.textContent = t("config.blancs") + " ★";
   _laboUpdateAutoBtn(false);
   const fb = document.getElementById("labo-feedback");
   if (fb) fb.style.display = "none";
@@ -2925,11 +2921,6 @@ socket.on("labo_position", (data) => {
   } else {
     _setLaboTurnEl("common.a_votre_tour", {}, "#e0e0e0");
   }
-  // ★ sur le camp dont c'est le tour
-  const topEl2 = document.getElementById("labo-player-top");
-  const botEl2 = document.getElementById("labo-player-bottom");
-  if (topEl2) topEl2.textContent = t("config.noirs") + (turnIsWhite ? "" : " ★");
-  if (botEl2) botEl2.textContent = t("config.blancs") + (turnIsWhite ? " ★" : "");
   // Mettre à jour le toggle Tour pour refléter le tour courant
   // Un coup joué (from+to présents) prime sur le forçage manuel
   if (data.from !== null && data.to !== null) {
