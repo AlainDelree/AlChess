@@ -398,6 +398,7 @@
   "labo.synchronise":          "✓ Synchronisé avec le plateau physique",
   "labo.reproduire_position":  "Reproduisez cette position sur le plateau",
 
+  "exercices.btn.continuer_stockfish": "▶ Continuer avec Stockfish",
   "exercices.theorie_terminee": "Théorie terminée — continuez la partie !",
   "exercices.theorie_description": "La théorie est terminée. Continuez la partie contre Stockfish !",
   "exercices.partie_terminee": "Partie terminée",
