@@ -547,6 +547,11 @@
   "outils.wiki_apercu":            "Aperçu C30–C35 :",
   "outils.wiki_sauvegarde":        "Sauvegardé : {path}",
   "outils.wiki_maj_toast":         "✓ {n} codes ECO mis à jour",
+  "outils.col.fichier":            "Fichier",
+  "outils.col.nom":                "Nom",
+  "outils.col.camp":               "Camp",
+  "outils.col.coups":              "Coups",
+  "outils.col.statut":             "Statut",
 
   "retrans.modal.sauver_continuer":   "Sauver la ligne et continuer",
   "retrans.cochez_initMoves":         "Cochez les coups à inclure dans InitMoves :",
