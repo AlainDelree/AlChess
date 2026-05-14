@@ -512,6 +512,7 @@
   "exercices.synced_status":              "✓ Synchronisé — à votre tour",
   "exercices.synced_feedback":            "✓ Plateau synchronisé — jouez !",
   "exercices.sync_error_status":          "⚠ Position incorrecte",
+  "exercices.sync_error_msg":             "Pièces mal placées — corrigez et resynchronisez",
   "exercices.end_of_line_feedback":       "🎉 Ligne complète ! {n} coups de théorie maîtrisés",
   "exercices.end_of_line_status":         "🎉 Ligne terminée !",
   "exercices.instructions_debut":         "① Reproduisez la position sur le plateau physique<br>② Cliquez <b>Synchroniser</b> pour démarrer<br>③ Jouez vos coups — le livre répond automatiquement<br><span style='color:#ff9800;'>Si vous vous trompez : replacez la pièce et recliquez Synchroniser</span>",
