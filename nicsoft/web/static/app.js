@@ -1125,6 +1125,10 @@ function _refreshDynamicLabels() {
   const flipBtn = document.getElementById("btn-flip");
   if (flipBtn) flipBtn.title = t(_boardFlipped ? "game.flip_blancs" : "game.flip_noirs");
 
+  // Label ELO Stockfish courant
+  const eloVal = parseInt(document.getElementById("cfg-elo")?.value || "1500");
+  if (!isNaN(eloVal)) _updateEloLabel(eloVal);
+
   // Label Rodent courant
   const rodentVal = parseInt(document.getElementById("cfg-rodent-elo")?.value || "800");
   if (!isNaN(rodentVal)) _updateRodentLabel(rodentVal);

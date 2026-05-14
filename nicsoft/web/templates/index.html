@@ -109,7 +109,7 @@
       <div class="card" style="padding:14px 16px; grid-column:1; grid-row:1;">
         <h2 data-i18n="config.h2.joueur">Joueur</h2>
         <label class="cfg-label" data-i18n="config.label.nom">Nom</label>
-        <input id="cfg-player" class="cfg-input" type="text" placeholder="Votre nom" style="margin-bottom:12px;">
+        <input id="cfg-player" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom" placeholder="Votre nom" style="margin-bottom:12px;">
         <label class="cfg-label" data-i18n="config.label.couleur">Couleur</label>
         <div class="color-btns" style="margin-bottom:0;">
           <button class="color-btn selected" id="cfg-white"  onclick="selectColor('white')"  data-i18n="config.color.blancs">♔ Blancs</button>
@@ -255,16 +255,16 @@
 
       <!-- Joueur Blancs -->
       <div class="card" style="padding:14px 16px;">
-        <h2><span id="label-white-name">Joueur Blancs</span></h2>
-        <label class="cfg-label">Nom</label>
-        <input id="cfg-white-name" class="cfg-input" type="text" placeholder="Nom Blancs">
+        <h2><span id="label-white-name" data-i18n="config.joueur_blancs">Joueur Blancs</span></h2>
+        <label class="cfg-label" data-i18n="config.label.nom">Nom</label>
+        <input id="cfg-white-name" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom_blancs" placeholder="Nom Blancs">
       </div>
 
       <!-- Joueur Noirs -->
       <div class="card" style="padding:14px 16px;">
-        <h2><span id="label-black-name">Joueur Noirs</span></h2>
-        <label class="cfg-label">Nom</label>
-        <input id="cfg-black-name" class="cfg-input" type="text" placeholder="Nom Noirs">
+        <h2><span id="label-black-name" data-i18n="config.joueur_noirs">Joueur Noirs</span></h2>
+        <label class="cfg-label" data-i18n="config.label.nom">Nom</label>
+        <input id="cfg-black-name" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom_noirs" placeholder="Nom Noirs">
       </div>
 
     </div>
