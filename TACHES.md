@@ -8,7 +8,6 @@
 - **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Même nature que la race condition LEDs. Plus gênant en pratique.
 - **Race condition LEDs** — synchronisation des camps LED parfois incorrecte. Rare, cause probable hardware/USB. À surveiller si ça s'aggrave.
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
-- **Sous-titre menu EN persistant** — Le sous-titre affiche le texte EN même quand l'interface est en FR. Cause probable : `t()` appelé dans `board_error`/`board_ok` avant que le bon locale soit chargé. Trois tentatives de fix échouées.
 
 ### À corriger
 
