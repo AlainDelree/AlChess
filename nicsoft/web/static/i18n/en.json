@@ -489,5 +489,18 @@
   "outils.label.livre":      "Book (.bin)",
   "outils.label.parent_eco": "Parent ECO",
   "outils.camp.blancs":      "White",
-  "outils.camp.noirs":       "Black"
+  "outils.camp.noirs":       "Black",
+
+  "exercices.fin_theorie":                "End of theory",
+  "exercices.reproduire_position":        "Set up the starting position ({moves} played)",
+  "exercices.synced_status":              "✓ Synced — your turn",
+  "exercices.synced_feedback":            "✓ Board synced — play!",
+  "exercices.sync_error_status":          "⚠ Incorrect position",
+  "exercices.end_of_line_feedback":       "🎉 Line complete! {n} theory moves mastered",
+  "exercices.end_of_line_status":         "🎉 Line complete!",
+  "exercices.instructions_debut":         "① Set up the position on the physical board<br>② Click <b>Sync</b> to start<br>③ Play your moves — the book responds automatically<br><span style='color:#ff9800;'>If you make a mistake: put the piece back and click Sync again</span>",
+  "exercices.instructions_synced":        "✓ Synced! Play your move on the board.<br><span style='color:#aaa;'>The Sync button will reactivate after each opponent move if needed.</span>",
+  "exercices.instructions_fin_titre":     "🎉 <b>Well done!</b> You completed the theory line.",
+  "exercices.instructions_fin_continuer": "Click <b>Continue</b> to play against Stockfish or <b>Restart</b> to play again.",
+  "exercices.instructions_fin_restart":   "Click <b>Restart</b> to play again or choose another opening."
 }

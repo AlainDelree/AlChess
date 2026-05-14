@@ -489,5 +489,18 @@
   "outils.label.livre":      "Livre (.bin)",
   "outils.label.parent_eco": "Parent ECO",
   "outils.camp.blancs":      "Blancs",
-  "outils.camp.noirs":       "Noirs"
+  "outils.camp.noirs":       "Noirs",
+
+  "exercices.fin_theorie":                "Fin de la théorie",
+  "exercices.reproduire_position":        "Reproduisez la position de départ ({moves} joués)",
+  "exercices.synced_status":              "✓ Synchronisé — à votre tour",
+  "exercices.synced_feedback":            "✓ Plateau synchronisé — jouez !",
+  "exercices.sync_error_status":          "⚠ Position incorrecte",
+  "exercices.end_of_line_feedback":       "🎉 Ligne complète ! {n} coups de théorie maîtrisés",
+  "exercices.end_of_line_status":         "🎉 Ligne terminée !",
+  "exercices.instructions_debut":         "① Reproduisez la position sur le plateau physique<br>② Cliquez <b>Synchroniser</b> pour démarrer<br>③ Jouez vos coups — le livre répond automatiquement<br><span style='color:#ff9800;'>Si vous vous trompez : replacez la pièce et recliquez Synchroniser</span>",
+  "exercices.instructions_synced":        "✓ Synchronisé ! Jouez votre coup sur le plateau.<br><span style='color:#aaa;'>Le bouton Synchroniser se réactivera après chaque coup adversaire si besoin.</span>",
+  "exercices.instructions_fin_titre":     "🎉 <b>Bravo !</b> Vous avez complété la ligne théorique.",
+  "exercices.instructions_fin_continuer": "Cliquez <b>Continuer</b> pour jouer contre Stockfish ou <b>Recommencer</b> pour rejouer.",
+  "exercices.instructions_fin_restart":   "Cliquez <b>Recommencer</b> pour rejouer ou choisissez une autre ouverture."
 }

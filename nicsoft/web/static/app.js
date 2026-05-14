@@ -3726,12 +3726,7 @@ socket.on("exercice_init", (data) => {
   } else {
     if (syncBtn) syncBtn.style.display = "";
     exSetSyncBtn(true);
-    exSetInstructions(
-      "① Reproduisez la position sur le plateau physique<br>" +
-      "② Cliquez <b>Synchroniser</b> pour démarrer<br>" +
-      "③ Jouez vos coups — le livre répond automatiquement<br>" +
-      "<span style='color:#ff9800;'>Si vous vous trompez : replacez la pièce et recliquez Synchroniser</span>"
-    );
+    exSetInstructions(t("exercices.instructions_debut"));
   }
 });
 
@@ -3776,7 +3771,7 @@ function _exHandlePosition(data) {
         bookEl.appendChild(document.createElement("br"));
       });
     } else if (bookEl) {
-      bookEl.innerHTML = '<span style="color:#556;">Fin de la théorie</span>';
+      bookEl.innerHTML = `<span style="color:#556;">${t("exercices.fin_theorie")}</span>`;
     }
   }
 }
@@ -3791,7 +3786,7 @@ socket.on("exercice_wait_position", (data) => {
   exRenderBoard(data.fen, null, null);
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) {
-    statusEl.textContent = `Reproduisez la position de départ (${data.move_count} coup${data.move_count > 1 ? "s" : ""} joués)`;
+    statusEl.textContent = t("exercices.reproduire_position", {moves: t("common.n_coups", {n: data.move_count})});
     statusEl.style.color = "#ff9800";
   }
   if (_virtualMode) {
@@ -3858,8 +3853,8 @@ socket.on("exercice_adv_move", (data) => {
 
 socket.on("exercice_synced", (data) => {
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "✓ Synchronisé — à votre tour"; statusEl.style.color = "#4caf50"; }
-  exSetFeedback("✓ Plateau synchronisé — jouez !", "#4caf50", 2500);
+  if (statusEl) { statusEl.textContent = t("exercices.synced_status"); statusEl.style.color = "#4caf50"; }
+  exSetFeedback(t("exercices.synced_feedback"), "#4caf50", 2500);
   exSetSyncBtn(false);
   // En mode virtuel : activer les clics sur l'échiquier exercices
   if (_virtualMode) {
@@ -3876,33 +3871,28 @@ socket.on("exercice_synced", (data) => {
     _virtActivateExBoard();
   }
   if (!_virtualMode) {
-    exSetInstructions(
-      "✓ Synchronisé ! Jouez votre coup sur le plateau.<br>" +
-      "<span style='color:#aaa;'>Le bouton Synchroniser se réactivera après chaque coup adversaire si besoin.</span>"
-    );
+    exSetInstructions(t("exercices.instructions_synced"));
   }
 });
 
 socket.on("exercice_sync_error", (data) => {
   exSetFeedback(`⚠ ${data.message}`, "#e94560", 0);
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "⚠ Position incorrecte"; statusEl.style.color = "#e94560"; }
+  if (statusEl) { statusEl.textContent = t("exercices.sync_error_status"); statusEl.style.color = "#e94560"; }
   exSetSyncBtn(true);
 });
 
 socket.on("exercice_end_of_line", (data) => {
   const nbCoups = Math.floor(data.moves / 2);
-  exSetFeedback(`🎉 Ligne complète ! ${nbCoups} coup${nbCoups > 1 ? "s" : ""} de théorie maîtrisés`, "#4caf50", 0);
+  exSetFeedback(t("exercices.end_of_line_feedback", {n: nbCoups}), "#4caf50", 0);
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = "🎉 Ligne terminée !"; statusEl.style.color = "#4caf50"; }
+  if (statusEl) { statusEl.textContent = t("exercices.end_of_line_status"); statusEl.style.color = "#4caf50"; }
   exSetSyncBtn(false);
   const btnContinuer = document.getElementById("ex-btn-continuer");
   if (btnContinuer) btnContinuer.style.display = data.can_continue ? "" : "none";
   exSetInstructions(
-    "🎉 <b>Bravo !</b> Vous avez complété la ligne théorique.<br>" +
-    (data.can_continue
-      ? "Cliquez <b>Continuer</b> pour jouer contre Stockfish ou <b>Recommencer</b> pour rejouer."
-      : "Cliquez <b>Recommencer</b> pour rejouer ou choisissez une autre ouverture.")
+    t("exercices.instructions_fin_titre") + "<br>" +
+    (data.can_continue ? t("exercices.instructions_fin_continuer") : t("exercices.instructions_fin_restart"))
   );
 });
 
