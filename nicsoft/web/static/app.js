@@ -4765,13 +4765,21 @@ function _rtOnClick(e) {
 function _retransRenderHistory() {
   const el = document.getElementById("retrans-history");
   if (!el) return;
-  el.innerHTML = "";
-  for (let i = 0; i < _retransMoves.length; i += 2) {
-    const num = Math.floor(i / 2) + 1;
-    const line = document.createElement("div");
-    line.innerHTML = `<span style="color:#556;">${num}.</span> <span style="color:#e0e0e0;">${_retransMoves[i] || ""}</span> <span style="color:#aaa;">${_retransMoves[i+1] || ""}</span>`;
-    el.appendChild(line);
+  const total = Math.ceil(_retransMoves.length / 2);
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:0.85rem;">';
+  html += '<tr><th style="color:#3a5a7a;width:24px;text-align:right;padding-right:6px"></th>';
+  html += `<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">${t("config.blancs")}</th>`;
+  html += `<th style="color:#1a2a3a;font-weight:600;text-align:left;padding:2px 4px">${t("config.noirs")}</th></tr>`;
+  for (let i = 0; i < total; i++) {
+    const w = _retransMoves[i * 2]     || "";
+    const b = _retransMoves[i * 2 + 1] || "";
+    html += `<tr><td style="color:#3a5a7a;text-align:right;padding-right:6px;font-size:0.75rem">${i+1}.</td>`;
+    html += w ? `<td><span class="move-chip bon">${w}</span></td>` : `<td></td>`;
+    html += b ? `<td><span class="move-chip bon">${b}</span></td>` : `<td></td>`;
+    html += `</tr>`;
   }
+  html += '</table>';
+  el.innerHTML = html;
   el.scrollTop = el.scrollHeight;
 }
 
