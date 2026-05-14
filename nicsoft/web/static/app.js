@@ -4879,7 +4879,7 @@ function outilsPgnDrop(evt) {
 function outilsPgnFilesSelected(fileList) {
   _outilsPgnFiles = [];
   const list = document.getElementById("outils-pgn-preview-list");
-  list.innerHTML = "<em style='color:#888'>Lecture en cours…</em>";
+  list.innerHTML = `<em style='color:#888'>${t("outils.lecture_en_cours")}</em>`;
   list.style.display = "block";
   document.getElementById("outils-pgn-result").style.display = "none";
   document.getElementById("outils-pgn-btn-import").style.display = "none";
@@ -4962,7 +4962,7 @@ function outilsPgnImport() {
   if (!_outilsPgnFiles.length) return;
   const btn = document.getElementById("outils-pgn-btn-import");
   btn.disabled = true;
-  btn.textContent = "Import en cours…";
+  btn.textContent = t("outils.import_en_cours");
   const res = document.getElementById("outils-pgn-result");
   res.style.display = "none";
   socket.emit("outils_pgn_import", {files: _outilsPgnFiles});
@@ -5090,28 +5090,28 @@ socket.on("outils_add_verify_result", (data) => {
 
   if (!data.ok) {
     let html = '<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px;">';
-    html += '<strong style="color:#e94560">Erreur(s) :</strong><ul style="margin:4px 0 0 16px;">';
+    html += `<strong style="color:#e94560">${t("outils.erreurs")}</strong><ul style="margin:4px 0 0 16px;">`;
     data.errors.forEach(e => { html += `<li style="color:#e94560">${e}</li>`; });
     html += "</ul></div>";
     prev.innerHTML = html;
     return;
   }
 
-  const campLabel = data.camp === "white" ? "Blancs" : "Noirs";
+  const campLabel = t(data.camp === "white" ? "outils.camp.blancs" : "outils.camp.noirs");
   let html = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; margin-bottom:10px;">
-    <strong style="color:#2e7d32">✓ Données valides</strong>
+    <strong style="color:#2e7d32">${t("outils.donnees_valides")}</strong>
     <table style="margin-top:8px; font-size:0.85rem; border-collapse:collapse; width:100%;">
       <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600; white-space:nowrap;">ID</td><td style="font-family:monospace;">${data.id}</td></tr>
-      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">Nom</td><td>${data.nom}</td></tr>
-      ${data.eco ? `<tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">ECO</td><td>${data.eco}${data.parent_eco ? ` (parent : ${data.parent_eco})` : ""}</td></tr>` : ""}
-      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">Camp</td><td>${campLabel}</td></tr>
-      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">Coups</td><td style="font-family:monospace;">${data.moves.join(" ")} <span style="color:#888;">(${data.moves.length} coups)</span></td></tr>
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.nom").trim()}</td><td>${data.nom}</td></tr>
+      ${data.eco ? `<tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">ECO</td><td>${data.eco}${data.parent_eco ? ` ${t("outils.parent_eco_label", {eco: data.parent_eco})}` : ""}</td></tr>` : ""}
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.camp")}</td><td>${campLabel}</td></tr>
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.coups")}</td><td style="font-family:monospace;">${data.moves.join(" ")} <span style="color:#888;">${t("common.n_coups", {n: data.moves.length})}</span></td></tr>
     </table>
   </div>`;
 
   if (data.warning_no_book) {
     html += `<div style="background:#fff3e0; border:1px solid #ff9800; border-radius:6px; padding:8px 12px; margin-bottom:10px; font-size:0.85rem; color:#e65100;">
-      ⚠ Position absente de tous les livres Polyglot. L'ouverture sera ajoutée sans association à un livre.
+      ${t("outils.warning_no_book")}
     </div>`;
   }
 
@@ -5120,13 +5120,13 @@ socket.on("outils_add_verify_result", (data) => {
   if (data.book_options && data.book_options.length > 0) {
     if (data.book_options.length === 1) {
       bookSelectHtml = `<input type="hidden" id="add-book-select" value="${data.book_options[0].name}">
-        <div style="font-size:0.85rem; color:#3a5a7a; margin-bottom:10px;">Livre : <strong>${data.book_options[0].name}</strong> — ${data.book_options[0].count} coup(s) suivant : ${data.book_options[0].next}</div>`;
+        <div style="font-size:0.85rem; color:#3a5a7a; margin-bottom:10px;">${t("outils.livre_label")} <strong>${data.book_options[0].name}</strong> — ${t("outils.livre_count", {count: data.book_options[0].count, next: data.book_options[0].next})}</div>`;
     } else {
       bookSelectHtml = `<div style="font-size:0.85rem; margin-bottom:10px;">
-        <label class="add-label" style="margin-bottom:4px; display:block;">Choisir le livre :</label>
+        <label class="add-label" style="margin-bottom:4px; display:block;">${t("outils.choisir_livre")}</label>
         <select id="add-book-select" class="add-input">`;
       data.book_options.forEach(b => {
-        bookSelectHtml += `<option value="${b.name}">${b.name} — ${b.count} coup(s) suivant : ${b.next}</option>`;
+        bookSelectHtml += `<option value="${b.name}">${b.name} — ${t("outils.livre_count", {count: b.count, next: b.next})}</option>`;
       });
       bookSelectHtml += `</select></div>`;
     }
@@ -5134,7 +5134,7 @@ socket.on("outils_add_verify_result", (data) => {
     bookSelectHtml = `<input type="hidden" id="add-book-select" value="${fallbackBook}">`;
   }
   html += bookSelectHtml;
-  html += `<button class="btn btn-reprendre" onclick="outilsAddSave(${JSON.stringify(data)})">✅ Ajouter au catalogue</button>`;
+  html += `<button class="btn btn-reprendre" onclick="outilsAddSave(${JSON.stringify(data)})">${t("outils.ajouter_catalogue")}</button>`;
   prev.innerHTML = html;
 });
 
@@ -5143,7 +5143,7 @@ function outilsAddSave(data) {
   data.book = bookEl ? bookEl.value : "";
   const prevId = _outilsAddContext === "explore" ? "explore-add-preview" : "outils-add-preview";
   const btn = document.querySelector(`#${prevId} .btn-reprendre`);
-  if (btn) { btn.disabled = true; btn.textContent = "Ajout en cours…"; }
+  if (btn) { btn.disabled = true; btn.textContent = t("outils.ajout_en_cours"); }
   socket.emit("outils_add_save", data);
 }
 
@@ -5443,7 +5443,7 @@ function outilsEditSelect(id) {
   const o = _editSelected;
 
   document.getElementById("edit-form-id").textContent   = o.id;
-  document.getElementById("edit-form-init").textContent = o.init && o.init.length ? `(${o.init.length} coups : ${o.init.join(" ")})` : "(aucun coup)";
+  document.getElementById("edit-form-init").textContent = o.init && o.init.length ? t("outils.init_coups", {n: o.init.length, moves: o.init.join(" ")}) : t("outils.aucun_coup_init");
   document.getElementById("edit-nom").value        = o.nom        || "";
   document.getElementById("edit-eco").value        = o.eco        || "";
   document.getElementById("edit-camp").value       = o.camp_suggere === "black" ? "black" : "white";
@@ -5519,7 +5519,7 @@ function outilsEcoSearch() {
   const filter = document.getElementById("eco-filter").value.trim().toUpperCase();
   if (!filter) return;
   const wrap = document.getElementById("eco-results-wrap");
-  document.getElementById("eco-results-info").textContent = "Recherche en cours…";
+  document.getElementById("eco-results-info").textContent = t("outils.recherche_en_cours");
   document.getElementById("eco-results-body").innerHTML = "";
   document.getElementById("eco-import-result").style.display = "none";
   wrap.style.display = "block";
@@ -5530,14 +5530,14 @@ socket.on("outils_eco_search_result", (data) => {
   const info  = document.getElementById("eco-results-info");
   const tbody = document.getElementById("eco-results-body");
   if (!data.ok) {
-    info.textContent = `Erreur : ${data.error}`;
+    info.textContent = t("outils.erreur_detail", {msg: data.error});
     info.style.color = "#e94560";
     return;
   }
   _ecoResults = data.results || [];
   info.style.color = "#3a5a7a";
-  let infoText = `${_ecoResults.length} résultat(s)`;
-  if (data.truncated) infoText += ` (limité à 300 sur ${data.total_matched})`;
+  let infoText = t("outils.n_resultats", {n: _ecoResults.length});
+  if (data.truncated) infoText += t("outils.resultats_limites", {total: data.total_matched});
   info.textContent = infoText;
 
   document.getElementById("eco-check-all").checked = false;
@@ -5615,12 +5615,12 @@ socket.on("outils_eco_import_result", (data) => {
   }
   if (data.skipped && data.skipped.length) {
     html += `<div style="background:#fff3e0; border:1px solid #ff9800; border-radius:6px; padding:10px 14px;">
-      <strong style="color:#e65100">↷ ${data.skipped.length} ignorée(s)</strong>
+      <strong style="color:#e65100">${t("outils.eco_ignorees", {n: data.skipped.length})}</strong>
       <ul style="margin:4px 0 0 16px; font-size:0.83rem;">`;
     data.skipped.forEach(e => { html += `<li style="color:#888;">${e.name} — ${e.reason}</li>`; });
     html += `</ul></div>`;
   }
-  if (!html) html = `<div style="color:#888; font-size:0.88rem;">Aucune entrée importée.</div>`;
+  if (!html) html = `<div style="color:#888; font-size:0.88rem;">${t("outils.aucune_entree_importee")}</div>`;
   res.innerHTML = html;
   res.style.display = "block";
 });
@@ -5632,7 +5632,7 @@ function outilsWikiUpdate() {
   const status = document.getElementById("wiki-status");
   const res    = document.getElementById("wiki-result");
   btn.disabled   = true;
-  btn.textContent = "En cours…";
+  btn.textContent = t("common.chargement");
   res.style.display = "none";
   status.textContent = "";
   socket.emit("outils_wiki_update", {});
@@ -5647,7 +5647,7 @@ socket.on("outils_wiki_done", (data) => {
   const btn    = document.getElementById("wiki-btn");
   const status = document.getElementById("wiki-status");
   const res    = document.getElementById("wiki-result");
-  if (btn)    { btn.disabled = false; btn.textContent = "🌐 Mettre à jour depuis Wikipedia"; }
+  if (btn)    { btn.disabled = false; btn.textContent = t("outils.wiki.btn"); }
   if (status) status.textContent = "";
 
   if (!data.ok) {
@@ -5657,16 +5657,16 @@ socket.on("outils_wiki_done", (data) => {
   }
 
   let html = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px;">
-    <strong style="color:#2e7d32">✓ eco_hierarchy.json mis à jour</strong>
+    <strong style="color:#2e7d32">${t("outils.wiki_maj")}</strong>
     <div style="margin-top:8px; font-size:0.85rem; color:#3a5a7a; display:flex; gap:20px; flex-wrap:wrap;">
-      <span>${data.total} codes ECO</span>
-      <span>${data.with_name} noms d'article</span>
-      <span>${data.with_parent} parents détectés</span>
+      <span>${t("outils.wiki_codes_eco", {n: data.total})}</span>
+      <span>${t("outils.wiki_noms_article", {n: data.with_name})}</span>
+      <span>${t("outils.wiki_parents", {n: data.with_parent})}</span>
     </div>`;
 
   if (data.preview && data.preview.length) {
     html += `<div style="margin-top:10px; font-size:0.82rem;">
-      <div style="font-weight:600; color:#1a2a3a; margin-bottom:4px;">Aperçu C30–C35 :</div>
+      <div style="font-weight:600; color:#1a2a3a; margin-bottom:4px;">${t("outils.wiki_apercu")}</div>
       <table style="border-collapse:collapse; width:100%;">`;
     data.preview.forEach((p, i) => {
       const bg = i % 2 === 0 ? "#f0f4f8" : "#e8f5e9";
@@ -5680,8 +5680,8 @@ socket.on("outils_wiki_done", (data) => {
     });
     html += `</table></div>`;
   }
-  html += `<div style="margin-top:8px; font-size:0.78rem; color:#888;">Sauvegardé : ${data.output}</div></div>`;
+  html += `<div style="margin-top:8px; font-size:0.78rem; color:#888;">${t("outils.wiki_sauvegarde", {path: data.output})}</div></div>`;
   res.innerHTML     = html;
   res.style.display = "block";
-  afficherToast(`✓ ${data.total} codes ECO mis à jour`, "success");
+  afficherToast(t("outils.wiki_maj_toast", {n: data.total}), "success");
 });
