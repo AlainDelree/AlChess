@@ -529,5 +529,10 @@
   "outils.wiki_parents":           "{n} parents détectés",
   "outils.wiki_apercu":            "Aperçu C30–C35 :",
   "outils.wiki_sauvegarde":        "Sauvegardé : {path}",
-  "outils.wiki_maj_toast":         "✓ {n} codes ECO mis à jour"
+  "outils.wiki_maj_toast":         "✓ {n} codes ECO mis à jour",
+
+  "retrans.modal.sauver_continuer":   "Sauver la ligne et continuer",
+  "retrans.cochez_initMoves":         "Cochez les coups à inclure dans InitMoves :",
+  "retrans.coups_non_affiches":       "({n} coups supplémentaires non affichés)",
+  "retrans.btn.sauvegarder":          "💾 Sauvegarder"
 }

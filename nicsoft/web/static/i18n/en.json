@@ -529,5 +529,10 @@
   "outils.wiki_parents":           "{n} parents detected",
   "outils.wiki_apercu":            "Preview C30–C35:",
   "outils.wiki_sauvegarde":        "Saved: {path}",
-  "outils.wiki_maj_toast":         "✓ {n} ECO codes updated"
+  "outils.wiki_maj_toast":         "✓ {n} ECO codes updated",
+
+  "retrans.modal.sauver_continuer":   "Save line and continue",
+  "retrans.cochez_initMoves":         "Check the moves to include in InitMoves:",
+  "retrans.coups_non_affiches":       "({n} more moves not shown)",
+  "retrans.btn.sauvegarder":          "💾 Save"
 }
