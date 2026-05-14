@@ -13,8 +13,7 @@
 
 - **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
-- ~~**Historique de Retranscrire**~~ ✅ Résolu (commit 074b8de) — tableau Blancs/Noirs avec move-chip, contraste correct.
--  **HH continuer la partie**  Dans HH, je fais deux coups, en suite clic pause, clic sur "Reprendre la partie" ne reagit pas.
+- **HH continuer la partie** — Dans HH, je fais deux coups, ensuite clic pause, clic sur "Reprendre la partie" ne réagit pas.
 - **Dans pédagogique retour menu apres rangement piece** Apres l'ecran config, l'ecran de correction de position s'affiche, je corrige et la retour menu.  Reproduction bug, 1er tentative pas de bug, 2eme bug.  Parametres: 
 [Pédagogique]  Joueur: Arjun  Couleur: black  Moteur: maia  ELO SF: 1500  ELO Maia: 1600  ELO Rodent: 1800  Rodent simple: non  Pause: toujours  Analyse: on  Bip: on  Coups légaux: off
 - **Labo, centrer verticalement et horizontalement l'echiquier**
@@ -39,6 +38,7 @@
   - ✅ Phase 7c : Outils Exercices — sous-titres (data-i18n-html), placeholders textarea/input, labels formulaires (Nom, Camp, Coups UCI…), options Camp Blancs/Noirs dans les selects.
   - ✅ Phase 7d : Écran Analyse — titre "Analyse de partie" et invite "Importez un fichier PGN" (fix côté serveur : title_key/result_key + _analyseEmpty flag côté client).
   - ✅ Phase 7e : Corrections ciblées — labels joueurs Analyse (_localPlayerName), HH config boutons/combobox, dossiers PGN renommés en anglais (Serious/Casual/Pedagogical/Human/Transcription), HH vérification position, exercice sync error, outils exercices entêtes colonnes, bouton "Continuer avec Stockfish", badge/titre variantes exercices, labels Labo Noir/Blanc supprimés.
+  - ✅ Phase 7f : Finitions visuelles — historique retranscription en tableau Blancs/Noirs, 14 textes clairs sur fond bleu corrigés (retrans-status, ex-run-status/moves-count, labo-turn-info/last-move/pgn-san, cartes variantes, HH subtitle, etc.).
   - Phase 7 reste : corrections i18n résiduelles au fil des tests.
 
 ---
