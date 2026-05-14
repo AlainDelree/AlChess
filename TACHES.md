@@ -4,14 +4,13 @@
 
 ## 🐛 Bugs actifs
 
-### En veille (hardware/USB — peu prioritaires)
+### En veille (peu prioritaires)
 - **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Même nature que la race condition LEDs. Plus gênant en pratique.
 - **Race condition LEDs** — synchronisation des camps LED parfois incorrecte. Rare, cause probable hardware/USB. À surveiller si ça s'aggrave.
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
+- **Sous-titre menu EN persistant** — Le sous-titre affiche le texte EN même quand l'interface est en FR. Cause probable : `t()` appelé dans `board_error`/`board_ok` avant que le bon locale soit chargé. Trois tentatives de fix échouées.
 
 ### À corriger
-
-- **Sous-titre menu EN persistant** 🔴 — Le sous-titre affiche le texte EN ("⚠ Board not detected…" ou "Checking board…") même quand l'interface est en FR. Reproduit même en fermant en FR et rouvrant. Cause probable : `t()` appelé dans les handlers `board_error`/`board_ok` avant que `_data` soit chargé dans le bon locale. Trois tentatives de fix effectuées (i18n.js `_refreshDynamicLabels`, `window.i18nReady.then()` dans app.js, override `i18n.load` + handlers via `_refreshDynamicLabels`) — toutes insuffisantes. À déboguer plus finement (console.log dans le handler pour voir `_data` et `_locale` au moment du déclenchement).
 
 - **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
@@ -41,7 +40,7 @@
   - ✅ Phase 7c : Outils Exercices — sous-titres (data-i18n-html), placeholders textarea/input, labels formulaires (Nom, Camp, Coups UCI…), options Camp Blancs/Noirs dans les selects.
   - ✅ Phase 7d : Écran Analyse — titre "Analyse de partie" et invite "Importez un fichier PGN" (fix côté serveur : title_key/result_key + _analyseEmpty flag côté client).
   - ✅ Phase 7e : Corrections ciblées — labels joueurs Analyse (_localPlayerName), HH config boutons/combobox, dossiers PGN renommés en anglais (Serious/Casual/Pedagogical/Human/Transcription), HH vérification position, exercice sync error, outils exercices entêtes colonnes, bouton "Continuer avec Stockfish", badge/titre variantes exercices, labels Labo Noir/Blanc supprimés.
-  - Phase 7 reste : corriger bug sous-titre menu EN persistant (voir bug actif 🔴). Corrections i18n résiduelles au fil des tests.
+  - Phase 7 reste : corrections i18n résiduelles au fil des tests.
 
 ---
 ## 🧪 Tests automatisés
