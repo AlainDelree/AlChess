@@ -17,10 +17,8 @@
 - **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
 - ~~**Historique de Retranscrire**~~ ✅ Résolu (commit 074b8de) — tableau Blancs/Noirs avec move-chip, contraste correct.
 -  **HH continuer la partie**  Dans HH, je fais deux coups, en suite clic pause, clic sur "Reprendre la partie" ne reagit pas.
-- **Texte de titre de Variante d'ouverture illisible**  Le texte des variantes d'ouverture est en blanc sur bleu clair.
 - **Dans pédagogique retour menu apres rangement piece** Apres l'ecran config, l'ecran de correction de position s'affiche, je corrige et la retour menu.  Reproduction bug, 1er tentative pas de bug, 2eme bug.  Parametres: 
 [Pédagogique]  Joueur: Arjun  Couleur: black  Moteur: maia  ELO SF: 1500  ELO Maia: 1600  ELO Rodent: 1800  Rodent simple: non  Pause: toujours  Analyse: on  Bip: on  Coups légaux: off
-- **Labo texte "A votre tour" illisible** Le libellé "À votre tour" dans le cadre à droit en haut est en blanc sur bleu clair.
 - **Labo, centrer verticalement et horizontalement l'echiquier**
 - **Changer le nom Corbeille**  J'aimerai changer le nom Corbeille car ca évoque la poubelle.  Voir en anglais ce qu'il convient de faire.
 ---
