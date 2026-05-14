@@ -399,6 +399,9 @@
   "labo.reproduire_position":  "Reproduce this position on the board",
 
   "exercices.btn.continuer_stockfish": "▶ Continue with Stockfish",
+  "exercices.variante":                "variant",
+  "exercices.variantes":               "variants",
+  "exercices.titre_variantes":         "{nom} — variants",
   "exercices.theorie_terminee": "Theory complete — continue the game!",
   "exercices.theorie_description": "Theory is complete. Continue the game against Stockfish!",
   "exercices.partie_terminee": "Game over",

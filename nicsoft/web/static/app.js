@@ -3291,7 +3291,7 @@ function _exBuildCard(o, color, nbVariants, onClick, isVariant) {
   const miniBoard = _exMiniBoardSvg(o.init || []);
   const badge = nbVariants > 0
     ? `<div style="margin-top:8px; font-size:0.72rem; color:${color}; text-align:center; border-top:1px solid ${color}33; padding-top:6px;">` +
-      `${nbVariants} variante${nbVariants > 1 ? "s" : ""} <span id="ex-chevron-${o.id}">▼</span></div>`
+      `${nbVariants} ${t(nbVariants > 1 ? "exercices.variantes" : "exercices.variante")} <span id="ex-chevron-${o.id}">▼</span></div>`
     : "";
   card.innerHTML = `
     <div style="font-size:0.7rem; color:${color}${isVariant ? "cc" : "88"}; margin-bottom:3px;">${o.eco}</div>
@@ -3400,7 +3400,7 @@ function exRenderOuvertures(ouvertures) {
       sessionStorage.setItem(rootKey, "open");
 
       // Remplir le panneau
-      varTitle.textContent = o.nom + " — variantes";
+      varTitle.textContent = t("exercices.titre_variantes", {nom: o.nom});
       // Supprimer anciennes cartes (garder le titre)
       while (varExpand.children.length > 1) varExpand.removeChild(varExpand.lastChild);
       for (const v of childVariants) {
