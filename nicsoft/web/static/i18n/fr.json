@@ -539,5 +539,9 @@
   "retrans.placeholder.blancs":      "Nom du joueur Blancs",
   "retrans.placeholder.noirs":       "Nom du joueur Noirs",
   "retrans.placeholder.evenement":   "Tournoi, club...",
-  "retrans.placeholder.nom_ligne":   "ex: Chigorine, Ruy Lopez..."
+  "retrans.placeholder.nom_ligne":   "ex: Chigorine, Ruy Lopez...",
+
+  "config.placeholder.nom":         "Votre nom",
+  "config.placeholder.nom_blancs":  "Nom Blancs",
+  "config.placeholder.nom_noirs":   "Nom Noirs"
 }
