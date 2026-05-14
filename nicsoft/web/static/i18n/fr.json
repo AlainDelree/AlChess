@@ -534,5 +534,10 @@
   "retrans.modal.sauver_continuer":   "Sauver la ligne et continuer",
   "retrans.cochez_initMoves":         "Cochez les coups à inclure dans InitMoves :",
   "retrans.coups_non_affiches":       "({n} coups supplémentaires non affichés)",
-  "retrans.btn.sauvegarder":          "💾 Sauvegarder"
+  "retrans.btn.sauvegarder":          "💾 Sauvegarder",
+
+  "retrans.placeholder.blancs":      "Nom du joueur Blancs",
+  "retrans.placeholder.noirs":       "Nom du joueur Noirs",
+  "retrans.placeholder.evenement":   "Tournoi, club...",
+  "retrans.placeholder.nom_ligne":   "ex: Chigorine, Ruy Lopez..."
 }

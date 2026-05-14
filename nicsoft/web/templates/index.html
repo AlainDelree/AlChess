@@ -330,16 +330,16 @@
   <!-- Formulaire Partie -->
   <div id="retrans-form-partie" class="card" style="width:380px;">
     <label class="cfg-label" data-i18n="retrans.label.blancs">Blancs</label>
-    <input id="retrans-white" class="cfg-input" type="text" placeholder="Nom du joueur Blancs">
+    <input id="retrans-white" class="cfg-input" type="text" data-i18n-placeholder="retrans.placeholder.blancs" placeholder="Nom du joueur Blancs">
 
     <label class="cfg-label" data-i18n="retrans.label.noirs">Noirs</label>
-    <input id="retrans-black" class="cfg-input" type="text" placeholder="Nom du joueur Noirs">
+    <input id="retrans-black" class="cfg-input" type="text" data-i18n-placeholder="retrans.placeholder.noirs" placeholder="Nom du joueur Noirs">
 
     <label class="cfg-label" data-i18n="retrans.label.date">Date</label>
     <input id="retrans-date" class="cfg-input" type="date">
 
     <label class="cfg-label" data-i18n="retrans.label.evenement">Événement</label>
-    <input id="retrans-event" class="cfg-input" type="text" placeholder="Tournoi, club...">
+    <input id="retrans-event" class="cfg-input" type="text" data-i18n-placeholder="retrans.placeholder.evenement" placeholder="Tournoi, club...">
 
     <div style="display:flex; gap:8px; margin-top:8px;">
       <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;" data-i18n="common.retour">← Retour</button>
@@ -350,13 +350,13 @@
   <!-- Formulaire Exercice -->
   <div id="retrans-form-exercice" class="card" style="width:380px; display:none;">
     <label class="cfg-label" data-i18n="retrans.label.nom_ligne">Nom de la ligne</label>
-    <input id="retrans-nom" class="cfg-input" type="text" placeholder="ex: Chigorine, Ruy Lopez...">
+    <input id="retrans-nom" class="cfg-input" type="text" data-i18n-placeholder="retrans.placeholder.nom_ligne" placeholder="ex: Chigorine, Ruy Lopez...">
 
     <label class="cfg-label" data-i18n="retrans.label.camp">Camp suggéré</label>
     <div style="display:flex; gap:8px; margin-bottom:16px;">
-      <button id="retrans-camp-white" class="btn" onclick="retransSetCamp('white')"
+      <button id="retrans-camp-white" class="btn" onclick="retransSetCamp('white')" data-i18n="config.color.blancs"
         style="flex:1; padding:8px; background:#e8c840; border:1px solid #e8c840; color:#d8e4f0; font-weight:bold;">♔ Blancs</button>
-      <button id="retrans-camp-black" class="btn" onclick="retransSetCamp('black')"
+      <button id="retrans-camp-black" class="btn" onclick="retransSetCamp('black')" data-i18n="config.color.noirs"
         style="flex:1; padding:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#3a5a7a;">♚ Noirs</button>
     </div>
 

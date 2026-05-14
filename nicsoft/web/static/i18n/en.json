@@ -534,5 +534,10 @@
   "retrans.modal.sauver_continuer":   "Save line and continue",
   "retrans.cochez_initMoves":         "Check the moves to include in InitMoves:",
   "retrans.coups_non_affiches":       "({n} more moves not shown)",
-  "retrans.btn.sauvegarder":          "💾 Save"
+  "retrans.btn.sauvegarder":          "💾 Save",
+
+  "retrans.placeholder.blancs":      "White player's name",
+  "retrans.placeholder.noirs":       "Black player's name",
+  "retrans.placeholder.evenement":   "Tournament, club...",
+  "retrans.placeholder.nom_ligne":   "e.g. Chigorine, Ruy Lopez..."
 }
