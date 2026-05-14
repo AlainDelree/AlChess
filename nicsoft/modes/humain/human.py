@@ -38,7 +38,7 @@ logger.addHandler(ch)
 logger.setLevel(logging.INFO)
 
 CONFIG_FILE = pathlib.Path.home() / "NicLink" / "data" / "config.json"
-DEFAULT_CONFIG = {"turn_signal": "beep", "game_type": "serieuse"}
+DEFAULT_CONFIG = {"turn_signal": "beep", "game_type": "Serious"}
 
 def load_config() -> dict:
     if CONFIG_FILE.exists():
@@ -54,7 +54,7 @@ def load_config() -> dict:
 class Game(threading.Thread):
     def __init__(self, nl_inst, white_name="Blanc", black_name="Noir",
                  poll_delay=0.1, output_dir=None,
-                 turn_signal="beep", default_game_type="serieuse", **kwargs):
+                 turn_signal="beep", default_game_type="Serious", **kwargs):
         super().__init__(daemon=True, **kwargs)
         self.nl_inst = nl_inst
         self.white_name = white_name
@@ -242,7 +242,7 @@ class Game(threading.Thread):
 
         # Demander si on veut sauvegarder
         save, game_type, final_path = ask_save_pgn(
-            mode="humaine",
+            mode="Human",
             white=self.white_name,
             black=self.black_name,
             default_game_type=self.default_game_type,
@@ -601,7 +601,7 @@ def main():
         game = Game(
             nl_inst, white, black,
             turn_signal=config.get("turn_signal", "beep"),
-            default_game_type=config.get("game_type", "serieuse"),
+            default_game_type=config.get("game_type", "Serious"),
         )
         _game_ref[0] = game
         game.start()
@@ -629,7 +629,7 @@ class GameWeb(threading.Thread):
     """
 
     def __init__(self, nl_inst, white_name="Anonyme1", black_name="Anonyme2",
-                 default_game_type="serieuse", **kwargs):
+                 default_game_type="Serious", **kwargs):
         super().__init__(daemon=True, **kwargs)
         self.nl_inst          = nl_inst
         self.white_name       = white_name

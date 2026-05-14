@@ -2,6 +2,13 @@
 
 let _boardFlipped = false;  // true = noirs en bas
 
+// Normalise les noms de joueurs reçus du backend : "Blancs"/"Noirs" sont des
+// valeurs par défaut Python — les remplace par la traduction courante.
+function _localPlayerName(name, defaultKey) {
+  if (!name || name === "Blancs" || name === "Noirs") return t(defaultKey);
+  return name;
+}
+
 const BASE = "/static/pieces/";
 
 // ── MODE DEBUG ────────────────────────────────────────────
@@ -1013,14 +1020,15 @@ socket.on("init_hh", (data) => {
   currentFen  = data.fen || currentFen;
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
-  topName.textContent  = data.black || t("config.noirs");
-  botName.textContent  = data.white || t("config.blancs");
+  topName.textContent  = _localPlayerName(data.black, "config.noirs");
+  botName.textContent  = _localPlayerName(data.white, "config.blancs");
   topName.style.color  = "#3a5a7a";
   botName.style.color  = "#1a2a3a";
-  document.getElementById("game-subtitle").innerHTML =
-    `<span style="color:#f0f0f0;">♔ ${data.white}</span>`+
-    `<span style="color:#666; margin:0 8px;">vs</span>`+
-    `<span style="color:#888;">♚ ${data.black}</span>`;
+  { const wh = _localPlayerName(data.white, "config.blancs"), bl = _localPlayerName(data.black, "config.noirs");
+    document.getElementById("game-subtitle").innerHTML =
+      `<span style="color:#f0f0f0;">♔ ${wh}</span>`+
+      `<span style="color:#666; margin:0 8px;">vs</span>`+
+      `<span style="color:#888;">♚ ${bl}</span>`; }
   _panelPlayingTitleKey = "config.titre.humain";
   const titleElHH = document.getElementById("panel-playing-title");
   if (titleElHH) titleElHH.textContent = t(_panelPlayingTitleKey);
@@ -1039,8 +1047,8 @@ socket.on("init_hh", (data) => {
 socket.on("swap_color_hh", (data) => {
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
-  topName.textContent = data.black || t("config.noirs");
-  botName.textContent = data.white || t("config.blancs");
+  topName.textContent = _localPlayerName(data.black, "config.noirs");
+  botName.textContent = _localPlayerName(data.white, "config.blancs");
 });
 
 socket.on("history", (data) => {
@@ -1832,7 +1840,7 @@ function selectColorHH(c) {
 function startGameHH() {
   const white = document.getElementById("cfg-white-name")?.value.trim() || "Anonyme1";
   const black = document.getElementById("cfg-black-name")?.value.trim() || "Anonyme2";
-  const type  = document.getElementById("cfg-hh-type")?.value || "serieuse";
+  const type  = document.getElementById("cfg-hh-type")?.value || "Serious";
   _basketSource = "HH";
   sendAction({ type: "start_humain", white, black, color: _hhColor, game_type: type });
 }
@@ -2034,8 +2042,8 @@ function parsePgn(pgn) {
       return;
     }
     // Extraire les métadonnées
-    const white  = chess.header().White  || t("config.blancs");
-    const black  = chess.header().Black  || t("config.noirs");
+    const white  = _localPlayerName(chess.header().White, "config.blancs");
+    const black  = _localPlayerName(chess.header().Black, "config.noirs");
     const result = chess.header().Result || "*";
     // Reconstruire les FEN et la liste des coups
     const history = chess.history({ verbose: true });
@@ -2524,8 +2532,8 @@ function laboLoadPgnText(pgnText, label) {
     const chess = new Chess();
     if (!chess.load_pgn(pgnText)) { afficherToast(t("error.pgn_invalide"), "warning"); return; }
     const history = chess.history({ verbose: true });
-    const white   = chess.header().White || t("config.blancs");
-    const black   = chess.header().Black || t("config.noirs");
+    const white   = _localPlayerName(chess.header().White, "config.blancs");
+    const black   = _localPlayerName(chess.header().Black, "config.noirs");
     const chess2  = new Chess();
     _laboPgnFens  = [chess2.fen()];
     _laboPgnMoves = [];
@@ -4786,14 +4794,15 @@ socket.on("retranscription_en_cours", (data) => {
   const banner = document.getElementById("retrans-resume-banner");
   const info   = document.getElementById("retrans-resume-info");
   if (banner) banner.style.display = "";
-  if (info) info.textContent = `${data.white} vs ${data.black} — ${data.moves} coup${data.moves > 1 ? "s" : ""}`;
+  if (info) info.textContent = `${_localPlayerName(data.white, "config.blancs")} vs ${_localPlayerName(data.black, "config.noirs")} — ${t("common.n_coups", {n: data.moves})}`;
 });
 
 socket.on("retranscription_init", (data) => {
   document.getElementById("screen-retranscription").style.display = "none";
   document.getElementById("screen-retrans-game").style.display    = "grid";
   _retransMoves = []; _retransUciLine = ""; _retransChess = new Chess();
-  _retransWhite = data.white || "Blancs"; _retransBlack = data.black || "Noirs";
+  _retransWhite = _localPlayerName(data.white, "config.blancs");
+  _retransBlack = _localPlayerName(data.black, "config.noirs");
   _rtFlipped = (data.mode === "exercice" && data.camp_suggere === "black");
   _rtFlippedBuilt = null;
   if (data.moves && data.moves.length) {
@@ -4803,7 +4812,7 @@ socket.on("retranscription_init", (data) => {
     });
   }
   const title = document.getElementById("retrans-title");
-  if (title) title.textContent = data.mode === "exercice" ? (data.nom || "Exercice") : `${data.white} vs ${data.black}`;
+  if (title) title.textContent = data.mode === "exercice" ? (data.nom || "Exercice") : `${_retransWhite} vs ${_retransBlack}`;
   _retransPlayerData = {mode: data.mode, camp_suggere: data.camp_suggere, black: data.black, white: data.white};
   _retransUpdatePlayerNames();
   retransBuildBoard(); retransRenderBoard(data.fen, null, null);

@@ -363,7 +363,7 @@ def _launch_humain(config):
     if config.get("color") == "random":
         if random.random() < 0.5:
             white, black = black, white
-    game_type = config.get("game_type", "serieuse")
+    game_type = config.get("game_type", "Serious")
     web_server._app_state = "connecting"
     set_app_state("connecting")
     _error = [False]
@@ -428,7 +428,7 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         game = Game(
             nl_inst, playing_white,
             stockfish_level=level,
-            default_game_type="pedagogique",
+            default_game_type="Pedagogical",
             turn_signal=config.get("turn_signal", "both"),
             pedagogique_pause=pause,
             engine_elo=engine_elo,
