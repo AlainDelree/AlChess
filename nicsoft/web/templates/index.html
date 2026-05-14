@@ -275,8 +275,8 @@
       <div class="card" style="padding:14px 16px;">
         <h2 data-i18n="config.h2.couleurs">Couleurs</h2>
         <div class="color-btns">
-          <button class="color-btn selected" id="cfg-hh-white"  onclick="selectColorHH('white')">♔ Blancs en bas</button>
-          <button class="color-btn"          id="cfg-hh-black"  onclick="selectColorHH('black')">♚ Noirs en bas</button>
+          <button class="color-btn selected" id="cfg-hh-white"  onclick="selectColorHH('white')" data-i18n="config.hh.blancs_en_bas">♔ Blancs en bas</button>
+          <button class="color-btn"          id="cfg-hh-black"  onclick="selectColorHH('black')" data-i18n="config.hh.noirs_en_bas">♚ Noirs en bas</button>
           <button class="color-btn"          id="cfg-hh-random" onclick="selectColorHH('random')" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
         </div>
       </div>
@@ -284,9 +284,9 @@
       <div class="card" style="padding:14px 16px;">
         <h2 data-i18n="config.h2.type_partie">Type de partie</h2>
         <select id="cfg-hh-type" class="cfg-input">
-          <option value="serieuse">Sérieuse</option>
-          <option value="amusement">Amusement</option>
-          <option value="club">Club</option>
+          <option value="Serious"     data-i18n="pgn.type.Serious">Serious</option>
+          <option value="Casual"      data-i18n="pgn.type.Casual">Casual</option>
+          <option value="Club"        data-i18n="pgn.type.Club">Club</option>
         </select>
       </div>
 
@@ -612,16 +612,16 @@
         <!-- Sauvegarder -->
         <div id="card-save-block" style="display:flex; flex-direction:column; gap:6px;">
           <select id="save-type" style="width:100%; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:white; padding:8px 10px; font-size:0.88rem;">
-            <optgroup label="── Stockfish ──">
-              <option value="sf-pedagogique">Stockfish — Pédagogique</option>
-              <option value="sf-serieuse">Stockfish — Sérieuse</option>
-              <option value="sf-amusement">Stockfish — Amusement</option>
+            <optgroup data-i18n-label="save.group.stockfish" label="── Stockfish ──">
+              <option value="sf-pedagogique" data-i18n="save.option.sf_pedagogique">Stockfish — Pédagogique</option>
+              <option value="sf-serieuse"    data-i18n="save.option.sf_serieuse">Stockfish — Sérieuse</option>
+              <option value="sf-amusement"   data-i18n="save.option.sf_amusement">Stockfish — Amusement</option>
             </optgroup>
-            <optgroup label="── Humain ──">
-              <option value="h-pedagogique">Humain — Pédagogique</option>
-              <option value="h-serieuse">Humain — Sérieuse</option>
-              <option value="h-amusement">Humain — Amusement</option>
-              <option value="h-club">Humain — Club</option>
+            <optgroup data-i18n-label="save.group.humain" label="── Humain ──">
+              <option value="h-pedagogique"  data-i18n="save.option.h_pedagogique">Humain — Pédagogique</option>
+              <option value="h-serieuse"     data-i18n="save.option.h_serieuse">Humain — Sérieuse</option>
+              <option value="h-amusement"    data-i18n="save.option.h_amusement">Humain — Amusement</option>
+              <option value="h-club"         data-i18n="save.option.h_club">Humain — Club</option>
             </optgroup>
           </select>
           <button class="btn btn-reprendre" style="width:100%; margin-bottom:0; padding:8px;" onclick="sauvegarderAlChess()" data-i18n="common.sauvegarder">💾 Sauvegarder dans AlChess</button>

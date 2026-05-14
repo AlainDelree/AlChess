@@ -34,9 +34,9 @@ import chess.pgn
 TMP_DIR = os.path.expanduser("~/NicLink/games/tmp")
 
 GAME_TYPES = {
-    "1": "serieuse",
-    "2": "pedagogique",
-    "3": "amusement",
+    "1": "Serious",
+    "2": "Pedagogical",
+    "3": "Casual",
 }
 
 
@@ -51,11 +51,11 @@ def build_final_path(mode: str, game_type: str, white: str, black: str) -> str:
     """
     Construit le chemin final avec nom lisible et increment.
 
-    mode      : "humaine" ou "stockfish"
-    game_type : "serieuse", "pedagogique", "amusement"
+    mode      : "Human" ou "Stockfish"
+    game_type : "Serious", "Pedagogical", "Casual"
     white/black : noms des joueurs
 
-    Resultat : ~/NicLink/games/humaine/serieuse/2026-03-22_Alain_vs_Jessica_01.pgn
+    Resultat : ~/NicLink/games/Human/Serious/2026-03-22_Alain_vs_Jessica_01.pgn
     """
     base = os.path.expanduser(f"~/NicLink/games/{mode}/{game_type}")
     os.makedirs(base, exist_ok=True)
@@ -66,8 +66,8 @@ def build_final_path(mode: str, game_type: str, white: str, black: str) -> str:
     def clean(name):
         return "".join(c for c in name if c.isalnum() or c in "-_").strip()
 
-    w = clean(white) or "Blanc"
-    b = clean(black) or "Noir"
+    w = clean(white) or "White"
+    b = clean(black) or "Black"
     prefix = f"{date_str}_{w}_vs_{b}"
 
     # Trouver le prochain increment disponible
@@ -80,7 +80,7 @@ def build_final_path(mode: str, game_type: str, white: str, black: str) -> str:
         n += 1
 
 
-def ask_save_pgn(mode: str, white: str, black: str, default_game_type: str = "serieuse") -> tuple:
+def ask_save_pgn(mode: str, white: str, black: str, default_game_type: str = "Serious") -> tuple:
     """
     Pose les questions de fin de partie et retourne (sauvegarder, game_type, final_path).
 
@@ -113,7 +113,7 @@ def ask_save_pgn(mode: str, white: str, black: str, default_game_type: str = "se
     except (KeyboardInterrupt, EOFError):
         raw = ""
 
-    game_type = GAME_TYPES.get(raw, GAME_TYPES.get(default_key, "serieuse"))
+    game_type = GAME_TYPES.get(raw, GAME_TYPES.get(default_key, "Serious"))
     final_path = build_final_path(mode, game_type, white, black)
 
     return True, game_type, final_path

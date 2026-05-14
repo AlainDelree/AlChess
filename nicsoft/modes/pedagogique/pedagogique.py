@@ -71,7 +71,7 @@ from nicsoft.engine.engine_manager import (
 CONFIG_FILE = pathlib.Path.home() / "NicLink" / "data" / "config.json"
 DEFAULT_CONFIG = {
     "stockfish_level": 5,
-    "game_type": "pedagogique",
+    "game_type": "Pedagogical",
     "turn_signal": "both",
     "pedagogique_pause": "blunder",  # toujours / erreur / blunder / jamais
 }
@@ -258,7 +258,7 @@ class Game(threading.Thread):
     """Partie pédagogique contre Stockfish ou Maia avec feedback LED."""
 
     def __init__(self, nl_inst, playing_white, stockfish_level=5,
-                 default_game_type="pedagogique", turn_signal="both",
+                 default_game_type="Pedagogical", turn_signal="both",
                  pedagogique_pause="blunder", engine_elo=1500,
                  analyse_active=True, engine_path="", bip_active=False,
                  engine_type="stockfish", maia_elo=1500, rodent_elo=800,
@@ -460,7 +460,7 @@ class Game(threading.Thread):
             if atype == "save":
                 raw_type  = action.get("save_type", "sf-pedagogique")
                 save_mode = action.get("save_mode", "stockfish")
-                mode_map  = {"humain": "humaine", "stockfish": "stockfish"}
+                mode_map  = {"humain": "Human", "stockfish": "Stockfish"}
                 mode_dir  = mode_map.get(save_mode, "stockfish")
                 game_type = raw_type.split("-", 1)[-1] if "-" in raw_type else raw_type
                 final_path = build_final_path(
@@ -1816,7 +1816,7 @@ def main():
         game = Game(
             nl_inst, playing_white,
             stockfish_level=level,
-            default_game_type=config.get("game_type", "pedagogique"),
+            default_game_type=config.get("game_type", "Pedagogical"),
             turn_signal=config.get("turn_signal", "both"),
             pedagogique_pause=pause_actuel,
         )

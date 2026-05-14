@@ -18,7 +18,7 @@ import re
 # ── Chemins ───────────────────────────────────────────────────────────────────
 
 SAVE_PATH  = pathlib.Path.home() / "NicLink" / "data" / "retranscription_en_cours.json"
-GAMES_DIR  = pathlib.Path.home() / "NicLink" / "games" / "Retranscription"
+GAMES_DIR  = pathlib.Path.home() / "NicLink" / "games" / "Transcription"
 LIGNES_DIR = pathlib.Path.home() / "NicLink" / "data" / "mes_lignes"
 
 

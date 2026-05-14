@@ -88,6 +88,9 @@ const i18n = (() => {
     document.querySelectorAll('[data-i18n-title]').forEach(el => {
       el.title = t(el.dataset.i18nTitle);
     });
+    document.querySelectorAll('[data-i18n-label]').forEach(el => {
+      el.label = t(el.dataset.i18nLabel);
+    });
   }
 
   /** Locale courante. */

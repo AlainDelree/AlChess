@@ -243,11 +243,11 @@ def on_save_pgn_externe(data):
     black     = data.get("black", "Noir")
     result    = data.get("result", "*")
     moves_pgn = data.get("moves_pgn", "")
-    save_type = data.get("save_type", "sf-pedagogique")
-    # save_type = "Stockfish-Pedagogique" ou "Humain-Club" etc.
+    save_type = data.get("save_type", "Stockfish-Pedagogical")
+    # save_type = "Stockfish-Pedagogical" ou "Human-Club" etc.
     parts = save_type.split("-", 1)
     mode_dir  = parts[0] if len(parts) == 2 else "Stockfish"
-    type_dir  = parts[1] if len(parts) == 2 else "Pedagogique"
+    type_dir  = parts[1] if len(parts) == 2 else "Pedagogical"
     final_path = build_final_path(mode_dir, type_dir, white, black)
     pgn_content = f'[White "{white}"]\n[Black "{black}"]\n[Result "{result}"]\n\n{moves_pgn}\n'
     os.makedirs(os.path.dirname(final_path), exist_ok=True)
