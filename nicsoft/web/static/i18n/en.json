@@ -205,6 +205,9 @@
 
   "pos_init.titre":            "Incorrect position",
   "pos_init.attente":          "Waiting…",
+  "pos_init.adversaire":       "Opponent",
+  "pos_init.joueur":           "Player",
+  "pos_init.texte_html":       "The board is not in the starting position.<br>Put all pieces back to their starting squares.<br><br>The game will start automatically once the position is correct.",
 
   "connecting.msg":            "Connecting to board…",
   "connecting.sub":            "Make sure the board is on and in the starting position.",
