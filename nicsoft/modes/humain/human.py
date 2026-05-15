@@ -867,6 +867,23 @@ class GameWeb(threading.Thread):
 
     # ── Pause ─────────────────────────────────────────────────────────────
 
+    def _get_best_move_quick(self, depth: int = 15) -> str | None:
+        """Analyse rapide Stockfish — retourne le meilleur coup UCI ou None."""
+        from nicsoft.engine.engine_manager import find_stockfish
+        sf_path = find_stockfish()
+        if not sf_path:
+            return None
+        try:
+            import chess.engine as _ce
+            engine = _ce.SimpleEngine.popen_uci(sf_path)
+            try:
+                result = engine.play(self.board, _ce.Limit(depth=depth))
+                return result.move.uci() if result.move else None
+            finally:
+                engine.quit()
+        except Exception:
+            return None
+
     def _handle_pause(self):
         """Gère la pause interactive. Retourne changer_couleur (bool)."""
         self.nl_inst.turn_off_all_leds()
@@ -874,9 +891,13 @@ class GameWeb(threading.Thread):
             "history_fen":   _game_state.get("history_fen", []),
             "history_moves": _game_state.get("history", []),
         })
+
+        bm = self._get_best_move_quick()
+
         send_event("pause", {
             "playing_white": self.board.turn == chess.WHITE,
             "player": f"{self.white_name} / {self.black_name}",
+            "best_move": bm,
         })
 
         changer_couleur = False
@@ -893,6 +914,18 @@ class GameWeb(threading.Thread):
                 break
             elif atype == "resume_pause":
                 break
+            elif atype == "meilleur":
+                if bm:
+                    try:
+                        best_san = san_ep(self.board.copy(), chess.Move.from_uci(bm))
+                    except Exception:
+                        best_san = bm
+                    try:
+                        self.nl_inst.set_move_leds(bm)
+                    except Exception:
+                        pass
+                    send_event("best_move", {"uci": bm, "san": best_san})
+                continue
             elif atype in ("abandonner", "back_menu"):
                 self._abandon_demande   = True
                 self._back_menu_demande = (atype == "back_menu")
