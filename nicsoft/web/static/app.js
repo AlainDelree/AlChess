@@ -111,7 +111,7 @@ function _randomizeConfigHH() {
   if (bEl) bEl.value = black;
   const couleur = _pick(["white", "black", "random"]);
   selectColorHH(couleur);
-  const type = _pick(["serieuse", "amusement", "club"]);
+  const type = _pick(["Serious", "Casual", "Club"]);
   const typeEl = document.getElementById("cfg-hh-type");
   if (typeEl) typeEl.value = type;
   _lastHH = { blancs: white, noirs: black, couleur, type };
