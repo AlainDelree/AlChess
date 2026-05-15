@@ -21,7 +21,6 @@
 
 ### À corriger
 
-- **Labo, centrer verticalement et horizontalement l'echiquier**
 - **Changer le nom Corbeille**  J'aimerai changer le nom Corbeille car ca évoque la poubelle.  Voir en anglais ce qu'il convient de faire.
 
 ---
@@ -34,6 +33,7 @@
 - **Maia 1400/1600 introuvable** — `find_maia_weights()` cherchait dans une liste théorique ; réécrite pour scanner le disque. 6 poids téléchargés (1200–1800). (commits 26ca08f + 1c40209)
 - **Combobox pause pédagogique non grisée** — `_refreshDynamicLabels()` grise `cfg-pause` selon l'état de la checkbox analyse. (commit 7a875e1)
 - **Pédagogique — retour menu après rangement pièce** — Cause racine : poids Maia 1600 manquants (réglé ci-dessus). Amélioration du gestionnaire d'erreurs dans `_run_pedagogique()` : erreur hardware → `board_error`, erreur moteur → popup avec vrai message + retour immédiat au menu. (commit 5bb4ca7)
+- **Labo — échiquier non centré** — Ajout `justify-content:center` + `height` explicite sur la colonne centre, suppression `width:100%` sur `labo-board-align`. (commit 20b4eb5)
 ---
 
 ## 💡 Fonctionnalités à venir
