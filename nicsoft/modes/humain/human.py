@@ -891,6 +891,8 @@ class GameWeb(threading.Thread):
                 changer_couleur = action.get("changer_couleur", False)
                 target_fen      = action.get("fen", None)
                 break
+            elif atype == "resume_pause":
+                break
             elif atype in ("abandonner", "back_menu"):
                 self._abandon_demande   = True
                 self._back_menu_demande = (atype == "back_menu")
