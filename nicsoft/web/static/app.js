@@ -88,7 +88,7 @@ function _randomizeConfigPeda() {
   const analyseChk = document.getElementById("cfg-analyse");
   const analyseLbl = document.getElementById("cfg-analyse-label");
   const analyse = _randBool();
-  if (analyseChk) { analyseChk.checked = analyse; if (analyseLbl) analyseLbl.textContent = analyse ? t("common.activee") : t("common.desactivee"); }
+  if (analyseChk) { analyseChk.checked = analyse; _refreshDynamicLabels(); }
   const bip = _randBool();
   const bipChk = document.getElementById("cfg-bip");
   if (bipChk) bipChk.checked = bip;
@@ -1083,6 +1083,13 @@ function _refreshDynamicLabels() {
   const analyseChk = document.getElementById("cfg-analyse");
   const analyseLbl = document.getElementById("cfg-analyse-label");
   if (analyseChk && analyseLbl) analyseLbl.textContent = t(analyseChk.checked ? "common.activee" : "common.desactivee");
+
+  const pauseSel = document.getElementById("cfg-pause");
+  if (pauseSel && analyseChk) {
+    pauseSel.disabled = !analyseChk.checked;
+    pauseSel.style.opacity = analyseChk.checked ? "" : "0.4";
+    pauseSel.style.cursor  = analyseChk.checked ? "" : "not-allowed";
+  }
 
   const bipChk = document.getElementById("cfg-bip");
   const bipLbl = document.getElementById("cfg-bip-label");

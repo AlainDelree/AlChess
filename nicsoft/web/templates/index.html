@@ -204,7 +204,7 @@
             <label class="cfg-label" style="margin-bottom:0;" data-i18n="config.label.analyse">Analyse des coups</label>
             <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
               <input type="checkbox" id="cfg-analyse" checked style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;"
-                onchange="document.getElementById('cfg-analyse-label').textContent=t(this.checked?'common.activee':'common.desactivee')">
+                onchange="_refreshDynamicLabels()">
               <span id="cfg-analyse-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;" data-i18n="common.activee">Activée</span>
             </label>
           </div>
