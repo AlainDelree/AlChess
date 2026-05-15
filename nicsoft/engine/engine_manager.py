@@ -496,18 +496,18 @@ def find_lc0() -> str | None:
 def find_maia_weights(elo: int) -> str | None:
     """
     Cherche le fichier de poids Maia pour un niveau Elo donné.
-    Arrondit au niveau Maia le plus proche (1100-1900 par centaines).
+    Sélectionne le niveau disponible le plus proche parmi les fichiers présents sur disque.
     """
-    # Arrondir au niveau Maia le plus proche
-    level = min(MAIA_LEVELS.keys(), key=lambda x: abs(x - elo))
-    filename = MAIA_LEVELS[level]
-    candidates = [
-        str(Path.home() / "NicLink" / "engines" / "maia" / filename),
-    ]
-    for path in candidates:
-        if Path(path).exists():
-            return path
-    return None
+    maia_dir = Path.home() / "NicLink" / "engines" / "maia"
+    available = {
+        level: str(maia_dir / filename)
+        for level, filename in MAIA_LEVELS.items()
+        if (maia_dir / filename).exists()
+    }
+    if not available:
+        return None
+    closest = min(available.keys(), key=lambda x: abs(x - elo))
+    return available[closest]
 
 
 class MaiaEngine(EngineManager):
@@ -528,7 +528,6 @@ class MaiaEngine(EngineManager):
 
         self._lc0_path      = lc0_path
         self._weights_path  = weights_path
-        self._maia_elo      = maia_elo
         self._analyse_active = analyse_active
         self._lock_play     = threading.Lock()
         self._lock_eval     = threading.Lock()
@@ -538,7 +537,12 @@ class MaiaEngine(EngineManager):
 
         self._supports_wdl       = False
         self._supports_elo_limit = False
-        self._engine_name        = f"Maia {maia_elo}"
+
+        # Extraire le niveau réel depuis le nom du fichier de poids
+        import re as _re
+        m = _re.search(r'maia-(\d+)', str(weights_path))
+        self._maia_elo   = int(m.group(1)) if m else maia_elo
+        self._engine_name = f"Maia {self._maia_elo}"
 
         self._init_maia(lc0_path, weights_path, stockfish_path)
 
