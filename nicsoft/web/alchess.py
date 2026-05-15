@@ -472,10 +472,9 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
             if _error: _error[0] = True
             send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
     except Exception as e:
-        print(f"Erreur connexion échiquier : {e}")
+        print(f"Erreur inattendue mode pédagogique : {e}")
         import traceback; traceback.print_exc()
-        if _error: _error[0] = True
-        send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+        send_event("popup", {"message": f"Erreur : {e}"})
     finally:
         set_virtual_board(None)
         if nl_inst:
