@@ -2,6 +2,16 @@
 
 ---
 
+## ⚡ Prioritaire
+
+- **Créer une branche `dev`** — travailler sur `dev` au quotidien, merger vers `master` uniquement quand stable. `master` reste toujours la version fonctionnelle sur GitHub.
+  ```bash
+  git checkout -b dev
+  git push -u origin dev
+  ```
+
+---
+
 ## 🐛 Bugs actifs
 
 ### En veille (peu prioritaires)
@@ -11,13 +21,19 @@
 
 ### À corriger
 
-- **Combobox pause pédagogique non grisée** — Quand l'analyse est désactivée, la combobox "pause pédagogique" devrait se griser automatiquement (et se dégriser si on réactive l'analyse).
-- **Maia 1400 introuvable** — `RuntimeError: Poids Maia 1400 introuvables dans ~/NicLink/engines/maia/`. Le modèle maia-1400.pb.gz est absent. Vérifier les poids disponibles et adapter la sélection de niveau Maia en conséquence.
-- **HH continuer la partie** — Dans HH, je fais deux coups, ensuite clic pause, clic sur "Reprendre la partie" ne réagit pas.
-- **Dans pédagogique retour menu apres rangement piece** Apres l'ecran config, l'ecran de correction de position s'affiche, je corrige et la retour menu.  Reproduction bug, 1er tentative pas de bug, 2eme bug.  Parametres: 
-[Pédagogique]  Joueur: Arjun  Couleur: black  Moteur: maia  ELO SF: 1500  ELO Maia: 1600  ELO Rodent: 1800  Rodent simple: non  Pause: toujours  Analyse: on  Bip: on  Coups légaux: off
 - **Labo, centrer verticalement et horizontalement l'echiquier**
 - **Changer le nom Corbeille**  J'aimerai changer le nom Corbeille car ca évoque la poubelle.  Voir en anglais ce qu'il convient de faire.
+
+---
+
+## ✅ Bugs résolus récemment
+
+- **HH — Reprendre la partie ne réagit pas** — `_handle_pause()` attendait `"reprendre"` mais le bouton envoie `"resume_pause"`. Ajout du handler manquant. (commit a6c4a53)
+- **HH — See best move grisé pendant pause** — Stockfish lancé au moment de la pause pour calculer le meilleur coup et activer le bouton. (commit b0ec04a)
+- **HH — combobox game_type vide en test random** — Valeurs françaises obsolètes dans `_randomizeConfigHH()`, remplacées par les valeurs anglaises. (commit db17977)
+- **Maia 1400/1600 introuvable** — `find_maia_weights()` cherchait dans une liste théorique ; réécrite pour scanner le disque. 6 poids téléchargés (1200–1800). (commits 26ca08f + 1c40209)
+- **Combobox pause pédagogique non grisée** — `_refreshDynamicLabels()` grise `cfg-pause` selon l'état de la checkbox analyse. (commit 7a875e1)
+- **Pédagogique — retour menu après rangement pièce** — Cause racine : poids Maia 1600 manquants (réglé ci-dessus). Amélioration du gestionnaire d'erreurs dans `_run_pedagogique()` : erreur hardware → `board_error`, erreur moteur → popup avec vrai message + retour immédiat au menu. (commit 5bb4ca7)
 ---
 
 ## 💡 Fonctionnalités à venir
@@ -54,7 +70,6 @@
   - Python 3.10, 3.11, 3.12 en parallèle
   - Ubuntu 22.04 et 24.04
   - Modifier `.github/workflows/python-app.yml` : remplacer `python-version: "3.12"` par une `matrix` strategy
-
 ---
 
 ## 📝 Notes techniques
