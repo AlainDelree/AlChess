@@ -216,41 +216,25 @@ let _analyseEmpty    = false; // true quand l'écran analyse est vide (titre + i
 
 // ── MODE VIRTUEL ──────────────────────────────────────────
 
+function _launchVirtual(mode) {
+  _virtualMode = true;
+  sendAction({ type: "set_virtual_mode", virtual: true });
+  sendAction({ type: "mode", value: mode, virtual: true });
+}
+
 function toggleVirtualMode(enabled) {
   _virtualMode = enabled;
-  sendAction({ type: "set_virtual_mode", virtual: enabled });
-
   const sub = document.querySelector(".menu-subtitle");
   const btn = document.getElementById("btn-reconnect");
-
-  // Cacher/montrer les boutons physical-only (HH)
-  document.querySelectorAll(".menu-btn[data-physical-only]")
-    .forEach(b => { b.closest(".menu-btn-wrap").style.display = enabled ? "none" : ""; });
-
-  // Repositionner les bulles desc selon le mode (gauche/droite)
-  // Physique : Péda G, HH D, Analyse G, Labo D, Exercices G, Retrans D
-  // Virtuel  : Péda G, Analyse D, Labo G, Exercices D, Retrans G
-  const descRight = enabled
-    ? ["desc-analyse", "desc-exercices", "desc-outils"]
-    : ["desc-humain", "desc-labo", "desc-retrans"];
-  ["desc-pedagogique","desc-humain","desc-analyse","desc-labo","desc-exercices","desc-retrans","desc-outils"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.toggle("desc-right", descRight.includes(id));
-  });
-
   if (enabled) {
     if (sub) { sub.textContent = t("menu.sous_titre_virtuel"); sub.style.color = "#e94560"; }
     if (btn) { btn.style.display = "none"; }
-    document.querySelectorAll(".menu-btn[data-needs-board]:not([data-physical-only])")
-      .forEach(b => { b.disabled = false; });
   } else {
     if (btn) { btn.style.display = ""; }
     if (_boardOk) {
       if (sub) { sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = ""; }
     } else {
       if (sub) { sub.textContent = t("menu.verification_echiquier"); sub.style.color = ""; }
-      document.querySelectorAll(".menu-btn[data-needs-board]")
-        .forEach(b => { b.disabled = true; });
     }
   }
 }
@@ -565,7 +549,7 @@ socket.on("board_error", (data) => {
 socket.on("board_ok", () => {
   _boardOk    = true;
   _boardError = false;
-  document.querySelectorAll(".menu-btn[data-needs-board]")
+  document.querySelectorAll("[data-needs-board]")
     .forEach(btn => { btn.disabled = false; });
   const _okBtn = document.getElementById("btn-reconnect");
   if (_okBtn) {
@@ -762,15 +746,15 @@ socket.on("app_state", (data) => {
       if (cMsg) cMsg.textContent = t("connecting.msg");
       if (cSub) cSub.textContent = t("connecting.sub");
     }
-    // Réactiver les boutons si échiquier connecté OU mode virtuel
-    if (_boardOk || _virtualMode) {
-      document.querySelectorAll(".menu-btn[data-needs-board]:not([data-physical-only])")
+    // Réactiver les boutons physiques si échiquier connecté
+    if (_boardOk) {
+      document.querySelectorAll("[data-needs-board]")
         .forEach(btn => { btn.disabled = false; });
     }
     // Filet de sécurité : si les boutons sont encore grisés après 1.5s
     // transformer le bouton reconnect en bouton de secours
     setTimeout(() => {
-      const needsBoard = document.querySelectorAll(".menu-btn[data-needs-board]");
+      const needsBoard = document.querySelectorAll("[data-needs-board]");
       const stillBlocked = Array.from(needsBoard).some(b => b.disabled);
       const btn = document.getElementById("btn-reconnect");
       if (stillBlocked && _boardOk && btn) {

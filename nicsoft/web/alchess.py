@@ -149,6 +149,7 @@ def main():
             global _virtual_mode
             atype = action.get("type", "")
             if atype == "mode" and action.get("value") == "pedagogique":
+                _virtual_mode = action.get("virtual", False)
                 set_app_state("config")
             elif atype == "mode" and action.get("value") == "humain":
                 set_app_state("config_humain")
@@ -174,8 +175,10 @@ def main():
                     "mode": "analyse",
                 })
             elif atype == "mode" and action.get("value") == "analyse_libre":
+                _virtual_mode = action.get("virtual", False)
                 _launch_labo()
             elif atype == "mode" and action.get("value") == "exercices":
+                _virtual_mode = action.get("virtual", False)
                 _launch_exercices()
             elif atype == "mode" and action.get("value") == "outils_exercices":
                 set_app_state("outils_exercices")
