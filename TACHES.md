@@ -4,11 +4,7 @@
 
 ## ⚡ Prioritaire
 
-- **Créer une branche `dev`** — travailler sur `dev` au quotidien, merger vers `master` uniquement quand stable. `master` reste toujours la version fonctionnelle sur GitHub.
-  ```bash
-  git checkout -b dev
-  git push -u origin dev
-  ```
+_(rien pour l'instant)_
 
 ---
 
