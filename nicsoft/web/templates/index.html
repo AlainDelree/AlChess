@@ -42,7 +42,14 @@
   <div class="menu-subtitle" data-i18n="menu.verification_echiquier">Vérification de l'échiquier…</div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-primary" data-needs-board disabled onclick="sendAction({type:'mode', value:'pedagogique'})" data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</button>
+    <div class="menu-split-wrap">
+      <button class="menu-split-main menu-split-primary" data-needs-board disabled
+              onclick="sendAction({type:'mode', value:'pedagogique'})">♟ 🎓 Mode Pédagogique</button>
+      <button class="menu-split-virt menu-split-primary-virt"
+              onclick="_launchVirtual('pedagogique')">
+        <span class="split-icon">🖥</span><span class="split-label">Virtuel</span>
+      </button>
+    </div>
     <div class="menu-btn-desc" id="desc-pedagogique" data-i18n="menu.desc.pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
   </div>
 
@@ -57,12 +64,26 @@
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'analyse_libre'})" data-i18n="menu.btn.labo">🔬 Laboratoire</button>
+    <div class="menu-split-wrap">
+      <button class="menu-split-main menu-split-secondary" data-needs-board disabled
+              onclick="sendAction({type:'mode', value:'analyse_libre'})">♟ 🔬 Laboratoire</button>
+      <button class="menu-split-virt menu-split-secondary-virt"
+              onclick="_launchVirtual('analyse_libre')">
+        <span class="split-icon">🖥</span><span class="split-label">Virtuel</span>
+      </button>
+    </div>
     <div class="menu-btn-desc" id="desc-labo" data-i18n="menu.desc.labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
   </div>
 
   <div class="menu-btn-wrap">
-    <button class="menu-btn menu-btn-secondary" data-needs-board disabled onclick="sendAction({type:'mode', value:'exercices'})" data-i18n="menu.btn.exercices">📚 Exercices</button>
+    <div class="menu-split-wrap">
+      <button class="menu-split-main menu-split-secondary" data-needs-board disabled
+              onclick="sendAction({type:'mode', value:'exercices'})">♟ 📚 Exercices</button>
+      <button class="menu-split-virt menu-split-secondary-virt"
+              onclick="_launchVirtual('exercices')">
+        <span class="split-icon">🖥</span><span class="split-label">Virtuel</span>
+      </button>
+    </div>
     <div class="menu-btn-desc" id="desc-exercices" data-i18n="menu.desc.exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
   </div>
 
@@ -78,15 +99,6 @@
 
   <button class="menu-btn menu-btn-secondary" id="btn-reconnect" onclick="sendAction({type:'reconnect_board'})" style="font-size:0.85rem; opacity:0.5; cursor:default;" disabled>✓ Échiquier connecté</button>
 
-  <!-- Toggle mode virtuel -->
-  <div style="display:flex; align-items:center; gap:10px; margin-top:4px;">
-    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;">
-      <input type="checkbox" id="chk-virtual-mode"
-        style="width:15px; height:15px; cursor:pointer; accent-color:#e94560;"
-        onchange="toggleVirtualMode(this.checked)">
-      <span style="font-size:0.82rem; color:#3a5a7a;" data-i18n="menu.checkbox_virtuel">Mode sans échiquier physique</span>
-    </label>
-  </div>
 
   <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;" data-i18n="menu.btn.quitter">✕ Quitter</button>
 </div>
