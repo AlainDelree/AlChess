@@ -3716,7 +3716,7 @@ socket.on("exercice_init", (data) => {
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) { statusEl.textContent = t("exercices.placer_pieces"); statusEl.style.color = "#ff9800"; }
   const infoEl = document.getElementById("ex-run-info");
-  if (infoEl) infoEl.textContent = o.desc;
+  if (infoEl) infoEl.textContent = _exLineDesc(o);
 
   // En mode virtuel : sync automatique, pas besoin du bouton Synchroniser
   const syncBtn = document.getElementById("ex-btn-sync");
