@@ -16,6 +16,7 @@ Application d'entraînement aux échecs connectant un échiquier physique **Ches
 - 🔍 **Analyse de partie** — navigation coup par coup, import de PGN externes (ex: Chess.com)
 - 📝 **Retranscription PGN** — rejouez et exportez vos parties
 - 🧪 **Mode Labo** — échiquier virtuel sans matériel physique
+- 🌐 **Interface multilingue** — français, anglais et allemand (🇫🇷 🇬🇧 🇩🇪)
 
 > ℹ️ Tous les modes (sauf Humain vs Humain) fonctionnent sans échiquier physique grâce à un échiquier virtuel intégré.
 
@@ -56,7 +57,7 @@ pip install -r requirements.txt
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une **Issue** pour signaler un bug ou proposer une fonctionnalité, ou une **Pull Request** pour soumettre du code.
 
-Le projet est en français mais les contributions en anglais sont tout à fait acceptées.
+L'interface est disponible en français, anglais et allemand. Les contributions dans ces langues sont les bienvenues.
 
 ---
 
@@ -73,6 +74,7 @@ A chess training application connecting a **Chessnut Air** physical chessboard t
 - 🔍 **Game analysis** — move-by-move navigation, import external PGN files (e.g. from Chess.com)
 - 📝 **PGN retranscription** — replay and export your games
 - 🧪 **Lab mode** — virtual board without physical hardware
+- 🌐 **Multilingual interface** — French, English and German (🇫🇷 🇬🇧 🇩🇪)
 
 > ℹ️ All modes (except Human vs Human) work without a physical board thanks to a built-in virtual chessboard.
 
@@ -115,7 +117,7 @@ pip install -r requirements.txt
 
 Contributions are welcome! Feel free to open an **Issue** to report a bug or suggest a feature, or a **Pull Request** to submit code.
 
-The project interface is currently in French — an English translation is planned. Contributions in English are fully accepted.
+The interface is available in French, English and German. Contributions in these languages are welcome.
 
 ### License
 
