@@ -5103,7 +5103,10 @@ socket.on("outils_add_verify_result", (data) => {
   if (!data.ok) {
     let html = '<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px;">';
     html += `<strong style="color:#e94560">${t("outils.erreurs")}</strong><ul style="margin:4px 0 0 16px;">`;
-    data.errors.forEach(e => { html += `<li style="color:#e94560">${e}</li>`; });
+    data.errors.forEach(e => {
+      const msg = (e && e.key) ? t(e.key, e.vars || {}) : e;
+      html += `<li style="color:#e94560">${msg}</li>`;
+    });
     html += "</ul></div>";
     prev.innerHTML = html;
     return;
