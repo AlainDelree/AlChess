@@ -1425,7 +1425,7 @@
   <div style="color: #2a3a4a; font-size: 0.9rem;" data-i18n="startup.chargement">Chargement en cours…</div>
   <script>
   (function(){
-    var loc=(document.cookie.match(/alchess_locale=([^;]*)/)||[])[1]||localStorage.getItem('alchess_locale')||'fr';
+    var loc=(document.cookie.match(/alchess_locale=([^;]*)/)||[])[1]||localStorage.getItem('alchess_locale')||'en';
     var tx={fr:['Démarrage de AlChess…','Chargement en cours…'],en:['Starting AlChess…','Loading…'],de:['AlChess wird gestartet…','Laden…']};
     var t=tx[loc]||tx.fr;
     var els=document.querySelectorAll('[data-i18n="startup.demarrage"],[data-i18n="startup.chargement"]');
