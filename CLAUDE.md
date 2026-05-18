@@ -98,6 +98,18 @@ menu → config / config_humain / retranscription / exercices / labo
 - `action_queue` : navigateur → Python (actions en cours de partie)
 - `menu_queue` : navigateur → Python (choix de mode, config)
 
+## Internationalisation (i18n)
+
+L'interface est traduite en français, anglais et allemand. **Règle absolue pour tout ajout ou modification de texte visible :**
+
+- **HTML** : ne jamais hardcoder un libellé. Toujours utiliser `data-i18n="ma.cle"` (ou `data-i18n-html`, `data-i18n-placeholder`, `data-i18n-title` selon le contexte).
+- **JS** : utiliser `t("ma.cle")` partout où du texte est injecté dynamiquement (`textContent`, `innerHTML`, messages toast, titres de modales, etc.).
+- **Toute nouvelle clé doit être ajoutée simultanément dans les 3 fichiers** : `nicsoft/web/static/i18n/fr.json`, `en.json`, `de.json`.
+- Si la traduction allemande est incertaine, mettre la valeur anglaise en attendant — ne jamais laisser la clé absente.
+- Les boutons avec structure complexe (icône + texte) : mettre l'icône dans un `<span>` séparé non traduit, et `data-i18n` sur le `<span>` du texte.
+
+Langues actives : `SUPPORTED_LOCALES = ['fr', 'en', 'de']` dans `nicsoft/web/static/i18n.js`.
+
 ## Contraintes techniques critiques
 
 - **USB contention** : tout accès USB passe exclusivement par `_fen_reader_thread`. Ne jamais appeler `get_fen()` depuis un autre thread.
