@@ -30,6 +30,7 @@
     onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
     <option value="fr">🇫🇷 FR</option>
     <option value="en">🇬🇧 EN</option>
+    <option value="de">🇩🇪 DE</option>
   </select>
   <a href="/logs" target="_blank" title="Consulter les logs" style="margin-left:8px; font-size:0.75rem; color:#3a5a7a; text-decoration:none; opacity:0.5; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">📋 logs</a>
   <a id="btn-debug-mark" href="#" title="Insérer un marqueur debug dans les logs" onclick="debugMark(event)" style="display:none; font-size:0.75rem; color:#e94560; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🔖</a>
@@ -44,10 +45,10 @@
   <div class="menu-btn-wrap">
     <div class="menu-split-wrap">
       <button class="menu-split-main menu-split-primary" data-needs-board disabled
-              onclick="sendAction({type:'mode', value:'pedagogique'})">♟ 🎓 Mode Pédagogique</button>
+              onclick="sendAction({type:'mode', value:'pedagogique'})">♟ <span data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</span></button>
       <button class="menu-split-virt menu-split-primary-virt"
               onclick="_launchVirtual('pedagogique')">
-        <span class="split-icon">🖥</span><span class="split-label">Virtuel</span>
+        <span class="split-icon">🖥</span><span class="split-label" data-i18n="menu.btn.virtuel">Virtuel</span>
       </button>
     </div>
     <div class="menu-btn-desc" id="desc-pedagogique" data-i18n="menu.desc.pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
@@ -66,10 +67,10 @@
   <div class="menu-btn-wrap">
     <div class="menu-split-wrap">
       <button class="menu-split-main menu-split-secondary" data-needs-board disabled
-              onclick="sendAction({type:'mode', value:'analyse_libre'})">♟ 🔬 Laboratoire</button>
+              onclick="sendAction({type:'mode', value:'analyse_libre'})">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></button>
       <button class="menu-split-virt menu-split-secondary-virt"
               onclick="_launchVirtual('analyse_libre')">
-        <span class="split-icon">🖥</span><span class="split-label">Virtuel</span>
+        <span class="split-icon">🖥</span><span class="split-label" data-i18n="menu.btn.virtuel">Virtuel</span>
       </button>
     </div>
     <div class="menu-btn-desc" id="desc-labo" data-i18n="menu.desc.labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
@@ -78,10 +79,10 @@
   <div class="menu-btn-wrap">
     <div class="menu-split-wrap">
       <button class="menu-split-main menu-split-secondary" data-needs-board disabled
-              onclick="sendAction({type:'mode', value:'exercices'})">♟ 📚 Exercices</button>
+              onclick="sendAction({type:'mode', value:'exercices'})">♟ <span data-i18n="menu.btn.exercices">📚 Exercices</span></button>
       <button class="menu-split-virt menu-split-secondary-virt"
               onclick="_launchVirtual('exercices')">
-        <span class="split-icon">🖥</span><span class="split-label">Virtuel</span>
+        <span class="split-icon">🖥</span><span class="split-label" data-i18n="menu.btn.virtuel">Virtuel</span>
       </button>
     </div>
     <div class="menu-btn-desc" id="desc-exercices" data-i18n="menu.desc.exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
