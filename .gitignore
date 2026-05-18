@@ -17,8 +17,5 @@ games/tmp/*.pgn
 # Fichiers de test lenteur
 Lenteur*
 
-#Fichiers d'info non formelle sur les langues
-REPARTITION_UTILISATEUR_LANGUES.md
-
-#Fichier permettant de montrer des screenshots a claude
-ecran.png
+TRAVAIL_EN_COURS/
+\n# Fichiers de travail temporaires\nmockup_menu.html
