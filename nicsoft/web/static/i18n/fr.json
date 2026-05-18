@@ -354,6 +354,8 @@
   "status.connecte":           "Connecté",
   "status.deconnecte":         "Déconnecté",
 
+  "game.undo_remettez_pieces":  "Remettez les pièces à leur place, puis rejouez.",
+  "game.undo_remettez_piece":   "Remettez la pièce à sa position initiale, puis rejouez.",
   "game.fin_partie_default":   "Fin de partie",
   "game.titre_libre":          "Partie libre",
   "game.titre_pedagogique":    "Partie Pédagogique",

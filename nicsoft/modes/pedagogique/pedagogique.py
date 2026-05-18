@@ -1027,6 +1027,7 @@ class Game(threading.Thread):
             "full_fen": fen_cible,
             "count":    count,
             "message":  "Remettez les pièces à leur place, puis rejouez.",
+            "message_key": "game.undo_remettez_pieces",
         })
         phys_now = (self.nl_inst.current_fen or "").strip().split()[0]
         if phys_now and phys_now != expected:
@@ -1383,6 +1384,7 @@ class Game(threading.Thread):
                 "full_fen": fen_cible,
                 "count":    1,
                 "message":  "Remettez la pièce à sa position initiale, puis rejouez.",
+            "message_key": "game.undo_remettez_piece",
             })
             phys_now = (self.nl_inst.current_fen or "").strip().split()[0]
             if phys_now and phys_now != expected:

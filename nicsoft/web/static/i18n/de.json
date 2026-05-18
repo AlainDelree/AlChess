@@ -354,6 +354,8 @@
   "status.connecte":           "Verbunden",
   "status.deconnecte":         "Getrennt",
 
+  "game.undo_remettez_pieces":  "Figuren zurückstellen, dann weiterspielen.",
+  "game.undo_remettez_piece":   "Figur zurückstellen, dann weiterspielen.",
   "game.fin_partie_default":   "Partie beendet",
   "game.titre_libre":          "Freies Spiel",
   "game.titre_pedagogique":    "Trainingspartie",
