@@ -26,6 +26,7 @@
   "menu.btn.retranscrire":     "✏️ Transcribe",
   "menu.btn.outils":           "🛠️ Exercise Tools",
   "menu.btn.reconnect":        "🔌 Reconnect board",
+  "menu.btn.debloquer":        "⟳ Unlock buttons",
   "menu.btn.quitter":          "✕ Quit",
   "menu.btn.virtuel":          "Virtual",
   "menu.virtual_mode":         "Boardless mode",

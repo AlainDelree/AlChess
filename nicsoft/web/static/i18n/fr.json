@@ -26,6 +26,7 @@
   "menu.btn.retranscrire":     "✏️ Retranscrire",
   "menu.btn.outils":           "🛠️ Outils Exercices",
   "menu.btn.reconnect":        "🔌 Reconnecter l'échiquier",
+  "menu.btn.debloquer":        "⟳ Débloquer les boutons",
   "menu.btn.quitter":          "✕ Quitter",
   "menu.btn.virtuel":          "Virtuel",
   "menu.virtual_mode":         "Mode sans échiquier",
