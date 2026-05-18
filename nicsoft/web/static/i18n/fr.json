@@ -27,6 +27,7 @@
   "menu.btn.outils":           "🛠️ Outils Exercices",
   "menu.btn.reconnect":        "🔌 Reconnecter l'échiquier",
   "menu.btn.quitter":          "✕ Quitter",
+  "menu.btn.virtuel":          "Virtuel",
   "menu.virtual_mode":         "Mode sans échiquier",
   "menu.checkbox_virtuel":     "Mode sans échiquier physique",
   "menu.logs":                 "📋 Logs",

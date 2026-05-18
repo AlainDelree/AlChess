@@ -27,6 +27,7 @@
   "menu.btn.outils":           "🛠️ Exercise Tools",
   "menu.btn.reconnect":        "🔌 Reconnect board",
   "menu.btn.quitter":          "✕ Quit",
+  "menu.btn.virtuel":          "Virtual",
   "menu.virtual_mode":         "Boardless mode",
   "menu.checkbox_virtuel":     "Boardless mode",
   "menu.logs":                 "📋 Logs",
