@@ -1058,6 +1058,8 @@ class GameWeb(threading.Thread):
             _web_server._app_state = "game_over"
             set_app_state("game_over", {
                 "title":         title,
+                "title_key":     title_key,
+                "title_vars":    title_vars,
                 "result":        result,
                 "source":        "niclink",
                 "skip":          False,
@@ -1086,7 +1088,8 @@ class GameWeb(threading.Thread):
             _web_server._app_state = "game_over"
             _hist_fens, _hist_moves = self._build_history_from_stack()
             set_app_state("game_over", {
-                "title": "Fin de partie", "result": result,
+                "title": "Fin de partie", "title_key": "game.fin_partie_default",
+                "result": result,
                 "source": "niclink",
                 "history_fen":   _hist_fens,
                 "history_moves": _hist_moves,
@@ -1103,7 +1106,8 @@ class GameWeb(threading.Thread):
             _web_server._app_state = "game_over"
             _hist_fens2, _hist_moves2 = self._build_history_from_stack()
             set_app_state("game_over", {
-                "title": "Nulle", "result": "1/2-1/2",
+                "title": "Nulle", "title_key": "game.titre_nulle",
+                "result": "1/2-1/2",
                 "source": "niclink",
                 "history_fen":   _hist_fens2,
                 "history_moves": _hist_moves2,
@@ -1138,12 +1142,14 @@ class GameWeb(threading.Thread):
                 send_event("game_over", {
                     "result": "1/2-1/2", "reason": "Nulle par accord mutuel",
                     "source": "niclink", "title": "Nulle",
+                    "title_key": "game.titre_nulle",
                 })
                 from nicsoft.web import server as _web_server
                 _web_server._app_state = "game_over"
                 _hist_fens, _hist_moves = self._build_history_from_stack()
                 set_app_state("game_over", {
-                    "title": "Nulle", "result": "1/2-1/2",
+                    "title": "Nulle", "title_key": "game.titre_nulle",
+                    "result": "1/2-1/2",
                     "source": "niclink",
                     "history_fen":   _hist_fens,
                     "history_moves": _hist_moves,
