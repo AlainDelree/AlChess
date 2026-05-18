@@ -332,13 +332,16 @@ def on_outils_wiki_update(_data):
     from nicsoft.modes.exercices.download_eco_wiki import run_from_web
 
     def run():
-        def progress(step, message):
-            socketio.emit("outils_wiki_progress", {"step": step, "message": message})
+        def progress(step, message, vars=None):
+            event = {"step": step, "message": message, "message_key": f"outils.wiki.step.{step}"}
+            if vars:
+                event["vars"] = vars
+            socketio.emit("outils_wiki_progress", event)
         result = run_from_web(progress)
         socketio.emit("outils_wiki_done", result)
 
     threading.Thread(target=run, daemon=True).start()
-    emit("outils_wiki_progress", {"step": "start", "message": "Démarrage…"})
+    emit("outils_wiki_progress", {"step": "start", "message": "Démarrage…", "message_key": "outils.wiki.step.start"})
 
 
 @socketio.on("outils_eco_search")
