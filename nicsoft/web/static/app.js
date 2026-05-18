@@ -3605,37 +3605,45 @@ function exRenderBoard(fen, from, to) {
 
 // ── Traduction SAN selon la langue courante ───────────────────────────────────
 
-const _SAN_PIECES_FR = { K: "Roi", Q: "Dame", R: "Tour", B: "Fou", N: "Cavalier" };
-const _SAN_PIECES_EN = { K: "King", Q: "Queen", R: "Rook", B: "Bishop", N: "Knight" };
+const _SAN_PIECES_FR = { K: "Roi",   Q: "Dame",  R: "Tour",    B: "Fou",    N: "Cavalier" };
+const _SAN_PIECES_EN = { K: "King",  Q: "Queen", R: "Rook",    B: "Bishop", N: "Knight"   };
+const _SAN_PIECES_DE = { K: "König", Q: "Dame",  R: "Turm",    B: "Läufer", N: "Springer" };
+
+const _SAN_LANG = {
+  fr: { pieces: _SAN_PIECES_FR, pawn: "pion",    longCastle: "Grand roque",   shortCastle: "Petit roque",    takes: " prend en ", to: " en ",   check: " échec",  mate: " mat"       },
+  en: { pieces: _SAN_PIECES_EN, pawn: "pawn",    longCastle: "Long castling", shortCastle: "Short castling", takes: " takes ",    to: " to ",   check: " check",  mate: " checkmate" },
+  de: { pieces: _SAN_PIECES_DE, pawn: "Bauer",   longCastle: "Lange Rochade", shortCastle: "Kurze Rochade",  takes: " nimmt ",    to: " nach ", check: " Schach", mate: " Schachmatt"},
+};
 
 function sanToLang(san) {
   if (!san) return san;
-  const isEn = i18n.locale() === "en";
-  const pieces = isEn ? _SAN_PIECES_EN : _SAN_PIECES_FR;
-  if (san.startsWith("O-O-O") || san.startsWith("0-0-0")) return (isEn ? "Long castling" : "Grand roque") + _sanSuffix(san.slice(5), isEn);
-  if (san.startsWith("O-O")   || san.startsWith("0-0"))   return (isEn ? "Short castling" : "Petit roque")  + _sanSuffix(san.slice(3), isEn);
+  const loc = i18n.locale();
+  const lang = _SAN_LANG[loc] || _SAN_LANG.fr;
+  const { pieces, pawn, longCastle, shortCastle, takes, to, check, mate } = lang;
+  if (san.startsWith("O-O-O") || san.startsWith("0-0-0")) return longCastle  + _sanSuffix(san.slice(5), lang);
+  if (san.startsWith("O-O")   || san.startsWith("0-0"))   return shortCastle + _sanSuffix(san.slice(3), lang);
   let base = san, suffix = "";
-  if (base.endsWith("#"))      { suffix = isEn ? " checkmate" : " mat";   base = base.slice(0, -1); }
-  else if (base.endsWith("+")) { suffix = isEn ? " check"     : " échec"; base = base.slice(0, -1); }
+  if (base.endsWith("#"))      { suffix = mate;  base = base.slice(0, -1); }
+  else if (base.endsWith("+")) { suffix = check; base = base.slice(0, -1); }
   let promo = "";
   const promoMatch = base.match(/=([QRBN])$/);
   if (promoMatch) { promo = "=" + pieces[promoMatch[1]]; base = base.slice(0, -2); }
   let piece = "";
   if (base[0] && pieces[base[0]]) { piece = pieces[base[0]]; base = base.slice(1); }
-  else piece = isEn ? "pawn" : "pion";
+  else piece = pawn;
   const capture = base.includes("x");
   base = base.replace("x", "");
   const targetSq = base.slice(-2);
   const disambig = base.slice(0, -2);
   let result = piece;
   if (disambig) result += ` (${disambig})`;
-  result += capture ? (isEn ? " takes " : " prend en ") + targetSq : (isEn ? " to " : " en ") + targetSq;
+  result += (capture ? takes : to) + targetSq;
   return result + promo + suffix;
 }
 
-function _sanSuffix(s, isEn) {
-  if (s.startsWith("#")) return isEn ? " checkmate" : " mat";
-  if (s.startsWith("+")) return isEn ? " check"     : " échec";
+function _sanSuffix(s, lang) {
+  if (s.startsWith("#")) return lang.mate;
+  if (s.startsWith("+")) return lang.check;
   return "";
 }
 
@@ -5196,7 +5204,7 @@ socket.on("outils_explore_list_result", (data) => {
     const btn = document.createElement("button");
     btn.className = "btn btn-continuer";
     btn.style.cssText = "font-family:monospace; font-size:0.88rem;";
-    btn.textContent = `📖 ${b.name}  (${b.size_kb} ko)`;
+    btn.textContent = `📖 ${b.name}  (${b.size_kb} kB)`;
     btn.onclick = () => exploreSelectBook(b.name);
     listEl.appendChild(btn);
   });
