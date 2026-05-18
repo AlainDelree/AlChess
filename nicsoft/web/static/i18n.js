@@ -13,7 +13,7 @@
  */
 
 const SUPPORTED_LOCALES = ['fr', 'en', 'de'];
-const DEFAULT_LOCALE    = 'fr';
+const DEFAULT_LOCALE    = 'en';
 
 /** Sauvegarde la locale dans localStorage ET un cookie persistant (1 an). */
 function _saveLang(locale) {
