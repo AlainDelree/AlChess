@@ -354,6 +354,8 @@
   "status.connecte":           "Connected",
   "status.deconnecte":         "Disconnected",
 
+  "game.undo_remettez_pieces":  "Put the pieces back, then replay.",
+  "game.undo_remettez_piece":   "Put the piece back, then replay.",
   "game.fin_partie_default":   "Game over",
   "game.titre_libre":          "Free game",
   "game.titre_pedagogique":    "Training game",

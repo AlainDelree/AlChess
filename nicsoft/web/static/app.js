@@ -783,9 +783,9 @@ socket.on("undo_move", (data) => {
   _renderHistory();
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
-  if (data.message) {
+  if (data.message || data.message_key) {
     const turnInfo = document.getElementById("turn-info");
-    if (turnInfo) { turnInfo.textContent = data.message; turnInfo.className = "warning"; }
+    if (turnInfo) { turnInfo.textContent = data.message_key ? t(data.message_key) : data.message; turnInfo.className = "warning"; }
   }
   // Resynchroniser chess.js avec la position après undo (full_fen inclut le tour et le roque)
   if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
