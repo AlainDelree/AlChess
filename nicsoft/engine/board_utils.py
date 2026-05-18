@@ -20,42 +20,37 @@ def san_ep(board: chess.Board, move: chess.Move) -> str:
     return s
 
 
-def analyser_position_illegale(board: chess.Board, fen_physique: str) -> str:
+def analyser_position_illegale(board: chess.Board, fen_physique: str) -> dict:
     """
     Analyse pourquoi une position physique est illégale par rapport à board.
-    Retourne un message d'erreur adapté au contexte.
-
-    Cas couverts :
-    - Roi en échec non paré
-    - Coup met le roi en échec (clouage ou auto-échec)
-    - Plusieurs pièces déplacées simultanément
-    - Pièce déplacée sur une case invalide pour son type
-    - Pièce manquante ou en trop
+    Retourne un dict {message, message_key, vars?} compatible avec _i18nMsg().
     """
+    def _err(msg, key, vars=None):
+        e = {"message": msg, "message_key": key}
+        if vars:
+            e["vars"] = vars
+        return e
+
     try:
         hw_board = chess.Board(fen_physique + " w - - 0 1")
     except Exception:
-        return "⚠ Position illégale — remettez les pièces à leur place."
+        return _err("⚠ Position illégale — remettez les pièces à leur place.",
+                    "game.illegal.position_illegale")
 
-    expected = board.board_fen()
-
-    # Compter les cases différentes
     diff_squares = []
     for sq in chess.SQUARES:
         if board.piece_at(sq) != hw_board.piece_at(sq):
             diff_squares.append(sq)
 
-    # Cas 1 : Roi en échec non paré
     if board.is_check():
-        return "⚠ Vous êtes en échec — parez l'échec avant de jouer."
+        return _err("⚠ Vous êtes en échec — parez l'échec avant de jouer.",
+                    "game.illegal.roi_en_echec")
 
-    # Cas 2 : Plusieurs pièces déplacées (> 2 cases différentes = pas un coup simple)
     if len(diff_squares) > 4:
-        return "⚠ Plusieurs pièces déplacées — remettez l'échiquier en ordre."
+        return _err("⚠ Plusieurs pièces déplacées — remettez l'échiquier en ordre.",
+                    "game.illegal.plusieurs_pieces")
 
-    # Cas 3 : Tenter d'identifier le coup joué et pourquoi il est illégal
     if len(diff_squares) >= 2:
-        # Trouver la pièce qui a bougé (case vide dans physique mais occupée dans attendu)
         moved_from = [sq for sq in diff_squares
                       if board.piece_at(sq) is not None
                       and hw_board.piece_at(sq) != board.piece_at(sq)]
@@ -69,26 +64,32 @@ def analyser_position_illegale(board: chess.Board, fen_physique: str) -> str:
             piece   = board.piece_at(sq_from)
 
             if piece:
-                # Vérifier si ce coup mettrait le roi en échec (clouage)
-                test_board = board.copy()
                 try:
                     move = chess.Move(sq_from, sq_to)
                     if move in board.pseudo_legal_moves and move not in board.legal_moves:
-                        return f"⚠ Ce coup met votre roi en échec — pièce clouée."
+                        return _err("⚠ Ce coup met votre roi en échec — pièce clouée.",
+                                    "game.illegal.piece_clouee")
                     elif move not in board.pseudo_legal_moves:
-                        piece_name = {
-                            chess.PAWN:   "Le pion",
-                            chess.KNIGHT: "Le cavalier",
-                            chess.BISHOP: "Le fou",
-                            chess.ROOK:   "La tour",
-                            chess.QUEEN:  "La dame",
-                            chess.KING:   "Le roi",
-                        }.get(piece.piece_type, "Cette pièce")
-                        return f"⚠ {piece_name} ne peut pas aller là."
+                        _piece_keys = {
+                            chess.PAWN: "piece.pawn", chess.KNIGHT: "piece.knight",
+                            chess.BISHOP: "piece.bishop", chess.ROOK: "piece.rook",
+                            chess.QUEEN: "piece.queen", chess.KING: "piece.king",
+                        }
+                        _piece_fr = {
+                            chess.PAWN: "Le pion", chess.KNIGHT: "Le cavalier",
+                            chess.BISHOP: "Le fou", chess.ROOK: "La tour",
+                            chess.QUEEN: "La dame", chess.KING: "Le roi",
+                        }
+                        pk = _piece_keys.get(piece.piece_type, "piece.pawn")
+                        pn = _piece_fr.get(piece.piece_type, "Cette pièce")
+                        return _err(f"⚠ {pn} ne peut pas aller là.",
+                                    "game.illegal.piece_ne_peut_pas",
+                                    {"piece_key": pk})
                 except Exception:
                     pass
 
-    return "⚠ Coup illégal — remettez la pièce à sa place."
+    return _err("⚠ Coup illégal — remettez la pièce à sa place.",
+                "game.illegal.coup_illegal")
 
 
 def wait_for_initial_position(nl_inst, timeout: float = 10.0) -> None:

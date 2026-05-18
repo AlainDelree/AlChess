@@ -1244,6 +1244,7 @@ function _i18nMsg(data, field = "message", keyField = "message_key") {
   if (data[keyField]) {
     const vars = {...(data.vars || {})};
     if (vars.color_key) vars.color = t(vars.color_key);
+    if (vars.piece_key) vars.piece = t(vars.piece_key);
     return t(data[keyField], vars);
   }
   return data[field] || "";

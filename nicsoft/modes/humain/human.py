@@ -797,7 +797,8 @@ class GameWeb(threading.Thread):
                         from nicsoft.engine.board_utils import analyser_position_illegale
                         msg = analyser_position_illegale(self.board, phys)
                     except Exception:
-                        msg = "⚠ Position illégale — remettez la pièce à sa place."
+                        msg = {"message": "⚠ Position illégale — remettez la pièce à sa place.",
+                               "message_key": "game.illegal.position_illegale"}
                     # Deux bips rapprochés
                     try:
                         self.nl_inst.beep()
@@ -805,7 +806,7 @@ class GameWeb(threading.Thread):
                         self.nl_inst.beep()
                     except Exception:
                         pass
-                    send_event("illegal_position", {"message": msg})
+                    send_event("illegal_position", msg)
 
         pos_watcher = threading.Thread(target=watch_position, daemon=True)
         pos_watcher.start()
