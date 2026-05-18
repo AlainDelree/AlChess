@@ -2900,8 +2900,9 @@ socket.on("labo_position", (data) => {
   const turnIsWhite = data.turn === "white";
   // Effacer le message d'échec si plus en échec
   const lastEl0 = document.getElementById("labo-last-move");
-  if (lastEl0 && !data.in_check && lastEl0.textContent.startsWith("⚠ Échec")) {
+  if (lastEl0 && !data.in_check && _lastLaboLastMove?.data?.type === "check") {
     lastEl0.textContent = "";
+    _lastLaboLastMove = null;
   }
   if (data.in_check) {
     _setLaboTurnEl("labo.echec", {}, "#ff9800");
@@ -5162,8 +5163,9 @@ socket.on("outils_add_save_result", (data) => {
   const prevId = _outilsAddContext === "explore" ? "explore-add-preview" : "outils-add-preview";
   const prev   = document.getElementById(prevId);
   if (data.ok) {
-    if (prev) prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${data.message}</div>`;
-    afficherToast(data.message, "success");
+    const addMsg = _i18nMsg(data);
+    if (prev) prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${addMsg}</div>`;
+    afficherToast(addMsg, "success");
     if (_outilsAddContext === "explore") {
       setTimeout(() => { if (prev) prev.style.display = "none"; }, 2500);
     } else {
@@ -5652,7 +5654,7 @@ function outilsWikiUpdate() {
 
 socket.on("outils_wiki_progress", (data) => {
   const status = document.getElementById("wiki-status");
-  if (status) status.textContent = data.message || "";
+  if (status) status.textContent = _i18nMsg(data) || "";
 });
 
 socket.on("outils_wiki_done", (data) => {

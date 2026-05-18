@@ -210,6 +210,7 @@ def save_from_web(data: dict) -> dict:
             "book":         data.get("book", ""),
             "parent_eco":   data.get("parent_eco", ""),
         })
-        return {"ok": True, "message": f"'{data['nom']}' ajoutée avec succès !"}
+        return {"ok": True, "message": f"'{data['nom']}' ajoutée avec succès !",
+                "message_key": "outils.ajoutee_succes", "vars": {"nom": data["nom"]}}
     except Exception as e:
         return {"ok": False, "message": str(e)}

@@ -206,7 +206,7 @@ def run_from_web(progress_cb) -> dict:
     try:
         progress_cb("downloading", "Téléchargement depuis Wikipedia…")
         wikitext = download_wikitext()
-        progress_cb("parsing", f"Parsing du wikitext ({len(wikitext):,} caractères)…")
+        progress_cb("parsing", f"Parsing du wikitext ({len(wikitext):,} caractères)…", {"n": f"{len(wikitext):,}"})
     except Exception as e:
         return {"ok": False, "error": f"Erreur téléchargement : {e}"}
 
@@ -214,7 +214,7 @@ def run_from_web(progress_cb) -> dict:
         entries = parse_eco_table(wikitext)
         if not entries:
             return {"ok": False, "error": "Aucune entrée parsée — structure Wikipedia peut-être modifiée."}
-        progress_cb("hierarchy", f"{len(entries)} codes parsés, calcul des parents…")
+        progress_cb("hierarchy", f"{len(entries)} codes parsés, calcul des parents…", {"n": len(entries)})
         entries = build_hierarchy(entries)
     except Exception as e:
         return {"ok": False, "error": f"Erreur parsing : {e}"}
