@@ -5500,9 +5500,10 @@ socket.on("outils_edit_save_result", (data) => {
     res.style.background = "#e8f5e9";
     res.style.border     = "1px solid #4caf50";
     res.style.color      = "#2e7d32";
-    res.innerHTML        = `✓ ${data.message}`;
+    const okMsg = _i18nMsg(data);
+    res.innerHTML        = `✓ ${okMsg}`;
     res.style.display    = "block";
-    afficherToast(data.message, "success");
+    afficherToast(okMsg, "success");
     // Recharger la liste pour refléter les changements
     socket.emit("outils_edit_list", {});
     // Mettre à jour le cache local
@@ -5514,7 +5515,7 @@ socket.on("outils_edit_save_result", (data) => {
     res.style.background = "#ffebee";
     res.style.border     = "1px solid #e94560";
     res.style.color      = "#e94560";
-    res.innerHTML        = `✗ ${data.error || data.message}`;
+    res.innerHTML        = `✗ ${_i18nMsg(data, "error", "error_key") || _i18nMsg(data)}`;
     res.style.display    = "block";
   }
   res.style.borderRadius = "6px";
