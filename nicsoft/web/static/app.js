@@ -758,7 +758,7 @@ socket.on("app_state", (data) => {
       const stillBlocked = Array.from(needsBoard).some(b => b.disabled);
       const btn = document.getElementById("btn-reconnect");
       if (stillBlocked && _boardOk && btn) {
-        btn.textContent = "⟳ Débloquer les boutons";
+        btn.textContent = t("menu.btn.debloquer");
         btn.disabled = false;
         btn.style.opacity = "1";
         btn.style.cursor = "pointer";
@@ -4912,7 +4912,7 @@ function outilsPgnFilesSelected(fileList) {
 
 function _outilsPgnPreviewAll() {
   const list = document.getElementById("outils-pgn-preview-list");
-  list.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  list.innerHTML = `<em style='color:#888'>${t("common.verification")}</em>`;
   let pending = _outilsPgnFiles.length;
   const items = new Array(pending);
 
@@ -5073,7 +5073,7 @@ let _outilsAddContext = "outil1";  // "outil1" | "explore"
 function outilsAddVerify() {
   _outilsAddContext = "outil1";
   const prev = document.getElementById("outils-add-preview");
-  prev.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  prev.innerHTML = `<em style='color:#888'>${t("common.verification")}</em>`;
   prev.style.display = "block";
   socket.emit("outils_add_verify", {
     id:    document.getElementById("add-id").value.trim(),
@@ -5379,7 +5379,7 @@ function exploreAutoId() {
 function exploreAddVerify() {
   _outilsAddContext = "explore";
   const prev = document.getElementById("explore-add-preview");
-  prev.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  prev.innerHTML = `<em style='color:#888'>${t("common.verification")}</em>`;
   prev.style.display = "block";
   socket.emit("outils_add_verify", {
     id:    document.getElementById("explore-add-id").value.trim(),
