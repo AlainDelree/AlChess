@@ -1423,6 +1423,15 @@
   <span style="font-size: 2.8rem; color: #e94560;">♜</span>
   <div style="font-size: 1.2rem; color: #e94560; font-weight: 600;" data-i18n="startup.demarrage">Démarrage de AlChess…</div>
   <div style="color: #2a3a4a; font-size: 0.9rem;" data-i18n="startup.chargement">Chargement en cours…</div>
+  <script>
+  (function(){
+    var loc=(document.cookie.match(/alchess_locale=([^;]*)/)||[])[1]||localStorage.getItem('alchess_locale')||'fr';
+    var tx={fr:['Démarrage de AlChess…','Chargement en cours…'],en:['Starting AlChess…','Loading…'],de:['AlChess wird gestartet…','Laden…']};
+    var t=tx[loc]||tx.fr;
+    var els=document.querySelectorAll('[data-i18n="startup.demarrage"],[data-i18n="startup.chargement"]');
+    if(els[0])els[0].textContent=t[0];if(els[1])els[1].textContent=t[1];
+  })();
+  </script>
   <div style="
     width: 40px; height: 40px;
     border: 4px solid #c2d4e8;
