@@ -25,7 +25,10 @@ import chess
 import numpy as np
 import numpy.typing as npt
 
-from . import _niclink
+try:
+    from . import hid_backend as _niclink  # backend Python pur, multiplateforme
+except ImportError:
+    from . import _niclink  # fallback : extension C++ compilée (.so)
 
 # mine
 from .nl_exceptions import ExitNicLink, IllegalMove, NoMove, NoNicLinkFen
