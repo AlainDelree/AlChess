@@ -156,71 +156,158 @@ ok = _write(bytes([0x0a, 0x08] + [0x00] * 8))
 check("LEDs OFF (0x0a)", ok)
 
 
-# ── 5. Lecture FEN ─────────────────────────────────────────────────────────────
-section("5. Lecture FEN (temps réel)")
+# ── 5. Diagnostic interfaces ───────────────────────────────────────────────────
+section("5. Diagnostic — toutes les interfaces")
+
+def _decode_fen_offset(data: bytes, offset: int) -> str:
+    """Décode FEN avec un offset de header configurable."""
+    if len(data) < offset + 32:
+        return ""
+    try:
+        fen = ""
+        empty = 0
+        for i in range(8):
+            for j in range(7, -1, -1):
+                idx = (i * 8 + j) // 2 + offset
+                piece_idx = (data[idx] & 0x0f) if j % 2 == 0 else (data[idx] >> 4)
+                if piece_idx >= len(_PIECES):
+                    return ""
+                piece = _PIECES[piece_idx]
+                if piece == '0':
+                    empty += 1
+                else:
+                    if empty > 0:
+                        fen += str(empty)
+                        empty = 0
+                    fen += piece
+            if empty > 0:
+                fen += str(empty)
+            if i < 7:
+                fen += "/"
+            empty = 0
+        return fen
+    except Exception:
+        return ""
 
 def _decode_fen(data: bytes) -> str:
-    if len(data) <= 32:
-        return ""
-    fen = ""
-    empty = 0
-    for i in range(8):
-        for j in range(7, -1, -1):
-            idx = (i * 8 + j) // 2 + 2
-            piece_idx = (data[idx] & 0x0f) if j % 2 == 0 else (data[idx] >> 4)
-            piece = _PIECES[piece_idx]
-            if piece == '0':
-                empty += 1
-            else:
-                if empty > 0:
-                    fen += str(empty)
-                    empty = 0
-                fen += piece
-        if empty > 0:
-            fen += str(empty)
-        if i < 7:
-            fen += "/"
-        empty = 0
-    return fen
+    return _decode_fen_offset(data, 2)
 
-print("  Lecture de 10 paquets (timeout 200ms chacun)...")
-fen_ok  = False
-last_fen = ""
-packet_count = 0
-for attempt in range(10):
+def _probe_interface(path, label):
+    """Ouvre une interface, envoie realtime mode, lit 50 paquets, affiche stats."""
+    print(f"\n  Interface {label} — path: {str(path)[:70]}")
+    d = None
     try:
-        buf = dev.read(256, timeout_ms=200)
-        if buf:
-            packet_count += 1
-            if buf[0] == 0x01:
-                fen = _decode_fen(bytes(buf))
-                if fen:
-                    last_fen = fen
-                    fen_ok = True
+        d = hid.device()
+        d.open_path(path)
     except Exception as e:
-        print(f"  ERREUR read: {e}")
-        break
+        print(f"    open_path échoué : {e}")
+        return None, None
 
-check("Paquets reçus", packet_count > 0, f"{packet_count}/10")
-check("FEN décodé", fen_ok, last_fen[:40] if fen_ok else "aucun FEN valide")
+    time.sleep(0.5)
 
+    # Envoyer realtime mode
+    try:
+        d.write(bytes([0x21, 0x01, 0x00]))
+    except Exception as e:
+        print(f"    write realtime mode échoué : {e}")
+
+    time.sleep(0.5)
+
+    # Lire 50 paquets
+    report_ids   = {}
+    packet_sizes = {}
+    fen_found    = ""
+    fen_offset   = None
+
+    for _ in range(50):
+        try:
+            buf = d.read(256, timeout_ms=100)
+            if not buf:
+                continue
+            rid  = buf[0]
+            size = len(buf)
+            report_ids[rid]    = report_ids.get(rid, 0) + 1
+            packet_sizes[size] = packet_sizes.get(size, 0) + 1
+
+            # Essayer de décoder un FEN avec différents offsets
+            if not fen_found:
+                for off in [2, 1, 0, 3]:
+                    f = _decode_fen_offset(bytes(buf), off)
+                    if f and "/" in f:
+                        fen_found  = f
+                        fen_offset = off
+                        break
+        except Exception:
+            pass
+
+    # Rapport
+    total = sum(report_ids.values())
+    print(f"    Paquets reçus : {total}/50")
+    if report_ids:
+        ids_str = ", ".join(f"0x{k:02x}×{v}" for k, v in sorted(report_ids.items()))
+        print(f"    Report IDs : {ids_str}")
+    if packet_sizes:
+        sz_str = ", ".join(f"{k}oct×{v}" for k, v in sorted(packet_sizes.items()))
+        print(f"    Tailles    : {sz_str}")
+
+    # Afficher un paquet brut
+    try:
+        buf_sample = d.read(256, timeout_ms=200)
+        if buf_sample:
+            print(f"    Exemple    : {list(buf_sample[:20])} ...")
+    except Exception:
+        pass
+
+    if fen_found:
+        print(f"    FEN décodé (offset={fen_offset}) : {fen_found[:50]}")
+    else:
+        print(f"    FEN : aucun")
+
+    try:
+        d.close()
+    except Exception:
+        pass
+
+    return fen_found, fen_offset
+
+
+# Tester toutes les interfaces Chessnut détectées
+all_chess = [d for d in hid.enumerate(VENDOR_ID, 0) if d['product_id'] in PRODUCT_IDS]
+best_fen     = ""
+best_path    = None
+best_offset  = None
+
+for info in all_chess:
+    page  = info.get('usage_page', 0)
+    label = f"PID=0x{info['product_id']:04x} usage_page=0x{page:04x}"
+    fen, off = _probe_interface(info['path'], label)
+    if fen and not best_fen:
+        best_fen    = fen
+        best_path   = info['path']
+        best_offset = off
+
+fen_ok = bool(best_fen)
+check("FEN décodé sur au moins une interface", fen_ok,
+      best_fen[:40] if fen_ok else "aucun FEN valide sur aucune interface")
 INITIAL = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
 if fen_ok:
-    check("Position = position initiale", last_fen == INITIAL,
-          "oui" if last_fen == INITIAL else f"non — {last_fen[:40]}")
+    check("Position = position initiale", best_fen == INITIAL,
+          "oui" if best_fen == INITIAL else f"non — {best_fen[:40]}")
+if best_offset is not None and best_offset != 2:
+    print(f"  ⚠ Offset FEN Windows = {best_offset} (Linux = 2) — hid_backend.py à adapter")
 
 
 # ── 6. Latence FEN ────────────────────────────────────────────────────────────
-section("6. Latence (déplacez une pièce pendant le test)")
+section("6. Latence")
 
-print("  Mesure sur 20 lectures à 50ms...")
+print("  Mesure sur 20 lectures à 50ms (pas besoin de bouger une pièce)...")
 times = []
 for _ in range(20):
     t0 = time.perf_counter()
     try:
         buf = dev.read(256, timeout_ms=50)
-        if buf and buf[0] == 0x01:
-            _decode_fen(bytes(buf))
+        if buf and len(buf) > 1:
+            _decode_fen_offset(bytes(buf), 2)
     except Exception:
         pass
     times.append((time.perf_counter() - t0) * 1000)

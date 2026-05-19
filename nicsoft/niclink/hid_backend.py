@@ -74,7 +74,7 @@ def connect() -> None:
     # pour que driver.py lise un FEN non-vide dès la première tentative.
     for _ in range(30):  # jusqu'à 3s (30 × 100ms)
         buf = _dev.read(256, timeout_ms=100)
-        if buf and len(buf) > 1 and buf[0] == 0x01:
+        if buf and len(buf) > 1:
             fen = _decode_fen(bytes(buf))
             if fen:
                 _current_fen = fen
@@ -103,7 +103,7 @@ def get_fen() -> str:
     if _dev is None:
         return ""
     buf = _dev.read(256, timeout_ms=50)
-    if buf and len(buf) > 1 and buf[0] == 0x01:
+    if buf and len(buf) > 1:
         fen = _decode_fen(bytes(buf))
         if fen:
             _current_fen = fen
@@ -116,29 +116,35 @@ def _decode_fen(data: bytes) -> str:
     Traduit fidèlement ChessLink::toFen() de EasyLink.cpp :
     64 cases encodées en 32 bytes (4 bits/pièce), 2 pièces par byte.
     i=0 = rangée 8, j=7..0 = fichier a..h.
+    Fonctionne sur Linux (report ID 0x01) et Windows (0x01 ou 0x2a).
     """
-    if len(data) <= 32:
+    if len(data) < 34:  # besoin de 2 octets header + 32 octets FEN (idx max = 33)
         return ""
-    fen = ""
-    empty = 0
-    for i in range(8):
-        for j in range(7, -1, -1):
-            idx = (i * 8 + j) // 2 + 2
-            piece_idx = (data[idx] & 0x0f) if j % 2 == 0 else (data[idx] >> 4)
-            piece = _PIECES[piece_idx]
-            if piece == '0':
-                empty += 1
-            else:
-                if empty > 0:
-                    fen += str(empty)
-                    empty = 0
-                fen += piece
-        if empty > 0:
-            fen += str(empty)
-        if i < 7:
-            fen += "/"
+    try:
+        fen = ""
         empty = 0
-    return fen
+        for i in range(8):
+            for j in range(7, -1, -1):
+                idx = (i * 8 + j) // 2 + 2
+                piece_idx = (data[idx] & 0x0f) if j % 2 == 0 else (data[idx] >> 4)
+                if piece_idx >= len(_PIECES):
+                    return ""
+                piece = _PIECES[piece_idx]
+                if piece == '0':
+                    empty += 1
+                else:
+                    if empty > 0:
+                        fen += str(empty)
+                        empty = 0
+                    fen += piece
+            if empty > 0:
+                fen += str(empty)
+            if i < 7:
+                fen += "/"
+            empty = 0
+        return fen
+    except Exception:
+        return ""
 
 
 def lights_out() -> None:
