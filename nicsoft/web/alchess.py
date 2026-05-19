@@ -6,7 +6,6 @@ import re
 import time
 import random
 import sys
-import subprocess
 import threading
 import webbrowser
 import socket
@@ -14,6 +13,7 @@ import chess
 import logging
 import pathlib
 from nicsoft.config import DATA_DIR, LOGS_DIR
+from nicsoft.platform_utils import stop_modem_manager, start_modem_manager
 from nicsoft.web.server import start_server, set_app_state, get_menu_action, send_event, set_virtual_board
 from nicsoft.web import server as web_server
 
@@ -77,27 +77,11 @@ def _setup_logging():
 
 
 def _stop_modem_manager():
-    """Stoppe ModemManager s'il tourne — évite les interférences USB avec l'échiquier."""
-    try:
-        result = subprocess.run(
-            ["sudo", "systemctl", "stop", "ModemManager"],
-            capture_output=True, timeout=5
-        )
-        if result.returncode == 0:
-            print("[NicLink] ModemManager arrêté.")
-    except Exception:
-        pass  # pas de sudo configuré ou ModemManager absent — pas bloquant
+    stop_modem_manager()
 
 
 def _start_modem_manager():
-    """Relance ModemManager à la fin de NicLink."""
-    try:
-        subprocess.run(
-            ["sudo", "systemctl", "start", "ModemManager"],
-            capture_output=True, timeout=5
-        )
-    except Exception:
-        pass
+    start_modem_manager()
 
 
 _nl_inst_ref = None  # référence globale pour extinction LEDs au Ctrl+C
