@@ -62,6 +62,12 @@ _(rien pour l'instant)_
   - ✅ Phase 7 (DE) : traduction allemande complète — overlay démarrage, labo, outils exercices (add/edit/wiki/validation), position illégale HH, sanToLang(), exercices, retranscription, split-buttons, game_over.
   - Phase 7 reste : corrections i18n résiduelles au fil des tests DE (eco_import.py erreurs, edge cases).
 
+- **Réarchitecture multiplateforme** (voir `REARCHITECTURE_CLAUDE_CODE.md`) :
+  - ✅ Étape 1 : `hid_backend.py` — remplace `_niclink.so` par hidapi Python pur (commit d0e6f29). **À tester avec l'échiquier physique.**
+  - Étape 2 : `config.py` — centraliser les chemins (Path.home()/NicLink → APP_DIR)
+  - Étape 3 : `platform_utils.py` — isoler ModemManager et appels OS Linux-only
+  - Étape 4 : séparer Core et Transport (nicsoft/core/)
+
 ---
 ## 🧪 Tests automatisés
 
