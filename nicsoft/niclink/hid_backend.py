@@ -53,9 +53,13 @@ def connect() -> None:
     """Connecte au Chessnut Air et passe en mode temps réel.
 
     Réplique la séquence de NicLink.cpp connect() :
-    ouverture HID → sleep 2s → upload mode → beep → realtime mode.
+    ouverture HID → sleep 2s → beep → realtime mode → attente premier FEN.
+
+    Note : dans le C++ original, switchUploadMode() était appelé avant open_path(),
+    donc c'était un no-op (b_write vérifie connectStatus). On ne l'envoie pas ici
+    pour éviter un bip parasite causé par la commande de switch de mode.
     """
-    global _dev
+    global _dev, _current_fen
     paths = _list_paths()
     if not paths:
         raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
@@ -63,9 +67,18 @@ def connect() -> None:
     _dev.open_path(paths[0])
 
     time.sleep(2)  # attente initialisation hardware (identique C++)
-    _write(bytes([0x21, 0x01, 0x01]))  # upload mode — test de connexion
     _write(bytes([0x0b, 0x04, 0x02, 0x58, 0x00, 0xc8]))  # beep (600Hz, 200ms)
-    _write(bytes([0x21, 0x01, 0x00]))  # realtime mode — envoi position en continu
+    _write(bytes([0x21, 0x01, 0x00]))  # realtime mode — le plateau envoie sa position en continu
+
+    # Attendre le premier paquet FEN valide (le plateau peut prendre ~600ms)
+    # pour que driver.py lise un FEN non-vide dès la première tentative.
+    for _ in range(30):  # jusqu'à 3s (30 × 100ms)
+        buf = _dev.read(256, timeout_ms=100)
+        if buf and len(buf) > 1 and buf[0] == 0x01:
+            fen = _decode_fen(bytes(buf))
+            if fen:
+                _current_fen = fen
+                break
 
 
 def disconnect() -> None:
