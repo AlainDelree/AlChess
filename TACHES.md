@@ -66,11 +66,17 @@ _(rien pour l'instant)_
   - ✅ Étape 2 : `nicsoft/config.py` — centralise les chemins (`ALCHESS_DIR`)
   - ✅ Étape 3 : `nicsoft/platform_utils.py` — isole ModemManager et appels OS Linux-only
   - ✅ Étape 4 : `nicsoft/core/` — sépare Core et Transport ; `alchess.py` : 1337 → 233 lignes
-  - **Portage Windows** — hidapi validé ✅ (commit 4c78247) :
-    - `test_hidapi_windows.py` : 16/16 sur Windows 11 — connexion ✓, FEN ✓, LEDs ✓, beep ✓, latence 0.0ms ✓
+  - **Portage Windows — Phase 1 (hidapi) : terminée ✅** (commits 4c78247, 03f30a9, mergé master) :
+    - `test_hidapi_windows.py` : 16/16 sur Windows 11 VM — connexion ✓, FEN ✓, LEDs ✓, beep ✓, latence 0.0ms ✓
     - Interface Col02 (usage_page=0xFF00) utilisée sur Windows ; Col01 (0x0001) muet
-    - Deux report IDs alternatifs : 0x01 (position) + 0x2a (statut) — `hid_backend.py` mis à jour
-    - Prochaines étapes Windows : installer Flask/SocketIO/python-chess, tester `python -m nicsoft.web`, obtenir Stockfish Windows
+    - Deux report IDs alternatifs : 0x01 (position) + 0x2a (statut) — `hid_backend.py` mis à jour (filtre supprimé, bounds check, try/except)
+  - **Portage Windows — Phase 2 (application complète) : à faire** :
+    - Installer les dépendances : `pip install flask flask-socketio python-chess eventlet`
+    - Tester le démarrage : `python -m nicsoft.web`
+    - Obtenir Stockfish Windows (`.exe`) et le placer dans `engines/`
+    - Adapter `engine_manager.py` : chercher `stockfish.exe` sur `sys.platform == "win32"`
+    - Tester les modes un par un : pédagogique, HH, labo, retranscription, exercices
+    - Vérifier les chemins (séparateurs `\` vs `/`) via `nicsoft/config.py` (utilise `pathlib` — OK en principe)
 
 ---
 ## 🧪 Tests automatisés
