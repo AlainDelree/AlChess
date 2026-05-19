@@ -66,7 +66,11 @@ _(rien pour l'instant)_
   - ✅ Étape 2 : `nicsoft/config.py` — centralise les chemins (`ALCHESS_DIR`)
   - ✅ Étape 3 : `nicsoft/platform_utils.py` — isole ModemManager et appels OS Linux-only
   - ✅ Étape 4 : `nicsoft/core/` — sépare Core et Transport ; `alchess.py` : 1337 → 233 lignes
-  - Portage Windows — prochaine étape (bloquant : tester hidapi sur Windows)
+  - **Portage Windows** — hidapi validé ✅ (commit 4c78247) :
+    - `test_hidapi_windows.py` : 16/16 sur Windows 11 — connexion ✓, FEN ✓, LEDs ✓, beep ✓, latence 0.0ms ✓
+    - Interface Col02 (usage_page=0xFF00) utilisée sur Windows ; Col01 (0x0001) muet
+    - Deux report IDs alternatifs : 0x01 (position) + 0x2a (statut) — `hid_backend.py` mis à jour
+    - Prochaines étapes Windows : installer Flask/SocketIO/python-chess, tester `python -m nicsoft.web`, obtenir Stockfish Windows
 
 ---
 ## 🧪 Tests automatisés
