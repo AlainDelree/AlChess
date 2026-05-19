@@ -66,8 +66,9 @@ class LaboSession:
             self.engine_label = f"Maia {maia_elo}"
 
         elif engine_type == "rodent":
+            from nicsoft.config import ENGINES_DIR
+            rodent_path = str(ENGINES_DIR / "rodent-iv" / "rodentIV")
             from pathlib import Path as _Path
-            rodent_path = str(_Path.home() / "NicLink" / "engines" / "rodent-iv" / "rodentIV")
             if not _Path(rodent_path).exists():
                 raise RuntimeError(f"Rodent introuvable : {rodent_path}")
             self.engine = EngineManager(rodent_path, engine_elo=rodent_elo, analyse_active=analyse_active)

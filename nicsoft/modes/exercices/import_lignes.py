@@ -21,13 +21,14 @@ import re
 import chess
 import chess.pgn
 import io
+from nicsoft.config import DATA_DIR
 
 from nicsoft.modes.exercices._catalogue import (
     bold, cyan, green, red, yellow, dim, make_unique_id, pgn_to_uci
 )
 
-MES_LIGNES_DIR  = pathlib.Path.home() / "NicLink" / "data" / "mes_lignes"
-MES_LIGNES_JSON = pathlib.Path.home() / "NicLink" / "data" / "mes_lignes.json"
+MES_LIGNES_DIR  = DATA_DIR / "mes_lignes"
+MES_LIGNES_JSON = DATA_DIR / "mes_lignes.json"
 
 
 def _parse_pgn_content(name: str, content: str) -> tuple:

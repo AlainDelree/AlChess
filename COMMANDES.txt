@@ -1,13 +1,8 @@
 COMMANDES NICLINK
 =================
+  Pour jouer :
+  bash ~/AlChessPlay/jouer.sh
 
-LANCER IMPORTER OUVERTURES
-----------------------------
-python -m nicsoft.exercices.eco_import
-/NicLink/nicsoft/exercices/__main__.py
-outils:
--------
-python -m nicsoft.exercices.manage
 
 LANCER LE JEU EN TRAVAIL
 -------------
@@ -22,7 +17,7 @@ cd ~/NicLink
 source venv/bin/activate
 NICLINK_LOG=DEBUG python -m nicsoft.web
 
-MODE CONFIG ALEATOIRE
+MODE CONFIG ALEATOIRE---------------------------------------
 ---------------------
 cd ~/NicLink
 source venv/bin/activate
@@ -45,7 +40,9 @@ Backup normal :
 python -m nicsoft.utils.backup_manager
 
 Backup épinglé (jamais supprimé automatiquement) :
-python -m nicsoft.utils.backup_manager --pin --label "description"
+cd ~/NicLink
+source venv/bin/activate
+python -m nicsoft.utils.backup_manager --pin --label "Avant-ReArchitecture"
 
 Lister les backups :
 python -m nicsoft.utils.backup_manager --list

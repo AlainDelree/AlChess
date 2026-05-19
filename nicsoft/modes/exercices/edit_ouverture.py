@@ -108,16 +108,20 @@ def save_from_web(data: dict) -> dict:
     ouvertures = parse_ouvertures()
     o = next((x for x in ouvertures if x["id"] == oid), None)
     if not o:
-        return {"ok": False, "error": f"ID '{oid}' introuvable."}
+        return {"ok": False, "error": f"ID '{oid}' introuvable.",
+                "error_key": "outils.id_introuvable", "vars": {"id": oid}}
 
     if "camp_suggere" in updated:
         camp = updated["camp_suggere"].lower()
         if camp not in ("white", "black"):
-            return {"ok": False, "error": "Camp doit être 'white' ou 'black'."}
+            return {"ok": False, "error": "Camp doit être 'white' ou 'black'.",
+                    "error_key": "outils.camp_invalide"}
         updated["camp_suggere"] = camp
 
     if not updated:
-        return {"ok": True, "message": "Aucune modification."}
+        return {"ok": True, "message": "Aucune modification.",
+                "message_key": "outils.aucune_modif"}
 
     save_ouverture(o, updated)
-    return {"ok": True, "message": f"'{oid}' mis à jour."}
+    return {"ok": True, "message": f"'{oid}' mis à jour.",
+            "message_key": "outils.mis_a_jour", "vars": {"id": oid}}

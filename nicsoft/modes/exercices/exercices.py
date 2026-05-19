@@ -17,6 +17,7 @@ from nicsoft.engine.board_utils import san_ep
 import chess.polyglot
 import logging
 import pathlib
+from nicsoft.config import DATA_DIR
 import threading
 import time
 
@@ -29,7 +30,7 @@ _ch.setFormatter(logging.Formatter("%(name)s | %(message)s"))
 logger.addHandler(_ch)
 
 # Dossier des livres Polyglot
-BOOKS_DIR    = pathlib.Path.home() / "NicLink" / "data" / "books"
+BOOKS_DIR    = DATA_DIR / "books"
 BOOK_DEFAULT = BOOKS_DIR / "gm2001.bin"
 
 # ── Catalogue des ouvertures ──────────────────────────────────────────────────
@@ -567,7 +568,7 @@ OUVERTURES = [
 ]
 
 
-MES_LIGNES_JSON = pathlib.Path.home() / "NicLink" / "data" / "mes_lignes.json"
+MES_LIGNES_JSON = DATA_DIR / "mes_lignes.json"
 
 def get_ouvertures() -> list:
     return OUVERTURES

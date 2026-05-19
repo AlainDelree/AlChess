@@ -17,10 +17,16 @@ _(rien pour l'instant)_
 
 ### À corriger
 
+- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** — Quand le moteur a joué et qu'on attend que le joueur exécute le coup sur le plateau physique (WAIT_FISH), si le joueur dérange une pièce (retire une tour, joue le mauvais coup…), le terminal affiche `⚠ N case(s) incorrecte(s)` avec les pièces à replacer, mais l'interface web ne montre rien. Le joueur est bloqué sans feedback visuel. Attendu : afficher un message d'avertissement à l'écran (liste des pièces à corriger), comme le fait déjà l'écran de vérification de position initiale. Log observé : `[WAIT_FISH] 5s en attente... fen_ok=False`.
 
 ---
 
 ## ✅ Bugs résolus récemment
+
+- **i18n DE — overlay de démarrage toujours en FR** — script inline synchrone dans l'overlay lit le cookie avant le fetch async ; fallback `'en'` ; `DEFAULT_LOCALE = 'en'` dans i18n.js. (commit 97253f0, c33e5c2, caa1528)
+- **i18n DE — labo : message "⚠ Schach" ne se vidait jamais** — comparaison hardcodée `startsWith("⚠ Échec")` remplacée par `_lastLaboLastMove?.data?.type === "check"`. (commit a0c6767)
+- **i18n DE — outils Exercices : messages FR dans add/edit/wiki** — `edit_ouverture.py`, `add_ouverture.py`, `download_eco_wiki.py` : ajout `message_key`/`error_key`/`vars` ; erreurs de validation passées de strings à objets `{key, vars}` ; handlers JS utilisent `_i18nMsg()`. (commits 2460ac7, a0c6767, a841dd5)
+- **i18n DE — position illégale HH toujours en FR** — `analyser_position_illegale()` retourne maintenant un dict `{message, message_key, vars?}` ; 6 clés `game.illegal.*` + 6 clés `piece.*` (FR/EN/DE) ; `_i18nMsg()` résout `piece_key`. (commit f8b0c5c)
 
 - **Menu — split button Pédagogique/Labo/Exercices** — bouton coupé en deux : moitié gauche ♟ (physique, grisée si board absent), moitié droite 🖥 Virtuel (toujours active). Checkbox "mode sans échiquier" supprimée. (commit 55a985c)
 - **Menu — descriptions en tooltip** — bulles d'explication masquées par défaut, visibles au survol uniquement (évite le chevauchement). (commit e419851)
@@ -53,7 +59,14 @@ _(rien pour l'instant)_
   - ✅ Phase 7d : Écran Analyse — titre "Analyse de partie" et invite "Importez un fichier PGN" (fix côté serveur : title_key/result_key + _analyseEmpty flag côté client).
   - ✅ Phase 7e : Corrections ciblées — labels joueurs Analyse (_localPlayerName), HH config boutons/combobox, dossiers PGN renommés en anglais (Serious/Casual/Pedagogical/Human/Transcription), HH vérification position, exercice sync error, outils exercices entêtes colonnes, bouton "Continuer avec Stockfish", badge/titre variantes exercices, labels Labo Noir/Blanc supprimés.
   - ✅ Phase 7f : Finitions visuelles — historique retranscription en tableau Blancs/Noirs, 14 textes clairs sur fond bleu corrigés (retrans-status, ex-run-status/moves-count, labo-turn-info/last-move/pgn-san, cartes variantes, HH subtitle, etc.).
-  - Phase 7 reste : corrections i18n résiduelles au fil des tests.
+  - ✅ Phase 7 (DE) : traduction allemande complète — overlay démarrage, labo, outils exercices (add/edit/wiki/validation), position illégale HH, sanToLang(), exercices, retranscription, split-buttons, game_over.
+  - Phase 7 reste : corrections i18n résiduelles au fil des tests DE (eco_import.py erreurs, edge cases).
+
+- **Réarchitecture multiplateforme** (voir `REARCHITECTURE_CLAUDE_CODE.md`) :
+  - ✅ Étape 1 : `hid_backend.py` — remplace `_niclink.so` par hidapi Python pur (commit d0e6f29). **À tester avec l'échiquier physique.**
+  - Étape 2 : `config.py` — centraliser les chemins (Path.home()/NicLink → APP_DIR)
+  - Étape 3 : `platform_utils.py` — isoler ModemManager et appels OS Linux-only
+  - Étape 4 : séparer Core et Transport (nicsoft/core/)
 
 ---
 ## 🧪 Tests automatisés
