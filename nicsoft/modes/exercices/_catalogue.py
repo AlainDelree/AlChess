@@ -9,12 +9,12 @@ import chess.polyglot
 import json
 import pathlib
 import re
+from nicsoft.config import DATA_DIR
 
 # ── Chemins ───────────────────────────────────────────────────────────────────
 
 CATALOGUE  = pathlib.Path(__file__).parent / "exercices.py"
-BOOKS_DIR  = pathlib.Path.home() / "NicLink" / "data" / "books"
-DATA_DIR   = pathlib.Path.home() / "NicLink" / "data"
+BOOKS_DIR  = DATA_DIR / "books"
 ECO_HIER_F = DATA_DIR / "eco_hierarchy.json"
 
 # ── Couleurs terminal ─────────────────────────────────────────────────────────

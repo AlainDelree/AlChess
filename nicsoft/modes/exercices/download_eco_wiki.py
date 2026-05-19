@@ -19,8 +19,9 @@ import pathlib
 import re
 import sys
 import urllib.request
+from nicsoft.config import DATA_DIR
 
-OUTPUT = pathlib.Path.home() / "NicLink" / "data" / "eco_hierarchy.json"
+OUTPUT = DATA_DIR / "eco_hierarchy.json"
 API_URL = "https://en.wikipedia.org/w/api.php?action=parse&page=List_of_ECO_codes&prop=wikitext&format=json"
 
 # ── Groupes ECO officiels (dizaines) ─────────────────────────────────────────

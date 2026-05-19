@@ -13,6 +13,7 @@ import socket
 import chess
 import logging
 import pathlib
+from nicsoft.config import DATA_DIR, LOGS_DIR
 from nicsoft.web.server import start_server, set_app_state, get_menu_action, send_event, set_virtual_board
 from nicsoft.web import server as web_server
 
@@ -20,7 +21,7 @@ from nicsoft.web import server as web_server
 # Activer avec : NICLINK_LOG=DEBUG python -m nicsoft.web
 _timing_logger = logging.getLogger("niclink.timing")
 
-LOG_FILE = pathlib.Path.home() / "NicLink" / "logs" / "niclink.log"
+LOG_FILE = LOGS_DIR / "niclink.log"
 
 def _setup_logging():
     # Créer le dossier logs si besoin
@@ -128,7 +129,7 @@ def main():
     set_app_state("menu")
     threading.Thread(target=_check_board_at_startup, daemon=True).start()
     # Vérifier si une retranscription est en cours
-    _retrans_save = pathlib.Path.home() / "NicLink" / "data" / "retranscription_en_cours.json"
+    _retrans_save = DATA_DIR / "retranscription_en_cours.json"
     if _retrans_save.exists():
         import json as _json
         try:
@@ -292,7 +293,7 @@ def _launch_pedagogique(config):
     playing_white = (color == "white")
 
     # Lire engine_elo et engine_path depuis config.json
-    cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+    cfg_path = DATA_DIR / "config.json"
     engine_elo  = 1500
     engine_path = ""
     if cfg_path.exists():
@@ -669,7 +670,7 @@ def _run_exercice(config: dict) -> None:
         try:
             from nicsoft.engine.engine_manager import EngineManager, find_stockfish
             import json, pathlib
-            cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+            cfg_path = DATA_DIR / "config.json"
             engine_elo  = 1500
             engine_path = ""
             if cfg_path.exists():
@@ -783,7 +784,7 @@ def _run_drill(config: dict) -> None:
         try:
             from nicsoft.engine.engine_manager import EngineManager, find_stockfish
             import json, pathlib
-            cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+            cfg_path = DATA_DIR / "config.json"
             engine_elo = 1500
             engine_path = find_stockfish() or "stockfish"
             if cfg_path.exists():
@@ -888,7 +889,7 @@ def _make_labo_session(nl_inst, config: dict):
     engine_path = ""
     try:
         import json, pathlib
-        cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+        cfg_path = DATA_DIR / "config.json"
         if cfg_path.exists():
             with open(cfg_path) as f:
                 cfg = json.load(f)
@@ -1208,7 +1209,7 @@ def _launch_analyse_libre(config):
     playing_white = (color == "white")
 
     import json, pathlib
-    cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+    cfg_path = DATA_DIR / "config.json"
     engine_elo  = 1500
     engine_path = ""
     if cfg_path.exists():

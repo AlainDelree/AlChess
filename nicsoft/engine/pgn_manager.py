@@ -25,13 +25,14 @@ import os
 import shutil
 import chess
 import chess.pgn
+from nicsoft.config import GAMES_DIR
 
 
 # ──────────────────────────────────────────────
 # Chemin temporaire
 # ──────────────────────────────────────────────
 
-TMP_DIR = os.path.expanduser("~/NicLink/games/tmp")
+TMP_DIR = str(GAMES_DIR / "tmp")
 
 GAME_TYPES = {
     "1": "Serious",
@@ -57,7 +58,7 @@ def build_final_path(mode: str, game_type: str, white: str, black: str) -> str:
 
     Resultat : ~/NicLink/games/Human/Serious/2026-03-22_Alain_vs_Jessica_01.pgn
     """
-    base = os.path.expanduser(f"~/NicLink/games/{mode}/{game_type}")
+    base = str(GAMES_DIR / mode / game_type)
     os.makedirs(base, exist_ok=True)
 
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -194,7 +195,7 @@ def build_and_save_pgn(headers=None, moves=None, comments=None,
 
     if output_path is None:
         # Fallback legacy
-        root = os.path.expanduser(base_dir or "~/NicLink/games")
+        root = base_dir or str(GAMES_DIR)
         output_dir = os.path.join(root, mode)
         os.makedirs(output_dir, exist_ok=True)
         ts = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")

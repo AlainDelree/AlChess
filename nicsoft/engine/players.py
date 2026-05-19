@@ -8,10 +8,11 @@ Utilisé par play_human et play_stockfish.
 import json
 import logging
 import os
+from nicsoft.config import DATA_DIR
 
 logger = logging.getLogger(__name__)
 
-PLAYERS_FILE = os.path.expanduser("~/NicLink/data/players.json")
+PLAYERS_FILE = str(DATA_DIR / "players.json")
 
 
 def normalize_player_name(name: str) -> str:
