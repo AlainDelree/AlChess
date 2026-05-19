@@ -88,6 +88,27 @@ Les vérifications minimales avant de continuer à travailler.
 
 ---
 
+
+---
+
+## 🔌 Test driver échiquier — après remplacement hidapi
+
+À effectuer manuellement avec le Chessnut Air branché, après l'étape 1 de réarchitecture.
+
+```
+□ Détection USB → lsusb montre 2d80:8003
+□ get_fen() réactif — position reconnue en < 500ms après déplacement d'une pièce
+□ LEDs s'allument aux bonnes cases après coup moteur
+□ turn_off_all_leds() éteint tout
+□ Beep audible au début du tour
+□ Signal de tour (LEDs + beep) en < 2s
+□ Déconnecter/rebrancher échiquier → reconnexion automatique
+□ 10 coups consécutifs sans décrochage USB
+```
+
+> ℹ️ Ces tests ne peuvent pas être automatisés — ils nécessitent un humain avec l'échiquier physique.
+> Durée estimée : 5 minutes.
+
 ## 🔬 Tests à automatiser (futur)
 
 Ces séquences sont candidates pour des tests d'état serveur (`pytest`) :
