@@ -21,6 +21,7 @@ import json
 import logging
 import os
 import pathlib
+from nicsoft.config import DATA_DIR, ENGINES_DIR
 import random
 import signal
 import sys
@@ -68,7 +69,7 @@ from nicsoft.engine.engine_manager import (
 # Config
 # ──────────────────────────────────────────────
 
-CONFIG_FILE = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+CONFIG_FILE = DATA_DIR / "config.json"
 DEFAULT_CONFIG = {
     "stockfish_level": 5,
     "game_type": "Pedagogical",
@@ -294,8 +295,8 @@ class Game(threading.Thread):
             self.engine_elo = maia_elo
 
         elif engine_type == "rodent":
+            rodent_path = str(ENGINES_DIR / "rodent-iv" / "rodentIV")
             from pathlib import Path as _Path
-            rodent_path = str(_Path.home() / "NicLink" / "engines" / "rodent-iv" / "rodentIV")
             if not _Path(rodent_path).exists():
                 raise RuntimeError(f"Rodent introuvable : {rodent_path}")
             self.engine = EngineManager(

@@ -17,6 +17,7 @@ import chess.engine
 import threading
 import logging
 from pathlib import Path
+from nicsoft.config import ENGINES_DIR
 
 logger = logging.getLogger("EngineManager")
 
@@ -482,7 +483,7 @@ def find_lc0() -> str | None:
     import shutil
     candidates = [
         shutil.which("lc0"),
-        str(Path.home() / "NicLink" / "engines" / "maia" / "lc0"),
+        str(ENGINES_DIR / "maia" / "lc0"),
         str(Path.home() / "lc0" / "build" / "release" / "lc0"),
         "/usr/local/bin/lc0",
         "/usr/bin/lc0",
@@ -498,7 +499,7 @@ def find_maia_weights(elo: int) -> str | None:
     Cherche le fichier de poids Maia pour un niveau Elo donné.
     Sélectionne le niveau disponible le plus proche parmi les fichiers présents sur disque.
     """
-    maia_dir = Path.home() / "NicLink" / "engines" / "maia"
+    maia_dir = ENGINES_DIR / "maia"
     available = {
         level: str(maia_dir / filename)
         for level, filename in MAIA_LEVELS.items()

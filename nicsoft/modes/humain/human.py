@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import pathlib
+from nicsoft.config import DATA_DIR, GAMES_DIR
 import signal
 import sys
 import threading
@@ -37,7 +38,7 @@ logger.handlers.clear()
 logger.addHandler(ch)
 logger.setLevel(logging.INFO)
 
-CONFIG_FILE = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+CONFIG_FILE = DATA_DIR / "config.json"
 DEFAULT_CONFIG = {"turn_signal": "beep", "game_type": "Serious"}
 
 def load_config() -> dict:
@@ -75,7 +76,7 @@ class Game(threading.Thread):
         self.game.headers["Result"] = "*"
 
         self.game_over = False
-        self.output_dir = output_dir or os.path.expanduser("~/NicLink/games")
+        self.output_dir = output_dir or str(GAMES_DIR)
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Fichier temporaire cree au demarrage de la partie
