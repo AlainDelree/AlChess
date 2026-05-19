@@ -11,7 +11,6 @@ _(rien pour l'instant)_
 ## 🐛 Bugs actifs
 
 ### En veille (peu prioritaires)
-- **2 bips au démarrage** — réduit de 4 à 2 (commit 216cd09). Même nature que la race condition LEDs. Plus gênant en pratique.
 - **Race condition LEDs** — synchronisation des camps LED parfois incorrecte. Rare, cause probable hardware/USB. À surveiller si ça s'aggrave.
 - **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
 
@@ -62,11 +61,12 @@ _(rien pour l'instant)_
   - ✅ Phase 7 (DE) : traduction allemande complète — overlay démarrage, labo, outils exercices (add/edit/wiki/validation), position illégale HH, sanToLang(), exercices, retranscription, split-buttons, game_over.
   - Phase 7 reste : corrections i18n résiduelles au fil des tests DE (eco_import.py erreurs, edge cases).
 
-- **Réarchitecture multiplateforme** (voir `REARCHITECTURE_CLAUDE_CODE.md`) :
-  - ✅ Étape 1 : `hid_backend.py` — remplace `_niclink.so` par hidapi Python pur (commit d0e6f29). **À tester avec l'échiquier physique.**
-  - Étape 2 : `config.py` — centraliser les chemins (Path.home()/NicLink → APP_DIR)
-  - Étape 3 : `platform_utils.py` — isoler ModemManager et appels OS Linux-only
-  - Étape 4 : séparer Core et Transport (nicsoft/core/)
+- **Réarchitecture multiplateforme** (voir `REARCHITECTURE_CLAUDE_CODE.md`) — ✅ **Terminée et mergée sur master** (commit 9618efc) :
+  - ✅ Étape 1 : `hid_backend.py` — remplace `_niclink.so` par hidapi Python pur
+  - ✅ Étape 2 : `nicsoft/config.py` — centralise les chemins (`ALCHESS_DIR`)
+  - ✅ Étape 3 : `nicsoft/platform_utils.py` — isole ModemManager et appels OS Linux-only
+  - ✅ Étape 4 : `nicsoft/core/` — sépare Core et Transport ; `alchess.py` : 1337 → 233 lignes
+  - Portage Windows — prochaine étape (bloquant : tester hidapi sur Windows)
 
 ---
 ## 🧪 Tests automatisés
@@ -80,7 +80,7 @@ _(rien pour l'instant)_
 
 ## 📝 Notes techniques
 
-- **USB Chessnut sur nouveau PC** : quirk usbhid (`/etc/modprobe.d/chessnut.conf`) + recompilation `.so` depuis `src/`. Voir `INSTALLATION_ALCHESS.md` sections 4b et 4c.
+- **USB Chessnut sur nouveau PC** : quirk usbhid (`/etc/modprobe.d/chessnut.conf`). Le `.so` n'est plus nécessaire — hidapi Python pur depuis l'étape 1 réarchitecture. Voir `INSTALLATION_ALCHESS.md` section 4b.
 - **`retranscription_en_cours`** au démarrage : normal, fonctionnalité de reprise. Ne traiter que sur l'écran Retranscription.
 - **Git** : committer après chaque étape stable. `git push` pour synchroniser GitHub.
 - **GitHub** : https://github.com/AlainDelree/AlChess
