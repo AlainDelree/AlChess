@@ -758,7 +758,7 @@ socket.on("app_state", (data) => {
       const stillBlocked = Array.from(needsBoard).some(b => b.disabled);
       const btn = document.getElementById("btn-reconnect");
       if (stillBlocked && _boardOk && btn) {
-        btn.textContent = "⟳ Débloquer les boutons";
+        btn.textContent = t("menu.btn.debloquer");
         btn.disabled = false;
         btn.style.opacity = "1";
         btn.style.cursor = "pointer";
@@ -783,9 +783,9 @@ socket.on("undo_move", (data) => {
   _renderHistory();
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
-  if (data.message) {
+  if (data.message || data.message_key) {
     const turnInfo = document.getElementById("turn-info");
-    if (turnInfo) { turnInfo.textContent = data.message; turnInfo.className = "warning"; }
+    if (turnInfo) { turnInfo.textContent = data.message_key ? t(data.message_key) : data.message; turnInfo.className = "warning"; }
   }
   // Resynchroniser chess.js avec la position après undo (full_fen inclut le tour et le roque)
   if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
@@ -1244,6 +1244,7 @@ function _i18nMsg(data, field = "message", keyField = "message_key") {
   if (data[keyField]) {
     const vars = {...(data.vars || {})};
     if (vars.color_key) vars.color = t(vars.color_key);
+    if (vars.piece_key) vars.piece = t(vars.piece_key);
     return t(data[keyField], vars);
   }
   return data[field] || "";
@@ -2900,8 +2901,9 @@ socket.on("labo_position", (data) => {
   const turnIsWhite = data.turn === "white";
   // Effacer le message d'échec si plus en échec
   const lastEl0 = document.getElementById("labo-last-move");
-  if (lastEl0 && !data.in_check && lastEl0.textContent.startsWith("⚠ Échec")) {
+  if (lastEl0 && !data.in_check && _lastLaboLastMove?.data?.type === "check") {
     lastEl0.textContent = "";
+    _lastLaboLastMove = null;
   }
   if (data.in_check) {
     _setLaboTurnEl("labo.echec", {}, "#ff9800");
@@ -3605,37 +3607,45 @@ function exRenderBoard(fen, from, to) {
 
 // ── Traduction SAN selon la langue courante ───────────────────────────────────
 
-const _SAN_PIECES_FR = { K: "Roi", Q: "Dame", R: "Tour", B: "Fou", N: "Cavalier" };
-const _SAN_PIECES_EN = { K: "King", Q: "Queen", R: "Rook", B: "Bishop", N: "Knight" };
+const _SAN_PIECES_FR = { K: "Roi",   Q: "Dame",  R: "Tour",    B: "Fou",    N: "Cavalier" };
+const _SAN_PIECES_EN = { K: "King",  Q: "Queen", R: "Rook",    B: "Bishop", N: "Knight"   };
+const _SAN_PIECES_DE = { K: "König", Q: "Dame",  R: "Turm",    B: "Läufer", N: "Springer" };
+
+const _SAN_LANG = {
+  fr: { pieces: _SAN_PIECES_FR, pawn: "pion",    longCastle: "Grand roque",   shortCastle: "Petit roque",    takes: " prend en ", to: " en ",   check: " échec",  mate: " mat"       },
+  en: { pieces: _SAN_PIECES_EN, pawn: "pawn",    longCastle: "Long castling", shortCastle: "Short castling", takes: " takes ",    to: " to ",   check: " check",  mate: " checkmate" },
+  de: { pieces: _SAN_PIECES_DE, pawn: "Bauer",   longCastle: "Lange Rochade", shortCastle: "Kurze Rochade",  takes: " nimmt ",    to: " nach ", check: " Schach", mate: " Schachmatt"},
+};
 
 function sanToLang(san) {
   if (!san) return san;
-  const isEn = i18n.locale() === "en";
-  const pieces = isEn ? _SAN_PIECES_EN : _SAN_PIECES_FR;
-  if (san.startsWith("O-O-O") || san.startsWith("0-0-0")) return (isEn ? "Long castling" : "Grand roque") + _sanSuffix(san.slice(5), isEn);
-  if (san.startsWith("O-O")   || san.startsWith("0-0"))   return (isEn ? "Short castling" : "Petit roque")  + _sanSuffix(san.slice(3), isEn);
+  const loc = i18n.locale();
+  const lang = _SAN_LANG[loc] || _SAN_LANG.fr;
+  const { pieces, pawn, longCastle, shortCastle, takes, to, check, mate } = lang;
+  if (san.startsWith("O-O-O") || san.startsWith("0-0-0")) return longCastle  + _sanSuffix(san.slice(5), lang);
+  if (san.startsWith("O-O")   || san.startsWith("0-0"))   return shortCastle + _sanSuffix(san.slice(3), lang);
   let base = san, suffix = "";
-  if (base.endsWith("#"))      { suffix = isEn ? " checkmate" : " mat";   base = base.slice(0, -1); }
-  else if (base.endsWith("+")) { suffix = isEn ? " check"     : " échec"; base = base.slice(0, -1); }
+  if (base.endsWith("#"))      { suffix = mate;  base = base.slice(0, -1); }
+  else if (base.endsWith("+")) { suffix = check; base = base.slice(0, -1); }
   let promo = "";
   const promoMatch = base.match(/=([QRBN])$/);
   if (promoMatch) { promo = "=" + pieces[promoMatch[1]]; base = base.slice(0, -2); }
   let piece = "";
   if (base[0] && pieces[base[0]]) { piece = pieces[base[0]]; base = base.slice(1); }
-  else piece = isEn ? "pawn" : "pion";
+  else piece = pawn;
   const capture = base.includes("x");
   base = base.replace("x", "");
   const targetSq = base.slice(-2);
   const disambig = base.slice(0, -2);
   let result = piece;
   if (disambig) result += ` (${disambig})`;
-  result += capture ? (isEn ? " takes " : " prend en ") + targetSq : (isEn ? " to " : " en ") + targetSq;
+  result += (capture ? takes : to) + targetSq;
   return result + promo + suffix;
 }
 
-function _sanSuffix(s, isEn) {
-  if (s.startsWith("#")) return isEn ? " checkmate" : " mat";
-  if (s.startsWith("+")) return isEn ? " check"     : " échec";
+function _sanSuffix(s, lang) {
+  if (s.startsWith("#")) return lang.mate;
+  if (s.startsWith("+")) return lang.check;
   return "";
 }
 
@@ -3708,7 +3718,7 @@ socket.on("exercice_init", (data) => {
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) { statusEl.textContent = t("exercices.placer_pieces"); statusEl.style.color = "#ff9800"; }
   const infoEl = document.getElementById("ex-run-info");
-  if (infoEl) infoEl.textContent = o.desc;
+  if (infoEl) infoEl.textContent = _exLineDesc(o);
 
   // En mode virtuel : sync automatique, pas besoin du bouton Synchroniser
   const syncBtn = document.getElementById("ex-btn-sync");
@@ -4912,7 +4922,7 @@ function outilsPgnFilesSelected(fileList) {
 
 function _outilsPgnPreviewAll() {
   const list = document.getElementById("outils-pgn-preview-list");
-  list.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  list.innerHTML = `<em style='color:#888'>${t("common.verification")}</em>`;
   let pending = _outilsPgnFiles.length;
   const items = new Array(pending);
 
@@ -5073,7 +5083,7 @@ let _outilsAddContext = "outil1";  // "outil1" | "explore"
 function outilsAddVerify() {
   _outilsAddContext = "outil1";
   const prev = document.getElementById("outils-add-preview");
-  prev.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  prev.innerHTML = `<em style='color:#888'>${t("common.verification")}</em>`;
   prev.style.display = "block";
   socket.emit("outils_add_verify", {
     id:    document.getElementById("add-id").value.trim(),
@@ -5094,7 +5104,10 @@ socket.on("outils_add_verify_result", (data) => {
   if (!data.ok) {
     let html = '<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px;">';
     html += `<strong style="color:#e94560">${t("outils.erreurs")}</strong><ul style="margin:4px 0 0 16px;">`;
-    data.errors.forEach(e => { html += `<li style="color:#e94560">${e}</li>`; });
+    data.errors.forEach(e => {
+      const msg = (e && e.key) ? t(e.key, e.vars || {}) : e;
+      html += `<li style="color:#e94560">${msg}</li>`;
+    });
     html += "</ul></div>";
     prev.innerHTML = html;
     return;
@@ -5154,8 +5167,9 @@ socket.on("outils_add_save_result", (data) => {
   const prevId = _outilsAddContext === "explore" ? "explore-add-preview" : "outils-add-preview";
   const prev   = document.getElementById(prevId);
   if (data.ok) {
-    if (prev) prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${data.message}</div>`;
-    afficherToast(data.message, "success");
+    const addMsg = _i18nMsg(data);
+    if (prev) prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${addMsg}</div>`;
+    afficherToast(addMsg, "success");
     if (_outilsAddContext === "explore") {
       setTimeout(() => { if (prev) prev.style.display = "none"; }, 2500);
     } else {
@@ -5196,7 +5210,7 @@ socket.on("outils_explore_list_result", (data) => {
     const btn = document.createElement("button");
     btn.className = "btn btn-continuer";
     btn.style.cssText = "font-family:monospace; font-size:0.88rem;";
-    btn.textContent = `📖 ${b.name}  (${b.size_kb} ko)`;
+    btn.textContent = `📖 ${b.name}  (${b.size_kb} kB)`;
     btn.onclick = () => exploreSelectBook(b.name);
     listEl.appendChild(btn);
   });
@@ -5379,7 +5393,7 @@ function exploreAutoId() {
 function exploreAddVerify() {
   _outilsAddContext = "explore";
   const prev = document.getElementById("explore-add-preview");
-  prev.innerHTML = "<em style='color:#888'>Vérification…</em>";
+  prev.innerHTML = `<em style='color:#888'>${t("common.verification")}</em>`;
   prev.style.display = "block";
   socket.emit("outils_add_verify", {
     id:    document.getElementById("explore-add-id").value.trim(),
@@ -5492,9 +5506,10 @@ socket.on("outils_edit_save_result", (data) => {
     res.style.background = "#e8f5e9";
     res.style.border     = "1px solid #4caf50";
     res.style.color      = "#2e7d32";
-    res.innerHTML        = `✓ ${data.message}`;
+    const okMsg = _i18nMsg(data);
+    res.innerHTML        = `✓ ${okMsg}`;
     res.style.display    = "block";
-    afficherToast(data.message, "success");
+    afficherToast(okMsg, "success");
     // Recharger la liste pour refléter les changements
     socket.emit("outils_edit_list", {});
     // Mettre à jour le cache local
@@ -5506,7 +5521,7 @@ socket.on("outils_edit_save_result", (data) => {
     res.style.background = "#ffebee";
     res.style.border     = "1px solid #e94560";
     res.style.color      = "#e94560";
-    res.innerHTML        = `✗ ${data.error || data.message}`;
+    res.innerHTML        = `✗ ${_i18nMsg(data, "error", "error_key") || _i18nMsg(data)}`;
     res.style.display    = "block";
   }
   res.style.borderRadius = "6px";
@@ -5643,7 +5658,7 @@ function outilsWikiUpdate() {
 
 socket.on("outils_wiki_progress", (data) => {
   const status = document.getElementById("wiki-status");
-  if (status) status.textContent = data.message || "";
+  if (status) status.textContent = _i18nMsg(data) || "";
 });
 
 socket.on("outils_wiki_done", (data) => {

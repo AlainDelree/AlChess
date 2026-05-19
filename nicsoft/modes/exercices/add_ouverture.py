@@ -138,13 +138,13 @@ def verify_from_web(data: dict) -> dict:
 
     errors = []
     if not oid:
-        errors.append("L'ID ne peut pas être vide.")
+        errors.append({"key": "outils.err.id_vide"})
     elif oid in load_existing_ids():
-        errors.append(f"L'ID '{oid}' existe déjà dans le catalogue.")
+        errors.append({"key": "outils.err.id_existe", "vars": {"id": oid}})
     if not nom:
-        errors.append("Le nom ne peut pas être vide.")
+        errors.append({"key": "outils.err.nom_vide"})
     if not moves_raw:
-        errors.append("Entrez au moins un coup.")
+        errors.append({"key": "outils.err.coups_vides"})
     if errors:
         return {"ok": False, "errors": errors}
 
@@ -154,19 +154,19 @@ def verify_from_web(data: dict) -> dict:
         try:
             mv = chess.Move.from_uci(uci)
             if mv not in board.legal_moves:
-                errors.append(f"Coup illégal : {uci}")
+                errors.append({"key": "outils.err.coup_illegal", "vars": {"uci": uci}})
                 break
             valid_moves.append(uci)
             board.push(mv)
         except Exception:
-            errors.append(f"Format invalide : {uci}")
+            errors.append({"key": "outils.err.format_invalide", "vars": {"uci": uci}})
             break
     if errors:
         return {"ok": False, "errors": errors}
 
     doublon = next((eid for eid, ei in load_existing_inits() if ei == valid_moves), None)
     if doublon:
-        return {"ok": False, "errors": [f"Séquence identique à '{doublon}' déjà dans le catalogue."]}
+        return {"ok": False, "errors": [{"key": "outils.err.doublon", "vars": {"id": doublon}}]}
 
     books = scan_books()
     book_options = []
@@ -210,6 +210,7 @@ def save_from_web(data: dict) -> dict:
             "book":         data.get("book", ""),
             "parent_eco":   data.get("parent_eco", ""),
         })
-        return {"ok": True, "message": f"'{data['nom']}' ajoutée avec succès !"}
+        return {"ok": True, "message": f"'{data['nom']}' ajoutée avec succès !",
+                "message_key": "outils.ajoutee_succes", "vars": {"nom": data["nom"]}}
     except Exception as e:
         return {"ok": False, "message": str(e)}

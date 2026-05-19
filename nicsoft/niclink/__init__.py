@@ -1,2 +1,2 @@
-from . import _niclink, driver
-from .driver import NicLinkManager
+from . import driver
+from .driver import NicLinkManager, _niclink  # _niclink = hid_backend ou .so selon disponibilité

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import pathlib
+from nicsoft.config import DATA_DIR, GAMES_DIR
 import signal
 import sys
 import threading
@@ -37,7 +38,7 @@ logger.handlers.clear()
 logger.addHandler(ch)
 logger.setLevel(logging.INFO)
 
-CONFIG_FILE = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+CONFIG_FILE = DATA_DIR / "config.json"
 DEFAULT_CONFIG = {"turn_signal": "beep", "game_type": "Serious"}
 
 def load_config() -> dict:
@@ -75,7 +76,7 @@ class Game(threading.Thread):
         self.game.headers["Result"] = "*"
 
         self.game_over = False
-        self.output_dir = output_dir or os.path.expanduser("~/NicLink/games")
+        self.output_dir = output_dir or str(GAMES_DIR)
         os.makedirs(self.output_dir, exist_ok=True)
 
         # Fichier temporaire cree au demarrage de la partie
@@ -797,7 +798,8 @@ class GameWeb(threading.Thread):
                         from nicsoft.engine.board_utils import analyser_position_illegale
                         msg = analyser_position_illegale(self.board, phys)
                     except Exception:
-                        msg = "⚠ Position illégale — remettez la pièce à sa place."
+                        msg = {"message": "⚠ Position illégale — remettez la pièce à sa place.",
+                               "message_key": "game.illegal.position_illegale"}
                     # Deux bips rapprochés
                     try:
                         self.nl_inst.beep()
@@ -805,7 +807,7 @@ class GameWeb(threading.Thread):
                         self.nl_inst.beep()
                     except Exception:
                         pass
-                    send_event("illegal_position", {"message": msg})
+                    send_event("illegal_position", msg)
 
         pos_watcher = threading.Thread(target=watch_position, daemon=True)
         pos_watcher.start()
@@ -1058,6 +1060,8 @@ class GameWeb(threading.Thread):
             _web_server._app_state = "game_over"
             set_app_state("game_over", {
                 "title":         title,
+                "title_key":     title_key,
+                "title_vars":    title_vars,
                 "result":        result,
                 "source":        "niclink",
                 "skip":          False,
@@ -1086,7 +1090,8 @@ class GameWeb(threading.Thread):
             _web_server._app_state = "game_over"
             _hist_fens, _hist_moves = self._build_history_from_stack()
             set_app_state("game_over", {
-                "title": "Fin de partie", "result": result,
+                "title": "Fin de partie", "title_key": "game.fin_partie_default",
+                "result": result,
                 "source": "niclink",
                 "history_fen":   _hist_fens,
                 "history_moves": _hist_moves,
@@ -1103,7 +1108,8 @@ class GameWeb(threading.Thread):
             _web_server._app_state = "game_over"
             _hist_fens2, _hist_moves2 = self._build_history_from_stack()
             set_app_state("game_over", {
-                "title": "Nulle", "result": "1/2-1/2",
+                "title": "Nulle", "title_key": "game.titre_nulle",
+                "result": "1/2-1/2",
                 "source": "niclink",
                 "history_fen":   _hist_fens2,
                 "history_moves": _hist_moves2,
@@ -1138,12 +1144,14 @@ class GameWeb(threading.Thread):
                 send_event("game_over", {
                     "result": "1/2-1/2", "reason": "Nulle par accord mutuel",
                     "source": "niclink", "title": "Nulle",
+                    "title_key": "game.titre_nulle",
                 })
                 from nicsoft.web import server as _web_server
                 _web_server._app_state = "game_over"
                 _hist_fens, _hist_moves = self._build_history_from_stack()
                 set_app_state("game_over", {
-                    "title": "Nulle", "result": "1/2-1/2",
+                    "title": "Nulle", "title_key": "game.titre_nulle",
+                    "result": "1/2-1/2",
                     "source": "niclink",
                     "history_fen":   _hist_fens,
                     "history_moves": _hist_moves,

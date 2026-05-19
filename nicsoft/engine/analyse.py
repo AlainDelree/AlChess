@@ -35,7 +35,8 @@ def analyser_partie(moves_uci: list, niveau: int = 5, callback=None) -> list:
     from nicsoft.engine.engine_manager import find_stockfish
     import pathlib, json
 
-    config_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+    from nicsoft.config import DATA_DIR
+    config_path = DATA_DIR / "config.json"
     engine_path = ""
     if config_path.exists():
         try:

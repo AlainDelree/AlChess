@@ -14,12 +14,13 @@ from nicsoft.engine.board_utils import san_ep
 import json
 import pathlib
 import re
+from nicsoft.config import DATA_DIR, GAMES_DIR as _GAMES_DIR
 
 # ── Chemins ───────────────────────────────────────────────────────────────────
 
-SAVE_PATH  = pathlib.Path.home() / "NicLink" / "data" / "retranscription_en_cours.json"
-GAMES_DIR  = pathlib.Path.home() / "NicLink" / "games" / "Transcription"
-LIGNES_DIR = pathlib.Path.home() / "NicLink" / "data" / "mes_lignes"
+SAVE_PATH  = DATA_DIR / "retranscription_en_cours.json"
+GAMES_DIR  = _GAMES_DIR / "Transcription"
+LIGNES_DIR = DATA_DIR / "mes_lignes"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

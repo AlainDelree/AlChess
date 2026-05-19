@@ -12,11 +12,12 @@ import os
 import pathlib
 import queue
 import threading
+from nicsoft.config import DATA_DIR, GAMES_DIR, LOGS_DIR
 from flask import Flask, render_template, send_file, abort
 from flask_socketio import SocketIO, emit
 
 logger = logging.getLogger("niclink.server")
-LOG_FILE = pathlib.Path.home() / "NicLink" / "logs" / "niclink.log"
+LOG_FILE = LOGS_DIR / "niclink.log"
 
 # Mode debug — activé via variable d'environnement NICLINK_LOG=DEBUG
 DEBUG_MODE = os.environ.get("NICLINK_LOG", "").upper() == "DEBUG"
@@ -88,7 +89,7 @@ def debug_mode_status():
     from flask import jsonify
     return jsonify({"debug": DEBUG_MODE})
 
-TEST_CONFIG_DIR = pathlib.Path.home() / "NicLink" / "logs" / "Test config"
+TEST_CONFIG_DIR = LOGS_DIR / "Test config"
 
 @app.route("/test/save-config", methods=["POST"])
 def test_save_config():
@@ -118,7 +119,7 @@ def test_save_config():
 
 def _get_game_folders():
     import os
-    base = os.path.expanduser("~/NicLink/games")
+    base = str(GAMES_DIR)
     folders = []
     try:
         for mode in sorted(os.listdir(base)):
@@ -267,7 +268,7 @@ def on_analyser_pgn(data):
     engine_elo = data.get("engine_elo", 1500)
 
     # Lire le chemin moteur depuis config.json
-    cfg_path = pathlib.Path.home() / "NicLink" / "data" / "config.json"
+    cfg_path = DATA_DIR / "config.json"
     engine_path = ""
     if cfg_path.exists():
         try:
@@ -332,13 +333,16 @@ def on_outils_wiki_update(_data):
     from nicsoft.modes.exercices.download_eco_wiki import run_from_web
 
     def run():
-        def progress(step, message):
-            socketio.emit("outils_wiki_progress", {"step": step, "message": message})
+        def progress(step, message, vars=None):
+            event = {"step": step, "message": message, "message_key": f"outils.wiki.step.{step}"}
+            if vars:
+                event["vars"] = vars
+            socketio.emit("outils_wiki_progress", event)
         result = run_from_web(progress)
         socketio.emit("outils_wiki_done", result)
 
     threading.Thread(target=run, daemon=True).start()
-    emit("outils_wiki_progress", {"step": "start", "message": "Démarrage…"})
+    emit("outils_wiki_progress", {"step": "start", "message": "Démarrage…", "message_key": "outils.wiki.step.start"})
 
 
 @socketio.on("outils_eco_search")
