@@ -101,7 +101,7 @@
   "rodent.elite":              "Elite",
 
   "game.btn.reprendre":        "↩ Take back move",
-  "game.btn.abandonner":       "🏳 Resign",
+  "game.btn.abandonner":       "⚐ Resign",
   "game.btn.nulle":            "🤝 Offer draw",
   "game.btn.pause":            "⏸ Pause",
   "game.btn.continuer":        "▶ Continue",
@@ -214,8 +214,8 @@
   "connecting.msg":            "Connecting to board…",
   "connecting.sub":            "Make sure the board is on and in the starting position.",
 
-  "modal.blancs_abandonnent":  "🏳 White resigns",
-  "modal.noirs_abandonnent":   "🏳 Black resigns",
+  "modal.blancs_abandonnent":  "⚐ White resigns",
+  "modal.noirs_abandonnent":   "⚐ Black resigns",
 
   "outils.titre":              "🛠️ Exercise Tools",
   "outils.import_pgn.titre":   "📥 Import my PGN lines",
@@ -304,7 +304,7 @@
   "modal.qui_abandonne":       "Who resigns?",
   "modal.abandonner_titre":    "Resign?",
   "modal.confirmer_abandon":   "Confirm resignation",
-  "modal.abandonner_nom":      "🏳 {nom} resigns",
+  "modal.abandonner_nom":      "⚐ {nom} resigns",
   "modal.nulle_hh_titre":      "Both players accept draw?",
   "modal.confirmer_nulle":     "Confirm draw",
   "modal.nulle_stockfish_titre": "Offer draw to Stockfish?",

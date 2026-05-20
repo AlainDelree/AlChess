@@ -101,7 +101,7 @@
   "rodent.elite":              "Elite",
 
   "game.btn.reprendre":        "↩ Reprendre le coup",
-  "game.btn.abandonner":       "🏳 Abandonner",
+  "game.btn.abandonner":       "⚐ Abandonner",
   "game.btn.nulle":            "🤝 Proposer nulle",
   "game.btn.pause":            "⏸ Pause",
   "game.btn.continuer":        "▶ Continuer",
@@ -214,8 +214,8 @@
   "connecting.msg":            "Connexion à l'échiquier…",
   "connecting.sub":            "Vérifiez que le plateau est allumé et en position initiale.",
 
-  "modal.blancs_abandonnent":  "🏳 Blancs abandonnent",
-  "modal.noirs_abandonnent":   "🏳 Noirs abandonnent",
+  "modal.blancs_abandonnent":  "⚐ Blancs abandonnent",
+  "modal.noirs_abandonnent":   "⚐ Noirs abandonnent",
 
   "outils.titre":              "🛠️ Outils Exercices",
   "outils.import_pgn.titre":   "📥 Importer mes lignes PGN",
@@ -304,7 +304,7 @@
   "modal.qui_abandonne":       "Qui abandonne la partie ?",
   "modal.abandonner_titre":    "Abandonner la partie ?",
   "modal.confirmer_abandon":   "Confirmer l'abandon",
-  "modal.abandonner_nom":      "🏳 {nom} abandonne",
+  "modal.abandonner_nom":      "⚐ {nom} abandonne",
   "modal.nulle_hh_titre":      "Les deux joueurs acceptent la nulle ?",
   "modal.confirmer_nulle":     "Confirmer la nulle",
   "modal.nulle_stockfish_titre": "Proposer la nulle à Stockfish ?",
