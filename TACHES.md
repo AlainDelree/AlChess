@@ -81,10 +81,10 @@ _(rien pour l'instant)_
     - ✅ Labo, Retranscription, Exercices : fonctionnels sur Windows
     - ✅ HH : skip (nécessite échiquier physique, bouton à masquer en mode virtuel — TODO existant)
     - ✅ Lancement : `$env:PYTHONPYCACHEPREFIX="C:\Users\Al\AppData\Local\Temp\alchess_pyc"` puis `python -m nicsoft.web`
-    - [ ] Cosmétique Windows (passe CSS dédiée) :
-        - ✅ Taille échiquier variable : breakpoint `window.innerWidth` + listener `resize` (était `window.screen.width`)
-        - ✅ Icône bouton Abandonner tronquée : polices emoji (`Segoe UI Emoji`, `Apple Color Emoji`) ajoutées au font-family body
-        - Numéros de lignes échiquier mal alignés (rendu police Windows)
+    - [x] Cosmétique Windows (passe CSS dédiée) :
+        - ✅ Taille échiquier variable : `clamp(350px, 100vh-200px, vw-cap)` + breakpoint `innerWidth` + listener `resize` (commits 2fc4be4, 4040492)
+        - ✅ Icône bouton Abandonner : `🏳` (U+1F3F3, hors BMP) → `⚐` (U+2690, BMP, universel) (commit 4040492)
+        - Numéros de lignes échiquier mal alignés (rendu police Windows) — en veille
     - [ ] `launcher.py` (GTK splash) : à adapter ou ignorer pour Windows
 
 ---
