@@ -81,7 +81,10 @@ _(rien pour l'instant)_
     - ✅ Labo, Retranscription, Exercices : fonctionnels sur Windows
     - ✅ HH : skip (nécessite échiquier physique, bouton à masquer en mode virtuel — TODO existant)
     - ✅ Lancement : `$env:PYTHONPYCACHEPREFIX="C:\Users\Al\AppData\Local\Temp\alchess_pyc"` puis `python -m nicsoft.web`
-    - [ ] Cosmétique Windows : numéros de lignes échiquier mal alignés + icône Abandonner tronquée (rendu police)
+    - [ ] Cosmétique Windows (passe CSS dédiée) :
+        - Taille échiquier non standardisée selon les écrans (layout variable)
+        - Numéros de lignes échiquier mal alignés (rendu police Windows)
+        - Icône bouton Abandonner tronquée
     - [ ] `launcher.py` (GTK splash) : à adapter ou ignorer pour Windows
 
 ---
