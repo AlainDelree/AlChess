@@ -1,5 +1,33 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── Board sizing — variables ─────────────────────────────────────────
+       Pour redimensionner tous les échiquiers d'un coup : --bd-max et --bd-min
+    ──────────────────────────────────────────────────────────────────────── */
+    :root {
+      --bd-min:       350px;   /* plancher — taille jouable minimale          */
+      --bd-max:       660px;   /* plafond  — résolution large (≥1360px)       */
+      --bd-vw-offset: 760px;   /* largeur cumulée panneaux + gaps, résol. lg  */
+      --bd-vh-offset: 200px;   /* hauteur cumulée header + player rows + pad  */
+    }
+    .res-medium { --bd-max: 540px; --bd-vw-offset: 560px; }
+    .res-small  { --bd-max: 460px; --bd-vw-offset:  24px; }
+
+    /* Overrides par écran (panneaux différents = offset différent) */
+    #screen-retrans-game     { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 460px; }
+    #screen-exercice-running { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 660px; --bd-vh-offset: 220px; }
+    #screen-labo             { --bd-min: 280px; --bd-max: 500px; --bd-vw-offset: 740px; --bd-vh-offset: 190px; }
+
+    /* Taille calculée — héritée par tous les descendants */
+    #screen-game, .screen-board-layout,
+    #screen-retrans-game, #screen-exercice-running, #screen-labo {
+      --bd-size: clamp(var(--bd-min), calc(100vh - var(--bd-vh-offset)), min(calc(100vw - var(--bd-vw-offset)), var(--bd-max)));
+    }
+    /* res-small : colonne unique, contrainte vh inutile (défilement naturel) */
+    .res-small #screen-game, .res-small .screen-board-layout,
+    .res-small #screen-labo, .res-small #screen-exercice-running {
+      --bd-size: min(calc(100vw - var(--bd-vw-offset)), var(--bd-max));
+    }
+
     body {
       font-family: 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', system-ui, sans-serif;
       background: #d8e4f0;
@@ -238,11 +266,11 @@
       flex-direction: column;
       align-items: center;
     }
-    /* board-align : largeur = board + coord-rank + border */
+    /* board-align : largeur = board + coord-rank (16px) */
     #board-align {
       display: flex;
       flex-direction: column;
-      width: calc(clamp(350px, calc(100vh - 200px), min(calc(100vw - 760px), 660px)) + 20px);
+      width: calc(var(--bd-size) + 20px);
     }
     .player-row {
       display: flex;
@@ -277,26 +305,14 @@
       color: #1a2a3a;
     }
 
-    #board, #rv-board, #board-pos-init, #retrans-board {
+    #board, #rv-board, #board-pos-init, #retrans-board, #ex-board, #labo-board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       overflow: hidden;
-      width: clamp(350px, calc(100vh - 200px), min(calc(100vw - 760px), 660px));
-      height: clamp(350px, calc(100vh - 200px), min(calc(100vw - 760px), 660px));
+      width: var(--bd-size);
+      height: var(--bd-size);
     }
-    #retrans-board {
-      width: clamp(280px, calc(100vh - 200px), min(calc(100vw - 460px), 460px));
-      height: clamp(280px, calc(100vh - 200px), min(calc(100vw - 460px), 460px));
-    }
-    #ex-board {
-      width: clamp(280px, calc(100vh - 220px), min(calc(100vw - 660px), 460px));
-      height: clamp(280px, calc(100vh - 220px), min(calc(100vw - 660px), 460px));
-    }
-    #ex-coord-rank { height: auto; align-self: stretch; }
-    #labo-board {
-      width: clamp(280px, calc(100vh - 190px), min(calc(100vw - 740px), 500px));
-      height: clamp(280px, calc(100vh - 190px), min(calc(100vw - 740px), 500px));
-    }
+    #ex-coord-rank, #labo-coord-rank { height: auto; align-self: stretch; }
 
     .square {
       display: flex;
@@ -329,7 +345,7 @@
     .ex-hint                    { background: #ffd740 !important; }
     #ex-spinner {
       display:none; flex-direction:column; align-items:center; justify-content:center;
-      aspect-ratio:1; width:min(calc(100vw - 640px), 500px);
+      aspect-ratio:1; width: var(--bd-size);
     }
     #ex-spinner .spinner-ring {
       width:60px; height:60px; border:5px solid #a0b8d0;
@@ -379,7 +395,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-around;
-      height: clamp(350px, calc(100vh - 200px), min(calc(100vw - 760px), 660px));
+      height: var(--bd-size);
       width: 16px;
       background: #c2d4e8;
       flex-shrink: 0;
@@ -397,7 +413,7 @@
     .coord-file {
       display: flex;
       justify-content: space-around;
-      width: clamp(350px, calc(100vh - 200px), min(calc(100vw - 760px), 660px));
+      width: var(--bd-size);
       padding: 0 2px;
       background: #c2d4e8;
     }
@@ -574,12 +590,6 @@
     .res-medium #screen-labo           { grid-template-columns: 180px minmax(0,1fr) 320px !important; gap: 14px !important; padding: 12px 14px !important; }
     .res-medium #left-panel            { width: 180px; }
     .res-medium #panel                 { width: 320px; }
-    .res-medium #board,
-    .res-medium #rv-board,
-    .res-medium #board-pos-init        { width: clamp(350px, calc(100vh - 200px), min(calc(100vw - 560px), 540px)); height: clamp(350px, calc(100vh - 200px), min(calc(100vw - 560px), 540px)); }
-    .res-medium .coord-rank            { height: clamp(350px, calc(100vh - 200px), min(calc(100vw - 560px), 540px)); }
-    .res-medium .coord-file            { width: clamp(350px, calc(100vh - 200px), min(calc(100vw - 560px), 540px)); }
-    .res-medium #board-align           { width: calc(clamp(350px, calc(100vh - 200px), min(calc(100vw - 560px), 540px)) + 20px); }
 
     /* ── res-small : < 1100px ── */
     .res-small .menu-btn               { width: 240px; font-size: 0.85rem; }
@@ -601,12 +611,6 @@
     .res-small #screen-labo            { grid-template-columns: 1fr !important; padding: 10px !important; }
     .res-small #left-panel             { width: 100%; }
     .res-small #panel                  { width: 100%; }
-    .res-small #board,
-    .res-small #rv-board,
-    .res-small #board-pos-init         { width: min(calc(100vw - 24px), 460px); height: min(calc(100vw - 24px), 460px); }
-    .res-small .coord-rank             { height: min(calc(100vw - 24px), 460px); }
-    .res-small .coord-file             { width: min(calc(100vw - 24px), 460px); }
-    .res-small #board-align            { width: calc(min(calc(100vw - 24px), 460px) + 20px); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 #modal-overlay { display: none; }
