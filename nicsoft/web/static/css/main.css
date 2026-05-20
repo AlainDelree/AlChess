@@ -29,7 +29,7 @@
     }
 
     body {
-      font-family: 'Segoe UI', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', system-ui, sans-serif;
+      font-family: 'Segoe UI', system-ui, sans-serif;
       background: #d8e4f0;
       color: #1a2a3a;
       min-height: 100vh;

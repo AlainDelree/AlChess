@@ -11,12 +11,14 @@ _(rien pour l'instant)_
 ## 🐛 Bugs actifs
 
 ### En veille (peu prioritaires)
-- **Race condition LEDs** — synchronisation des camps LED parfois incorrecte. Rare, cause probable hardware/USB. À surveiller si ça s'aggrave.
-- **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
+- **Race condition LEDs** `[Linux]` — synchronisation des camps LED parfois incorrecte. Rare, cause probable hardware/USB. À surveiller si ça s'aggrave.
+- **WAIT_FISH lent intermittent** `[Les deux]` — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
 
 ### À corriger
 
-- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** — Quand le moteur a joué et qu'on attend que le joueur exécute le coup sur le plateau physique (WAIT_FISH), si le joueur dérange une pièce (retire une tour, joue le mauvais coup…), le terminal affiche `⚠ N case(s) incorrecte(s)` avec les pièces à replacer, mais l'interface web ne montre rien. Le joueur est bloqué sans feedback visuel. Attendu : afficher un message d'avertissement à l'écran (liste des pièces à corriger), comme le fait déjà l'écran de vérification de position initiale. Log observé : `[WAIT_FISH] 5s en attente... fen_ok=False`.
+- **HH — écran de rangement ignoré si échiquier déconnecté silencieusement** `[Windows]` — Au lancement d'une partie HH avec l'échiquier physique, l'écran de vérification de position initiale ne s'est pas affiché malgré des pièces mal placées, et la partie a démarré directement. Cause probable : l'échiquier s'était déconnecté sans que le programme le détecte (pas d'événement de déconnexion reçu). La reconnexion du programme résout le problème. À investiguer : vérifier si `driver.py` détecte bien la perte de connexion USB et la signale à `alchess.py` pour bloquer le démarrage.
+
+- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** `[Les deux]` — Quand le moteur a joué et qu'on attend que le joueur exécute le coup sur le plateau physique (WAIT_FISH), si le joueur dérange une pièce (retire une tour, joue le mauvais coup…), le terminal affiche `⚠ N case(s) incorrecte(s)` avec les pièces à replacer, mais l'interface web ne montre rien. Le joueur est bloqué sans feedback visuel. Attendu : afficher un message d'avertissement à l'écran (liste des pièces à corriger), comme le fait déjà l'écran de vérification de position initiale. Log observé : `[WAIT_FISH] 5s en attente... fen_ok=False`.
 
 ---
 
