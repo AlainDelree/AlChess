@@ -32,7 +32,7 @@ import chess
 import chess.pgn
 import numpy as np
 
-from nicsoft.engine.engine_manager import EngineManager, find_stockfish
+from nicsoft.engine.engine_manager import EngineManager, find_stockfish, find_rodent
 from nicsoft.utils.timing import tlog
 from nicsoft.utils.debug import DEBUG_MODE
 from nicsoft.engine.display import (
@@ -295,10 +295,9 @@ class Game(threading.Thread):
             self.engine_elo = maia_elo
 
         elif engine_type == "rodent":
-            rodent_path = str(ENGINES_DIR / "rodent-iv" / "rodentIV")
-            from pathlib import Path as _Path
-            if not _Path(rodent_path).exists():
-                raise RuntimeError(f"Rodent introuvable : {rodent_path}")
+            rodent_path = find_rodent()
+            if not rodent_path:
+                raise RuntimeError(f"Rodent introuvable dans {ENGINES_DIR / 'rodent-iv'}")
             self.engine = EngineManager(
                 rodent_path,
                 engine_elo=rodent_elo,

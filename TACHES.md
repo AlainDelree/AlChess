@@ -70,13 +70,15 @@ _(rien pour l'instant)_
     - `test_hidapi_windows.py` : 16/16 sur Windows 11 VM — connexion ✓, FEN ✓, LEDs ✓, beep ✓, latence 0.0ms ✓
     - Interface Col02 (usage_page=0xFF00) utilisée sur Windows ; Col01 (0x0001) muet
     - Deux report IDs alternatifs : 0x01 (position) + 0x2a (statut) — `hid_backend.py` mis à jour (filtre supprimé, bounds check, try/except)
-  - **Portage Windows — Phase 2 (application complète) : à faire** :
-    - Installer les dépendances : `pip install flask flask-socketio python-chess eventlet`
-    - Tester le démarrage : `python -m nicsoft.web`
-    - Obtenir Stockfish Windows (`.exe`) et le placer dans `engines/`
-    - Adapter `engine_manager.py` : chercher `stockfish.exe` sur `sys.platform == "win32"`
-    - Tester les modes un par un : pédagogique, HH, labo, retranscription, exercices
-    - Vérifier les chemins (séparateurs `\` vs `/`) via `nicsoft/config.py` (utilise `pathlib` — OK en principe)
+  - **Portage Windows — Phase 2 (application complète) : en cours** :
+    - ✅ `find_stockfish()` : cherche aussi `engines/stockfish.exe` et `engines/stockfish`
+    - ✅ `find_rodent()` : nouvelle fonction — `rodentIV.exe` sur Windows, `rodentIV` sinon
+    - ✅ `find_lc0()` : cherche aussi `engines/maia/lc0.exe`
+    - ✅ `server.py` : `os.kill(SIGINT)` → `os._exit(0)` (cross-platform)
+    - [ ] Obtenir Stockfish Windows (`.exe`) et le placer dans `engines/` sur la VM
+    - [ ] Tester le démarrage : `python -m nicsoft.web`
+    - [ ] Tester les modes un par un : pédagogique, HH, labo, retranscription, exercices
+    - [ ] `launcher.py` (GTK splash) : à adapter ou ignorer pour Windows
 
 ---
 ## 🧪 Tests automatisés

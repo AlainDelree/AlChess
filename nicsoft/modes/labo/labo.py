@@ -17,7 +17,7 @@ import logging
 import threading
 import time
 
-from nicsoft.engine.engine_manager import EngineManager, find_stockfish
+from nicsoft.engine.engine_manager import EngineManager, find_stockfish, find_rodent
 from nicsoft.web.server import send_event
 
 logger = logging.getLogger("NL labo")
@@ -69,10 +69,9 @@ class LaboSession:
 
         elif engine_type == "rodent":
             from nicsoft.config import ENGINES_DIR
-            rodent_path = str(ENGINES_DIR / "rodent-iv" / "rodentIV")
-            from pathlib import Path as _Path
-            if not _Path(rodent_path).exists():
-                raise RuntimeError(f"Rodent introuvable : {rodent_path}")
+            rodent_path = find_rodent()
+            if not rodent_path:
+                raise RuntimeError(f"Rodent introuvable dans {ENGINES_DIR / 'rodent-iv'}")
             self.engine = EngineManager(rodent_path, engine_elo=rodent_elo, analyse_active=analyse_active)
             if rodent_simple and self.engine._engine_play:
                 try: self.engine._engine_play.configure({"Personality": "Simple"})
