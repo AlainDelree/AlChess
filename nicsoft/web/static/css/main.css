@@ -285,8 +285,17 @@
       height: clamp(350px, calc(100vh - 200px), min(calc(100vw - 760px), 660px));
     }
     #retrans-board {
-      width: min(500px, calc(100vw - 460px));
-      height: min(500px, calc(100vw - 460px));
+      width: clamp(280px, calc(100vh - 200px), min(calc(100vw - 460px), 460px));
+      height: clamp(280px, calc(100vh - 200px), min(calc(100vw - 460px), 460px));
+    }
+    #ex-board {
+      width: clamp(280px, calc(100vh - 220px), min(calc(100vw - 660px), 460px));
+      height: clamp(280px, calc(100vh - 220px), min(calc(100vw - 660px), 460px));
+    }
+    #ex-coord-rank { height: auto; align-self: stretch; }
+    #labo-board {
+      width: clamp(280px, calc(100vh - 190px), min(calc(100vw - 740px), 500px));
+      height: clamp(280px, calc(100vh - 190px), min(calc(100vw - 740px), 500px));
     }
 
     .square {
