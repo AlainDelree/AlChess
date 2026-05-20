@@ -451,10 +451,13 @@ def find_stockfish() -> str | None:
     """
     import sys
     import shutil
+    # Windows : glob stockfish*.exe dans engines/
+    if sys.platform == "win32":
+        for p in sorted(ENGINES_DIR.glob("stockfish*.exe")):
+            return str(p)
     candidates = [
         shutil.which("stockfish"),
-        str(ENGINES_DIR / "stockfish.exe"),   # Windows
-        str(ENGINES_DIR / "stockfish"),        # Linux/Mac dans engines/
+        str(ENGINES_DIR / "stockfish"),
         "/usr/games/stockfish",
         "/usr/bin/stockfish",
         "/usr/local/bin/stockfish",
