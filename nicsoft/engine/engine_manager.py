@@ -90,6 +90,10 @@ class EngineManager:
 
     def _init_engines(self) -> None:
         """Lance les deux instances du moteur et détecte les capacités."""
+        import pathlib
+        _dbg = pathlib.Path(__file__).parent.parent.parent / "debug_engine.txt"
+        _dbg.write_text(f"engine_path={self._engine_path!r}\n", encoding="utf-8")
+        print(f"[DEBUG _init_engines] engine_path={self._engine_path!r}", flush=True)
         try:
             self._engine_play = chess.engine.SimpleEngine.popen_uci(self._engine_path)
             self._engine_eval = chess.engine.SimpleEngine.popen_uci(self._engine_path)
@@ -451,6 +455,16 @@ def find_stockfish() -> str | None:
     """
     import sys
     import shutil
+    print(f"[FIND_SF] called sys.platform={sys.platform!r} ENGINES_DIR={ENGINES_DIR!r}", flush=True)
+    # Debug temporaire
+    _dbg2 = Path(__file__).parent.parent.parent / "debug_find_stockfish.txt"
+    _dbg2.write_text(
+        f"sys.platform={sys.platform!r}\nENGINES_DIR={ENGINES_DIR!r}\n"
+        f"ENGINES_DIR.exists()={ENGINES_DIR.exists()}\n"
+        f"glob result={list(ENGINES_DIR.glob('stockfish*.exe'))}\n"
+        f"which={shutil.which('stockfish')!r}\n",
+        encoding="utf-8"
+    )
     # Windows : glob stockfish*.exe dans engines/
     if sys.platform == "win32":
         for p in sorted(ENGINES_DIR.glob("stockfish*.exe")):

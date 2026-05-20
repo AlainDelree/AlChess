@@ -10,10 +10,19 @@ import threading
 import chess
 import logging
 
+from pathlib import Path
 from nicsoft.config import DATA_DIR
 from nicsoft.core.board_adapter import create_board
 from nicsoft.web.server import send_event, set_app_state, get_action, set_virtual_board
 from nicsoft.web import server as web_server
+
+
+def _validated_engine_path(cfg: dict, key: str = "engine_path", default: str = "") -> str:
+    """Retourne le path moteur sauvegardé seulement s'il existe sur cette plateforme."""
+    p = cfg.get(key, default)
+    if p and Path(p).exists():
+        return p
+    return default
 
 # ── État global ────────────────────────────────────────────────────────────────
 _nl_inst_ref      = None   # échiquier courant (pour éteindre LEDs au quit)
@@ -121,7 +130,7 @@ def launch_pedagogique(config):
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
             engine_elo  = cfg.get("engine_elo", 1500)
-            engine_path = cfg.get("engine_path", "")
+            engine_path = _validated_engine_path(cfg)
         except Exception:
             pass
 
@@ -426,7 +435,7 @@ def _run_exercice(config: dict) -> None:
                 with open(cfg_path, "r", encoding="utf-8") as f:
                     cfg = json.load(f)
                 engine_elo  = cfg.get("engine_elo", 1500)
-                engine_path = cfg.get("engine_path", "")
+                engine_path = _validated_engine_path(cfg)
             if not engine_path:
                 engine_path = find_stockfish() or "stockfish"
             engine = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=False)
@@ -519,7 +528,7 @@ def _run_drill(config: dict) -> None:
             engine_path = find_stockfish() or "stockfish"
             if cfg_path.exists():
                 cfg = json.loads(cfg_path.read_text())
-                engine_path = cfg.get("engine_path", engine_path)
+                engine_path = _validated_engine_path(cfg, default=engine_path)
                 engine_elo  = cfg.get("engine_elo", engine_elo)
             engine = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=False)
             session._engine = engine
@@ -608,7 +617,7 @@ def _make_labo_session(nl_inst, config: dict):
         if cfg_path.exists():
             with open(cfg_path) as f:
                 cfg = json.load(f)
-            engine_path = cfg.get("engine_path", "")
+            engine_path = _validated_engine_path(cfg)
     except Exception:
         pass
     if not engine_path:
@@ -883,7 +892,7 @@ def launch_analyse_libre(config):
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
             engine_elo  = cfg.get("engine_elo", 1500)
-            engine_path = cfg.get("engine_path", "")
+            engine_path = _validated_engine_path(cfg)
         except Exception:
             pass
 
