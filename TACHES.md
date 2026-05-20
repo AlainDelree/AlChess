@@ -82,9 +82,9 @@ _(rien pour l'instant)_
     - ✅ HH : skip (nécessite échiquier physique, bouton à masquer en mode virtuel — TODO existant)
     - ✅ Lancement : `$env:PYTHONPYCACHEPREFIX="C:\Users\Al\AppData\Local\Temp\alchess_pyc"` puis `python -m nicsoft.web`
     - [ ] Cosmétique Windows (passe CSS dédiée) :
-        - Taille échiquier non standardisée selon les écrans (layout variable)
+        - ✅ Taille échiquier variable : breakpoint `window.innerWidth` + listener `resize` (était `window.screen.width`)
+        - ✅ Icône bouton Abandonner tronquée : polices emoji (`Segoe UI Emoji`, `Apple Color Emoji`) ajoutées au font-family body
         - Numéros de lignes échiquier mal alignés (rendu police Windows)
-        - Icône bouton Abandonner tronquée
     - [ ] `launcher.py` (GTK splash) : à adapter ou ignorer pour Windows
 
 ---

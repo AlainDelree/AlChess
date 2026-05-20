@@ -10,12 +10,14 @@
   <script src="/static/i18n.js"></script>
   <link rel="stylesheet" href="/static/css/main.css">
   <script>
-    // Détection résolution physique — applique res-large/res-medium/res-small sur <html>
-    (function() {
-      var w = window.screen.width;
+    // Détection résolution — applique res-large/res-medium/res-small sur <html>
+    function _updateResClass() {
+      var w = window.innerWidth;
       var cls = w >= 1360 ? 'res-large' : w >= 1024 ? 'res-medium' : 'res-small';
       document.documentElement.className = cls;
-    })();
+    }
+    _updateResClass();
+    window.addEventListener('resize', _updateResClass);
     window._NICLINK_TEST = "{{ test_mode }}";
   </script>
 </head>
