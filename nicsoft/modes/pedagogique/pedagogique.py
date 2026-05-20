@@ -331,9 +331,7 @@ class Game(threading.Thread):
         else:
             # Stockfish (défaut)
             if not engine_path:
-                print(f"[PEDA] appel find_stockfish id={id(find_stockfish)}", flush=True)
                 engine_path = find_stockfish() or "stockfish"
-                print(f"[PEDA] engine_path={engine_path!r}", flush=True)
             self.engine = EngineManager(
                 engine_path,
                 engine_elo=engine_elo,

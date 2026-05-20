@@ -71,13 +71,15 @@ _(rien pour l'instant)_
     - Interface Col02 (usage_page=0xFF00) utilisée sur Windows ; Col01 (0x0001) muet
     - Deux report IDs alternatifs : 0x01 (position) + 0x2a (statut) — `hid_backend.py` mis à jour (filtre supprimé, bounds check, try/except)
   - **Portage Windows — Phase 2 (application complète) : en cours** :
-    - ✅ `find_stockfish()` : cherche aussi `engines/stockfish.exe` et `engines/stockfish`
+    - ✅ `find_stockfish()` : glob `stockfish*.exe` sur Windows (fonctionne avec nom long)
     - ✅ `find_rodent()` : nouvelle fonction — `rodentIV.exe` sur Windows, `rodentIV` sinon
     - ✅ `find_lc0()` : cherche aussi `engines/maia/lc0.exe`
     - ✅ `server.py` : `os.kill(SIGINT)` → `os._exit(0)` (cross-platform)
-    - [ ] Obtenir Stockfish Windows (`.exe`) et le placer dans `engines/` sur la VM
-    - [ ] Tester le démarrage : `python -m nicsoft.web`
-    - [ ] Tester les modes un par un : pédagogique, HH, labo, retranscription, exercices
+    - ✅ `config.py` : `APP_DIR` détecté depuis `__file__` (plus de dépendance à `~/NicLink`)
+    - ✅ `game_manager.py` : `_validated_engine_path()` — ignore path config.json si inexistant sur l'OS courant
+    - ✅ Mode pédagogique virtuel fonctionnel sur Windows (screenshot validé)
+    - ✅ Lancement : `$env:PYTHONPYCACHEPREFIX="C:\Users\Al\AppData\Local\Temp\alchess_pyc"` puis `python -m nicsoft.web`
+    - [ ] Tester HH, Labo, Retranscription, Exercices
     - [ ] `launcher.py` (GTK splash) : à adapter ou ignorer pour Windows
 
 ---
