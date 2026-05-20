@@ -78,8 +78,10 @@ _(rien pour l'instant)_
     - ✅ `config.py` : `APP_DIR` détecté depuis `__file__` (plus de dépendance à `~/NicLink`)
     - ✅ `game_manager.py` : `_validated_engine_path()` — ignore path config.json si inexistant sur l'OS courant
     - ✅ Mode pédagogique virtuel fonctionnel sur Windows (screenshot validé)
+    - ✅ Labo, Retranscription, Exercices : fonctionnels sur Windows
+    - ✅ HH : skip (nécessite échiquier physique, bouton à masquer en mode virtuel — TODO existant)
     - ✅ Lancement : `$env:PYTHONPYCACHEPREFIX="C:\Users\Al\AppData\Local\Temp\alchess_pyc"` puis `python -m nicsoft.web`
-    - [ ] Tester HH, Labo, Retranscription, Exercices
+    - [ ] Cosmétique Windows : numéros de lignes échiquier mal alignés + icône Abandonner tronquée (rendu police)
     - [ ] `launcher.py` (GTK splash) : à adapter ou ignorer pour Windows
 
 ---
