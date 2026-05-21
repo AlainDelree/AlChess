@@ -18,11 +18,11 @@ _(rien pour l'instant)_
 
 - **HH — écran de rangement ignoré si échiquier déconnecté silencieusement** `[Windows]` — Au lancement d'une partie HH avec l'échiquier physique, l'écran de vérification de position initiale ne s'est pas affiché malgré des pièces mal placées, et la partie a démarré directement. Cause probable : l'échiquier s'était déconnecté sans que le programme le détecte (pas d'événement de déconnexion reçu). La reconnexion du programme résout le problème. À investiguer : vérifier si `driver.py` détecte bien la perte de connexion USB et la signale à `alchess.py` pour bloquer le démarrage.
 
-- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** `[Les deux]` — Quand le moteur a joué et qu'on attend que le joueur exécute le coup sur le plateau physique (WAIT_FISH), si le joueur dérange une pièce (retire une tour, joue le mauvais coup…), le terminal affiche `⚠ N case(s) incorrecte(s)` avec les pièces à replacer, mais l'interface web ne montre rien. Le joueur est bloqué sans feedback visuel. Attendu : afficher un message d'avertissement à l'écran (liste des pièces à corriger), comme le fait déjà l'écran de vérification de position initiale. Log observé : `[WAIT_FISH] 5s en attente... fen_ok=False`.
-
 ---
 
 ## ✅ Bugs résolus récemment
+
+- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** `[Les deux]` — `_display_position_error` n'émettait rien vers le navigateur. Fix : `send_event("board_warning", ...)` + handler JS `board_warning` qui passe le cadre "tour en cours" en orange avec le coup à exécuter, identique au comportement échec au roi. (commit 7dfc05e)
 
 - **Régression font-family — texte espacé sur Linux** `[Linux]` — Ajout des polices emoji (`Noto Color Emoji`, `Segoe UI Emoji`, `Apple Color Emoji`) dans `body font-family` pour corriger l'icône `🏳` causait l'utilisation de `Noto Color Emoji` sur Ubuntu, entraînant des métriques incorrectes sur tout le texte (lettres très espacées). Fix : retrait des polices emoji du body (le remplacement `🏳` → `⚐` U+2690 les rend inutiles). (commit 4ca8bee)
 - **Échiquier Windows VM — taille/forme** `[Windows]` — Viewport VM ~450px rendait l'échiquier trop petit (250px) ; Exercices et Labo en rectangle ; Transcrire trop grand. Fix : `clamp(350px, vh-offset, vw-cap)` + refactoring CSS custom properties `--bd-size`/`--bd-min`/`--bd-max`/`--bd-vw-offset`. (commits 2fc4be4, c361f3a, 6555f64)
