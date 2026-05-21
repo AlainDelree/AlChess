@@ -22,7 +22,7 @@ _(rien pour l'instant)_
 
 ## ✅ Bugs résolus récemment
 
-- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** `[Les deux]` — `_display_position_error` n'émettait rien vers le navigateur. Fix : `send_event("board_warning", ...)` + handler JS `board_warning` qui passe le cadre "tour en cours" en orange avec le coup à exécuter, identique au comportement échec au roi. (commit 7dfc05e)
+- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** `[Les deux]` — `_display_position_error` n'émettait rien vers le navigateur. Fix : `send_event("board_warning", ...)` + handler JS `board_warning` qui passe le cadre "tour en cours" en orange avec le coup à exécuter. Distingue "pièce pas encore bougée" (source occupée → texte noir normal) de "pièce bougée au mauvais endroit" (source vide → orange). (commits 7dfc05e, 4a81b1f, c24a3ab)
 
 - **Régression font-family — texte espacé sur Linux** `[Linux]` — Ajout des polices emoji (`Noto Color Emoji`, `Segoe UI Emoji`, `Apple Color Emoji`) dans `body font-family` pour corriger l'icône `🏳` causait l'utilisation de `Noto Color Emoji` sur Ubuntu, entraînant des métriques incorrectes sur tout le texte (lettres très espacées). Fix : retrait des polices emoji du body (le remplacement `🏳` → `⚐` U+2690 les rend inutiles). (commit 4ca8bee)
 - **Échiquier Windows VM — taille/forme** `[Windows]` — Viewport VM ~450px rendait l'échiquier trop petit (250px) ; Exercices et Labo en rectangle ; Transcrire trop grand. Fix : `clamp(350px, vh-offset, vw-cap)` + refactoring CSS custom properties `--bd-size`/`--bd-min`/`--bd-max`/`--bd-vw-offset`. (commits 2fc4be4, c361f3a, 6555f64)
