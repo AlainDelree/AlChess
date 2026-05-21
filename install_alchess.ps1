@@ -136,7 +136,7 @@ function Install-Dependencies {
     Write-Step "Installation des dépendances Python..."
     $pip = "$scriptDir\venv\Scripts\pip.exe"
     & $pip install --upgrade pip --quiet
-    & $pip install -e "$scriptDir" --quiet
+    & $pip install -r "$scriptDir\requirements.txt" --quiet
     if ($LASTEXITCODE -ne 0) {
         Write-Fail "Échec de l'installation des dépendances."
         exit 1
