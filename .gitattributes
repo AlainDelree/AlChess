@@ -1,0 +1,11 @@
+# Fins de ligne Windows pour les scripts PowerShell et batch
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+
+# Fins de ligne Unix pour tout le reste
+*.py   text eol=lf
+*.js   text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
