@@ -1558,6 +1558,7 @@ class Game(threading.Thread):
         _last_log   = time.time()
         _last_print = time.time()
         _loop_count = 0
+        _warning_sent = False
         try:
             while True:
                 if self.nl_inst.kill_switch.is_set():
@@ -1595,7 +1596,7 @@ class Game(threading.Thread):
                             except Exception:
                                 pass
                     threading.Thread(target=_do_led_off, daemon=True).start()
-                    if warning_shown:
+                    if warning_shown or _warning_sent:
                         print("   Position rétablie. Continuez.")
                         send_event("turn", {
                             "color":    "white" if self.playing_white == chess.WHITE else "black",
@@ -1631,6 +1632,9 @@ class Game(threading.Thread):
                 if diff_count <= 2:
                     bad_fen_since = None; last_bad_fen = None
                     warning_shown = False; last_diff_count = 0
+                    if not _warning_sent and time.time() - _t_wait >= 3.0:
+                        send_event("board_warning", {"message_key": "game.wait_fish_erreur", "vars": {"move": fish_move}})
+                        _warning_sent = True
                     time.sleep(0.05)
                     continue
 
