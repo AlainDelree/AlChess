@@ -550,7 +550,10 @@ socket.on("board_ok", () => {
   _boardOk    = true;
   _boardError = false;
   document.querySelectorAll("[data-needs-board]")
-    .forEach(btn => { btn.disabled = false; });
+    .forEach(btn => {
+      if (_virtualMode && btn.hasAttribute("data-physical-only")) return;
+      btn.disabled = false;
+    });
   const _okBtn = document.getElementById("btn-reconnect");
   if (_okBtn) {
     _okBtn.disabled = true; _okBtn.style.opacity = "0.5"; _okBtn.style.cursor = "default";
@@ -852,6 +855,14 @@ socket.on("turn", (data) => {
     turnInfo.className = data.color;
   }
 
+});
+
+socket.on("board_warning", (data) => {
+  const turnInfo = document.getElementById("turn-info");
+  if (turnInfo) {
+    turnInfo.textContent = t(data.message_key, data.vars || {});
+    turnInfo.className = "warning";
+  }
 });
 
 socket.on("feedback", (data) => { showFeedback(data); });

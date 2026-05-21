@@ -10,12 +10,14 @@
   <script src="/static/i18n.js"></script>
   <link rel="stylesheet" href="/static/css/main.css">
   <script>
-    // Détection résolution physique — applique res-large/res-medium/res-small sur <html>
-    (function() {
-      var w = window.screen.width;
+    // Détection résolution — applique res-large/res-medium/res-small sur <html>
+    function _updateResClass() {
+      var w = window.innerWidth;
       var cls = w >= 1360 ? 'res-large' : w >= 1024 ? 'res-medium' : 'res-small';
       document.documentElement.className = cls;
-    })();
+    }
+    _updateResClass();
+    window.addEventListener('resize', _updateResClass);
     window._NICLINK_TEST = "{{ test_mode }}";
   </script>
 </head>
@@ -397,10 +399,10 @@
   <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
     <div id="retrans-player-top" style="font-size:0.85rem; font-weight:600; color:#445; padding:4px 0; text-align:center; width:100%;"></div>
     <div id="retrans-board-wrapper" style="min-width:0; display:flex; flex-direction:row; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden;">
-      <div id="retrans-coord-rank" class="coord-rank" style="height:min(500px, calc(100vw - 460px));"></div>
+      <div id="retrans-coord-rank" class="coord-rank"></div>
       <div style="display:flex; flex-direction:column;">
         <div id="retrans-board" class="board"></div>
-        <div id="retrans-coord-file" class="coord-file" style="width:min(500px, calc(100vw - 460px));"></div>
+        <div id="retrans-coord-file" class="coord-file"></div>
       </div>
     </div>
     <div id="retrans-player-bottom" style="font-size:0.85rem; font-weight:600; color:#1a2a3a; padding:4px 0; text-align:center; width:100%;"></div>
@@ -528,7 +530,7 @@
       <div class="card" id="card-actions" style="display:flex; flex-direction:column; gap:8px;">
         <h2 data-i18n="game.h2.actions">Actions</h2>
         <button class="btn" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})" data-i18n="game.btn.pause">⏸ Pause</button>
-        <button class="btn btn-warning" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">🏳 Abandonner</button>
+        <button class="btn btn-warning" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
         <button class="btn" id="btn-nulle" style="background:#4a4a6a; color:#e0e0e0;" onclick="ouvrirModalNulle()" data-i18n="game.btn.nulle">🤝 Partie Nulle</button>
         <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', t('modal.quitter_moteur'), t('modal.quitter_btn'), '')" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
@@ -569,7 +571,7 @@
         <button class="btn"               id="btn-pause-sequence"  style="display:none; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" disabled onclick="jouerSequencePunitive()" data-i18n="game.btn.sequence">🎬 Voir la séquence</button>
         <!-- Toujours disponibles -->
         <button class="btn" id="btn-changer-couleur" style="background:#a0b8d0; color:#1a2a3a; border:1px solid #e94560;" onclick="pauseToggleChangerCouleur()" data-i18n="game.btn.changer_couleur">🔄 Changer de couleur</button>
-        <button class="btn btn-warning" style="display:none;" id="btn-pause-abandonner" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">🏳 Abandonner</button>
+        <button class="btn btn-warning" style="display:none;" id="btn-pause-abandonner" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
         <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', t('modal.quitter_moteur'), t('modal.quitter_btn'), '')" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
     </div>
@@ -771,11 +773,11 @@
       <div class="spinner-ring"></div>
       <div style="color:#3a5a7a; font-size:0.85rem; margin-top:14px;" data-i18n="labo.loading.echiquier">Connexion à l'échiquier…</div>
     </div>
-    <div id="ex-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 640px));">
+    <div id="ex-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden;">
       <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-top" style="color:#445; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
       <div style="display:flex; align-items:stretch;">
         <div class="coord-rank" id="ex-coord-rank"></div>
-        <div id="ex-board" style="display:grid; grid-template-columns:repeat(8,1fr); flex:1; min-width:0; aspect-ratio:1;"></div>
+        <div id="ex-board" style="display:grid; grid-template-columns:repeat(8,1fr);"></div>
       </div>
       <div class="coord-file" id="ex-coord-file" style="width:100%;"></div>
       <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-bottom" style="color:#1a2a3a; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
@@ -879,14 +881,14 @@
           </div>
         </div>
         <!-- Échiquier -->
-        <div id="labo-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; width:min(calc(100vh - 200px), calc(100vw - 720px)); position:relative;">
+        <div id="labo-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; position:relative;">
           <div id="labo-loading" style="display:none; position:absolute; inset:0; background:rgba(10,20,40,0.88); z-index:10; flex-direction:column; justify-content:center; align-items:center; gap:14px;">
             <div style="width:36px; height:36px; border:4px solid #3a5a7a; border-top-color:#a0c8f0; border-radius:50%; animation:spin 0.9s linear infinite;"></div>
             <span style="color:#c0d8f0; font-size:0.85rem; letter-spacing:1px;" data-i18n="labo.loading.echiquier">Connexion à l'échiquier…</span>
           </div>
           <div style="display:flex; min-height:0;">
             <div class="coord-rank" id="labo-coord-rank" style="height:auto; align-self:stretch;"></div>
-            <div id="labo-board" style="display:grid; grid-template-columns:repeat(8,1fr); flex:1; min-width:0; aspect-ratio:1;"></div>
+            <div id="labo-board" style="display:grid; grid-template-columns:repeat(8,1fr);"></div>
           </div>
           <div class="coord-file" id="labo-coord-file" style="width:100%;"></div>
         </div>
@@ -1400,8 +1402,8 @@
     </div>
     <!-- Boutons couleur (abandon HH : qui abandonne ?) -->
     <div id="modal-btns-couleur" style="display:none; flex-direction:column; gap:10px; align-items:center;">
-      <button id="modal-btn-blanc" class="btn btn-warning" style="min-width:200px;" onclick="fermerModal(); sendAction({type:'abandonner', couleur:'blanc'})" data-i18n="modal.blancs_abandonnent">🏳 Blancs abandonnent</button>
-      <button id="modal-btn-noir"  class="btn btn-warning" style="min-width:200px;" onclick="fermerModal(); sendAction({type:'abandonner', couleur:'noir'})" data-i18n="modal.noirs_abandonnent">🏳 Noirs abandonnent</button>
+      <button id="modal-btn-blanc" class="btn btn-warning" style="min-width:200px;" onclick="fermerModal(); sendAction({type:'abandonner', couleur:'blanc'})" data-i18n="modal.blancs_abandonnent">⚐ Blancs abandonnent</button>
+      <button id="modal-btn-noir"  class="btn btn-warning" style="min-width:200px;" onclick="fermerModal(); sendAction({type:'abandonner', couleur:'noir'})" data-i18n="modal.noirs_abandonnent">⚐ Noirs abandonnent</button>
       <button class="btn btn-continuer" style="min-width:200px;" onclick="fermerModal()" data-i18n="modal.annuler">Annuler</button>
     </div>
   </div>

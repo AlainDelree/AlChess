@@ -101,7 +101,7 @@
   "rodent.elite":              "Elite",
 
   "game.btn.reprendre":        "↩ Zug zurücknehmen",
-  "game.btn.abandonner":       "🏳 Aufgeben",
+  "game.btn.abandonner":       "⚐ Aufgeben",
   "game.btn.nulle":            "🤝 Remis anbieten",
   "game.btn.pause":            "⏸ Pause",
   "game.btn.continuer":        "▶ Weiter",
@@ -214,8 +214,8 @@
   "connecting.msg":            "Verbinde mit Brett…",
   "connecting.sub":            "Stellen Sie sicher, dass das Brett eingeschaltet und in der Ausgangsstellung ist.",
 
-  "modal.blancs_abandonnent":  "🏳 Weiß gibt auf",
-  "modal.noirs_abandonnent":   "🏳 Schwarz gibt auf",
+  "modal.blancs_abandonnent":  "⚐ Weiß gibt auf",
+  "modal.noirs_abandonnent":   "⚐ Schwarz gibt auf",
 
   "outils.titre":              "🛠️ Übungs-Tools",
   "outils.import_pgn.titre":   "📥 Meine PGN-Linien importieren",
@@ -288,6 +288,7 @@
   "game.a_joue":               "{player} ({color}) spielte {san}",
   "game.au_tour":              "Am Zug: {player} ({color})",
   "game.echec":                "⚠ Schach! Am Zug: {player} ({color})",
+  "game.wait_fish_erreur":     "⚠ Figuren zurückstellen, dann {move} ausführen",
   "game.en_attente":           "Warte...",
 
   "toast.nulle_refusee":       "🤝 Remis abgelehnt — {reason}",
@@ -304,7 +305,7 @@
   "modal.qui_abandonne":       "Wer gibt auf?",
   "modal.abandonner_titre":    "Aufgeben?",
   "modal.confirmer_abandon":   "Aufgabe bestätigen",
-  "modal.abandonner_nom":      "🏳 {nom} gibt auf",
+  "modal.abandonner_nom":      "⚐ {nom} gibt auf",
   "modal.nulle_hh_titre":      "Remis von beiden Spielern akzeptiert?",
   "modal.confirmer_nulle":     "Remis bestätigen",
   "modal.nulle_stockfish_titre": "Stockfish Remis anbieten?",

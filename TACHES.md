@@ -11,16 +11,21 @@ _(rien pour l'instant)_
 ## 🐛 Bugs actifs
 
 ### En veille (peu prioritaires)
-- **Race condition LEDs** — synchronisation des camps LED parfois incorrecte. Rare, cause probable hardware/USB. À surveiller si ça s'aggrave.
-- **WAIT_FISH lent intermittent** — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
+- **Race condition LEDs** `[Linux]` — synchronisation des camps LED parfois incorrecte. Rare, cause probable hardware/USB. À surveiller si ça s'aggrave.
+- **WAIT_FISH lent intermittent** `[Les deux]` — Occasionnellement le plateau met très longtemps (>30s) à reconnaître une position après un coup Stockfish. Cause probable : hardware Chessnut Air (stabilisation lente).
 
 ### À corriger
 
-- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** — Quand le moteur a joué et qu'on attend que le joueur exécute le coup sur le plateau physique (WAIT_FISH), si le joueur dérange une pièce (retire une tour, joue le mauvais coup…), le terminal affiche `⚠ N case(s) incorrecte(s)` avec les pièces à replacer, mais l'interface web ne montre rien. Le joueur est bloqué sans feedback visuel. Attendu : afficher un message d'avertissement à l'écran (liste des pièces à corriger), comme le fait déjà l'écran de vérification de position initiale. Log observé : `[WAIT_FISH] 5s en attente... fen_ok=False`.
+- **HH — écran de rangement ignoré si échiquier déconnecté silencieusement** `[Windows]` — Au lancement d'une partie HH avec l'échiquier physique, l'écran de vérification de position initiale ne s'est pas affiché malgré des pièces mal placées, et la partie a démarré directement. Cause probable : l'échiquier s'était déconnecté sans que le programme le détecte (pas d'événement de déconnexion reçu). La reconnexion du programme résout le problème. À investiguer : vérifier si `driver.py` détecte bien la perte de connexion USB et la signale à `alchess.py` pour bloquer le démarrage.
 
 ---
 
 ## ✅ Bugs résolus récemment
+
+- **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** `[Les deux]` — `_display_position_error` n'émettait rien vers le navigateur. Fix : `send_event("board_warning", ...)` + handler JS `board_warning` qui passe le cadre "tour en cours" en orange avec le coup à exécuter. Distingue "pièce pas encore bougée" (source occupée → texte noir normal) de "pièce bougée au mauvais endroit" (source vide → orange). (commits 7dfc05e, 4a81b1f, c24a3ab)
+
+- **Régression font-family — texte espacé sur Linux** `[Linux]` — Ajout des polices emoji (`Noto Color Emoji`, `Segoe UI Emoji`, `Apple Color Emoji`) dans `body font-family` pour corriger l'icône `🏳` causait l'utilisation de `Noto Color Emoji` sur Ubuntu, entraînant des métriques incorrectes sur tout le texte (lettres très espacées). Fix : retrait des polices emoji du body (le remplacement `🏳` → `⚐` U+2690 les rend inutiles). (commit 4ca8bee)
+- **Échiquier Windows VM — taille/forme** `[Windows]` — Viewport VM ~450px rendait l'échiquier trop petit (250px) ; Exercices et Labo en rectangle ; Transcrire trop grand. Fix : `clamp(350px, vh-offset, vw-cap)` + refactoring CSS custom properties `--bd-size`/`--bd-min`/`--bd-max`/`--bd-vw-offset`. (commits 2fc4be4, c361f3a, 6555f64)
 
 - **i18n DE — overlay de démarrage toujours en FR** — script inline synchrone dans l'overlay lit le cookie avant le fetch async ; fallback `'en'` ; `DEFAULT_LOCALE = 'en'` dans i18n.js. (commit 97253f0, c33e5c2, caa1528)
 - **i18n DE — labo : message "⚠ Schach" ne se vidait jamais** — comparaison hardcodée `startsWith("⚠ Échec")` remplacée par `_lastLaboLastMove?.data?.type === "check"`. (commit a0c6767)
@@ -40,6 +45,14 @@ _(rien pour l'instant)_
 ---
 
 ## 💡 Fonctionnalités à venir
+
+- **Installateur Windows** `install_alchess.ps1` `[Windows]` ✅ — Écrit (commit 3c21705). À tester sur VM Windows avant merge master.
+  - ✅ Vérifie Windows 10+ (build < 10240 → arrêt propre)
+  - ✅ Détecte Python 3.12+ via `py -3.12` ou `python`
+  - ✅ Si absent : installe via winget (non-destructif) ou guide vers python.org
+  - ✅ Crée le venv, installe les dépendances pip
+  - ✅ Stockfish : propose téléchargement (O/N) si absent, skip si déjà présent
+  - ✅ `start_alchess.ps1` généralisé (chemin auto-détecté, plus de hardcode)
 
 - **Labo — mode virtuel** — ✅ Terminé (commits d4b1779→43bc11f). Undo, auto, PGN, promotions validés.
 - **Version de AlChess en anglais** — i18n en cours :
@@ -70,13 +83,23 @@ _(rien pour l'instant)_
     - `test_hidapi_windows.py` : 16/16 sur Windows 11 VM — connexion ✓, FEN ✓, LEDs ✓, beep ✓, latence 0.0ms ✓
     - Interface Col02 (usage_page=0xFF00) utilisée sur Windows ; Col01 (0x0001) muet
     - Deux report IDs alternatifs : 0x01 (position) + 0x2a (statut) — `hid_backend.py` mis à jour (filtre supprimé, bounds check, try/except)
-  - **Portage Windows — Phase 2 (application complète) : à faire** :
-    - Installer les dépendances : `pip install flask flask-socketio python-chess eventlet`
-    - Tester le démarrage : `python -m nicsoft.web`
-    - Obtenir Stockfish Windows (`.exe`) et le placer dans `engines/`
-    - Adapter `engine_manager.py` : chercher `stockfish.exe` sur `sys.platform == "win32"`
-    - Tester les modes un par un : pédagogique, HH, labo, retranscription, exercices
-    - Vérifier les chemins (séparateurs `\` vs `/`) via `nicsoft/config.py` (utilise `pathlib` — OK en principe)
+  - **Portage Windows — Phase 2 (application complète) : en cours** :
+    - ✅ `find_stockfish()` : glob `stockfish*.exe` sur Windows (fonctionne avec nom long)
+    - ✅ `find_rodent()` : nouvelle fonction — `rodentIV.exe` sur Windows, `rodentIV` sinon
+    - ✅ `find_lc0()` : cherche aussi `engines/maia/lc0.exe`
+    - ✅ `server.py` : `os.kill(SIGINT)` → `os._exit(0)` (cross-platform)
+    - ✅ `config.py` : `APP_DIR` détecté depuis `__file__` (plus de dépendance à `~/NicLink`)
+    - ✅ `game_manager.py` : `_validated_engine_path()` — ignore path config.json si inexistant sur l'OS courant
+    - ✅ Mode pédagogique virtuel fonctionnel sur Windows (screenshot validé)
+    - ✅ Labo, Retranscription, Exercices : fonctionnels sur Windows
+    - ✅ HH : bouton grisé en mode virtuel — `board_ok` respecte `data-physical-only` (commit 3c21705)
+    - ✅ Lancement : `start_alchess.ps1` généralisé (commit 3c21705)
+    - [x] Cosmétique Windows (passe CSS dédiée) :
+        - ✅ Taille échiquier variable : `clamp(350px, 100vh-200px, vw-cap)` + breakpoint `innerWidth` + listener `resize` (commits 2fc4be4, 4040492)
+        - ✅ Icône bouton Abandonner : `🏳` (U+1F3F3, hors BMP) → `⚐` (U+2690, BMP, universel) (commit 4040492)
+        - Numéros de lignes échiquier mal alignés (rendu police Windows) — en veille
+    - ✅ `launcher.py` (GTK splash) : ignoré sur Windows — on lance directement via `start_alchess.ps1`
+    - [ ] **Tester `install_alchess.ps1` sur VM Windows** avant merge master
 
 ---
 ## 🧪 Tests automatisés

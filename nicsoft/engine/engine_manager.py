@@ -449,10 +449,15 @@ def find_stockfish() -> str | None:
     Cherche l'exécutable Stockfish sur le système.
     Retourne le chemin ou None si introuvable.
     """
+    import sys
     import shutil
-    # Chemins courants sous Linux/Mac
+    # Windows : glob stockfish*.exe dans engines/
+    if sys.platform == "win32":
+        for p in sorted(ENGINES_DIR.glob("stockfish*.exe")):
+            return str(p)
     candidates = [
         shutil.which("stockfish"),
+        str(ENGINES_DIR / "stockfish"),
         "/usr/games/stockfish",
         "/usr/bin/stockfish",
         "/usr/local/bin/stockfish",
@@ -478,12 +483,21 @@ MAIA_LEVELS = {
     1900: "maia-1900.pb.gz",
 }
 
+def find_rodent() -> str | None:
+    """Cherche l'exécutable Rodent IV selon la plateforme."""
+    import sys
+    exe = "rodentIV.exe" if sys.platform == "win32" else "rodentIV"
+    path = ENGINES_DIR / "rodent-iv" / exe
+    return str(path) if path.exists() else None
+
+
 def find_lc0() -> str | None:
     """Cherche l'exécutable lc0 sur le système."""
     import shutil
     candidates = [
         shutil.which("lc0"),
-        str(ENGINES_DIR / "maia" / "lc0"),
+        str(ENGINES_DIR / "maia" / "lc0.exe"),  # Windows
+        str(ENGINES_DIR / "maia" / "lc0"),       # Linux/Mac
         str(Path.home() / "lc0" / "build" / "release" / "lc0"),
         "/usr/local/bin/lc0",
         "/usr/bin/lc0",

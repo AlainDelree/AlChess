@@ -23,3 +23,14 @@ TRAVAIL_EN_COURS/
 #Fichiers rearchitecture Linux Windows Android
 REARCHITECTURE_ALAIN.md
 REARCHITECTURE_CLAUDE_CODE.md
+
+# Exécutables moteurs Windows (trop lourds, téléchargés par install_alchess.ps1)
+engines/stockfish*.exe
+engines/stockfish-windows*/
+engines/lc0*.exe
+
+# Fichiers de debug et test
+debug_*.txt
+test_windows_result.txt
+alchess_err.txt
+alchess_log.txt

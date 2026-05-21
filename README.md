@@ -20,14 +20,26 @@ Application d'entraînement aux échecs connectant un échiquier physique **Ches
 
 > ℹ️ Tous les modes (sauf Humain vs Humain) fonctionnent sans échiquier physique grâce à un échiquier virtuel intégré.
 
-### Matériel requis
+### Systèmes supportés
 
-- Échiquier **Chessnut Air** (USB, `idVendor=2d80 idProduct=8003`)
-- Ubuntu 22.04 ou 24.04 (x86_64)
+| Système | Support |
+|---------|---------|
+| Ubuntu 22.04 / 24.04 (x86_64) | ✅ Complet |
+| Windows 10 / 11 (x86_64) | ✅ Complet |
 
-> ⚠️ Le Chessnut Air+ a un `idProduct` différent — vérifier avec `lsusb | grep 2d80`.
+> ⚠️ Le Chessnut Air+ a un `idProduct` différent du Chessnut Air — vérifier avec `lsusb | grep 2d80` (Linux) ou le Gestionnaire de périphériques (Windows).
 
-### Installation
+### Installation — Windows
+
+1. Téléchargez le dépôt : bouton **Code → Download ZIP** sur GitHub, puis extrayez
+2. Double-cliquez sur **`installer.bat`**
+3. Le script installe Python 3.12 si nécessaire, crée l'environnement virtuel et installe les dépendances
+4. Répondez **O** pour télécharger Stockfish automatiquement (ou **N** pour le placer manuellement dans `engines\`)
+5. Lancez AlChess en double-cliquant sur **`start_alchess.ps1`**
+
+> ℹ️ L'interface s'ouvre dans votre navigateur. Ne fermez pas la fenêtre PowerShell pendant l'utilisation.
+
+### Installation — Linux (Ubuntu)
 
 Voir [`INSTALLATION/INSTALLATION_NICLINK.md`](INSTALLATION/INSTALLATION_NICLINK.md) pour le guide complet.
 
@@ -39,19 +51,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Lancement
+### Lancement — Linux
 
 ```bash
-/usr/bin/python3 ~/AlChess/nicsoft/web/launcher.py
+cd ~/AlChess && source venv/bin/activate && python -m nicsoft.web
 ```
 
 ### Moteurs inclus
 
-| Moteur | Source |
-|--------|--------|
-| Stockfish | `sudo apt install stockfish` |
-| Maia (lc0) | Binaire inclus (x86_64 Linux) |
-| Rodent IV | Binaire inclus (x86_64 Linux) |
+| Moteur | Linux | Windows |
+|--------|-------|---------|
+| Stockfish | `sudo apt install stockfish` | Téléchargé par `installer.bat` |
+| Maia (lc0) | Binaire inclus (x86_64) | Binaire inclus (x86_64) |
+| Rodent IV | Binaire inclus (x86_64) | Binaire inclus (x86_64) |
 
 ### Contribuer
 
@@ -78,14 +90,26 @@ A chess training application connecting a **Chessnut Air** physical chessboard t
 
 > ℹ️ All modes (except Human vs Human) work without a physical board thanks to a built-in virtual chessboard.
 
-### Hardware required
+### Supported systems
 
-- **Chessnut Air** chessboard (USB, `idVendor=2d80 idProduct=8003`)
-- Ubuntu 22.04 or 24.04 (x86_64)
+| System | Support |
+|--------|---------|
+| Ubuntu 22.04 / 24.04 (x86_64) | ✅ Full |
+| Windows 10 / 11 (x86_64) | ✅ Full |
 
-> ⚠️ The Chessnut Air+ has a different `idProduct` — check with `lsusb | grep 2d80`.
+> ⚠️ The Chessnut Air+ has a different `idProduct` from the Chessnut Air — check with `lsusb | grep 2d80` (Linux) or Device Manager (Windows).
 
-### Installation
+### Installation — Windows
+
+1. Download the repo: click **Code → Download ZIP** on GitHub, then extract
+2. Double-click **`installer.bat`**
+3. The script installs Python 3.12 if needed, creates the virtual environment and installs dependencies
+4. Answer **Y** to download Stockfish automatically (or **N** to place it manually in `engines\`)
+5. Launch AlChess by double-clicking **`start_alchess.ps1`**
+
+> ℹ️ The interface opens in your browser. Do not close the PowerShell window while using the app.
+
+### Installation — Linux (Ubuntu)
 
 See [`INSTALLATION/INSTALLATION_NICLINK.md`](INSTALLATION/INSTALLATION_NICLINK.md) for the full guide.
 
@@ -97,21 +121,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Launch
+### Launch — Linux
 
 ```bash
-/usr/bin/python3 ~/AlChess/nicsoft/web/launcher.py
+cd ~/AlChess && source venv/bin/activate && python -m nicsoft.web
 ```
 
 ### Engines
 
-| Engine | Source |
-|--------|--------|
-| Stockfish | `sudo apt install stockfish` |
-| Maia (lc0) | Binary included (x86_64 Linux) |
-| Rodent IV | Binary included (x86_64 Linux) |
-
-> ⚠️ The Rust driver `_niclink.so` is not included in the repo — it must be compiled from sources in `nicsoft/niclink/src/` or copied from a working machine. See the installation guide.
+| Engine | Linux | Windows |
+|--------|-------|---------|
+| Stockfish | `sudo apt install stockfish` | Downloaded by `installer.bat` |
+| Maia (lc0) | Binary included (x86_64) | Binary included (x86_64) |
+| Rodent IV | Binary included (x86_64) | Binary included (x86_64) |
 
 ### Contributing
 

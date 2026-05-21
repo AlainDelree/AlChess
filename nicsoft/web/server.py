@@ -177,8 +177,8 @@ def on_disconnect():
     # Lancer un timer — si pas de reconnexion dans le délai, quitter
     def _shutdown():
         print("[WEB] Aucune reconnexion — fermeture du programme.")
-        import os, signal
-        os.kill(os.getpid(), signal.SIGINT)
+        import os
+        os._exit(0)
     _disconnect_timer = threading.Timer(_DISCONNECT_TIMEOUT, _shutdown)
     _disconnect_timer.daemon = True
     _disconnect_timer.start()

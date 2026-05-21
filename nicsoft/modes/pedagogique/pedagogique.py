@@ -32,7 +32,7 @@ import chess
 import chess.pgn
 import numpy as np
 
-from nicsoft.engine.engine_manager import EngineManager, find_stockfish
+from nicsoft.engine.engine_manager import EngineManager, find_stockfish, find_rodent
 from nicsoft.utils.timing import tlog
 from nicsoft.utils.debug import DEBUG_MODE
 from nicsoft.engine.display import (
@@ -167,6 +167,8 @@ def _display_position_error(
         elif context == "human":
             print("   Une fois remis en ordre, jouez votre coup.")
     print()
+    if context == "fish" and fish_move:
+        send_event("board_warning", {"message_key": "game.wait_fish_erreur", "vars": {"move": fish_move}})
 
 
 # ──────────────────────────────────────────────
@@ -295,10 +297,9 @@ class Game(threading.Thread):
             self.engine_elo = maia_elo
 
         elif engine_type == "rodent":
-            rodent_path = str(ENGINES_DIR / "rodent-iv" / "rodentIV")
-            from pathlib import Path as _Path
-            if not _Path(rodent_path).exists():
-                raise RuntimeError(f"Rodent introuvable : {rodent_path}")
+            rodent_path = find_rodent()
+            if not rodent_path:
+                raise RuntimeError(f"Rodent introuvable dans {ENGINES_DIR / 'rodent-iv'}")
             self.engine = EngineManager(
                 rodent_path,
                 engine_elo=rodent_elo,
@@ -1557,6 +1558,7 @@ class Game(threading.Thread):
         _last_log   = time.time()
         _last_print = time.time()
         _loop_count = 0
+        _warning_sent = False
         try:
             while True:
                 if self.nl_inst.kill_switch.is_set():
@@ -1594,7 +1596,7 @@ class Game(threading.Thread):
                             except Exception:
                                 pass
                     threading.Thread(target=_do_led_off, daemon=True).start()
-                    if warning_shown:
+                    if warning_shown or _warning_sent:
                         print("   Position rétablie. Continuez.")
                         send_event("turn", {
                             "color":    "white" if self.playing_white == chess.WHITE else "black",
@@ -1630,6 +1632,16 @@ class Game(threading.Thread):
                 if diff_count <= 2:
                     bad_fen_since = None; last_bad_fen = None
                     warning_shown = False; last_diff_count = 0
+                    # Pièce source toujours en place → joueur n'a pas encore bougé → pas de warning
+                    # Pièce source absente → joueur a bougé mais au mauvais endroit → warning orange
+                    try:
+                        src_sq = chess.parse_square(fish_move[:2])
+                        piece_moved_wrong = tmp_board.piece_at(src_sq) is None
+                    except Exception:
+                        piece_moved_wrong = False
+                    if piece_moved_wrong and not _warning_sent:
+                        send_event("board_warning", {"message_key": "game.wait_fish_erreur", "vars": {"move": fish_move}})
+                        _warning_sent = True
                     time.sleep(0.05)
                     continue
 
