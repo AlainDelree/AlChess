@@ -43,6 +43,15 @@ _(rien pour l'instant)_
 
 ## 💡 Fonctionnalités à venir
 
+- **Installateur Windows** `install_alchess.ps1` `[Windows]` — Requiert Windows 10+ minimum (Python 3.12 et winget non disponibles sur Windows 8/8.1). Script PowerShell d'installation automatique :
+  - Vérifie si Python 3.12+ est disponible via `py -3.12` (Windows Launcher)
+  - Si absent : installe Python 3.12 via `winget install Python.Python.3.12` (non-destructif, cohabite avec les autres versions)
+  - Si version incompatible déjà présente : installe 3.12 en parallèle sans toucher à l'existant
+  - Si `winget` indisponible (Windows ancien) : message clair + lien python.org + arrêt propre
+  - Crée le venv avec `py -3.12 -m venv venv` (garantit la bonne version)
+  - Installe les dépendances pip
+  - Télécharge Stockfish si absent
+
 - **Labo — mode virtuel** — ✅ Terminé (commits d4b1779→43bc11f). Undo, auto, PGN, promotions validés.
 - **Version de AlChess en anglais** — i18n en cours :
   - ✅ Phase 1 : infrastructure (i18n.js, JSON, sélecteur FR/EN)
