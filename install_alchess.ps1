@@ -175,13 +175,13 @@ function Assert-LaunchScript {
     $ps1 = "$scriptDir\start_alchess.ps1"
     if (-not (Test-Path $ps1)) {
         Write-Warn "start_alchess.ps1 non trouvé — création..."
-        @'
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$env:PYTHONPYCACHEPREFIX = "$env:TEMP\alchess_pyc"
-$env:PYTHONIOENCODING = "utf-8"
-Set-Location $scriptDir
-& "$scriptDir\venv\Scripts\python.exe" -m nicsoft.web 2>&1 | Tee-Object "$scriptDir\alchess_log.txt"
-'@ | Set-Content $ps1 -Encoding UTF8
+        @(
+            '$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition',
+            '$env:PYTHONPYCACHEPREFIX = "$env:TEMP\alchess_pyc"',
+            '$env:PYTHONIOENCODING = "utf-8"',
+            'Set-Location $scriptDir',
+            '& "$scriptDir\venv\Scripts\python.exe" -m nicsoft.web 2>&1 | Tee-Object "$scriptDir\alchess_log.txt"'
+        ) | Set-Content $ps1 -Encoding UTF8
     }
 }
 
