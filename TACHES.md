@@ -46,14 +46,13 @@ _(rien pour l'instant)_
 
 ## 💡 Fonctionnalités à venir
 
-- **Installateur Windows** `install_alchess.ps1` `[Windows]` — Requiert Windows 10+ minimum (Python 3.12 et winget non disponibles sur Windows 8/8.1). Script PowerShell d'installation automatique :
-  - Vérifie si Python 3.12+ est disponible via `py -3.12` (Windows Launcher)
-  - Si absent : installe Python 3.12 via `winget install Python.Python.3.12` (non-destructif, cohabite avec les autres versions)
-  - Si version incompatible déjà présente : installe 3.12 en parallèle sans toucher à l'existant
-  - Si `winget` indisponible (Windows ancien) : message clair + lien python.org + arrêt propre
-  - Crée le venv avec `py -3.12 -m venv venv` (garantit la bonne version)
-  - Installe les dépendances pip
-  - Télécharge Stockfish si absent
+- **Installateur Windows** `install_alchess.ps1` `[Windows]` ✅ — Écrit (commit 3c21705). À tester sur VM Windows avant merge master.
+  - ✅ Vérifie Windows 10+ (build < 10240 → arrêt propre)
+  - ✅ Détecte Python 3.12+ via `py -3.12` ou `python`
+  - ✅ Si absent : installe via winget (non-destructif) ou guide vers python.org
+  - ✅ Crée le venv, installe les dépendances pip
+  - ✅ Stockfish : propose téléchargement (O/N) si absent, skip si déjà présent
+  - ✅ `start_alchess.ps1` généralisé (chemin auto-détecté, plus de hardcode)
 
 - **Labo — mode virtuel** — ✅ Terminé (commits d4b1779→43bc11f). Undo, auto, PGN, promotions validés.
 - **Version de AlChess en anglais** — i18n en cours :
@@ -93,13 +92,14 @@ _(rien pour l'instant)_
     - ✅ `game_manager.py` : `_validated_engine_path()` — ignore path config.json si inexistant sur l'OS courant
     - ✅ Mode pédagogique virtuel fonctionnel sur Windows (screenshot validé)
     - ✅ Labo, Retranscription, Exercices : fonctionnels sur Windows
-    - ✅ HH : skip (nécessite échiquier physique, bouton à masquer en mode virtuel — TODO existant)
-    - ✅ Lancement : `$env:PYTHONPYCACHEPREFIX="C:\Users\Al\AppData\Local\Temp\alchess_pyc"` puis `python -m nicsoft.web`
+    - ✅ HH : bouton grisé en mode virtuel — `board_ok` respecte `data-physical-only` (commit 3c21705)
+    - ✅ Lancement : `start_alchess.ps1` généralisé (commit 3c21705)
     - [x] Cosmétique Windows (passe CSS dédiée) :
         - ✅ Taille échiquier variable : `clamp(350px, 100vh-200px, vw-cap)` + breakpoint `innerWidth` + listener `resize` (commits 2fc4be4, 4040492)
         - ✅ Icône bouton Abandonner : `🏳` (U+1F3F3, hors BMP) → `⚐` (U+2690, BMP, universel) (commit 4040492)
         - Numéros de lignes échiquier mal alignés (rendu police Windows) — en veille
-    - [ ] `launcher.py` (GTK splash) : à adapter ou ignorer pour Windows
+    - ✅ `launcher.py` (GTK splash) : ignoré sur Windows — on lance directement via `start_alchess.ps1`
+    - [ ] **Tester `install_alchess.ps1` sur VM Windows** avant merge master
 
 ---
 ## 🧪 Tests automatisés
