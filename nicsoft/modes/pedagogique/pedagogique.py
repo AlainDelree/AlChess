@@ -1632,7 +1632,14 @@ class Game(threading.Thread):
                 if diff_count <= 2:
                     bad_fen_since = None; last_bad_fen = None
                     warning_shown = False; last_diff_count = 0
-                    if not _warning_sent and time.time() - _t_wait >= 3.0:
+                    # Pièce source toujours en place → joueur n'a pas encore bougé → pas de warning
+                    # Pièce source absente → joueur a bougé mais au mauvais endroit → warning orange
+                    try:
+                        src_sq = chess.parse_square(fish_move[:2])
+                        piece_moved_wrong = tmp_board.piece_at(src_sq) is None
+                    except Exception:
+                        piece_moved_wrong = False
+                    if piece_moved_wrong and not _warning_sent:
                         send_event("board_warning", {"message_key": "game.wait_fish_erreur", "vars": {"move": fish_move}})
                         _warning_sent = True
                     time.sleep(0.05)
