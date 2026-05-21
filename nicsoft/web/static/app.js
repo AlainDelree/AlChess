@@ -854,6 +854,14 @@ socket.on("turn", (data) => {
 
 });
 
+socket.on("board_warning", (data) => {
+  const turnInfo = document.getElementById("turn-info");
+  if (turnInfo) {
+    turnInfo.textContent = t(data.message_key, data.vars || {});
+    turnInfo.className = "warning";
+  }
+});
+
 socket.on("feedback", (data) => { showFeedback(data); });
 
 socket.on("swap_color", (data) => {

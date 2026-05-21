@@ -288,6 +288,7 @@
   "game.a_joue":               "{player} ({color}) spielte {san}",
   "game.au_tour":              "Am Zug: {player} ({color})",
   "game.echec":                "⚠ Schach! Am Zug: {player} ({color})",
+  "game.wait_fish_erreur":     "⚠ Figuren zurückstellen, dann {move} ausführen",
   "game.en_attente":           "Warte...",
 
   "toast.nulle_refusee":       "🤝 Remis abgelehnt — {reason}",

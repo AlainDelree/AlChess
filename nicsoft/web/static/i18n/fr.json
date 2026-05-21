@@ -288,6 +288,7 @@
   "game.a_joue":               "{player} ({color}) a joué {san}",
   "game.au_tour":              "Au tour de {player} ({color})",
   "game.echec":                "⚠ Échec ! Au tour de {player} ({color})",
+  "game.wait_fish_erreur":     "⚠ Replacez les pièces, puis exécutez {move}",
   "game.en_attente":           "En attente...",
 
   "toast.nulle_refusee":       "🤝 Nulle refusée — {reason}",

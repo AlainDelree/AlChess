@@ -288,6 +288,7 @@
   "game.a_joue":               "{player} ({color}) played {san}",
   "game.au_tour":              "{player}'s turn ({color})",
   "game.echec":                "⚠ Check! {player}'s turn ({color})",
+  "game.wait_fish_erreur":     "⚠ Fix the pieces, then play {move}",
   "game.en_attente":           "Waiting...",
 
   "toast.nulle_refusee":       "🤝 Draw declined — {reason}",

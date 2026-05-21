@@ -167,6 +167,8 @@ def _display_position_error(
         elif context == "human":
             print("   Une fois remis en ordre, jouez votre coup.")
     print()
+    if context == "fish" and fish_move:
+        send_event("board_warning", {"message_key": "game.wait_fish_erreur", "vars": {"move": fish_move}})
 
 
 # ──────────────────────────────────────────────
