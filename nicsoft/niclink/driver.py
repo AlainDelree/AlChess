@@ -118,7 +118,6 @@ class NicLinkManager(threading.Thread):
         self._led_cancel        = threading.Event()  # annule la commande en cours
         self._led_worker_thread = None
 
-        self._usb_lock          = threading.Lock()  # alias de compatibilité (beep legacy)
         self._fen_reader_thread = None
 
         try:
@@ -329,11 +328,6 @@ and turned on?"
         self._stop_fen_reader()
         self.nl_interface.disconnect()
         self.logger.info("\n-- Board disconnected --\n")
-
-    def beep(self) -> None:
-        """make the chessboard beep"""
-        with self._usb_lock:
-            self.nl_interface.beep()
 
     def reset(self) -> None:
         """reset NicLink"""
