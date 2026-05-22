@@ -867,7 +867,7 @@ def _do_copy_to_board(target_fen: str) -> None:
     nl.turn_off_all_leds()
 
 
-# ── Analyse libre ──────────────────────────────────────────────────────────────
+# ── Labo libre ─────────────────────────────────────────────────────────────────
 def launch_labo_libre(config):
     import json
     player        = config.get("player", "Anonyme") or "Anonyme"
