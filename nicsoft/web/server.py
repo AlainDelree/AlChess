@@ -46,7 +46,7 @@ menu_queue: queue.Queue = queue.Queue()
 
 # Statut de la connexion échiquier — renvoyé au navigateur qui se connecte
 # None = pas encore vérifié, "ok" = connecté, "error" = non détecté
-_board_status: str = None
+_board_status: str | None = None
 _board_error_message: str = ""
 
 # Référence vers le VirtualBoard actif — None si mode physique
