@@ -31,6 +31,7 @@ _exercice_running = False
 _ex_thread        = None
 _exercice_session = 0
 _copy_cancel      = threading.Event()
+_exercice_lock    = threading.Lock()
 
 logger = logging.getLogger("niclink.game_manager")
 
@@ -383,11 +384,12 @@ def start_drill(config: dict) -> None:
 
 def _run_exercice(config: dict) -> None:
     global _exercice_running, _nl_inst_ref, _exercice_session
-    if _exercice_running:
-        return
-    _exercice_running = True
-    _exercice_session += 1
-    my_session = _exercice_session
+    with _exercice_lock:
+        if _exercice_running:
+            return
+        _exercice_running = True
+        _exercice_session += 1
+        my_session = _exercice_session
 
     from nicsoft.modes.exercices.exercices import ExerciceSession, OUVERTURES, get_mes_lignes
 
@@ -454,7 +456,8 @@ def _run_exercice(config: dict) -> None:
         import traceback; traceback.print_exc()
         send_event("board_error", {"message": "Échiquier non détecté."})
     finally:
-        _exercice_running = False
+        with _exercice_lock:
+            _exercice_running = False
         set_virtual_board(None)
         if engine:
             try: engine.quit()
@@ -475,11 +478,12 @@ def _run_exercice(config: dict) -> None:
 
 def _run_drill(config: dict) -> None:
     global _exercice_running, _nl_inst_ref, _exercice_session
-    if _exercice_running:
-        return
-    _exercice_running = True
-    _exercice_session += 1
-    my_session = _exercice_session
+    with _exercice_lock:
+        if _exercice_running:
+            return
+        _exercice_running = True
+        _exercice_session += 1
+        my_session = _exercice_session
 
     from nicsoft.modes.exercices.exercices import DrillSession, get_mes_lignes
 
@@ -543,7 +547,8 @@ def _run_drill(config: dict) -> None:
         logger.error(f"[DRILL] Erreur : {e}")
         send_event("board_error", {"message": "Échiquier non détecté."})
     finally:
-        _exercice_running = False
+        with _exercice_lock:
+            _exercice_running = False
         set_virtual_board(None)
         if engine:
             try: engine.quit()
