@@ -31,7 +31,9 @@ _exercice_running = False
 _ex_thread        = None
 _exercice_session = 0
 _copy_cancel      = threading.Event()
+_exercice_lock    = threading.Lock()
 
+logger = logging.getLogger("niclink.game_manager")
 
 # ── Accesseurs ─────────────────────────────────────────────────────────────────
 def set_virtual_mode(val: bool) -> None:
@@ -169,9 +171,9 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         nl_inst = create_board(virtual=virtual, logger_name="NicLink")
         if virtual:
             set_virtual_board(nl_inst)
-            print("VirtualBoard OK")
+            logger.info("VirtualBoard OK")
         else:
-            print("NicLink OK")
+            logger.info("NicLink OK")
         _nl_inst_ref = nl_inst
         if not virtual:
             _wait_initial_position_web(nl_inst)
@@ -220,17 +222,17 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
             try: _aq.get_nowait()
             except Exception: break
         game.save_pgn_tmp()
-        print(f"Partie : {player_name} vs {engine_label}")
+        logger.info(f"Partie : {player_name} vs {engine_label}")
         game.start()
     except BackMenuExit:
         pass
     except SystemExit as e:
         if "board connection error" in str(e):
-            print("Erreur : échiquier non détecté.")
+            logger.error("Erreur : échiquier non détecté.")
             if _error: _error[0] = True
             send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
     except Exception as e:
-        print(f"Erreur inattendue mode pédagogique : {e}")
+        logger.error(f"Erreur inattendue mode pédagogique : {e}")
         import traceback; traceback.print_exc()
         send_event("popup", {"message": f"Erreur : {e}"})
     finally:
@@ -276,7 +278,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
         nl_inst = create_board(virtual=virtual, logger_name="NicLink_humain")
         if virtual:
             set_virtual_board(nl_inst)
-            print("VirtualBoard OK — Humain")
+            logger.info("VirtualBoard OK — Humain")
         if not virtual:
             _wait_initial_position_web(nl_inst)
         _nl_inst_ref = nl_inst
@@ -297,7 +299,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
             except Exception: break
 
         game.save_pgn_tmp()
-        print(f"Partie : {white_name} vs {black_name}")
+        logger.info(f"Partie : {white_name} vs {black_name}")
         game.start()
         if game.game_over and web_server._app_state != "game_over":
             web_server._app_state = "game_over"
@@ -305,7 +307,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
     except SystemExit:
         pass
     except Exception as e:
-        print(f"Erreur : {e}")
+        logger.error(f"Erreur mode humain : {e}")
         import traceback; traceback.print_exc()
         if _error: _error[0] = True
         send_event("board_error", {"message": "Échiquier non détecté."})
@@ -366,7 +368,7 @@ def start_exercice(config: dict) -> None:
     if _ex_thread and _ex_thread.is_alive():
         _ex_thread.join(timeout=3.0)
         if _ex_thread.is_alive():
-            print("[EXERCICE] Thread précédent encore vivant après join — force reset")
+            logger.warning("[EXERCICE] Thread précédent encore vivant après join — force reset")
             _exercice_running = False
     _ex_thread = threading.Thread(target=_run_exercice, args=(config,), daemon=True)
     _ex_thread.start()
@@ -382,11 +384,12 @@ def start_drill(config: dict) -> None:
 
 def _run_exercice(config: dict) -> None:
     global _exercice_running, _nl_inst_ref, _exercice_session
-    if _exercice_running:
-        return
-    _exercice_running = True
-    _exercice_session += 1
-    my_session = _exercice_session
+    with _exercice_lock:
+        if _exercice_running:
+            return
+        _exercice_running = True
+        _exercice_session += 1
+        my_session = _exercice_session
 
     from nicsoft.modes.exercices.exercices import ExerciceSession, OUVERTURES, get_mes_lignes
 
@@ -408,9 +411,9 @@ def _run_exercice(config: dict) -> None:
         nl_inst = create_board(virtual=_virtual_mode, logger_name="NicLink_exercice")
         if _virtual_mode:
             set_virtual_board(nl_inst)
-            print("VirtualBoard OK — Exercice")
+            logger.info("VirtualBoard OK — Exercice")
         else:
-            print("NicLink OK — Exercice ouverture")
+            logger.info("NicLink OK — Exercice ouverture")
 
         _nl_inst_ref = nl_inst
 
@@ -441,7 +444,7 @@ def _run_exercice(config: dict) -> None:
             engine = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=False)
             session._engine = engine
         except Exception as e:
-            print(f"[EXERCICE] Moteur non disponible pour mode libre : {e}")
+            logger.warning(f"[EXERCICE] Moteur non disponible pour mode libre : {e}")
 
         if _virtual_mode:
             nl_inst.game_board = session.board.copy()
@@ -449,11 +452,12 @@ def _run_exercice(config: dict) -> None:
         session.run()
 
     except Exception as e:
-        print(f"[EXERCICE] Erreur : {e}")
+        logger.error(f"[EXERCICE] Erreur : {e}")
         import traceback; traceback.print_exc()
         send_event("board_error", {"message": "Échiquier non détecté."})
     finally:
-        _exercice_running = False
+        with _exercice_lock:
+            _exercice_running = False
         set_virtual_board(None)
         if engine:
             try: engine.quit()
@@ -474,11 +478,12 @@ def _run_exercice(config: dict) -> None:
 
 def _run_drill(config: dict) -> None:
     global _exercice_running, _nl_inst_ref, _exercice_session
-    if _exercice_running:
-        return
-    _exercice_running = True
-    _exercice_session += 1
-    my_session = _exercice_session
+    with _exercice_lock:
+        if _exercice_running:
+            return
+        _exercice_running = True
+        _exercice_session += 1
+        my_session = _exercice_session
 
     from nicsoft.modes.exercices.exercices import DrillSession, get_mes_lignes
 
@@ -533,16 +538,17 @@ def _run_drill(config: dict) -> None:
             engine = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=False)
             session._engine = engine
         except Exception as e:
-            print(f"[DRILL] Moteur non chargé : {e}")
+            logger.warning(f"[DRILL] Moteur non chargé : {e}")
 
         nl_inst.game_board = session.board.copy()
         session.run()
 
     except Exception as e:
-        print(f"[DRILL] Erreur : {e}")
+        logger.error(f"[DRILL] Erreur : {e}")
         send_event("board_error", {"message": "Échiquier non détecté."})
     finally:
-        _exercice_running = False
+        with _exercice_lock:
+            _exercice_running = False
         set_virtual_board(None)
         if engine:
             try: engine.quit()
@@ -600,7 +606,7 @@ def _poll_board_fen_labo():
                 pass
             time.sleep(0.3)
     except Exception as e:
-        print(f"[LABO POLL] Erreur : {e}")
+        logger.error(f"[LABO POLL] Erreur : {e}")
     finally:
         if nl:
             try: nl._fen_reader_stop.set()
@@ -648,7 +654,7 @@ def _run_labo_session():
 
     nl = _nl_inst_ref
     if nl is None:
-        print("[LABO] Échiquier non disponible")
+        logger.error("[LABO] Échiquier non disponible")
         return
 
     labo_config = {
@@ -663,7 +669,7 @@ def _run_labo_session():
     try:
         session = _make_labo_session(nl, labo_config)
     except Exception as e:
-        print(f"[LABO] Erreur création session : {e}")
+        logger.error(f"[LABO] Erreur création session : {e}")
         return
 
     session._running = True
@@ -741,7 +747,7 @@ def _run_labo_session():
                     })
                     session._send_position()
                 except Exception as e:
-                    print(f"[LABO] Erreur recréation : {e}")
+                    logger.error(f"[LABO] Erreur recréation : {e}")
 
         elif atype == "best_move":
             from nicsoft.web.server import action_queue as _aq
@@ -816,7 +822,7 @@ def _run_labo_session():
                         session.set_board_from_fen(target_fen)
                         send_event("position_ok", {"fen": fen_clean})
                     except Exception as e:
-                        print(f"[LABO] set_board_from_fen virtuel : {e}")
+                        logger.error(f"[LABO] set_board_from_fen virtuel : {e}")
                 else:
                     _copy_cancel.set()
                     time.sleep(0.1)
@@ -826,7 +832,7 @@ def _run_labo_session():
                             try:
                                 session.set_board_from_fen(fen)
                             except Exception as e:
-                                print(f"[LABO] set_board_from_fen : {e}")
+                                logger.error(f"[LABO] set_board_from_fen : {e}")
                     threading.Thread(target=_copy_thread, daemon=True).start()
 
     _copy_cancel.set()
@@ -866,8 +872,8 @@ def _do_copy_to_board(target_fen: str) -> None:
     nl.turn_off_all_leds()
 
 
-# ── Analyse libre ──────────────────────────────────────────────────────────────
-def launch_analyse_libre(config):
+# ── Labo libre ─────────────────────────────────────────────────────────────────
+def launch_labo_libre(config):
     import json
     player        = config.get("player", "Anonyme") or "Anonyme"
     color         = config.get("color", "white")
@@ -900,7 +906,7 @@ def launch_analyse_libre(config):
     set_app_state("connecting")
     _error = [False]
     t = threading.Thread(
-        target=_run_analyse_libre,
+        target=_run_labo_libre,
         args=(player, playing_white, start_fen, pause, analyse, bip,
               engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple, _error),
         daemon=True,
@@ -916,7 +922,7 @@ def launch_analyse_libre(config):
         set_app_state("menu")
 
 
-def _run_analyse_libre(player_name, playing_white, start_fen, pause, analyse_active, bip_active,
+def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active, bip_active,
                        engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple,
                        _error=None):
     from nicsoft.modes.labo.labo import LaboSession
@@ -924,7 +930,7 @@ def _run_analyse_libre(player_name, playing_white, start_fen, pause, analyse_act
     nl_inst = None
     try:
         nl_inst = create_board(virtual=False, logger_name="NicLink_libre")
-        print("NicLink OK")
+        logger.info("NicLink OK")
         _nl_inst_ref = nl_inst
 
         _wait_position_web(nl_inst, start_fen)
@@ -967,13 +973,13 @@ def _run_analyse_libre(player_name, playing_white, start_fen, pause, analyse_act
             "analyse":      analyse_active,
         })
 
-        print(f"Labo : {player_name} — {engine_label} depuis {fen_short[:30]}...")
+        logger.info(f"Labo : {player_name} — {engine_label} depuis {fen_short[:30]}...")
         session.start()
 
     except SystemExit:
         pass
     except Exception as e:
-        print(f"Erreur labo : {e}")
+        logger.error(f"Erreur labo : {e}")
         import traceback; traceback.print_exc()
         if _error: _error[0] = True
         send_event("board_error", {"message": "Échiquier non détecté."})
@@ -983,25 +989,3 @@ def _run_analyse_libre(player_name, playing_white, start_fen, pause, analyse_act
             except Exception: pass
         if web_server._app_state not in ("menu",):
             web_server._app_state = "menu"
-
-
-# ── Polling FEN (config analyse libre — état legacy) ──────────────────────────
-def _poll_board_fen():
-    nl = None
-    try:
-        nl = create_board(virtual=False, logger_name="NL_poll")
-        while web_server._app_state == "config_analyse_libre":
-            try:
-                raw = nl.get_fen()
-                fen = raw.strip().split()[0] if raw else ""
-                if fen:
-                    send_event("board_fen_update", {"fen": fen})
-            except Exception:
-                pass
-            time.sleep(0.5)
-    except Exception as e:
-        print(f"[POLL] Erreur lecture FEN : {e}")
-    finally:
-        if nl:
-            try: nl._fen_reader_stop.set()
-            except Exception: pass

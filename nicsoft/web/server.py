@@ -46,7 +46,7 @@ menu_queue: queue.Queue = queue.Queue()
 
 # Statut de la connexion échiquier — renvoyé au navigateur qui se connecte
 # None = pas encore vérifié, "ok" = connecté, "error" = non détecté
-_board_status: str = None
+_board_status: str | None = None
 _board_error_message: str = ""
 
 # Référence vers le VirtualBoard actif — None si mode physique
@@ -78,7 +78,7 @@ def debug_mark():
         LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(marker)
-        print(marker)
+        logger.info(marker)
         return "Marqueur ajouté.", 200
     except Exception as e:
         return f"Erreur : {e}", 500
@@ -131,7 +131,7 @@ def _get_game_folders():
                 if os.path.isdir(type_path):
                     folders.append({"mode": mode, "type": game_type})
     except Exception as e:
-        print(f"[WEB] Erreur listage dossiers: {e}")
+        logger.error(f"[WEB] Erreur listage dossiers: {e}")
     return folders
 
 @socketio.on("connect")
@@ -141,7 +141,7 @@ def on_connect():
     if _disconnect_timer and _disconnect_timer.is_alive():
         _disconnect_timer.cancel()
         _disconnect_timer = None
-    print("[WEB] Navigateur connecté")
+    logger.info("[WEB] Navigateur connecté")
     emit("status", {"message": "Connecté au serveur NicLink", "message_key": "status.connecte"})
     emit("app_state", {"state": _app_state})
     emit("game_folders", {"folders": _get_game_folders()})
@@ -170,13 +170,13 @@ _disconnect_timer: threading.Timer = None
 @socketio.on("disconnect")
 def on_disconnect():
     global _disconnect_timer
-    print("[WEB] Navigateur déconnecté")
+    logger.info("[WEB] Navigateur déconnecté")
     # Annuler le timer précédent si existe
     if _disconnect_timer and _disconnect_timer.is_alive():
         _disconnect_timer.cancel()
     # Lancer un timer — si pas de reconnexion dans le délai, quitter
     def _shutdown():
-        print("[WEB] Aucune reconnexion — fermeture du programme.")
+        logger.info("[WEB] Aucune reconnexion — fermeture du programme.")
         import os
         os._exit(0)
     _disconnect_timer = threading.Timer(_DISCONNECT_TIMEOUT, _shutdown)
@@ -187,7 +187,7 @@ def on_disconnect():
 @socketio.on("action")
 def on_action(data):
     """Reçoit une action du navigateur et la route selon l état."""
-    print(f"[WEB] Action reçue : {data}")
+    logger.debug(f"[WEB] Action reçue : {data}")
     atype = data.get("type", "")
     # Retour menu — traité ici directement pour playing et game_over
     if atype == "back_menu":
@@ -254,7 +254,7 @@ def on_save_pgn_externe(data):
     os.makedirs(os.path.dirname(final_path), exist_ok=True)
     with open(final_path, "w", encoding="utf-8") as f:
         f.write(pgn_content)
-    print(f"[WEB] PGN externe sauvegardé : {final_path}")
+    logger.info(f"[WEB] PGN externe sauvegardé : {final_path}")
     socketio.emit("pgn_sauvegarde", {"path": final_path})
 
 @socketio.on("analyser_pgn")
@@ -263,7 +263,7 @@ def on_analyser_pgn(data):
     import threading, json, pathlib
     from nicsoft.engine.engine_manager import EngineManager, find_stockfish
 
-    print(f"[WEB] analyser_pgn reçu: {len(data.get('moves', []))} coups")
+    logger.info(f"[WEB] analyser_pgn reçu: {len(data.get('moves', []))} coups")
     moves_uci  = data.get("moves", [])
     engine_elo = data.get("engine_elo", 1500)
 
@@ -288,7 +288,7 @@ def on_analyser_pgn(data):
             manager = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=True)
             seq_moves = data.get("seq_moves", 3)
             def callback(idx, total, res):
-                print(f"[ANALYSE] coup {idx+1}/{total}: {res['qualite']}")
+                logger.debug(f"[ANALYSE] coup {idx+1}/{total}: {res['qualite']}")
                 socketio.emit("analyse_coup", {
                     "index":           idx,
                     "total":           total,
@@ -301,7 +301,6 @@ def on_analyser_pgn(data):
             manager.analyser_partie(moves_uci, callback=callback, seq_moves=seq_moves)
             socketio.emit("analyse_terminee", {"total": total})
         except Exception as e:
-            print(f"[ANALYSE] Erreur : {e}")
             logger.error(f"Erreur analyse PGN: {e}", exc_info=True)
             socketio.emit("analyse_terminee", {"total": total, "error": str(e)})
         finally:
@@ -471,12 +470,11 @@ def _dispatch_loop():
             if event["type"] == "game_over" and event["data"].get("skip"):
                 continue
             if event["type"] not in ("board_fen_update", "labo_position"):
-                print(f"[DISPATCH] {event['type']}")
+                logger.debug(f"[DISPATCH] {event['type']}")
             socketio.emit(event["type"], event["data"])
         except queue.Empty:
             continue
         except Exception as e:
-            print(f"[WEB] Erreur dispatch: {e}")
             logger.error(f"Erreur dispatch event {event.get('type','?')}: {e}", exc_info=True)
 
 
@@ -580,5 +578,5 @@ def start_server(host="127.0.0.1", port=5000, debug=False) -> threading.Thread:
         daemon=True,
     )
     server_thread.start()
-    print(f"[WEB] Serveur démarré sur http://{host}:{port}")
+    logger.info(f"[WEB] Serveur démarré sur http://{host}:{port}")
     return server_thread

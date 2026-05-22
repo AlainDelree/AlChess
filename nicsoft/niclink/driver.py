@@ -16,6 +16,8 @@
 import logging
 
 # system
+import os
+import queue as _queue_mod
 import sys
 import threading
 import time
@@ -113,12 +115,10 @@ class NicLinkManager(threading.Thread):
         # Toutes les commandes LED postent ici et retournent immédiatement.
         # Le _led_worker les consomme dans son thread — jamais de blocage USB
         # dans le thread principal.
-        import queue as _queue_mod
         self._led_queue         = _queue_mod.Queue()
         self._led_cancel        = threading.Event()  # annule la commande en cours
         self._led_worker_thread = None
 
-        self._usb_lock          = threading.Lock()  # alias de compatibilité (beep legacy)
         self._fen_reader_thread = None
 
         try:
@@ -168,7 +168,6 @@ and turned on?"
         pendant l'attente, il éteint immédiatement et passe à la suite.
         L'attente n'utilise pas de lock USB — elle est purement Python.
         """
-        import queue as _queue_mod
         while True:
             try:
                 cmd = self._led_queue.get(timeout=1.0)
@@ -330,11 +329,6 @@ and turned on?"
         self.nl_interface.disconnect()
         self.logger.info("\n-- Board disconnected --\n")
 
-    def beep(self) -> None:
-        """make the chessboard beep"""
-        with self._usb_lock:
-            self.nl_interface.beep()
-
     def reset(self) -> None:
         """reset NicLink"""
         self.starting_fen = None
@@ -373,7 +367,6 @@ and turned on?"
 
     def turn_off_all_leds(self) -> None:
         """Vider la queue LED et poster lights_out en priorité — retour immédiat."""
-        import queue as _queue_mod
         # Vider les commandes en attente (sauf lights_out déjà postés)
         while True:
             try:
@@ -796,7 +789,7 @@ def set_up_logger() -> None:
     file_handler = logging.FileHandler("NicLink.log")
     logger.addHandler(file_handler)
 
-    debug = False
+    debug = os.environ.get("NICLINK_LOG", "").upper() == "DEBUG"
     if debug:
         logger.info("DEBUG is set.")
         logger.setLevel(logging.DEBUG)

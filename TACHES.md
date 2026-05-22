@@ -22,6 +22,15 @@ _(rien pour l'instant)_
 
 ## ✅ Bugs résolus récemment
 
+### Nettoyage technique (session 2026-05-22)
+
+- **Suppression fichiers obsolètes** — `nicsoft.apresinstallJess/`, anciens tests hardware, `nl_bluetooth/`, `debug_*.txt`, `test_windows.py`, `build/`, `src/`, `src_niclink/`. (commit `9f5a6a1`)
+- **Fix `beep()` double définition dans `driver.py`** — Deux méthodes `beep()` coexistaient : l'ancienne bloquante (avec `_usb_lock`) et la nouvelle fire-and-forget (via `_led_queue`). Suppression de l'ancienne + `_usb_lock` devenu inutile. (commit `9fe929b`)
+- **`print()` → `logger.*()` dans `server.py` et `game_manager.py`** — 13 conversions dans `server.py` (logger déjà présent) ; 22 conversions dans `game_manager.py` (+ ajout `logger = logging.getLogger("niclink.game_manager")`). Aucun `if DEBUG_MODE` touché. (commit `7ebad2d`)
+- **Nettoyage complet `pedagogique.py`** — 44 `print()` CLI résiduels supprimés (Groupe A) ; 6 doublons de `tlog()` supprimés (Groupe B) ; 3 conversions → `logger.debug`/`error` ; `_print_historique()`, `_print_historique_inline()`, `ask_player_and_color()`, `ask_color()`, `main()`, `__main__.py` supprimés ; imports inutiles nettoyés (`argparse`, `signal`, `json`, `random`, `os`, `pathlib`, etc.). −328 lignes. (commit `2c34791`)
+
+---
+
 - **Pédagogique — pas de feedback UI pendant WAIT_FISH si plateau dérangé** `[Les deux]` — `_display_position_error` n'émettait rien vers le navigateur. Fix : `send_event("board_warning", ...)` + handler JS `board_warning` qui passe le cadre "tour en cours" en orange avec le coup à exécuter. Distingue "pièce pas encore bougée" (source occupée → texte noir normal) de "pièce bougée au mauvais endroit" (source vide → orange). (commits 7dfc05e, 4a81b1f, c24a3ab)
 
 - **Régression font-family — texte espacé sur Linux** `[Linux]` — Ajout des polices emoji (`Noto Color Emoji`, `Segoe UI Emoji`, `Apple Color Emoji`) dans `body font-family` pour corriger l'icône `🏳` causait l'utilisation de `Noto Color Emoji` sur Ubuntu, entraînant des métriques incorrectes sur tout le texte (lettres très espacées). Fix : retrait des polices emoji du body (le remplacement `🏳` → `⚐` U+2690 les rend inutiles). (commit 4ca8bee)

@@ -182,7 +182,7 @@ def main():
                     "init":         {},
                     "mode":         "analyse",
                 })
-            elif atype == "mode" and action.get("value") == "analyse_libre":
+            elif atype == "mode" and action.get("value") == "labo":
                 gm.set_virtual_mode(action.get("virtual", False))
                 gm.launch_labo()
             elif atype == "mode" and action.get("value") == "exercices":
@@ -197,8 +197,8 @@ def main():
             elif atype in ("exercice_back",):
                 set_app_state("exercices")
                 send_event("exercice_back", {})
-            elif atype == "start_analyse_libre":
-                gm.launch_analyse_libre(action)
+            elif atype == "start_labo_libre":
+                gm.launch_labo_libre(action)
             elif atype == "back":
                 set_app_state("menu")
             elif atype == "start":

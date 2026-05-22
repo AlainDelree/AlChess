@@ -15,15 +15,8 @@ En cas d'erreur/blunder (selon config "pedagogique_pause") :
 Historique affiché dans le terminal après chaque coup.
 """
 
-import argparse
 import datetime
-import json
 import logging
-import os
-import pathlib
-from nicsoft.config import DATA_DIR, ENGINES_DIR
-import random
-import signal
 import sys
 import threading
 import time
@@ -54,41 +47,14 @@ from nicsoft.engine.board_utils import wait_for_initial_position, san_ep
 class BackMenuExit(Exception):
     """Levée pour sortir proprement vers le menu sans tuer le processus."""
     pass
-from nicsoft.engine.players import load_players, save_players
-from nicsoft.utils.backup_manager import run_backup
-from nicsoft.utils.input_helpers import ask_int, parse_player_input
-from nicsoft.web.server import send_event, get_action, start_server
+from nicsoft.config import ENGINES_DIR
+from nicsoft.web.server import send_event, get_action
 from nicsoft.niclink.nl_exceptions import ExitNicLink
 from nicsoft.engine.engine_manager import (
     classifier_coup as _classifier_coup,
     score_to_cp     as _score_to_cp,
     SEUIL_BON, SEUIL_IMPRECISION, SEUIL_ERREUR,
 )
-
-# ──────────────────────────────────────────────
-# Config
-# ──────────────────────────────────────────────
-
-CONFIG_FILE = DATA_DIR / "config.json"
-DEFAULT_CONFIG = {
-    "stockfish_level": 5,
-    "game_type": "Pedagogical",
-    "turn_signal": "both",
-    "pedagogique_pause": "blunder",  # toujours / erreur / blunder / jamais
-}
-
-def load_config() -> dict:
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return {**DEFAULT_CONFIG, **data}
-        except Exception:
-            pass
-    return dict(DEFAULT_CONFIG)
-
-import logging as _logging
-logger_pre = _logging.getLogger("NL config")
 
 logger = logging.getLogger("NL pedagogique")
 logger.setLevel(logging.INFO)
@@ -127,46 +93,8 @@ def _display_position_error(
     context: str = "fish",
     fish_move: str = "",
 ) -> None:
-    if diff_count <= 2:
-        missing_sq, missing_piece, extra_sq, extra_piece = None, None, None, None
-        for sq in chess.SQUARES:
-            exp = expected_board.piece_at(sq)
-            act = actual_board.piece_at(sq)
-            if exp != act:
-                if exp and not act:
-                    missing_sq, missing_piece = sq, exp
-                elif act and not exp:
-                    extra_sq, extra_piece = sq, act
-                elif exp and act:
-                    missing_sq, missing_piece = sq, exp
-                    extra_sq,   extra_piece   = sq, act
-        from nicsoft.engine.display import _piece_symbol, _piece_name_fr
-        print()
-        if missing_sq and extra_sq and missing_sq != extra_sq:
-            sym_m = _piece_symbol(missing_piece)
-            sym_e = _piece_symbol(extra_piece)
-            print(f"⚠  Mauvaise case — {sym_e} {_piece_name_fr(extra_piece)} "
-                  f"posé en {chess.square_name(extra_sq)} "
-                  f"au lieu de {chess.square_name(missing_sq)}.")
-            print(f"   Replacez le {sym_m} {_piece_name_fr(missing_piece)} "
-                  f"en {chess.square_name(missing_sq)}.")
-        elif missing_sq:
-            sym = _piece_symbol(missing_piece)
-            print(f"⚠  Pièce manquante — replacez {sym} "
-                  f"{_piece_name_fr(missing_piece)} en {chess.square_name(missing_sq)}.")
-        elif extra_sq:
-            sym = _piece_symbol(extra_piece)
-            print(f"⚠  Pièce en trop — retirez {sym} "
-                  f"{_piece_name_fr(extra_piece)} de {chess.square_name(extra_sq)}.")
-        if context == "fish" and fish_move:
-            print(f"   Puis exécutez le coup : {fish_move}")
-    else:
+    if diff_count > 2:
         display_board_diff(expected_board, actual_board)
-        if context == "fish" and fish_move:
-            print(f"   Une fois remis en ordre, exécutez le coup : {fish_move}")
-        elif context == "human":
-            print("   Une fois remis en ordre, jouez votre coup.")
-    print()
     if context == "fish" and fish_move:
         send_event("board_warning", {"message_key": "game.wait_fish_erreur", "vars": {"move": fish_move}})
 
@@ -396,7 +324,6 @@ class Game(threading.Thread):
     # ── Fin de partie ─────────────────────────────────────────────────────
 
     def _end_game(self, result: str, reason: str = "", skip_save: bool = False) -> None:
-        self._print_historique()
         self.save_pgn_tmp(result)
         self._shutdown_leds()
         self.game_over = True
@@ -470,11 +397,9 @@ class Game(threading.Thread):
                     white=white, black=black
                 )
                 finalize_pgn(self.tmp_path, True, final_path)
-                print(f"Partie sauvegardée : {final_path}")
                 break
             elif atype == "no_save":
                 finalize_pgn(self.tmp_path, False, None)
-                print("Partie non sauvegardée.")
                 break
             elif atype in ("back_menu", "abandonner"):
                 finalize_pgn(self.tmp_path, False, None)
@@ -494,7 +419,6 @@ class Game(threading.Thread):
         else:
             winner, result = "Blancs", "1-0"
             reason = over_state.get("reason", "Fin de partie")
-        print(f"\n  Fin de partie — {winner} gagnent ({reason})")
         # Envoyer une notification popup avant game_over
         from nicsoft.web.server import socketio as _sio
         try:
@@ -505,38 +429,6 @@ class Game(threading.Thread):
         except Exception:
             pass
         self._end_game(result, reason)
-
-    # ── Historique ────────────────────────────────────────────────────────
-
-    def _print_historique(self) -> None:
-        """Affiche l'historique des coups avec leur évaluation."""
-        if not self._historique:
-            return
-        print()
-        print("─" * 50)
-        print("  Historique de la partie :")
-        line = "  "
-        for i, (san, qualite) in enumerate(self._historique):
-            sym = SYMBOLES.get(qualite, "")
-            entry = f"{i+1}.{san}{sym}  "
-            if len(line) + len(entry) > 50:
-                print(line)
-                line = "  "
-            line += entry
-        if line.strip():
-            print(line)
-        print("─" * 50)
-        print()
-
-    def _print_historique_inline(self) -> None:
-        """Affiche l'historique sur une ligne courte après chaque coup."""
-        if not self._historique:
-            return
-        parts = []
-        for i, (san, qualite) in enumerate(self._historique):
-            sym = SYMBOLES.get(qualite, "")
-            parts.append(f"{san}{sym}")
-        print(f"  [{' '.join(parts)}]")
 
     # ── Signaux ───────────────────────────────────────────────────────────
 
@@ -565,8 +457,6 @@ class Game(threading.Thread):
         # Annuler turn_off_all_leds en attente (thread WAIT_FISH) avant d'allumer les LEDs
         self._cancel_led_off = True
         # Bip + LEDs camp humain — fire-and-forget via queue LED
-        if self.bip_active:
-            print("\a", end="", flush=True)
         try:
             sig = 3 if self.playing_white == chess.WHITE else 2
             self.nl_inst.signal_lights(sig)
@@ -620,12 +510,8 @@ class Game(threading.Thread):
         """
         label = COULEURS_LABEL.get(qualite, qualite)
         sym   = SYMBOLES.get(qualite, "")
-        print()
-        print(f"  {sym} {label} — {san}  ({delta_cp}cp de perte)")
         if qualite == "bon":
             return False
-        print("  Que voulez-vous faire ? [web ou 1/2/3]")
-        print("  1. Voir le meilleur coup  2. Reprendre  3. Continuer")
 
         def _get_best_san():
             try:
@@ -643,7 +529,6 @@ class Game(threading.Thread):
                     return True
                 elif atype == "meilleur" and best_move:
                     best_san = _get_best_san()
-                    print(f"  Meilleur coup : {best_san}")
                     _led_meilleur_coup(self.nl_inst, best_move)
                     send_event("best_move", {"uci": best_move, "san": best_san})
                     # Attendre reprendre ou continuer
@@ -670,10 +555,8 @@ class Game(threading.Thread):
                     return False
                 if choice == "1" and best_move:
                     best_san = _get_best_san()
-                    print(f"  Meilleur coup : {best_san}")
                     _led_meilleur_coup(self.nl_inst, best_move)
                     send_event("best_move", {"uci": best_move, "san": best_san})
-                    print("  1. Reprendre  2. Continuer")
                     while True:
                         a2 = get_action(timeout=0.5)
                         if a2:
@@ -696,7 +579,6 @@ class Game(threading.Thread):
         label = COULEURS_LABEL.get(qualite, qualite)
         sym   = SYMBOLES.get(qualite, "")
 
-        print(f"  {sym} {label} ({delta_cp}cp)" if qualite != "bon" else "  ✓ Bon coup")
         import select, tty, termios
         fd = sys.stdin.fileno()
         old_attr = termios.tcgetattr(fd)
@@ -709,7 +591,6 @@ class Game(threading.Thread):
                 web_action = get_action(timeout=0.0)
                 if web_action:
                     atype = web_action.get("type", "")
-                    print()
                     if atype == "reprendre":
                         result = True
                         break
@@ -720,7 +601,6 @@ class Game(threading.Thread):
                             best_san = san_ep(tmp, chess.Move.from_uci(best_move))
                         except Exception:
                             best_san = best_move
-                        print(f"\n  Meilleur coup : {best_san}")
                         _led_meilleur_coup(self.nl_inst, best_move)
                         send_event("best_move", {"uci": best_move, "san": best_san})
                         break
@@ -730,7 +610,6 @@ class Game(threading.Thread):
                 r, _, _ = select.select([sys.stdin], [], [], 1.0)
                 if r:
                     ch = sys.stdin.read(1).lower()
-                    print()
                     if ch == 'r':
                         result = True
                         break
@@ -741,13 +620,11 @@ class Game(threading.Thread):
                             best_san = san_ep(tmp, chess.Move.from_uci(best_move))
                         except Exception:
                             best_san = best_move
-                        print(f"\n  Meilleur coup : {best_san}")
                         _led_meilleur_coup(self.nl_inst, best_move)
                         send_event("best_move", {"uci": best_move, "san": best_san})
                         break
                     elif ch == 'q':
                         break
-            print()
         except Exception:
             pass
         finally:
@@ -799,10 +676,8 @@ class Game(threading.Thread):
             else:
                 accepts = False
             if accepts:
-                print("  Stockfish accepte la nulle.")
                 self._end_game("1/2-1/2", "Nulle acceptée")
             else:
-                print("  Stockfish refuse la nulle — la partie continue.")
                 send_event("nulle_refusee", {
                     "reason": "Stockfish estime avoir l'avantage.",
                     "reason_key": "toast.nulle_refusee_default",
@@ -818,7 +693,6 @@ class Game(threading.Thread):
         human_color = chess.WHITE if self.playing_white == chess.WHITE else chess.BLACK
         result = "0-1" if human_color == chess.WHITE else "1-0"
         player = getattr(self, "player_name", "Joueur")
-        print(f"\n  {player} abandonne via interface web.")
         # back_menu = sortie immédiate sans proposer sauvegarde
         skip = getattr(self, "_back_menu_demande", False)
         self._back_menu_demande = False
@@ -967,7 +841,6 @@ class Game(threading.Thread):
                     })
                 time.sleep(0.2)
             send_event("position_ok", {"fen": expected_fen})
-            print("  Position rétablie. Reprise de la partie.")
 
         # playing_white sera inverti par run() si changer_couleur=True
         # reprendre=True uniquement si pause auto et joueur veut rejouer
@@ -1023,7 +896,6 @@ class Game(threading.Thread):
         fen_cible = self.nl_inst.game_board.fen()
         expected  = self.nl_inst.game_board.board_fen()
         n_txt = "coups" if count == 2 else "coup"
-        print(f"  {count} {n_txt} annulé(s) — remettez les pièces en place.")
         send_event("undo_move", {
             "fen":      fen_cible.split()[0],
             "full_fen": fen_cible,
@@ -1041,7 +913,6 @@ class Game(threading.Thread):
             phys = raw.strip().split()[0] if raw else ""
             if phys == expected:
                 send_event("position_ok", {"fen": expected})
-                print("  Position rétablie — rejouez.")
                 break
             send_event("position_error", {"expected_fen": expected, "physical_fen": phys})
             time.sleep(0.2)
@@ -1104,7 +975,6 @@ class Game(threading.Thread):
 
                 if board_fen == expected_fen:
                     if warning_shown:
-                        print("\n   Position rétablie — c'est à vous de jouer.")
                         send_event("turn", {
                             "color":    "white" if self.playing_white == chess.WHITE else "black",
                             "player":   getattr(self, "player_name", "Joueur"),
@@ -1208,7 +1078,7 @@ class Game(threading.Thread):
                         elif atype == "set_pause":
                             val = action.get("value", "blunder")
                             self.pedagogique_pause = val
-                            print(f"[WEB] Pause pédagogique changée : {val}")
+                            logger.debug(f"[WEB] Pause pédagogique changée : {val}")
                         else:
                             from nicsoft.web.server import action_queue
                             action_queue.put(action)
@@ -1232,12 +1102,10 @@ class Game(threading.Thread):
             move = self.nl_inst.await_move()
             # Annuler le signal de tour dès que le coup est joué
             self.nl_inst.turn_off_all_leds()
-            print("[TIMING] await_move: %.2fs — move=%s" % (time.time()-_t_await, move), flush=True)
             tlog("[TIMING] await_move: %.2fs — move=%s", time.time()-_t_await, move)
         except KeyboardInterrupt:
             watch_stop.set()
             self._shutdown_leds()
-            print("\nBye!")
             sys.exit(0)
         except ExitNicLink:
             pass  # géré dans le finally + les if après
@@ -1247,8 +1115,6 @@ class Game(threading.Thread):
             else:
                 err_msg = str(e).lower()
                 if any(k in err_msg for k in ("usb", "serial", "device", "timeout", "fen", "connection")):
-                    print("\n⚠  Échiquier déconnecté ou éteint.")
-                    print("   Vérifiez l'USB et rallumez le plateau, puis relancez le programme.")
                     send_event("board_error", {"message": "Échiquier déconnecté ou éteint. Relancez le programme.", "message_key": "error.board.deconnecte"})
                     sys.exit(1)
                 raise
@@ -1380,7 +1246,6 @@ class Game(threading.Thread):
             if self.move_gaps:   self.move_gaps.pop()
             fen_cible = self.nl_inst.game_board.fen()
             expected  = self.nl_inst.game_board.board_fen()
-            print("  Coup annulé — remettez la pièce à sa position initiale.")
             send_event("undo_move", {
                 "fen":      fen_cible.split()[0],
                 "full_fen": fen_cible,
@@ -1398,7 +1263,6 @@ class Game(threading.Thread):
                 phys = raw.strip().split()[0] if raw else ""
                 if phys == expected:
                     send_event("position_ok", {"fen": expected})
-                    print("  Position rétablie — rejouez.")
                     break
                 send_event("position_error", {"expected_fen": expected, "physical_fen": phys})
                 time.sleep(0.2)
@@ -1440,12 +1304,10 @@ class Game(threading.Thread):
         if self._prefetched_fish_move is not None:
             fish_move_obj = self._prefetched_fish_move
             self._prefetched_fish_move = None
-            print("[TIMING] get_move: préchargé (%.3fs attente)" % (time.time()-_t_fish), flush=True)
             tlog("[TIMING] get_move: préchargé (%.3fs attente)", time.time()-_t_fish)
         else:
             board_courant = self.nl_inst.game_board.copy()
             fish_move_obj = self.engine.get_move(board_courant, think_time=self._think_time)
-            print("[TIMING] get_move: %.2fs" % (time.time()-_t_fish), flush=True)
             tlog("[TIMING] get_move: %.2fs", time.time()-_t_fish)
         if fish_move_obj is None:
             return
@@ -1499,7 +1361,6 @@ class Game(threading.Thread):
         while True:
             _t_step = time.time()
             self._wait_for_fish_move_on_board(fish_move)
-            print("[TIMING-F] wait_fish_total: %.3fs" % (time.time()-_t_step), flush=True)
             tlog("[TIMING-F] wait_fish_total: %.3fs", time.time()-_t_step)
             if self._abandon_demande:
                 self.nl_inst.kill_switch.clear()
@@ -1519,9 +1380,7 @@ class Game(threading.Thread):
         STABLE_DELAY = 0.8
         expected_fen = self.nl_inst.game_board.board_fen()
         self.nl_inst.set_move_leds(fish_move)
-        print(f"   Exécutez le coup de Stockfish sur l'échiquier ({fish_move})...")
         _t_wait = time.time()
-        print("[WAIT_FISH] début attente placement %s" % fish_move, flush=True)
         tlog("[WAIT_FISH] début attente placement %s", fish_move)
 
         bad_fen_since = None; last_bad_fen = None
@@ -1580,11 +1439,10 @@ class Game(threading.Thread):
 
                 if time.time() - _last_print >= 5.0:
                     _last_print = time.time()
-                    print("[WAIT_FISH] %.0fs en attente... (%d it.) fen_ok=%s" % (
-                        time.time()-_t_wait, _loop_count, board_fen == expected_fen), flush=True)
+                    logger.debug("[WAIT_FISH] %.0fs en attente... (%d it.) fen_ok=%s",
+                        time.time()-_t_wait, _loop_count, board_fen == expected_fen)
 
                 if board_fen == expected_fen:
-                    print("[WAIT_FISH] confirmé en %.2fs (%d it.)" % (time.time()-_t_wait, _loop_count), flush=True)
                     tlog("[WAIT_FISH] placement confirmé en %.2fs", time.time()-_t_wait)
                     # turn_off_all_leds peut bloquer plusieurs secondes sur USB Chessnut Air
                     # → thread daemon pour ne pas retarder le tour suivant
@@ -1597,7 +1455,6 @@ class Game(threading.Thread):
                                 pass
                     threading.Thread(target=_do_led_off, daemon=True).start()
                     if warning_shown or _warning_sent:
-                        print("   Position rétablie. Continuez.")
                         send_event("turn", {
                             "color":    "white" if self.playing_white == chess.WHITE else "black",
                             "player":   getattr(self, "player_name", "Joueur"),
@@ -1700,181 +1557,7 @@ class Game(threading.Thread):
                 raise  # laisser remonter proprement
             except Exception as e:
                 import traceback
-                print(f"[CRASH] {type(e).__name__}: {e}")
+                logger.error(f"[CRASH] {type(e).__name__}: {e}")
                 traceback.print_exc()
                 raise
 
-# ──────────────────────────────────────────────
-# Menu et point d'entrée
-# ──────────────────────────────────────────────
-
-def ask_player_and_color(players, default_level=5):
-    print("\n=== NicLink — Mode Pédagogique ===")
-    if players:
-        print("\nJoueurs enregistrés :")
-        for i, p in enumerate(players, 1):
-            print(f"  {i}. {p}")
-    else:
-        print("\n(aucun joueur enregistré)")
-    print("  N. Nouveau joueur")
-    print("\nAstuce : '1b' = joueur 1 blancs, '2n' = joueur 2 noir")
-    print(f"         Entrée seule = Anonyme, couleur aléatoire, Niveau Stockfish par défaut = {default_level}")
-
-    choice = input("\nVotre choix : ").strip()
-
-    if not choice:
-        return "Anonyme", "a", players, False
-    if choice.lower() == "n":
-        name = input("Nom du joueur : ").strip() or "Joueur"
-        if name not in players and name != "Joueur":
-            players.append(name)
-            players.sort(key=lambda x: x.casefold())
-            save_players(players)
-            print(f"Joueur enregistré : {name}")
-        return name, None, players, True
-
-    parsed = parse_player_input(choice, players)
-    return parsed["name"] or "Joueur", parsed["color"], players, False
-
-
-def ask_color(parsed_color):
-    if parsed_color == "b":
-        return True
-    if parsed_color == "n":
-        return False
-    if parsed_color == "a":
-        return random.choice([True, False])
-    while True:
-        print("\nCouleur : 1. Blanc  2. Noir  3. Aléatoire")
-        raw = input("Choix [1-3] : ").strip().lower()
-        if raw in ("", "1", "b", "blanc"):
-            return True
-        if raw in ("2", "n", "noir"):
-            return False
-        if raw in ("3", "a"):
-            return random.choice([True, False])
-        print("Choix invalide.")
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--backup", action="store_true")
-    args = parser.parse_args()
-
-    if args.debug:
-        logger.setLevel(logging.DEBUG)
-        ch.setLevel(logging.DEBUG)
-
-    if args.backup:
-        run_backup()
-        return
-
-    config = load_config()
-
-    _nl_ref  = [None]
-    _game_ref = [None]
-
-    def _emergency_shutdown(signum, frame):
-        print("\nInterruption utilisateur. Bye!")
-        if _nl_ref[0] is not None:
-            try:
-                _nl_ref[0].turn_off_all_leds()
-            except Exception:
-                pass
-        g = _game_ref[0]
-        if g and os.path.exists(g.tmp_path):
-            try:
-                os.remove(g.tmp_path)
-            except Exception:
-                pass
-        sys.exit(0)
-
-    signal.signal(signal.SIGINT, _emergency_shutdown)
-
-    nl_inst = None
-    try:
-        players = load_players()
-        player_name, parsed_color, players, is_new = ask_player_and_color(
-            players, default_level=config["stockfish_level"]
-        )
-        playing_white = ask_color(parsed_color)
-
-        level = ask_int(
-            f"Niveau Stockfish [1-20, Entrée = {config['stockfish_level']}] : ",
-            min_value=1, max_value=20, default=config["stockfish_level"],
-        )
-
-        pause_labels = {
-            "toujours": "pause pour tout",
-            "erreur":   "pause erreur+blunder",
-            "blunder":  "pause blunder seulement",
-            "jamais":   "jamais de pause",
-        }
-        pause_actuel = config.get("pedagogique_pause", "blunder")
-        print(f"\nMode feedback : {pause_labels.get(pause_actuel, pause_actuel)}")
-        print("  (modifiable dans Paramètres du menu principal)")
-
-        import os as _os
-        devnull_fd = _os.open(_os.devnull, _os.O_WRONLY)
-        old_fd = _os.dup(1)
-        _os.dup2(devnull_fd, 1)
-        nl_inst = NicLinkManager(refresh_delay=0.1, logger=logger, thread_sleep_delay=0.1)
-        _os.dup2(old_fd, 1)
-        _os.close(devnull_fd)
-        _os.close(old_fd)
-        print("\nChargement... OK")
-        _nl_ref[0] = nl_inst
-
-        wait_for_initial_position(nl_inst)
-
-        game = Game(
-            nl_inst, playing_white,
-            stockfish_level=level,
-            default_game_type=config.get("game_type", "Pedagogical"),
-            turn_signal=config.get("turn_signal", "both"),
-            pedagogique_pause=pause_actuel,
-        )
-        game.player_name    = player_name
-        game.move_gaps      = []
-        game.last_move_time = time.time()
-        _game_ref[0] = game
-
-        sig_desc = {"both": "Bip+LEDs", "beep": "Bip",
-                    "leds": "LEDs", "none": "Aucun"}.get(
-            config.get("turn_signal", "both"), "Bip+LEDs")
-
-        print(f"\nPartie pédagogique : {player_name} vs Stockfish niveau {level}")
-        print(f"Couleur : {'Blancs' if playing_white else 'Noirs'}")
-        print(f"Signaux : Début de tour -> {sig_desc} / Coup illégal -> Bip échiquier")
-        print(f"Feedback coups : {pause_labels.get(pause_actuel, pause_actuel)}")
-        print(f"Pour abandonner ou proposer nulle : retirez votre roi de l'échiquier")
-
-        game.save_pgn_tmp()
-
-        # Démarrer le serveur web
-        start_server(host="127.0.0.1", port=5000)
-        send_event("init", {
-            "fen": chess.STARTING_FEN,
-            "player": player_name,
-            "color": "white" if playing_white else "black",
-            "level": level,
-            "pause": pause_actuel,
-            "opponent": f"Stockfish niv.{level}",
-        })
-        print("\nInterface web : http://127.0.0.1:5000")
-        print("Partie démarrée !")
-        game.start()
-
-    except KeyboardInterrupt:
-        print("\nInterruption utilisateur. Bye!")
-    finally:
-        if nl_inst is not None:
-            try:
-                nl_inst.turn_off_all_leds()
-            except Exception:
-                pass
-
-
-if __name__ == "__main__":
-    main()
