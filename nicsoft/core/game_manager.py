@@ -989,25 +989,3 @@ def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active
             except Exception: pass
         if web_server._app_state not in ("menu",):
             web_server._app_state = "menu"
-
-
-# ── Polling FEN (config analyse libre — état legacy) ──────────────────────────
-def _poll_board_fen():
-    nl = None
-    try:
-        nl = create_board(virtual=False, logger_name="NL_poll")
-        while web_server._app_state == "config_labo_libre":
-            try:
-                raw = nl.get_fen()
-                fen = raw.strip().split()[0] if raw else ""
-                if fen:
-                    send_event("board_fen_update", {"fen": fen})
-            except Exception:
-                pass
-            time.sleep(0.5)
-    except Exception as e:
-        logger.error(f"[POLL] Erreur lecture FEN : {e}")
-    finally:
-        if nl:
-            try: nl._fen_reader_stop.set()
-            except Exception: pass
