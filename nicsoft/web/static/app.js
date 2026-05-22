@@ -795,6 +795,14 @@ socket.on("undo_move", (data) => {
 });
 
 socket.on("move", (data) => {
+  const laboScreen = document.getElementById("screen-labo");
+  if (laboScreen && laboScreen.style.display !== "none") {
+    if (data.player === "Joueur") {
+      const colorSym = data.color === "white" ? "♔" : "♚";
+      laboJournalAdd("coups", `${colorSym} ${data.san}`);
+    }
+    return;
+  }
   currentFen    = data.fen;
   lastMove      = data.uci;
   lastMoveColor = data.color;
@@ -2998,17 +3006,6 @@ socket.on("labo_free_position", (data) => {
   laboRenderBoard(data.fen, null, null);
 });
 
-// Coups joués (humain) — on les capte via labo_position quand from+to présents
-// On utilise plutôt le handler move pour les enregistrer dans le journal
-const _laboMoveHandler_orig = socket.listeners ? null : null;
-socket.on("move", (data) => {
-  // Enregistrer dans le journal si on est dans l'écran labo
-  const laboScreen = document.getElementById("screen-labo");
-  if (!laboScreen || laboScreen.style.display === "none") return;
-  if (data.player !== "Joueur") return; // moteur géré par labo_engine_played
-  const colorSym = data.color === "white" ? "♔" : "♚";
-  laboJournalAdd("coups", `${colorSym} ${data.san}`);
-});
 
 socket.on("labo_placement_cancelled", () => {
   _laboEnginePlacing = false; // placement annulé → réactiver board_fen_update
