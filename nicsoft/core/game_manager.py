@@ -868,7 +868,7 @@ def _do_copy_to_board(target_fen: str) -> None:
 
 
 # ── Analyse libre ──────────────────────────────────────────────────────────────
-def launch_analyse_libre(config):
+def launch_labo_libre(config):
     import json
     player        = config.get("player", "Anonyme") or "Anonyme"
     color         = config.get("color", "white")
@@ -901,7 +901,7 @@ def launch_analyse_libre(config):
     set_app_state("connecting")
     _error = [False]
     t = threading.Thread(
-        target=_run_analyse_libre,
+        target=_run_labo_libre,
         args=(player, playing_white, start_fen, pause, analyse, bip,
               engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple, _error),
         daemon=True,
@@ -917,7 +917,7 @@ def launch_analyse_libre(config):
         set_app_state("menu")
 
 
-def _run_analyse_libre(player_name, playing_white, start_fen, pause, analyse_active, bip_active,
+def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active, bip_active,
                        engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple,
                        _error=None):
     from nicsoft.modes.labo.labo import LaboSession
@@ -991,7 +991,7 @@ def _poll_board_fen():
     nl = None
     try:
         nl = create_board(virtual=False, logger_name="NL_poll")
-        while web_server._app_state == "config_analyse_libre":
+        while web_server._app_state == "config_labo_libre":
             try:
                 raw = nl.get_fen()
                 fen = raw.strip().split()[0] if raw else ""
