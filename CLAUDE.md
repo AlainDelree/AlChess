@@ -14,6 +14,7 @@ Toujours faire en début de session :
 1. Lire `TACHES.md` — bugs actifs et fonctionnalités à venir
 2. Lire `TESTS.md` — checklist de régression
 3. `git status` avant toute modification
+4. Vérifier que `CONTEXTE.md` est à jour (architecture, chemins, état actuel) — le corriger si nécessaire et mettre à jour la date
 
 ## Workflow de travail
 

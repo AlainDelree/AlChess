@@ -41,15 +41,8 @@ if ! command -v python3 &>/dev/null; then
     err "python3 introuvable. Installez Python 3.10+ et relancez."
     exit 1
 fi
-if ! command -v python3-config &>/dev/null; then
-    err "python3-config introuvable. Installez python3-dev."
-    exit 1
-fi
-
 PY_VERSION="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-PY_SUFFIX="$(python3-config --extension-suffix)"   # ex: .cpython-312-x86_64-linux-gnu.so
-SO_NAME="_niclink${PY_SUFFIX}"                      # ex: _niclink.cpython-312-x86_64-linux-gnu.so
-ok "Python ${PY_VERSION} — driver cible : ${SO_NAME}"
+ok "Python ${PY_VERSION}"
 
 # ── 2. Paquets système ────────────────────────────────────────────────────────
 step "Paquets système"
@@ -57,7 +50,6 @@ step "Paquets système"
 PKGS=(
     libhidapi-hidraw0 libopenblas0 cpufrequtils stockfish
     python3-gi python3-gi-cairo gir1.2-gtk-3.0
-    cmake pkg-config libudev-dev libhidapi-dev build-essential python3-dev
 )
 MISSING=()
 for pkg in "${PKGS[@]}"; do
@@ -89,60 +81,7 @@ info "Mise à jour des dépendances pip..."
 "$REPO/venv/bin/pip" install -q -r "$REPO/requirements.txt"
 ok "Venv prêt : $REPO/venv"
 
-# ── 4. Compilation du driver C++ (_niclink.so) ────────────────────────────────
-step "Driver C++ (_niclink.so)"
-
-DEST_SO="$REPO/nicsoft/niclink/${SO_NAME}"
-DO_COMPILE=true
-
-if [[ -f "$DEST_SO" ]]; then
-    ok "Driver déjà présent pour Python ${PY_VERSION}"
-    if ! ask_yn "Recompiler quand même ?" "n"; then
-        DO_COMPILE=false
-    fi
-else
-    # Signaler si un .so pour une autre version existe
-    OLD_SO=$(ls "$REPO/nicsoft/niclink/"_niclink*.so 2>/dev/null | head -1 || true)
-    if [[ -n "$OLD_SO" ]]; then
-        warn "Driver existant pour une autre version Python : $(basename "$OLD_SO")"
-        info "Il sera remplacé par un driver pour Python ${PY_VERSION}"
-    fi
-fi
-
-if [[ "$DO_COMPILE" == true ]]; then
-    BUILD_DIR="/tmp/niclink_build_$$"
-    trap 'rm -rf "$BUILD_DIR"' EXIT   # nettoyage automatique
-
-    info "Copie des sources dans $BUILD_DIR..."
-    cp -r "$REPO/src/" "$BUILD_DIR"
-
-    info "Configuration pour Python ${PY_VERSION}..."
-    sed -i "s/set(PY_VERSION [0-9][0-9.]*)/set(PY_VERSION ${PY_VERSION})/" \
-        "$BUILD_DIR/CMakeLists.txt"
-
-    info "CMake..."
-    cmake -S "$BUILD_DIR" -B "$BUILD_DIR/build" -DCMAKE_BUILD_TYPE=Release -Wno-dev \
-        > /tmp/niclink_cmake.log 2>&1 \
-        || { err "CMake a échoué. Détails :"; cat /tmp/niclink_cmake.log; exit 1; }
-
-    info "Compilation ($(nproc) cœurs)..."
-    make -C "$BUILD_DIR/build" -j"$(nproc)" \
-        > /tmp/niclink_make.log 2>&1 \
-        || { err "Compilation échouée. Détails :"; cat /tmp/niclink_make.log; exit 1; }
-
-    COMPILED_SO="$(find "$BUILD_DIR/build" -name "_niclink*.so" | head -1)"
-    if [[ -z "$COMPILED_SO" ]]; then
-        err "Aucun .so trouvé après compilation"
-        exit 1
-    fi
-
-    cp "$COMPILED_SO" "$DEST_SO"
-    trap - EXIT
-    rm -rf "$BUILD_DIR"
-    ok "Driver compilé et installé : ${SO_NAME}"
-fi
-
-# ── 5. Règles udev (Chessnut Air) ─────────────────────────────────────────────
+# ── 4. Règles udev (Chessnut Air) ────────────────────────────────────────────
 step "Règles udev (Chessnut Air)"
 
 UDEV_FILE="/etc/udev/rules.d/99-chessnut.rules"
@@ -160,7 +99,7 @@ EOF
     fi
 fi
 
-# ── 6. Quirk usbhid (optionnel) ───────────────────────────────────────────────
+# ── 5. Quirk usbhid (optionnel) ──────────────────────────────────────────────
 step "Quirk usbhid (optionnel)"
 
 QUIRK_FILE="/etc/modprobe.d/chessnut.conf"
@@ -179,7 +118,7 @@ else
     fi
 fi
 
-# ── 7. Sudoers ModemManager ───────────────────────────────────────────────────
+# ── 6. Sudoers ModemManager ──────────────────────────────────────────────────
 step "Sudoers ModemManager"
 
 SUDOERS_FILE="/etc/sudoers.d/niclink"
@@ -196,7 +135,7 @@ else
     fi
 fi
 
-# ── 8. Gouverneur CPU ─────────────────────────────────────────────────────────
+# ── 7. Gouverneur CPU ────────────────────────────────────────────────────────
 step "Gouverneur CPU"
 
 CURRENT_GOV="$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo 'inconnu')"
@@ -211,7 +150,7 @@ else
     fi
 fi
 
-# ── 9. Raccourci bureau ───────────────────────────────────────────────────────
+# ── 8. Raccourci bureau ──────────────────────────────────────────────────────
 step "Raccourci bureau"
 
 # Détecter le dossier bureau selon la locale (Bureau / Desktop)
@@ -220,7 +159,7 @@ DESKTOP_DIR="$(xdg-user-dir DESKTOP 2>/dev/null || true)"
 [[ -d "$DESKTOP_DIR" ]] || DESKTOP_DIR="$HOME/Desktop"
 [[ -d "$DESKTOP_DIR" ]] || DESKTOP_DIR="$HOME"
 
-DESKTOP_FILE="$DESKTOP_DIR/NicLink.desktop"
+DESKTOP_FILE="$DESKTOP_DIR/AlChess.desktop"
 if [[ -f "$DESKTOP_FILE" ]]; then
     ok "Raccourci déjà en place : $DESKTOP_FILE"
 else
@@ -242,16 +181,16 @@ EOF
     fi
 fi
 
-# ── 10. Vérifications finales ─────────────────────────────────────────────────
+# ── 9. Vérifications finales ──────────────────────────────────────────────────
 step "Vérifications"
 
 ERRORS=0
 
-# Driver .so
-if [[ -f "$DEST_SO" ]]; then
-    ok "Driver : ${SO_NAME}"
+# hidapi Python
+if "$REPO/venv/bin/python" -c "import hid" 2>/dev/null; then
+    ok "hidapi disponible"
 else
-    err "Driver manquant : ${SO_NAME}"
+    err "hidapi manquant dans le venv"
     ERRORS=$((ERRORS + 1))
 fi
 

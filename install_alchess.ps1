@@ -18,7 +18,7 @@ $ENGINES_DIR   = "$scriptDir\engines"
 function Write-Header {
     Write-Host ""
     Write-Host "================================================" -ForegroundColor Cyan
-    Write-Host "   AlChess — Installateur Windows" -ForegroundColor Cyan
+    Write-Host "   AlChess - Installateur Windows" -ForegroundColor Cyan
     Write-Host "================================================" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -39,7 +39,7 @@ function Write-Fail($msg) {
     Write-Host "[X] $msg" -ForegroundColor Red
 }
 
-# ── Vérification Windows 10+ ──────────────────────────────────────────────────
+# -- Vérification Windows 10+ -------------------------------------------------
 
 function Assert-Windows10 {
     $build = [System.Environment]::OSVersion.Version.Build
@@ -50,7 +50,7 @@ function Assert-Windows10 {
     }
 }
 
-# ── Vérification / installation Python 3.12 ───────────────────────────────────
+# -- Vérification / installation Python 3.12 ----------------------------------
 
 function Get-Python312 {
     # Tente py -3.12 (Windows Launcher)
@@ -110,12 +110,12 @@ function Install-Python312 {
     return $pyCmd
 }
 
-# ── Création du venv ──────────────────────────────────────────────────────────
+# -- Création du venv ---------------------------------------------------------
 
 function New-Venv($pyCmd) {
     $venvPath = "$scriptDir\venv"
     if (Test-Path "$venvPath\Scripts\python.exe") {
-        Write-Step "Environnement virtuel déjà présent — mise à jour des dépendances."
+        Write-Step "Environnement virtuel déjà présent - mise à jour des dépendances."
     } else {
         Write-Step "Création de l'environnement virtuel..."
         if ($pyCmd -eq "py -3.12") {
@@ -130,7 +130,7 @@ function New-Venv($pyCmd) {
     }
 }
 
-# ── Installation des dépendances ──────────────────────────────────────────────
+# -- Installation des dépendances ---------------------------------------------
 
 function Install-Dependencies {
     Write-Step "Installation des dépendances Python..."
@@ -144,7 +144,7 @@ function Install-Dependencies {
     Write-Info "Dépendances installées."
 }
 
-# ── Stockfish ─────────────────────────────────────────────────────────────────
+# -- Stockfish ----------------------------------------------------------------
 
 function Find-Stockfish {
     if (-not (Test-Path $ENGINES_DIR)) { return $false }
@@ -169,12 +169,12 @@ function Install-Stockfish {
     }
 }
 
-# ── Script de lancement ───────────────────────────────────────────────────────
+# -- Script de lancement ------------------------------------------------------
 
 function Assert-LaunchScript {
     $ps1 = "$scriptDir\start_alchess.ps1"
     if (-not (Test-Path $ps1)) {
-        Write-Warn "start_alchess.ps1 non trouvé — création..."
+        Write-Warn "start_alchess.ps1 non trouvé - création..."
         @(
             '$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition',
             '$env:PYTHONPYCACHEPREFIX = "$env:TEMP\alchess_pyc"',
@@ -185,7 +185,7 @@ function Assert-LaunchScript {
     }
 }
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# -- Main ---------------------------------------------------------------------
 
 Write-Header
 Assert-Windows10
@@ -202,7 +202,7 @@ Install-Dependencies
 
 # Stockfish
 if (Find-Stockfish) {
-    Write-Step "Stockfish déjà présent dans engines\ — aucun téléchargement nécessaire."
+    Write-Step "Stockfish déjà présent dans engines\ - aucun téléchargement nécessaire."
 } else {
     Write-Host ""
     Write-Host "Stockfish (moteur d'échecs) non détecté." -ForegroundColor Yellow

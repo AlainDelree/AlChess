@@ -15,15 +15,18 @@
 ## Architecture
 
 - **`nicsoft/niclink/driver.py`** — driver USB Chessnut Air, thread dédié `_fen_reader_thread` à 50ms
-- **`nicsoft/web/alchess.py`** — chef d'orchestre principal (ex-`web/__main__.py`)
+- **`nicsoft/web/alchess.py`** — chef d'orchestre principal
 - **`nicsoft/web/server.py`** — serveur Flask-SocketIO, machine d'état `_app_state`
 - **`nicsoft/web/static/app.js`** — toute la logique JS frontend
 - **`nicsoft/web/templates/index.html`** — interface HTML
-- **`nicsoft/play_pedagogique/pedagogique.py`** — mode pédagogique vs Stockfish
-- **`nicsoft/play_human/human.py`** — mode Humain vs Humain
-- **`nicsoft/retranscription/retranscription.py`** — saisie de parties papier
-- **`nicsoft/labo/labo.py`** — analyse libre Stockfish
-- **`nicsoft/exercices/exercices.py`** — entraînement aux ouvertures
+- **`nicsoft/core/game_manager.py`** — gestion de partie (coups, historique, état)
+- **`nicsoft/engine/`** — moteurs UCI : `engine_manager.py`, `players.py`, `pgn_manager.py`, `board_utils.py`, `display.py`, `analyse.py`
+- **`nicsoft/modes/pedagogique/pedagogique.py`** — mode pédagogique vs Stockfish/Maia/Rodent
+- **`nicsoft/modes/humain/human.py`** — mode Humain vs Humain
+- **`nicsoft/modes/retranscription/retranscription.py`** — saisie de parties papier
+- **`nicsoft/modes/labo/labo.py`** — analyse libre Stockfish
+- **`nicsoft/modes/exercices/exercices.py`** — entraînement aux ouvertures
+- **`nicsoft/utils/`** — utilitaires : `backup_manager.py`, `timing.py`, `light_board.py`, etc.
 
 ## États machine (`_app_state`)
 `menu` → `config` / `config_humain` / `retranscription` / `exercices` / `labo` → `connecting` → `playing` / `paused` → `game_over`
@@ -53,7 +56,10 @@ git checkout .                # pour annuler si ça casse
 ```bash
 python -m nicsoft.utils.backup_manager --pin --label "description-courte"
 ```
-
+**Backup pinné à chaque début de session :**
+```bash
+python -m nicsoft.utils.backup_manager --pin --label "Automatique-Date-Heure"
+```
 **Démarrer le programme :**
 ```bash
 sudo systemctl stop ModemManager   # si pas automatique
@@ -90,7 +96,7 @@ cd ~/NicLink && python -m nicsoft.web
 
 ---
 
-## État actuel (mis à jour le 3 mai 2026)
+## État actuel (mis à jour le 23 mai 2026)
 
 **Stable et fonctionnel :**
 - Mode Pédagogique (vs Stockfish, Maia, Rodent)
