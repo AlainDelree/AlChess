@@ -22,6 +22,10 @@ _(rien pour l'instant)_
 
 ## ✅ Bugs résolus récemment
 
+### Portage Windows — installateur (session 2026-05-24)
+
+- **MissingEndCurlyBrace dans `install_alchess.ps1`** `[Windows]` — L'em-dash `—` (UTF-8 : `E2 80 94`) contient le byte `0x94` qui en CP1252 (encodage Windows par défaut sans BOM) correspond au guillemet typographique droit `"` (U+201D), que PowerShell 5.1 traite comme délimiteur de chaîne. Sans BOM, PS 5.1 lit le fichier en CP1252 → fermeture prématurée des strings aux lignes 21/118/177/205 → tous les `}` suivants avalés → `MissingEndCurlyBrace` sur toutes les fonctions. Fix : remplacement de tous les `—` par ` -` dans les strings et de tous les `─` (box drawing, même problème sur le 2e byte) par `--` dans les commentaires. Fichier 100% ASCII-safe. Validé sur Windows 11 / PS 5.1 via bridge inter-agents (issue #4). (commit `bfbcec9`)
+
 ### Nettoyage technique (session 2026-05-22)
 
 - **Suppression fichiers obsolètes** — `nicsoft.apresinstallJess/`, anciens tests hardware, `nl_bluetooth/`, `debug_*.txt`, `test_windows.py`, `build/`, `src/`, `src_niclink/`. (commit `9f5a6a1`)
@@ -108,7 +112,7 @@ _(rien pour l'instant)_
         - ✅ Icône bouton Abandonner : `🏳` (U+1F3F3, hors BMP) → `⚐` (U+2690, BMP, universel) (commit 4040492)
         - Numéros de lignes échiquier mal alignés (rendu police Windows) — en veille
     - ✅ `launcher.py` (GTK splash) : ignoré sur Windows — on lance directement via `start_alchess.ps1`
-    - [ ] **Tester `install_alchess.ps1` sur VM Windows** avant merge master
+    - ✅ **`install_alchess.ps1` testé et validé sur VM Windows** (session 2026-05-24)
 
 ---
 ## 🧪 Tests automatisés
