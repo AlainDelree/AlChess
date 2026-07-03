@@ -16,6 +16,7 @@ Historique affiché dans le terminal après chaque coup.
 """
 
 import datetime
+import json
 import logging
 import sys
 import threading
@@ -47,7 +48,7 @@ from nicsoft.engine.board_utils import wait_for_initial_position, san_ep
 class BackMenuExit(Exception):
     """Levée pour sortir proprement vers le menu sans tuer le processus."""
     pass
-from nicsoft.config import ENGINES_DIR
+from nicsoft.config import DATA_DIR, ENGINES_DIR
 from nicsoft.web.server import send_event, get_action
 from nicsoft.niclink.nl_exceptions import ExitNicLink
 from nicsoft.engine.engine_manager import (
@@ -55,6 +56,26 @@ from nicsoft.engine.engine_manager import (
     score_to_cp     as _score_to_cp,
     SEUIL_BON, SEUIL_IMPRECISION, SEUIL_ERREUR,
 )
+
+CONFIG_FILE = DATA_DIR / "config.json"
+DEFAULT_CONFIG = {
+    "stockfish_level": 5,
+    "game_type": "Pedagogical",
+    "turn_signal": "both",
+    "pedagogique_pause": "blunder",
+}
+
+
+def load_config() -> dict:
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return {**DEFAULT_CONFIG, **data}
+        except Exception:
+            pass
+    return dict(DEFAULT_CONFIG)
+
 
 logger = logging.getLogger("NL pedagogique")
 logger.setLevel(logging.INFO)

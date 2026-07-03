@@ -34,3 +34,17 @@ debug_*.txt
 test_windows_result.txt
 alchess_err.txt
 alchess_log.txt
+
+# --- Données personnelles (ne jamais publier) ---
+games/
+
+# --- Fichiers de travail / documents de handoff ---
+HANDOFF_*.md
+AUDIT_ALCHESS.md
+Copier-coller
+mockup_menu.html
+test_perm.txt
+logs/
+
+# Parties (données perso / noms de tiers)
+games/

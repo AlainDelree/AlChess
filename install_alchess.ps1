@@ -14,6 +14,8 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $STOCKFISH_URL = "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip"
 $STOCKFISH_ZIP = "$env:TEMP\stockfish.zip"
 $ENGINES_DIR   = "$scriptDir\engines"
+$VCREDIST_URL  = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+$VCREDIST_EXE  = "$env:TEMP\vc_redist.x64.exe"
 
 function Write-Header {
     Write-Host ""
@@ -169,6 +171,55 @@ function Install-Stockfish {
     }
 }
 
+# -- Visual C++ runtime (requis par lc0/Maia) ---------------------------------
+# NOTE : messages EN ANGLAIS pour cette fonction (destinés à l'utilisateur final).
+
+function Install-VCRedist {
+    # a. Déjà présent ?
+    if (Test-Path "$env:SystemRoot\System32\MSVCP140.dll") {
+        Write-Step "Visual C++ runtime already present"
+        return
+    }
+
+    # b. Pas de runtime : tester la connexion internet AVANT de télécharger.
+    if (-not (Test-Connection -ComputerName aka.ms -Count 1 -Quiet)) {
+        Write-Warn "No internet connection detected."
+        Write-Warn "The Visual C++ runtime is required for the Maia engine (lc0)."
+        Write-Warn "Please download it manually from:"
+        Write-Warn "  https://aka.ms/vs/17/release/vc_redist.x64.exe"
+        Write-Warn "then re-run this installer. Continuing without it for now."
+        return
+    }
+
+    # c. Connexion OK : télécharger puis installer en silencieux.
+    Write-Step "Downloading Visual C++ runtime (required for Maia engine)..."
+    try {
+        Write-Info "Source: $VCREDIST_URL"
+        Invoke-WebRequest -Uri $VCREDIST_URL -OutFile $VCREDIST_EXE -UseBasicParsing
+        Write-Info "Installing Visual C++ runtime (silent)..."
+        & $VCREDIST_EXE /install /quiet /norestart
+        if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) {
+            throw "vc_redist installer returned exit code $LASTEXITCODE"
+        }
+        Remove-Item $VCREDIST_EXE -ErrorAction SilentlyContinue
+        Write-Step "Visual C++ runtime installed"
+    } catch {
+        # d. Échec : message clair + choix de continuer sans Maia.
+        Write-Warn "Failed to install the Visual C++ runtime: $_"
+        Write-Warn "The Maia engine (lc0) will NOT work without this runtime."
+        Write-Warn "To fix this later, download and install it manually from:"
+        Write-Warn "  https://aka.ms/vs/17/release/vc_redist.x64.exe"
+        Write-Warn "Stockfish and the other modes will still work fine."
+        Write-Host ""
+        $rep = Read-Host "Continue installation without Maia support? (Y/N)"
+        if ($rep -match "^[nN]") {
+            Write-Fail "Installation aborted by user."
+            exit 1
+        }
+        Write-Info "Continuing without Maia support."
+    }
+}
+
 # -- Script de lancement ------------------------------------------------------
 
 function Assert-LaunchScript {
@@ -213,6 +264,9 @@ if (Find-Stockfish) {
         Write-Info "Pas de téléchargement. Placez stockfish.exe dans le dossier engines\ et relancez."
     }
 }
+
+# Visual C++ runtime (requis par lc0/Maia)
+Install-VCRedist
 
 Assert-LaunchScript
 

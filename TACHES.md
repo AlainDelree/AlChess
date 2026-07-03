@@ -4,7 +4,9 @@
 
 ## ⚡ Prioritaire
 
-_(rien pour l'instant)_
+- **Committer le travail de la session 2026-07-03** — plusieurs fichiers modifiés non commités : `install.sh` (venv+chmod), `start_alchess.sh` (nouveau), `make_release.sh` (nouveau), `backup_manager.py` (exclude dist), `nicsoft/modes/pedagogique/pedagogique.py` (déjà commité `09b6c6e`), et les binaires `engines/maia/lc0.exe` + DLL. Décider commit vs gitignore pour les binaires (~22 Mo). Relire, committer par lots propres, push manuel.
+- **vc_redist auto-install dans `install_alchess.ps1`** `[Windows]` — En cours via bridge (issue armée `mode_write`). Ajoute `Install-VCRedist` (modèle `Install-Stockfish`) : skip si `MSVCP140.dll` présent, test connexion internet avant download, install silencieux `/install /quiet /norestart`, messages **en anglais**, non bloquant, propose « Continue without Maia support? (Y/N) » en cas d'échec. À re-tester en VM SANS le runtime.
+- **Visibilité du projet** (objectif initial) — une fois la base propre : (1) créer la **première Release publique** avec les ZIP (bouton Download), (2) déployer le **README amélioré** (déjà rédigé, orienté téléchargement + captures + tableau moteurs corrigé), (3) ajouter les **topics** GitHub (`chess`, `chessnut-air`, `stockfish`, `maia`, `lc0`, `chess-training`, `electronic-chessboard`, `python`, `flask`…).
 
 ---
 
@@ -21,6 +23,21 @@ _(rien pour l'instant)_
 ---
 
 ## ✅ Bugs résolus récemment
+
+### Packaging, release & bridge (session 2026-07-03)
+
+- **Système de packaging `make_release.sh`** `[Les deux]` — Script de build produisant des ZIP propres par OS (Linux/Windows) via **liste blanche** (copie uniquement le nécessaire ; exclut docs de dev, `.claude`, logs, `.git` imbriqués, caches). Corrections successives : exclusion des `.git` imbriqués (Rodent = dépôt git imbriqué de ~46 Mo) et `.pytest_cache` ; validateur rendu **déterministe** (here-string au lieu de tube `echo | grep`, qui provoquait un faux négatif via SIGPIPE + pipefail — garder `grep -E`, pas `-F`) ; `games/` livré **vide** (pas de données perso). Détecteur d'intrus intégré. Non commité (fichier de build).
+- **`install.sh` — `python3-venv` manquant** `[Linux]` — Absent de la liste `PKGS`, ce qui faisait échouer la création du venv sur machine neuve (« ensurepip is not available »). Ajouté. Ajout aussi d'une étape `chmod +x` sur les moteurs après extraction ZIP (le bit exécutable peut être perdu). (à committer)
+- **`start_alchess.sh`** `[Linux]` — Nouveau lanceur Linux, symétrique de `start_alchess.ps1`. (à committer)
+- **Bug mode Pédagogique — `ImportError: load_config`** `[Les deux]` — Reliquat de refactoring : `load_config` n'avait pas été reportée dans `pedagogique.py` lors de l'extraction depuis l'ancien module monolithique, alors que `game_manager.py:163` l'importe → le thread pédagogique plantait au démarrage (retour menu, Stockfish comme Maia). Fix : rétablissement de `load_config` + `CONFIG_FILE`/`DEFAULT_CONFIG` (identique à `human.py`, lit `data/config.json` partagé). Validé en dev ET depuis ZIP extrait. Issue #7. (commit `09b6c6e`)
+- **Données personnelles purgées du dépôt** — `games/` (parties de club avec noms réels de tiers + PGN de test) retiré du suivi ET **de tout l'historique** via `git filter-repo` (force-push dev + master). Fichiers conservés sur disque, `games/` ajouté au `.gitignore`. (commit `e955fec` + réécriture historique)
+- **`backup_manager.py` — backups géants (420 Mo)** — `dist/` (les ZIP) n'était pas dans `EXCLUDES` alors que `build` y était → chaque backup avalait les ZIP. Ajout de `"dist"`. Backups de test reretombés à ~1 Mo. (à committer)
+
+### Portage Windows — Maia validé (session 2026-07-03)
+
+- **Installateur Windows testé de bout en bout en VM** `[Windows]` — VM Win11 recréée (VirtualBox, EFI+TPM 2.0, 6 Go RAM). `installer.bat` → Python 3.12, venv, dépendances, Stockfish OK. Appli lancée, **Stockfish + Maia fonctionnels**, partie jouée. Gel de VM récurrent tracé à la charge CPU (2 cœurs + Edge) — mitigé en fermant le navigateur pendant les commandes.
+- **`lc0.exe` (Maia) manquant sous Windows** `[Windows]` — Résolu : téléchargé lc0 v0.31.2 windows-cpu-openblas, placé `lc0.exe` + `libopenblas.dll` + 2× `mimalloc*.dll` dans `engines/maia/`. (à committer / à décider : commit du binaire vs gitignore)
+- **lc0.exe crash `0xC0000135` (MSVCP140.dll)** `[Windows]` — lc0 mourait au démarrage faute du runtime Visual C++. Résolu manuellement en VM via `vc_redist.x64.exe`. → automatisation en cours (voir Fonctionnalités à venir).
 
 ### Portage Windows — installateur (session 2026-05-24)
 
@@ -59,7 +76,16 @@ _(rien pour l'instant)_
 
 ## 💡 Fonctionnalités à venir
 
-- **Installateur Windows** `install_alchess.ps1` `[Windows]` ✅ — Écrit (commit 3c21705). À tester sur VM Windows avant merge master.
+- **Chantier « l'UI reflète l'état réel du système »** `[Les deux]` — Regroupe plusieurs points de la même famille, à concevoir ensemble :
+  - **Statut « Connected » trompeur** — le point vert + « Connected » reflète UNIQUEMENT la connexion Socket.IO navigateur↔serveur, PAS l'échiquier (diagnostic bridge confirmé : `index.html:28-29`, `app.js:584-603`, `server.py:138-145`). L'état échiquier est séparé (`_board_status`, `board_ok`/`board_error`, `alchess.py:172`). **Option A retenue** : renommer le libellé (ex. « Serveur connecté » / « Server connected ») dans les 3 i18n (`status.connecte`/`status.deconnecte`, ~ligne 371-372). Justif. : l'écran menu affiche déjà une phrase rouge quand l'échiquier est absent.
+  - **Griser les moteurs non disponibles** — détecter au démarrage quels moteurs sont réellement lançables (lc0/rodent/stockfish présents et fonctionnels) et griser dans l'UI ceux qui manquent, + alerte claire. Nécessite détection back + événement Socket.IO + logique front + i18n.
+- **Rodent IV pour Windows** `[Windows]` — Pas de binaire Windows dans le dépôt (dossier `exe/` ne contient que des `.bin`). Pas de release GitHub officielle propre (que du source, ou variantes NNUE non officielles / liens Dropbox-Mega). Deux voies : compiler depuis `engines/rodent-iv/sources/` sur la VM (VS/MinGW), ou récupérer un binaire Ablett manuellement. Le code attend exactement `engines/rodent-iv/rodentIV.exe`. Reporté (Stockfish + Maia suffisent pour une v1.0).
+- **Nettoyer le dossier Rodent dans le packaging** — `engines/rodent-iv/` embarque `mac/` (binaire macOS), `sources/` (code C++), qui gonflent le ZIP et n'ont rien à faire dans un paquet utilisateur. À trier par OS dans `make_release.sh`.
+- **Harmoniser la langue de `install_alchess.ps1`** `[Windows]` — Actuellement mixte (FR + bloc VC++ en EN). À terme, tout passer en anglais pour l'homogénéité (utilisateurs Windows).
+- **Lancement Windows plus ergonomique** `[Windows]` — Créer un raccourci sur le bureau lançant `start_alchess.ps1` d'un double-clic (comme le raccourci que `install.sh` crée sous Linux), plutôt que de passer par le terminal.
+- **Taille des ZIP (~210 Mo/OS)** — Surtout dû aux `books/` de Rodent. Élaguer si nécessaire (garder l'essentiel) — optimisation, non bloquant.
+
+- **Installateur Windows** `install_alchess.ps1` `[Windows]` ✅ — Écrit (commit 3c21705). Testé et validé en VM (Stockfish + Maia, session 2026-07-03). Reste : merge master quand prêt.
   - ✅ Vérifie Windows 10+ (build < 10240 → arrêt propre)
   - ✅ Détecte Python 3.12+ via `py -3.12` ou `python`
   - ✅ Si absent : installe via winget (non-destructif) ou guide vers python.org
@@ -131,3 +157,6 @@ _(rien pour l'instant)_
 - **Git** : committer après chaque étape stable. `git push` pour synchroniser GitHub.
 - **GitHub** : https://github.com/AlainDelree/AlChess
 - **Logs** : bouton 📋 en haut à droite du programme.
+- **Bridge — mode écriture** : le watcher (`~/bridge-agent/watcher.py`) lance CCL en **lecture seule par défaut** (diagnostic uniquement). Le label GitHub **`mode_write`** (rouge) arme le mode écriture (`--dangerously-skip-permissions`), avec garde-fous inscrits dans le prompt : backup pinné obligatoire, **jamais de `git push`** (push manuel), pas de commande destructrice. Le mode est visible (log `MODE ÉCRITURE ARMÉ` + ACK sur l'issue). Modèles d'issues dans `TACHES-ISSUES.md`. Validé le 2026-07-03 (issue #10). Ne PAS lancer le watcher en root (`--dangerously-skip-permissions` refusé).
+- **Runtime Visual C++ requis (Windows)** : `lc0.exe` (Maia) exige `MSVCP140.dll` (runtime VC++). Absent d'un Windows neuf → crash `0xC0000135` / exit code `3221225781`. Corrigé via `vc_redist.x64.exe` (https://aka.ms/vs/17/release/vc_redist.x64.exe). Automatisation dans l'installateur en cours.
+- **VM Windows (VirtualBox)** : `AlChess-Win11`, EFI + TPM 2.0, 6 Go RAM, 2 CPU, compte **local** (contourner le compte MS à l'install : `Maj+F10` → `start ms-cxh:localonly`). Gel possible si CPU saturé (Edge + commandes en //) — fermer le navigateur pendant les opérations lourdes. Transfert de fichiers : dossier partagé (`VBoxManage sharedfolder add`, VM éteinte) ou glisser-déposer (capricieux).

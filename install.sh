@@ -48,7 +48,7 @@ ok "Python ${PY_VERSION}"
 step "Paquets système"
 
 PKGS=(
-    libhidapi-hidraw0 libopenblas0 cpufrequtils stockfish
+    python3-venv libhidapi-hidraw0 libopenblas0 cpufrequtils stockfish
     python3-gi python3-gi-cairo gir1.2-gtk-3.0
 )
 MISSING=()
@@ -80,6 +80,24 @@ info "Mise à jour des dépendances pip..."
 "$REPO/venv/bin/pip" install -q --upgrade pip
 "$REPO/venv/bin/pip" install -q -r "$REPO/requirements.txt"
 ok "Venv prêt : $REPO/venv"
+
+# ── 3b. Moteurs — permissions d'exécution ────────────────────────────────────
+step "Moteurs (permissions d'exécution)"
+
+# Après extraction d'un ZIP, le bit exécutable des binaires peut être perdu.
+# On le rétablit sur les moteurs inclus et sur le lanceur.
+for BIN in \
+    "$REPO/engines/maia/lc0" \
+    "$REPO/engines/rodent-iv/rodentIV" \
+    "$REPO/start_alchess.sh"
+do
+    if [[ -f "$BIN" ]]; then
+        chmod +x "$BIN"
+        ok "Exécutable : ${BIN#"$REPO"/}"
+    else
+        warn "Absent : ${BIN#"$REPO"/} (non inclus dans ce paquet ?)"
+    fi
+done
 
 # ── 4. Règles udev (Chessnut Air) ────────────────────────────────────────────
 step "Règles udev (Chessnut Air)"
@@ -227,7 +245,8 @@ if [[ $ERRORS -eq 0 ]]; then
     echo -e "${GREEN}${BOLD}✓ Installation terminée avec succès !${NC}"
     echo ""
     echo -e "  Lancer AlChess :"
-    echo -e "  ${BLUE}/usr/bin/python3 ${REPO}/nicsoft/web/launcher.py${NC}"
+    echo -e "  ${BLUE}./start_alchess.sh${NC}"
+    echo -e "  (ou, avec l'écran de démarrage GTK : ${BLUE}/usr/bin/python3 ${REPO}/nicsoft/web/launcher.py${NC})"
 else
     echo -e "${RED}${BOLD}Installation terminée avec ${ERRORS} erreur(s).${NC}"
     echo "  Consultez les messages ci-dessus pour corriger."
