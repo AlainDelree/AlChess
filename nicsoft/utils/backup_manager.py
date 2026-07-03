@@ -75,6 +75,7 @@ EXCLUDES = [
     "engines",
     "src",
     "build",
+    "dist",
     "gamesOLD",
     "*.so",
     "*.o",
