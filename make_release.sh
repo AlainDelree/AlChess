@@ -78,6 +78,9 @@ done
 # Retirer les tests unitaires (inutiles pour l'utilisateur final)
 rm -rf "$STAGE/nicsoft/tests"
 
+# v1.0 : Rodent non inclus (pas de binaire Windows) — reviendra en v1.1
+rm -rf "$STAGE/engines/rodent-iv"
+
 # Dossier de sauvegarde des parties : présent mais VIDE (aucune donnée perso)
 mkdir -p "$STAGE/games"
 find "$STAGE/games" -mindepth 1 -delete 2>/dev/null || true
