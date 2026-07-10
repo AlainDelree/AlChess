@@ -74,7 +74,9 @@
   "config.maia.niveau":        "Maia level",
   "config.maia.desc":          "Plays like a human at this level",
   "config.rodent.force":       "Rodent strength",
-  "config.rodent.simple":      "Simplified play",
+  "config.rodent.personality":      "Personality",
+  "config.rodent.personality.desc": "Engine playing style",
+  "engine.rodent.unavailable":      "Rodent engine unavailable on this system",
 
   "config.pause.toujours":     "Always",
   "config.pause.imprecision":  "Inaccuracy + Mistake + Blunder",

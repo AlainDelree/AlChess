@@ -12,6 +12,7 @@ import logging
 
 from pathlib import Path
 from nicsoft.config import DATA_DIR
+from nicsoft.engine.engine_manager import RODENT_ELO_DEFAUT, RODENT_PERSONALITY_DEFAUT
 from nicsoft.core.board_adapter import create_board
 from nicsoft.web.server import send_event, set_app_state, get_action, set_virtual_board
 from nicsoft.web import server as web_server
@@ -118,8 +119,8 @@ def launch_pedagogique(config):
     bip           = config.get("bip_active", False)
     engine_type   = config.get("engine_type", "stockfish")
     maia_elo      = int(config.get("maia_elo", 1500))
-    rodent_elo    = int(config.get("rodent_elo", 800))
-    rodent_simple = config.get("rodent_simple", False)
+    rodent_elo    = int(config.get("rodent_elo", RODENT_ELO_DEFAUT))
+    rodent_perso  = config.get("rodent_personality", RODENT_PERSONALITY_DEFAUT)
     if color == "random":
         color = random.choice(["white", "black"])
     playing_white = (color == "white")
@@ -142,7 +143,7 @@ def launch_pedagogique(config):
     t = threading.Thread(
         target=_run_pedagogique,
         args=(player, playing_white, level, pause, analyse, bip,
-              engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple, _error),
+              engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_perso, _error),
         kwargs={"virtual": _virtual_mode},
         daemon=True,
     )
@@ -159,7 +160,9 @@ def launch_pedagogique(config):
 
 def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, bip_active,
                      engine_elo, engine_path, engine_type="stockfish", maia_elo=1500,
-                     rodent_elo=800, rodent_simple=False, _error=None, virtual=False):
+                     rodent_elo=RODENT_ELO_DEFAUT,
+                     rodent_personality=RODENT_PERSONALITY_DEFAUT,
+                     _error=None, virtual=False):
     from nicsoft.modes.pedagogique.pedagogique import Game, load_config, BackMenuExit
     from nicsoft.web.server import get_action
 
@@ -181,7 +184,7 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         if engine_type == "maia":
             engine_label = f"Maia {maia_elo}"
         elif engine_type == "rodent":
-            engine_label = f"Rodent {rodent_elo}" + (" (Simple)" if rodent_simple else "")
+            engine_label = f"Rodent {rodent_elo} ({rodent_personality})"
         else:
             engine_label = f"Stockfish ~{engine_elo}elo"
 
@@ -198,7 +201,7 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
             engine_type=engine_type,
             maia_elo=maia_elo,
             rodent_elo=rodent_elo,
-            rodent_simple=rodent_simple,
+            rodent_personality=rodent_personality,
         )
         game.player_name    = player_name
         game.move_gaps      = []
@@ -640,7 +643,8 @@ def _make_labo_session(nl_inst, config: dict):
         engine_path    = engine_path,
         engine_type    = config.get("engine_type", "stockfish"),
         maia_elo       = config.get("maia_elo", 1500),
-        rodent_elo     = config.get("rodent_elo", 800),
+        rodent_elo     = config.get("rodent_elo", RODENT_ELO_DEFAUT),
+        rodent_personality = config.get("rodent_personality", RODENT_PERSONALITY_DEFAUT),
     )
 
 
@@ -662,7 +666,8 @@ def _run_labo_session():
         "engine_type": "stockfish",
         "engine_elo":  1500,
         "maia_elo":    1500,
-        "rodent_elo":  800,
+        "rodent_elo":  RODENT_ELO_DEFAUT,
+        "rodent_personality": RODENT_PERSONALITY_DEFAUT,
         "analyse":     True,
     }
 
@@ -703,7 +708,7 @@ def _run_labo_session():
         elif atype == "labo_set_config":
             engine_changed = False
             color_changed  = False
-            for k in ("human_color", "engine_type", "engine_elo", "maia_elo", "rodent_elo", "analyse"):
+            for k in ("human_color", "engine_type", "engine_elo", "maia_elo", "rodent_elo", "rodent_personality", "analyse"):
                 if k in action and action[k] != labo_config.get(k):
                     if k == "human_color":
                         color_changed = True
@@ -883,8 +888,8 @@ def launch_labo_libre(config):
     bip           = config.get("bip_active", False)
     engine_type   = config.get("engine_type", "stockfish")
     maia_elo      = int(config.get("maia_elo", 1500))
-    rodent_elo    = int(config.get("rodent_elo", 800))
-    rodent_simple = config.get("rodent_simple", False)
+    rodent_elo    = int(config.get("rodent_elo", RODENT_ELO_DEFAUT))
+    rodent_perso  = config.get("rodent_personality", RODENT_PERSONALITY_DEFAUT)
 
     if color == "random":
         color = random.choice(["white", "black"])
@@ -908,7 +913,7 @@ def launch_labo_libre(config):
     t = threading.Thread(
         target=_run_labo_libre,
         args=(player, playing_white, start_fen, pause, analyse, bip,
-              engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple, _error),
+              engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_perso, _error),
         daemon=True,
     )
     t.start()
@@ -923,7 +928,7 @@ def launch_labo_libre(config):
 
 
 def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active, bip_active,
-                       engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_simple,
+                       engine_elo, engine_path, engine_type, maia_elo, rodent_elo, rodent_personality,
                        _error=None):
     from nicsoft.modes.labo.labo import LaboSession
     global _nl_inst_ref
@@ -957,7 +962,7 @@ def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active
             engine_type   = engine_type,
             maia_elo      = maia_elo,
             rodent_elo    = rodent_elo,
-            rodent_simple = rodent_simple,
+            rodent_personality = rodent_personality,
         )
 
         from nicsoft.web.server import action_queue as _aq

@@ -74,7 +74,9 @@
   "config.maia.niveau":        "Niveau Maia",
   "config.maia.desc":          "Joue comme un humain de ce niveau",
   "config.rodent.force":       "Force de Rodent",
-  "config.rodent.simple":      "Jeu simplifié",
+  "config.rodent.personality":      "Personnalité",
+  "config.rodent.personality.desc": "Style de jeu du moteur",
+  "engine.rodent.unavailable":      "Moteur Rodent indisponible sur ce système",
 
   "config.pause.toujours":     "Toujours",
   "config.pause.imprecision":  "Imprécision + Erreur + Gaffe",

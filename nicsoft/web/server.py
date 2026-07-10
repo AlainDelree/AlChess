@@ -53,6 +53,24 @@ _board_error_message: str = ""
 # Assignée par __main__.py via set_virtual_board() avant le lancement d'une partie
 _virtual_board_ref = None
 
+# Disponibilité du moteur Rodent IV — mise en cache car `rodent_available()`
+# lance un vrai handshake UCI (~1 s) : on ne paie ce coût qu'une fois, pas à
+# chaque reconnexion du navigateur. None = pas encore vérifié.
+_rodent_available_cache: bool | None = None
+
+
+def _get_rodent_available() -> bool:
+    """Retourne (et mémorise) si Rodent IV répond au handshake UCI."""
+    global _rodent_available_cache
+    if _rodent_available_cache is None:
+        try:
+            from nicsoft.engine.engine_manager import rodent_available
+            _rodent_available_cache = rodent_available()
+        except Exception as e:
+            logger.warning(f"[WEB] Vérification disponibilité Rodent échouée : {e}")
+            _rodent_available_cache = False
+    return _rodent_available_cache
+
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
@@ -145,6 +163,8 @@ def on_connect():
     emit("status", {"message": "Connecté au serveur NicLink", "message_key": "status.connecte"})
     emit("app_state", {"state": _app_state})
     emit("game_folders", {"folders": _get_game_folders()})
+    # Disponibilité Rodent IV → l'UI grise le moteur s'il ne répond pas
+    emit("rodent_status", {"available": _get_rodent_available()})
     # Renvoyer le statut échiquier au navigateur qui arrive/rafraîchit
     if _board_status == "ok":
         emit("board_ok", {})

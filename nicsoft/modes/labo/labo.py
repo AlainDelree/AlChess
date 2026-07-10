@@ -17,7 +17,10 @@ import logging
 import threading
 import time
 
-from nicsoft.engine.engine_manager import EngineManager, find_stockfish, find_rodent
+from nicsoft.engine.engine_manager import (
+    EngineManager, RodentEngine, find_stockfish, find_rodent,
+    RODENT_ELO_DEFAUT, RODENT_PERSONALITY_DEFAUT,
+)
 from nicsoft.web.server import send_event
 
 logger = logging.getLogger("NL labo")
@@ -36,8 +39,8 @@ class LaboSession:
                  engine_path: str = "",
                  engine_type: str = "stockfish",
                  maia_elo: int = 1500,
-                 rodent_elo: int = 800,
-                 rodent_simple: bool = False) -> None:
+                 rodent_elo: int = RODENT_ELO_DEFAUT,
+                 rodent_personality: str = RODENT_PERSONALITY_DEFAUT) -> None:
 
         self.nl_inst        = nl_inst
         self.engine_color   = chess.BLACK if engine_color == "black" else chess.WHITE
@@ -72,23 +75,15 @@ class LaboSession:
             rodent_path = find_rodent()
             if not rodent_path:
                 raise RuntimeError(f"Rodent introuvable dans {ENGINES_DIR / 'rodent-iv'}")
-            self.engine = EngineManager(rodent_path, engine_elo=rodent_elo, analyse_active=analyse_active)
-            if rodent_simple and self.engine._engine_play:
-                try: self.engine._engine_play.configure({"Personality": "Simple"})
-                except Exception: pass
-            sf_path = find_stockfish() or "stockfish"
-            try:
-                import chess.engine as _ce
-                sf_eval = _ce.SimpleEngine.popen_uci(sf_path)
-                if "UCI_ShowWDL" in sf_eval.options:
-                    sf_eval.configure({"UCI_ShowWDL": True})
-                    self.engine._supports_wdl = True
-                if self.engine._engine_eval:
-                    try: self.engine._engine_eval.quit()
-                    except Exception: pass
-                self.engine._engine_eval = sf_eval
-            except Exception as e:
-                logger.warning(f"Stockfish analyse Rodent : {e}")
+            # RodentEngine garantit l'ordre Personality → UCI_LimitStrength → UCI_Elo
+            # et délègue l'analyse à Stockfish (cf. issue #12).
+            self.engine = RodentEngine(
+                rodent_path,
+                personality=rodent_personality,
+                rodent_elo=rodent_elo,
+                stockfish_path=find_stockfish() or "stockfish",
+                analyse_active=analyse_active,
+            )
             self.engine_elo   = rodent_elo
             self.engine_label = f"Rodent {rodent_elo}"
 

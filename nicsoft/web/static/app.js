@@ -58,14 +58,14 @@ function _randBool() { return Math.random() < 0.5; }
 function _randomizeConfigPeda() {
   const joueur = _pick(_TEST_NAMES);
   const couleur = _pick(["white", "black", "random"]);
-  const engine = _pick(["stockfish", "maia", "rodent"]);
+  const engine = _pick(_rodentAvailable ? ["stockfish", "maia", "rodent"] : ["stockfish", "maia"]);
   document.getElementById("cfg-player").value = joueur;
   selectColor(couleur);
   selectEngine(engine);
   let eloSF = document.getElementById("cfg-elo")?.value || "1500";
   let eloMaia = document.getElementById("cfg-maia-elo")?.value || "1500";
-  let eloRodent = document.getElementById("cfg-rodent-elo")?.value || "800";
-  let rodentSimple = false;
+  let eloRodent = document.getElementById("cfg-rodent-elo")?.value || "1200";
+  let rodentPerso = "Tal";
   if (engine === "stockfish") {
     eloSF = String(Math.round((Math.random() * (3190 - 1320) + 1320) / 50) * 50);
     const inp = document.getElementById("cfg-elo");
@@ -78,9 +78,9 @@ function _randomizeConfigPeda() {
     eloRodent = String(Math.round((Math.random() * (2800 - 800) + 800) / 100) * 100);
     const inp = document.getElementById("cfg-rodent-elo");
     if (inp) { inp.value = eloRodent; _updateRodentLabel(parseInt(eloRodent)); }
-    rodentSimple = _randBool();
-    const simple = document.getElementById("cfg-rodent-simple");
-    if (simple) simple.checked = rodentSimple;
+    rodentPerso = _pick(RODENT_PERSONALITIES);
+    const perso = document.getElementById("cfg-rodent-personality");
+    if (perso) perso.value = rodentPerso;
   }
   const pause = _pick(["toujours","imprecision","erreur","blunder","jamais"]);
   const pauseSel = document.getElementById("cfg-pause");
@@ -97,7 +97,7 @@ function _randomizeConfigPeda() {
   const legalLbl = document.getElementById("cfg-show-legal-label");
   if (legalChk) { legalChk.checked = legal; if (legalLbl) legalLbl.textContent = legal ? t("common.active") : t("common.desactive"); }
   _lastPeda = { joueur, couleur, moteur: engine, eloSF, eloMaia, eloRodent,
-                rodentSimple: rodentSimple ? "oui" : "non", pause,
+                rodentPerso, pause,
                 analyse: analyse ? "on" : "off", bip: bip ? "on" : "off",
                 legal: legal ? "on" : "off" };
 }
@@ -148,7 +148,7 @@ function saveTestConfig(e) {
       "ELO SF":       p.eloSF        || document.getElementById("cfg-elo")?.value || "",
       "ELO Maia":     p.eloMaia      || document.getElementById("cfg-maia-elo")?.value || "",
       "ELO Rodent":   p.eloRodent    || document.getElementById("cfg-rodent-elo")?.value || "",
-      "Rodent simple":p.rodentSimple || (document.getElementById("cfg-rodent-simple")?.checked ? "oui" : "non"),
+      "Personnalité Rodent":p.rodentPerso || document.getElementById("cfg-rodent-personality")?.value || "",
       "Pause":        p.pause        || document.getElementById("cfg-pause")?.value || "",
       "Analyse":      p.analyse      || (document.getElementById("cfg-analyse")?.checked ? "on" : "off"),
       "Bip":          p.bip          || (document.getElementById("cfg-bip")?.checked ? "on" : "off"),
@@ -439,7 +439,34 @@ function selectColor(color) {
 
 let _selectedEngine = "stockfish";
 
+// Disponibilité de Rodent IV — mise à jour par l'événement socket "rodent_status"
+// (le backend fait un vrai handshake UCI). Tant que le serveur n'a pas répondu on
+// suppose disponible pour ne pas griser à tort au tout premier rendu.
+let _rodentAvailable = true;
+
+// Grise les boutons Rodent (config péda + labo) et affiche le message
+// d'indisponibilité quand le moteur ne répond pas. Ré-appelé à chaque changement
+// de langue via _refreshDynamicLabels() pour retraduire le tooltip.
+function _applyRodentAvailability() {
+  const msg = t("engine.rodent.unavailable");
+  [["cfg-engine-rodent", "cfg-rodent-unavailable"],
+   ["labo-eng-rodent",   "labo-rodent-unavailable"]].forEach(([btnId, msgId]) => {
+    const btn = document.getElementById(btnId);
+    const box = document.getElementById(msgId);
+    if (btn) {
+      btn.classList.toggle("engine-unavailable", !_rodentAvailable);
+      if (_rodentAvailable) btn.removeAttribute("title");
+      else                  btn.setAttribute("title", msg);
+    }
+    if (box) box.style.display = _rodentAvailable ? "none" : "";
+  });
+}
+
 function selectEngine(engine) {
+  if (engine === "rodent" && !_rodentAvailable) {
+    afficherToast(t("engine.rodent.unavailable"), "warning");
+    return;
+  }
   _selectedEngine = engine;
   document.getElementById("cfg-engine-stockfish").classList.toggle("selected", engine === "stockfish");
   document.getElementById("cfg-engine-maia").classList.toggle("selected",      engine === "maia");
@@ -447,6 +474,33 @@ function selectEngine(engine) {
   document.getElementById("cfg-section-stockfish").style.display = engine === "stockfish" ? "" : "none";
   document.getElementById("cfg-section-maia").style.display      = engine === "maia"      ? "" : "none";
   document.getElementById("cfg-section-rodent").style.display    = engine === "rodent"    ? "" : "none";
+}
+
+// Personnalités Rodent IV (valeurs EXACTES de l'option UCI combo "Personality"
+// du binaire 0.33 — doivent correspondre à RODENT_PERSONALITIES côté Python).
+// "Bosboom.txt" garde son extension dans la déclaration UCI : on l'envoie telle
+// quelle mais on l'affiche sans le .txt.
+const RODENT_PERSONALITIES = [
+  "Alekhine", "Amanda", "Ampere", "Anand", "Anderssen", "Bosboom.txt",
+  "Botvinnik", "Cloe", "Deborah", "Defender", "Dynamic", "Fischer",
+  "Grumpy", "Karpov", "Kasparov", "Kortchnoi", "Larsen", "Lasker",
+  "Marshall", "Morphy", "Nimzowitsch", "Partisan", "Pawnsacker", "Pedrita",
+  "Petrosian", "Preston", "Reti", "Rubinstein", "Simple", "Spassky",
+  "Spitfire", "Steinitz", "Strangler", "Tarrasch", "Tal", "Topalov",
+];
+const RODENT_PERSONALITY_DEFAULT = "Tal";
+
+// Remplit un <select> avec les personnalités Rodent, Tal sélectionné par défaut.
+function _populateRodentPersonalities(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel || sel.options.length) return;
+  RODENT_PERSONALITIES.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p;                                 // valeur exacte envoyée au moteur
+    opt.textContent = p.replace(/\.txt$/, "");     // affichage sans extension
+    if (p === RODENT_PERSONALITY_DEFAULT) opt.selected = true;
+    sel.appendChild(opt);
+  });
 }
 
 const _rodentLabelKeys = [
@@ -495,8 +549,8 @@ function startGame() {
   const analyse   = document.getElementById("cfg-analyse")?.checked !== false;
   const bip       = document.getElementById("cfg-bip")?.checked === true;
   const maiaElo   = parseInt(document.getElementById("cfg-maia-elo")?.value) || 1500;
-  const rodentElo    = parseInt(document.getElementById("cfg-rodent-elo")?.value) || 800;
-  const rodentSimple = document.getElementById("cfg-rodent-simple")?.checked === true;
+  const rodentElo    = parseInt(document.getElementById("cfg-rodent-elo")?.value) || 1200;
+  const rodentPerso  = document.getElementById("cfg-rodent-personality")?.value || "Tal";
   sendAction({
     type: "start",
     player,
@@ -509,7 +563,7 @@ function startGame() {
     engine_type: _selectedEngine,
     maia_elo: maiaElo,
     rodent_elo: rodentElo,
-    rodent_simple: rodentSimple,
+    rodent_personality: rodentPerso,
   });
 }
 
@@ -1102,9 +1156,8 @@ function _refreshDynamicLabels() {
   const legalLbl = document.getElementById("cfg-show-legal-label");
   if (legalChk && legalLbl) legalLbl.textContent = t(legalChk.checked ? "common.active" : "common.desactive");
 
-  const rodentSimpleChk = document.getElementById("cfg-rodent-simple");
-  const rodentSimpleLbl = document.getElementById("cfg-rodent-simple-label");
-  if (rodentSimpleChk && rodentSimpleLbl) rodentSimpleLbl.textContent = t(rodentSimpleChk.checked ? "common.active" : "common.desactive");
+  // Grisage Rodent + retraduction du message d'indisponibilité
+  _applyRodentAvailability();
 
   // Options Maia (format "Maia NNNN — label")
   const maiaSel = document.getElementById("cfg-maia-elo");
@@ -2474,6 +2527,10 @@ let _laboVirtualFen = ""; // FEN de la position virtuelle courante
 let _laboVirtSyncTimer = null; // debounce sync backend PGN→virtuel
 
 function laboSelectEngine(e) {
+  if (e === "rodent" && !_rodentAvailable) {
+    afficherToast(t("engine.rodent.unavailable"), "warning");
+    return;
+  }
   _laboEngine = e;
   ["sf","maia","rodent"].forEach(x => {
     document.getElementById(`labo-eng-${x}`)?.classList.toggle("selected", x === (e==="stockfish"?"sf":e));
@@ -2518,12 +2575,13 @@ function laboPushConfig() {
     human_color: _laboCamp,
     engine_elo:  parseInt(document.getElementById("labo-elo")?.value) || 1500,
     maia_elo:    parseInt(document.getElementById("labo-maia-elo")?.value) || 1500,
-    rodent_elo:  parseInt(document.getElementById("labo-rodent-elo")?.value) || 800,
+    rodent_elo:  parseInt(document.getElementById("labo-rodent-elo")?.value) || 1200,
+    rodent_personality: document.getElementById("labo-rodent-personality")?.value || "Tal",
     analyse:     document.getElementById("labo-analyse-chk")?.checked !== false,
   });
   // Mettre à jour le label moteur
   const label = _laboEngine === "maia" ? `Maia ${document.getElementById("labo-maia-elo")?.value||1500}`
-              : _laboEngine === "rodent" ? `Rodent ${document.getElementById("labo-rodent-elo")?.value||800}`
+              : _laboEngine === "rodent" ? `Rodent ${document.getElementById("labo-rodent-elo")?.value||1200}`
               : `Stockfish ~${document.getElementById("labo-elo")?.value||1500}elo`;
   const el = document.getElementById("labo-engine-label");
   if (el) el.textContent = label;
@@ -5710,4 +5768,19 @@ socket.on("outils_wiki_done", (data) => {
   res.innerHTML     = html;
   res.style.display = "block";
   afficherToast(t("outils.wiki_maj_toast", {n: data.total}), "success");
+});
+
+// Peuplement des sélecteurs de personnalité Rodent au chargement
+_populateRodentPersonalities("cfg-rodent-personality");
+_populateRodentPersonalities("labo-rodent-personality");
+
+// Disponibilité de Rodent IV (handshake UCI côté serveur) → grisage de l'UI
+socket.on("rodent_status", (data) => {
+  _rodentAvailable = data && data.available !== false;
+  // Si Rodent était sélectionné alors qu'il est indisponible, repli sur Stockfish
+  if (!_rodentAvailable) {
+    if (_selectedEngine === "rodent") selectEngine("stockfish");
+    if (_laboEngine === "rodent")     laboSelectEngine("stockfish");
+  }
+  _applyRodentAvailability();
 });

@@ -253,6 +253,12 @@
       transition: all 0.2s;
     }
     .color-btn.selected { border-color: #e94560; color: #1a2a3a; background: #a0b8d0; font-weight: 600; }
+    /* Moteur indisponible (ex. Rodent absent / handshake UCI KO) */
+    .color-btn.engine-unavailable {
+      opacity: 0.4;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
 
     /* ── Colonne gauche (Historique) ── */
     #left-panel {

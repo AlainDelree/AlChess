@@ -155,6 +155,8 @@
             <button class="color-btn"          id="cfg-engine-maia"      onclick="selectEngine('maia')">🧠 Maia Chess</button>
             <button class="color-btn"          id="cfg-engine-rodent"    onclick="selectEngine('rodent')">🐭 Rodent</button>
           </div>
+          <div id="cfg-rodent-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
+               data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</div>
 
           <!-- Section Stockfish -->
           <div id="cfg-section-stockfish">
@@ -194,21 +196,16 @@
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
               <button onclick="adjustRodentElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-200</button>
               <button onclick="adjustRodentElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-50</button>
-              <input id="cfg-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="800"
+              <input id="cfg-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="1200"
                      style="flex:1; text-align:center; margin-bottom:0; font-size:1rem; font-weight:bold;"
                      oninput="clampRodentElo()">
               <button onclick="adjustRodentElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+50</button>
               <button onclick="adjustRodentElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+200</button>
             </div>
-            <div id="cfg-rodent-elo-label" style="text-align:center; font-size:0.78rem; color:#3a5a7a; margin-bottom:10px;">800 Elo — Grand débutant</div>
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-              <label class="cfg-label" style="margin-bottom:0;" data-i18n="config.rodent.simple">Jeu simplifié</label>
-              <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
-                <input type="checkbox" id="cfg-rodent-simple" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;"
-                  onchange="document.getElementById('cfg-rodent-simple-label').textContent=t(this.checked?'common.active':'common.desactive')">
-                <span id="cfg-rodent-simple-label" style="font-size:0.85rem; color:#445; display:inline-block; width:52px;" data-i18n="common.desactive">Désactivé</span>
-              </label>
-            </div>
+            <div id="cfg-rodent-elo-label" style="text-align:center; font-size:0.78rem; color:#3a5a7a; margin-bottom:10px;">1200 Elo — Débutant+</div>
+            <label class="cfg-label" data-i18n="config.rodent.personality">Personnalité</label>
+            <select id="cfg-rodent-personality" class="cfg-input" style="margin-bottom:4px;"></select>
+            <div style="text-align:center; font-size:0.78rem; color:#3a5a7a;" data-i18n="config.rodent.personality.desc">Style de jeu du moteur</div>
           </div>
 
         </div><!-- fin card moteur -->
@@ -950,6 +947,8 @@
           <button class="color-btn"          id="labo-eng-maia"   onclick="laboSelectEngine('maia')">🧠 Maia</button>
           <button class="color-btn"          id="labo-eng-rodent" onclick="laboSelectEngine('rodent')">🐭 Rodent</button>
         </div>
+        <div id="labo-rodent-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
+             data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</div>
         <div id="labo-cfg-sf">
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
             <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>
@@ -974,12 +973,13 @@
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
             <button onclick="laboAdjRodentElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>
             <button onclick="laboAdjRodentElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-50</button>
-            <input id="labo-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="800"
+            <input id="labo-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="1200"
               style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampRodentElo()">
             <button onclick="laboAdjRodentElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+50</button>
             <button onclick="laboAdjRodentElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+200</button>
           </div>
-          <div id="labo-rodent-elo-label" style="text-align:center;font-size:0.72rem;color:#3a5a7a;">800 Elo</div>
+          <div id="labo-rodent-elo-label" style="text-align:center;font-size:0.72rem;color:#3a5a7a;margin-bottom:3px;">1200 Elo</div>
+          <select id="labo-rodent-personality" class="cfg-input" style="margin-bottom:0;" onchange="laboPushConfig()"></select>
         </div>
         <div style="display:flex; align-items:center; justify-content:space-between;">
           <label class="cfg-label" style="margin-bottom:0; font-size:0.8rem;" data-i18n="labo.label.analyse_coups">Analyse des coups</label>

@@ -74,7 +74,9 @@
   "config.maia.niveau":        "Maia-Stufe",
   "config.maia.desc":          "Spielt wie ein Mensch auf dieser Stufe",
   "config.rodent.force":       "Rodent-Stärke",
-  "config.rodent.simple":      "Vereinfachtes Spiel",
+  "config.rodent.personality":      "Persönlichkeit",
+  "config.rodent.personality.desc": "Spielstil der Engine",
+  "engine.rodent.unavailable":      "Rodent-Engine auf diesem System nicht verfügbar",
 
   "config.pause.toujours":     "Immer",
   "config.pause.imprecision":  "Ungenauigkeit + Fehler + Blunder",
