@@ -78,8 +78,39 @@ done
 # Retirer les tests unitaires (inutiles pour l'utilisateur final)
 rm -rf "$STAGE/nicsoft/tests"
 
-# v1.0 : Rodent non inclus (pas de binaire Windows) — reviendra en v1.1
-rm -rf "$STAGE/engines/rodent-iv"
+# Rodent IV inclus dans le ZIP standard depuis v1.1 (binaires Linux + Windows
+# validés, issue #12/#13). Les sous-dossiers non-livrables (mac/, sources/, .git)
+# sont élagués ci-dessous.
+# Élagage du paquet Rodent : on ne livre pas le binaire macOS, le code source C++,
+# les outils de dev ni le dépôt git imbriqué.
+rm -rf "$STAGE/engines/rodent-iv/mac" \
+       "$STAGE/engines/rodent-iv/sources" \
+       "$STAGE/engines/rodent-iv/tools" \
+       "$STAGE/engines/rodent-iv/.git"
+
+# Binaire Windows de Rodent IV.
+# Il vit dans engines/Rodent_IV/ (majuscule, NON tracké par git — apporté
+# manuellement), sous les noms officiels rodent-iv-x64/x32/plain.exe. Or
+# find_rodent() (nicsoft/engine/engine_manager.py) attend un unique
+# engines/rodent-iv/rodentIV.exe. On unifie donc la structure AU MOMENT DU
+# PACKAGING seulement : on copie le .exe 64 bits sous le nom rodentIV.exe + ses
+# DLL runtime dans engines/rodent-iv/, à côté du binaire Linux rodentIV.
+# → Aucun fichier n'est renommé/déplacé dans le dépôt git ; tout se passe dans
+#   le staging. build_linux et build_windows retirent ensuite le binaire de
+#   l'autre OS (le .exe + DLL côté Linux, l'ELF côté Windows).
+RODENT_WIN_SRC="$REPO_ROOT/engines/Rodent_IV"
+if [[ -f "$RODENT_WIN_SRC/rodent-iv-x64.exe" ]]; then
+  cp "$RODENT_WIN_SRC/rodent-iv-x64.exe" "$STAGE/engines/rodent-iv/rodentIV.exe"
+  cp "$RODENT_WIN_SRC/msvcp120.dll" "$RODENT_WIN_SRC/msvcr120.dll" \
+     "$STAGE/engines/rodent-iv/"
+  echo "  ✓ Rodent Windows : rodentIV.exe + DLL copiés dans engines/rodent-iv/"
+else
+  echo "  ⚠️  $RODENT_WIN_SRC/rodent-iv-x64.exe introuvable — ZIP Windows SANS Rodent"
+fi
+# Le dossier source Windows non tracké est rsyncé dans le staging (il est sur le
+# disque) : on le supprime pour ne pas dupliquer ses ~76 Mo de books ni livrer
+# une seconde arborescence Rodent redondante dans les ZIP.
+rm -rf "$STAGE/engines/Rodent_IV"
 
 # Dossier de sauvegarde des parties : présent mais VIDE (aucune donnée perso)
 mkdir -p "$STAGE/games"
@@ -95,6 +126,7 @@ build_linux() {
   rm -f "$out/installer.bat" "$out/install_alchess.ps1" "$out/start_alchess.ps1"
   rm -f "$out/engines/maia/lc0.exe" "$out/engines/rodent-iv/rodentIV.exe"
   rm -f "$out"/engines/maia/*.dll
+  rm -f "$out"/engines/rodent-iv/*.dll
   ( cd "$DIST" && zip -qr "$NAME-linux-x86_64.zip" "$NAME-linux-x86_64" )
   rm -rf "$out"
   validate "$DIST/$NAME-linux-x86_64.zip" "linux"
