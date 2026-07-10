@@ -89,8 +89,8 @@ rm -rf "$STAGE/engines/rodent-iv/mac" \
        "$STAGE/engines/rodent-iv/.git"
 
 # Binaire Windows de Rodent IV.
-# Il vit dans engines/Rodent_IV/ (majuscule, NON tracké par git — apporté
-# manuellement), sous les noms officiels rodent-iv-x64/x32/plain.exe. Or
+# Il vit dans engines/rodent-iv/win/ (tracké par git : rodent-iv-x64.exe +
+# msvcp120.dll + msvcr120.dll — build reproductible sur clone frais). Or
 # find_rodent() (nicsoft/engine/engine_manager.py) attend un unique
 # engines/rodent-iv/rodentIV.exe. On unifie donc la structure AU MOMENT DU
 # PACKAGING seulement : on copie le .exe 64 bits sous le nom rodentIV.exe + ses
@@ -98,7 +98,7 @@ rm -rf "$STAGE/engines/rodent-iv/mac" \
 # → Aucun fichier n'est renommé/déplacé dans le dépôt git ; tout se passe dans
 #   le staging. build_linux et build_windows retirent ensuite le binaire de
 #   l'autre OS (le .exe + DLL côté Linux, l'ELF côté Windows).
-RODENT_WIN_SRC="$REPO_ROOT/engines/Rodent_IV"
+RODENT_WIN_SRC="$REPO_ROOT/engines/rodent-iv/win"
 if [[ -f "$RODENT_WIN_SRC/rodent-iv-x64.exe" ]]; then
   cp "$RODENT_WIN_SRC/rodent-iv-x64.exe" "$STAGE/engines/rodent-iv/rodentIV.exe"
   cp "$RODENT_WIN_SRC/msvcp120.dll" "$RODENT_WIN_SRC/msvcr120.dll" \
@@ -107,10 +107,11 @@ if [[ -f "$RODENT_WIN_SRC/rodent-iv-x64.exe" ]]; then
 else
   echo "  ⚠️  $RODENT_WIN_SRC/rodent-iv-x64.exe introuvable — ZIP Windows SANS Rodent"
 fi
-# Le dossier source Windows non tracké est rsyncé dans le staging (il est sur le
-# disque) : on le supprime pour ne pas dupliquer ses ~76 Mo de books ni livrer
-# une seconde arborescence Rodent redondante dans les ZIP.
-rm -rf "$STAGE/engines/Rodent_IV"
+# Le sous-dossier win/ (tracké) a été rsyncé dans le staging : ses fichiers ont
+# déjà été copiés/renommés en rodentIV.exe + DLL au niveau supérieur ci-dessus.
+# On le supprime du staging pour ne pas livrer une seconde copie redondante des
+# binaires Windows dans les ZIP.
+rm -rf "$STAGE/engines/rodent-iv/win"
 
 # Dossier de sauvegarde des parties : présent mais VIDE (aucune donnée perso)
 mkdir -p "$STAGE/games"
