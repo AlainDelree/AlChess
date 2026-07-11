@@ -237,6 +237,25 @@ function toggleVirtualMode(enabled) {
       if (sub) { sub.textContent = t("menu.verification_echiquier"); sub.style.color = ""; }
     }
   }
+  _applyBoardBadge();
+}
+
+// Met à jour le badge échiquier (3 états : connecté / non détecté / virtuel)
+function _applyBoardBadge() {
+  const dot  = document.getElementById("board-status-dot");
+  const text = document.getElementById("board-status-text");
+  if (!dot || !text) return;
+  dot.classList.remove("connected", "error", "virtual");
+  if (_virtualMode) {
+    dot.classList.add("virtual");
+    text.textContent = t("status.board.virtuel");
+  } else if (_boardOk) {
+    dot.classList.add("connected");
+    text.textContent = t("status.board.connecte");
+  } else {
+    dot.classList.add("error");
+    text.textContent = t("status.board.non_detecte");
+  }
 }
 
 
@@ -655,7 +674,8 @@ socket.on("board_error", (data) => {
   }
   // Appel direct si locale déjà chargée, puis via promise pour garantir le bon locale
   _refreshDynamicLabels();
-  (window.i18nReady || Promise.resolve()).then(() => _refreshDynamicLabels());
+  _applyBoardBadge();
+  (window.i18nReady || Promise.resolve()).then(() => { _refreshDynamicLabels(); _applyBoardBadge(); });
 });
 
 socket.on("board_ok", () => {
@@ -672,7 +692,8 @@ socket.on("board_ok", () => {
     _okBtn.style.background = ""; _okBtn.style.color = "";
   }
   _refreshDynamicLabels();
-  (window.i18nReady || Promise.resolve()).then(() => _refreshDynamicLabels());
+  _applyBoardBadge();
+  (window.i18nReady || Promise.resolve()).then(() => { _refreshDynamicLabels(); _applyBoardBadge(); });
 });
 
 socket.on("virtual_mode_active", () => {
@@ -683,6 +704,7 @@ socket.on("virtual_mode_active", () => {
   const sub = document.getElementById("connecting-sub");
   if (msg) msg.textContent = t("game.demarrage_virtuel");
   if (sub) sub.textContent = t("game.mode_sans_echiquier");
+  _applyBoardBadge();
 });
 
 socket.on("abandon_nulle_ok", () => {
@@ -842,6 +864,19 @@ socket.on("app_state", (data) => {
     _viderAnalyse();
     _virtDeactivateBoard();
     _chessInstance = null;
+    // Quitter le mode virtuel au retour au menu (badge échiquier repasse en mode physique)
+    if (_virtualMode) {
+      _virtualMode = false;
+      _applyBoardBadge();
+      const sub = document.querySelector(".menu-subtitle");
+      const btn = document.getElementById("btn-reconnect");
+      if (btn) btn.style.display = "";
+      if (_boardOk) {
+        if (sub) { sub.textContent = t("menu.sous_titre_connecte"); sub.style.color = ""; }
+      } else {
+        if (sub) { sub.textContent = t("menu.verification_echiquier"); sub.style.color = ""; }
+      }
+    }
     // Vider les champs de config HH
     const wName = document.getElementById("cfg-white-name");
     const bName = document.getElementById("cfg-black-name");
@@ -854,13 +889,8 @@ socket.on("app_state", (data) => {
     // Restaurer le message connecting pour la prochaine partie
     const cMsg = document.getElementById("connecting-msg");
     const cSub = document.getElementById("connecting-sub");
-    if (_virtualMode) {
-      if (cMsg) cMsg.textContent = t("game.demarrage_virtuel");
-      if (cSub) cSub.textContent = t("game.mode_sans_echiquier");
-    } else {
-      if (cMsg) cMsg.textContent = t("connecting.msg");
-      if (cSub) cSub.textContent = t("connecting.sub");
-    }
+    if (cMsg) cMsg.textContent = t("connecting.msg");
+    if (cSub) cSub.textContent = t("connecting.sub");
     // Réactiver les boutons physiques si échiquier connecté
     if (_boardOk) {
       document.querySelectorAll("[data-needs-board]")
@@ -1273,6 +1303,9 @@ function _refreshDynamicLabels() {
   // Statut connexion serveur
   const statusText = document.getElementById("status-text");
   if (statusText) statusText.textContent = t(_socketConnected ? "status.connecte" : "status.deconnecte");
+
+  // Badge échiquier (3 états)
+  _applyBoardBadge();
 
   // Options combobox séquence
   const seqSel = document.getElementById("rv-seq-moves");

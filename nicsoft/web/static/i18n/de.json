@@ -376,8 +376,11 @@
   "common.position_initiale":  "Ausgangsstellung",
   "common.coup_num":           "Zug {n}",
 
-  "status.connecte":           "Server verbunden",
-  "status.deconnecte":         "Server getrennt",
+  "status.connecte":           "Anwendung verbunden",
+  "status.deconnecte":         "Anwendung getrennt",
+  "status.board.connecte":     "Schachbrett verbunden",
+  "status.board.non_detecte":  "Schachbrett nicht erkannt",
+  "status.board.virtuel":      "Physisches Schachbrett getrennt — Virtueller Modus aktiv",
 
   "game.undo_remettez_pieces":  "Figuren zurückstellen, dann weiterspielen.",
   "game.undo_remettez_piece":   "Figur zurückstellen, dann weiterspielen.",

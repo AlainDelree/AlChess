@@ -27,6 +27,8 @@
   <h1><span style="font-size:1.4em; line-height:1;">♜</span> AlChess</h1>
   <div id="status-dot"></div>
   <span id="status-text">Connexion...</span>
+  <div id="board-status-dot"></div>
+  <span id="board-status-text"></span>
   <select id="lang-selector" onchange="i18n.load(this.value).then(_refreshDynamicLabels)"
     style="margin-left:auto; font-size:0.75rem; color:#3a5a7a; background:transparent; border:none; cursor:pointer; opacity:0.6; transition:opacity 0.2s;"
     onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">

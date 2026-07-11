@@ -376,8 +376,11 @@
   "common.position_initiale":  "Position initiale",
   "common.coup_num":           "Coup {n}",
 
-  "status.connecte":           "Serveur connecté",
-  "status.deconnecte":         "Serveur déconnecté",
+  "status.connecte":           "Application connectée",
+  "status.deconnecte":         "Application déconnectée",
+  "status.board.connecte":     "Échiquier connecté",
+  "status.board.non_detecte":  "Échiquier non détecté",
+  "status.board.virtuel":      "Échiquier physique déconnecté — Mode virtuel actif",
 
   "game.undo_remettez_pieces":  "Remettez les pièces à leur place, puis rejouez.",
   "game.undo_remettez_piece":   "Remettez la pièce à sa position initiale, puis rejouez.",
