@@ -4,7 +4,7 @@
 
 ## ⚡ Prioritaire
 
-- **Rodent IV — placement du binaire Windows + arborescence à unifier** `[Windows]` — **Priorité réelle** : Jess (qui a offert l'échiquier) débute et a besoin d'un adversaire vraiment faible ; Maia/Stockfish ne descendent pas assez bas, Rodent est fait pour ça. Elle joue sur **Windows**. **Investigation terminée (issue #12)** : binaire officiel Rodent IV 0.33 validé — `rodent-iv-x64.exe` (Windows) + `rodentIV` (Linux), tous deux fonctionnels. Le binaire officiel suffit (aucune recompilation nécessaire). **Intégration backend + UI TERMINÉE (issue #13, `mode_write`)** : `RodentEngine` (ordre `Personality` → `UCI_LimitStrength` → `UCI_Elo`, Elo en dernier, confirmé par logs UCI), sélecteur Personality (36 valeurs) + slider Elo dans Pédagogique et Labo, défauts `Tal`/1200, `make_release.sh` inclut Rodent dans le ZIP standard. Test end-to-end CLI OK (joue, change d'Elo à chaud, analyse déléguée à Stockfish). **RESTE À FAIRE** : (1) **décision d'arborescence** — le `.exe` Windows est dans `engines/Rodent_IV/` (non tracké) alors que `find_rodent()` attend `engines/rodent-iv/rodentIV.exe` ; il faut déplacer/renommer le binaire Windows dans `engines/rodent-iv/` et régler le statut gitlink de `rodent-iv` (voir issue #13, plan à valider) ; (2) le ZIP Windows ne contient donc PAS encore Rodent (validateur : « Rodent (Windows) absent ») ; (3) tests en conditions réelles (partie complète + redémarrage) sur Windows. Note : Alain récupère bientôt un vieux portable Windows 8/10 (banc de test réel).
+- **Tester une partie réelle Rodent sur Windows (vieux portable)** `[Windows]` — Reliquat du chantier Rodent (placement binaire + arborescence, désormais FAIT — voir résolus). Le binaire Windows est packagé et la Release v1.1.0 contient Rodent ; il reste à valider une partie complète (jeu + changement d'Elo + redémarrage) en conditions réelles sur un Windows physique. Alain récupère bientôt un vieux portable Windows 8/10 (banc de test réel).
 - **Tester vc_redist sur un Windows SANS le runtime** `[Windows]` — Le code auto-install VC++ (`Install-VCRedist`) est commité (`f8027ea`) mais validé seulement « par inspection ». La VM actuelle a déjà le runtime → elle ne teste que le cas « déjà présent ». À valider sur un Windows propre (VM fraîche ou le vieux portable).
 
 ---
@@ -22,6 +22,14 @@
 ---
 
 ## ✅ Bugs résolus récemment
+
+### Release publique v1.1.0 🎉 (2026-07-11)
+
+- **Release publique v1.1.0 en ligne** 🎉 — https://github.com/AlainDelree/AlChess/releases/tag/v1.1.0 — tag `v1.1.0` marqué **latest**. ZIP Linux (~210 Mo) + Windows (~215 Mo) téléchargeables, **Rodent IV inclus** (les 3 moteurs : Stockfish + Maia + Rodent). Intègre les taglines moteurs (badge i18n sur les boutons de sélection, issue #23) et le grisage des moteurs indisponibles (issue #25). Rodent vérifié présent dans les 2 ZIP.
+
+### Rodent IV — placement binaire Windows / arborescence (FAIT)
+
+- **Rodent IV — placement du binaire Windows + arborescence unifiée** `[Windows]` ✅ **FAIT** — Le binaire Windows `engines/rodent-iv-win/rodent-iv-x64.exe` (+ DLL) est tracké **hors sous-module** pour survivre à un clone frais (commit `a00fc4a`). `make_release.sh` le recopie en `engines/rodent-iv/rodentIV.exe` lors du packaging (commits `507c5ef`, `bc99cb2`). Résultat : la Release v1.1.0 contient bien Rodent — vérifié dans les 2 ZIP (Linux + Windows). L'arborescence attendue par `find_rodent()` est désormais respectée. **Reliquat déplacé en Prioritaire** : tester une partie réelle Rodent sur un Windows physique.
 
 ### Griser les moteurs non disponibles (issue #25)
 
@@ -101,7 +109,7 @@
 - **Nettoyer le dossier Rodent dans le packaging** — ✅ **Traité pour v1.0** : `make_release.sh` exclut totalement `engines/rodent-iv` (commit `f7ed4d1`, voir résolus). **Reste pour v1.1** (une fois Rodent réintégré) : tri fin par OS — `engines/rodent-iv/` contient aussi `mac/` (binaire macOS), `sources/` (code C++) et `books/` volumineux, inutiles dans un paquet utilisateur final.
 - **Harmoniser la langue de `install_alchess.ps1`** `[Windows]` — Actuellement mixte (FR + bloc VC++ en EN). À terme, tout passer en anglais pour l'homogénéité (utilisateurs Windows).
 - **Lancement Windows plus ergonomique** `[Windows]` — Créer un raccourci sur le bureau lançant `start_alchess.ps1` d'un double-clic (comme le raccourci que `install.sh` crée sous Linux), plutôt que de passer par le terminal.
-- **Taille des ZIP (v1.1 : 268 Mo Linux / 272 Mo Windows)** — En hausse de ~+109 Mo/OS vs v1.0 (159/163 Mo) depuis l'inclusion de Rodent. Cause mesurée (issue #13) : `engines/rodent-iv/` livré = 81 Mo, dont **69 Mo de `books/`** (livres d'ouverture), 9,8 Mo de `exe/` (doublon de `rodent.bin`) et 2,3 Mo de `docs/`. Pistes d'élagage à valider avec Alain : supprimer `exe/` (redondant), `docs/` (dev), et réduire `books/` aux livres réellement utiles (Rodent joue sans livre si absent). Non bloquant mais significatif.
+- **Taille des ZIP (v1.1 : ~210 Mo Linux / ~215 Mo Windows)** — En hausse d'environ +50 Mo/OS vs v1.0 (159/163 Mo) depuis l'inclusion de Rodent. Cause mesurée (issue #13) : `engines/rodent-iv/` livré = 81 Mo, dont **69 Mo de `books/`** (livres d'ouverture), 9,8 Mo de `exe/` (doublon de `rodent.bin`) et 2,3 Mo de `docs/`. Pistes d'élagage à valider avec Alain : supprimer `exe/` (redondant), `docs/` (dev), et réduire `books/` aux livres réellement utiles (Rodent joue sans livre si absent). Non bloquant mais significatif.
 
 - **Installateur Windows** `install_alchess.ps1` `[Windows]` ✅ — Écrit (commit 3c21705). Testé et validé en VM (Stockfish + Maia, session 2026-07-03). Reste : merge master quand prêt.
   - ✅ Vérifie Windows 10+ (build < 10240 → arrêt propre)
