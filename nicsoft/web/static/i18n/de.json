@@ -376,8 +376,8 @@
   "common.position_initiale":  "Ausgangsstellung",
   "common.coup_num":           "Zug {n}",
 
-  "status.connecte":           "Verbunden",
-  "status.deconnecte":         "Getrennt",
+  "status.connecte":           "Server verbunden",
+  "status.deconnecte":         "Server getrennt",
 
   "game.undo_remettez_pieces":  "Figuren zurückstellen, dann weiterspielen.",
   "game.undo_remettez_piece":   "Figur zurückstellen, dann weiterspielen.",

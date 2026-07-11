@@ -376,8 +376,8 @@
   "common.position_initiale":  "Starting position",
   "common.coup_num":           "Move {n}",
 
-  "status.connecte":           "Connected",
-  "status.deconnecte":         "Disconnected",
+  "status.connecte":           "Server connected",
+  "status.deconnecte":         "Server disconnected",
 
   "game.undo_remettez_pieces":  "Put the pieces back, then replay.",
   "game.undo_remettez_piece":   "Put the piece back, then replay.",

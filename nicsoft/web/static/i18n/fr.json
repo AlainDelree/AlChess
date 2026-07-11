@@ -376,8 +376,8 @@
   "common.position_initiale":  "Position initiale",
   "common.coup_num":           "Coup {n}",
 
-  "status.connecte":           "Connecté",
-  "status.deconnecte":         "Déconnecté",
+  "status.connecte":           "Serveur connecté",
+  "status.deconnecte":         "Serveur déconnecté",
 
   "game.undo_remettez_pieces":  "Remettez les pièces à leur place, puis rejouez.",
   "game.undo_remettez_piece":   "Remettez la pièce à sa position initiale, puis rejouez.",
