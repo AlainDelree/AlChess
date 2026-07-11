@@ -72,9 +72,8 @@
       transition: background 0.3s;
       margin-left: 12px;
     }
-    #board-status-dot.connected { background: #4caf50; }
-    #board-status-dot.error     { background: #e94560; }
-    #board-status-dot.virtual   { background: #888; }
+    #board-status-dot.connected   { background: #4caf50; }
+    #board-status-dot.unavailable { background: #e8912d; }
 
     #board-status-text {
       font-size: 0.85rem;

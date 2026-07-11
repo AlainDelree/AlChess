@@ -379,8 +379,7 @@
   "status.connecte":           "Application connected",
   "status.deconnecte":         "Application disconnected",
   "status.board.connecte":     "Board connected",
-  "status.board.non_detecte":  "Board not detected",
-  "status.board.virtuel":      "Physical board disconnected — Virtual mode on",
+  "status.board.non_detecte":  "Board not detected — virtual mode available",
 
   "game.undo_remettez_pieces":  "Put the pieces back, then replay.",
   "game.undo_remettez_piece":   "Put the piece back, then replay.",

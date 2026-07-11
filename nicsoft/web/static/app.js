@@ -237,23 +237,20 @@ function toggleVirtualMode(enabled) {
       if (sub) { sub.textContent = t("menu.verification_echiquier"); sub.style.color = ""; }
     }
   }
-  _applyBoardBadge();
+  // Le badge échiquier ne dépend plus de _virtualMode (2 états : connecté / non détecté).
 }
 
-// Met à jour le badge échiquier (3 états : connecté / non détecté / virtuel)
+// Met à jour le badge échiquier (2 états : connecté / non détecté — mode virtuel dispo)
 function _applyBoardBadge() {
   const dot  = document.getElementById("board-status-dot");
   const text = document.getElementById("board-status-text");
   if (!dot || !text) return;
-  dot.classList.remove("connected", "error", "virtual");
-  if (_virtualMode) {
-    dot.classList.add("virtual");
-    text.textContent = t("status.board.virtuel");
-  } else if (_boardOk) {
+  dot.classList.remove("connected", "unavailable");
+  if (_boardOk) {
     dot.classList.add("connected");
     text.textContent = t("status.board.connecte");
   } else {
-    dot.classList.add("error");
+    dot.classList.add("unavailable");
     text.textContent = t("status.board.non_detecte");
   }
 }
@@ -704,7 +701,6 @@ socket.on("virtual_mode_active", () => {
   const sub = document.getElementById("connecting-sub");
   if (msg) msg.textContent = t("game.demarrage_virtuel");
   if (sub) sub.textContent = t("game.mode_sans_echiquier");
-  _applyBoardBadge();
 });
 
 socket.on("abandon_nulle_ok", () => {
@@ -867,7 +863,6 @@ socket.on("app_state", (data) => {
     // Quitter le mode virtuel au retour au menu (badge échiquier repasse en mode physique)
     if (_virtualMode) {
       _virtualMode = false;
-      _applyBoardBadge();
       const sub = document.querySelector(".menu-subtitle");
       const btn = document.getElementById("btn-reconnect");
       if (btn) btn.style.display = "";

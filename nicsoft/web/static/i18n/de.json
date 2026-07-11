@@ -379,8 +379,7 @@
   "status.connecte":           "Anwendung verbunden",
   "status.deconnecte":         "Anwendung getrennt",
   "status.board.connecte":     "Schachbrett verbunden",
-  "status.board.non_detecte":  "Schachbrett nicht erkannt",
-  "status.board.virtuel":      "Physisches Schachbrett getrennt — Virtueller Modus aktiv",
+  "status.board.non_detecte":  "Schachbrett nicht erkannt — Virtueller Modus verfügbar",
 
   "game.undo_remettez_pieces":  "Figuren zurückstellen, dann weiterspielen.",
   "game.undo_remettez_piece":   "Figur zurückstellen, dann weiterspielen.",
