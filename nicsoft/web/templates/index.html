@@ -155,8 +155,14 @@
             <button class="color-btn"          id="cfg-engine-maia"      onclick="selectEngine('maia')">🧠 Maia Chess <span class="engine-tagline" data-i18n="config.tagline.maia">Human</span></button>
             <button class="color-btn"          id="cfg-engine-rodent"    onclick="selectEngine('rodent')">🐭 Rodent <span class="engine-tagline" data-i18n="config.tagline.rodent">Weak</span></button>
           </div>
+          <div id="cfg-stockfish-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
+               data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
+          <div id="cfg-maia-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
+               data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
           <div id="cfg-rodent-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
                data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</div>
+          <div id="cfg-no-engine-alert" style="display:none; font-size:0.85rem; color:#c0392b; margin:8px 0; padding:8px; background:#ffe0e0; border-radius:4px; text-align:center;"
+               data-i18n="engine.none.available">Aucun moteur d'échecs n'est disponible</div>
 
           <!-- Section Stockfish -->
           <div id="cfg-section-stockfish">
@@ -247,7 +253,7 @@
   <!-- Barre de boutons fixe en bas -->
   <div style="width:100%; background:#c2d4e8; border-top:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0; display:flex; gap:12px; justify-content:center;">
     <button class="btn btn-continuer" onclick="sendAction({type:'back'})" style="width:160px; margin-bottom:0;" data-i18n="common.retour">← Retour</button>
-    <button class="btn btn-reprendre" onclick="startGame()" style="width:260px; margin-bottom:0; font-size:1rem;" data-i18n="common.demarrer">▶ Démarrer la partie</button>
+    <button id="btn-start-peda" class="btn btn-reprendre" onclick="startGame()" style="width:260px; margin-bottom:0; font-size:1rem;" data-i18n="common.demarrer">▶ Démarrer la partie</button>
   </div>
 
 </div>
@@ -947,6 +953,10 @@
           <button class="color-btn"          id="labo-eng-maia"   onclick="laboSelectEngine('maia')">🧠 Maia</button>
           <button class="color-btn"          id="labo-eng-rodent" onclick="laboSelectEngine('rodent')">🐭 Rodent</button>
         </div>
+        <div id="labo-stockfish-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
+             data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
+        <div id="labo-maia-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
+             data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
         <div id="labo-rodent-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
              data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</div>
         <div id="labo-cfg-sf">

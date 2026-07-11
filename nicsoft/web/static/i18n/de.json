@@ -79,7 +79,10 @@
   "config.rodent.force":       "Rodent-Stärke",
   "config.rodent.personality":      "Persönlichkeit",
   "config.rodent.personality.desc": "Spielstil der Engine",
+  "engine.stockfish.unavailable":   "Stockfish ist auf diesem System nicht installiert",
+  "engine.maia.unavailable":        "Maia (lc0 + Gewichte) ist auf diesem System nicht installiert",
   "engine.rodent.unavailable":      "Rodent-Engine auf diesem System nicht verfügbar",
+  "engine.none.available":          "Keine Schach-Engine verfügbar — installieren Sie Stockfish, Maia oder Rodent",
 
   "config.pause.toujours":     "Immer",
   "config.pause.imprecision":  "Ungenauigkeit + Fehler + Blunder",

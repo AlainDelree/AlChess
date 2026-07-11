@@ -53,10 +53,37 @@ _board_error_message: str = ""
 # Assignée par __main__.py via set_virtual_board() avant le lancement d'une partie
 _virtual_board_ref = None
 
-# Disponibilité du moteur Rodent IV — mise en cache car `rodent_available()`
-# lance un vrai handshake UCI (~1 s) : on ne paie ce coût qu'une fois, pas à
-# chaque reconnexion du navigateur. None = pas encore vérifié.
+# Disponibilité des moteurs — mise en cache pour éviter les vérifications
+# répétées à chaque reconnexion du navigateur. None = pas encore vérifié.
+_stockfish_available_cache: bool | None = None
+_maia_available_cache: bool | None = None
 _rodent_available_cache: bool | None = None
+
+
+def _get_stockfish_available() -> bool:
+    """Retourne (et mémorise) si Stockfish est présent."""
+    global _stockfish_available_cache
+    if _stockfish_available_cache is None:
+        try:
+            from nicsoft.engine.engine_manager import stockfish_available
+            _stockfish_available_cache = stockfish_available()
+        except Exception as e:
+            logger.warning(f"[WEB] Vérification disponibilité Stockfish échouée : {e}")
+            _stockfish_available_cache = False
+    return _stockfish_available_cache
+
+
+def _get_maia_available() -> bool:
+    """Retourne (et mémorise) si Maia (lc0 + poids) est disponible."""
+    global _maia_available_cache
+    if _maia_available_cache is None:
+        try:
+            from nicsoft.engine.engine_manager import maia_available
+            _maia_available_cache = maia_available()
+        except Exception as e:
+            logger.warning(f"[WEB] Vérification disponibilité Maia échouée : {e}")
+            _maia_available_cache = False
+    return _maia_available_cache
 
 
 def _get_rodent_available() -> bool:
@@ -163,7 +190,9 @@ def on_connect():
     emit("status", {"message": "Connecté au serveur NicLink", "message_key": "status.connecte"})
     emit("app_state", {"state": _app_state})
     emit("game_folders", {"folders": _get_game_folders()})
-    # Disponibilité Rodent IV → l'UI grise le moteur s'il ne répond pas
+    # Disponibilité des moteurs → l'UI grise ceux qui ne sont pas disponibles
+    emit("stockfish_status", {"available": _get_stockfish_available()})
+    emit("maia_status", {"available": _get_maia_available()})
     emit("rodent_status", {"available": _get_rodent_available()})
     # Renvoyer le statut échiquier au navigateur qui arrive/rafraîchit
     if _board_status == "ok":

@@ -491,6 +491,27 @@ def find_rodent() -> str | None:
     return str(path) if path.exists() else None
 
 
+def stockfish_available() -> bool:
+    """Retourne True si Stockfish est présent sur le système (vérification fichier)."""
+    return find_stockfish() is not None
+
+
+def maia_available() -> bool:
+    """
+    Retourne True si Maia est disponible : lc0 présent ET au moins un poids
+    maia-*.pb.gz présent dans engines/maia/.
+    """
+    if find_lc0() is None:
+        return False
+    maia_dir = ENGINES_DIR / "maia"
+    if not maia_dir.exists():
+        return False
+    for level, filename in MAIA_LEVELS.items():
+        if (maia_dir / filename).exists():
+            return True
+    return False
+
+
 def rodent_available() -> bool:
     """
     Détermine si Rodent IV peut être proposé comme moteur.

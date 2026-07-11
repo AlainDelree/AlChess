@@ -439,10 +439,47 @@ function selectColor(color) {
 
 let _selectedEngine = "stockfish";
 
-// Disponibilité de Rodent IV — mise à jour par l'événement socket "rodent_status"
-// (le backend fait un vrai handshake UCI). Tant que le serveur n'a pas répondu on
-// suppose disponible pour ne pas griser à tort au tout premier rendu.
+// Disponibilité des moteurs — mise à jour par les événements socket "*_status".
+// Tant que le serveur n'a pas répondu on suppose disponible pour ne pas griser à tort.
+let _stockfishAvailable = true;
+let _maiaAvailable = true;
 let _rodentAvailable = true;
+
+// Grise les boutons Stockfish (config péda + labo) et affiche le message
+// d'indisponibilité si absent. Ré-appelé au changement de langue.
+function _applyStockfishAvailability() {
+  const msg = t("engine.stockfish.unavailable");
+  [["cfg-engine-stockfish", "cfg-stockfish-unavailable"],
+   ["labo-eng-sf",          "labo-stockfish-unavailable"]].forEach(([btnId, msgId]) => {
+    const btn = document.getElementById(btnId);
+    const box = document.getElementById(msgId);
+    if (btn) {
+      btn.classList.toggle("engine-unavailable", !_stockfishAvailable);
+      if (_stockfishAvailable) btn.removeAttribute("title");
+      else                     btn.setAttribute("title", msg);
+    }
+    if (box) box.style.display = _stockfishAvailable ? "none" : "";
+  });
+  _checkNoEngineAvailable();
+}
+
+// Grise les boutons Maia (config péda + labo) et affiche le message
+// d'indisponibilité si absent. Ré-appelé au changement de langue.
+function _applyMaiaAvailability() {
+  const msg = t("engine.maia.unavailable");
+  [["cfg-engine-maia", "cfg-maia-unavailable"],
+   ["labo-eng-maia",   "labo-maia-unavailable"]].forEach(([btnId, msgId]) => {
+    const btn = document.getElementById(btnId);
+    const box = document.getElementById(msgId);
+    if (btn) {
+      btn.classList.toggle("engine-unavailable", !_maiaAvailable);
+      if (_maiaAvailable) btn.removeAttribute("title");
+      else                btn.setAttribute("title", msg);
+    }
+    if (box) box.style.display = _maiaAvailable ? "none" : "";
+  });
+  _checkNoEngineAvailable();
+}
 
 // Grise les boutons Rodent (config péda + labo) et affiche le message
 // d'indisponibilité quand le moteur ne répond pas. Ré-appelé à chaque changement
@@ -460,9 +497,30 @@ function _applyRodentAvailability() {
     }
     if (box) box.style.display = _rodentAvailable ? "none" : "";
   });
+  _checkNoEngineAvailable();
+}
+
+// Vérifie si aucun moteur n'est disponible — grise le bouton Démarrer et affiche l'alerte.
+function _checkNoEngineAvailable() {
+  const noEngine = !_stockfishAvailable && !_maiaAvailable && !_rodentAvailable;
+  const alertBox = document.getElementById("cfg-no-engine-alert");
+  const btnStart = document.getElementById("btn-start-peda");
+  if (alertBox) alertBox.style.display = noEngine ? "" : "none";
+  if (btnStart) {
+    btnStart.disabled = noEngine;
+    btnStart.style.opacity = noEngine ? "0.4" : "";
+  }
 }
 
 function selectEngine(engine) {
+  if (engine === "stockfish" && !_stockfishAvailable) {
+    afficherToast(t("engine.stockfish.unavailable"), "warning");
+    return;
+  }
+  if (engine === "maia" && !_maiaAvailable) {
+    afficherToast(t("engine.maia.unavailable"), "warning");
+    return;
+  }
   if (engine === "rodent" && !_rodentAvailable) {
     afficherToast(t("engine.rodent.unavailable"), "warning");
     return;
@@ -1156,7 +1214,9 @@ function _refreshDynamicLabels() {
   const legalLbl = document.getElementById("cfg-show-legal-label");
   if (legalChk && legalLbl) legalLbl.textContent = t(legalChk.checked ? "common.active" : "common.desactive");
 
-  // Grisage Rodent + retraduction du message d'indisponibilité
+  // Grisage moteurs + retraduction des messages d'indisponibilité
+  _applyStockfishAvailability();
+  _applyMaiaAvailability();
   _applyRodentAvailability();
 
   // Options Maia (format "Maia NNNN — label")
@@ -2527,6 +2587,14 @@ let _laboVirtualFen = ""; // FEN de la position virtuelle courante
 let _laboVirtSyncTimer = null; // debounce sync backend PGN→virtuel
 
 function laboSelectEngine(e) {
+  if (e === "stockfish" && !_stockfishAvailable) {
+    afficherToast(t("engine.stockfish.unavailable"), "warning");
+    return;
+  }
+  if (e === "maia" && !_maiaAvailable) {
+    afficherToast(t("engine.maia.unavailable"), "warning");
+    return;
+  }
   if (e === "rodent" && !_rodentAvailable) {
     afficherToast(t("engine.rodent.unavailable"), "warning");
     return;
@@ -5774,13 +5842,46 @@ socket.on("outils_wiki_done", (data) => {
 _populateRodentPersonalities("cfg-rodent-personality");
 _populateRodentPersonalities("labo-rodent-personality");
 
+// Retourne le premier moteur disponible (config: stockfish→maia→rodent ; labo: stockfish→maia)
+function _firstAvailableEngine(includeRodent = true) {
+  if (_stockfishAvailable) return "stockfish";
+  if (_maiaAvailable) return "maia";
+  if (includeRodent && _rodentAvailable) return "rodent";
+  return null;
+}
+
+// Disponibilité de Stockfish → grisage de l'UI
+socket.on("stockfish_status", (data) => {
+  _stockfishAvailable = data && data.available !== false;
+  if (!_stockfishAvailable) {
+    const fallback = _firstAvailableEngine(true);
+    if (_selectedEngine === "stockfish" && fallback) selectEngine(fallback);
+    const laboFallback = _firstAvailableEngine(false) || _firstAvailableEngine(true);
+    if (_laboEngine === "stockfish" && laboFallback) laboSelectEngine(laboFallback);
+  }
+  _applyStockfishAvailability();
+});
+
+// Disponibilité de Maia → grisage de l'UI
+socket.on("maia_status", (data) => {
+  _maiaAvailable = data && data.available !== false;
+  if (!_maiaAvailable) {
+    const fallback = _firstAvailableEngine(true);
+    if (_selectedEngine === "maia" && fallback) selectEngine(fallback);
+    const laboFallback = _firstAvailableEngine(false) || _firstAvailableEngine(true);
+    if (_laboEngine === "maia" && laboFallback) laboSelectEngine(laboFallback);
+  }
+  _applyMaiaAvailability();
+});
+
 // Disponibilité de Rodent IV (handshake UCI côté serveur) → grisage de l'UI
 socket.on("rodent_status", (data) => {
   _rodentAvailable = data && data.available !== false;
-  // Si Rodent était sélectionné alors qu'il est indisponible, repli sur Stockfish
+  // Si Rodent était sélectionné alors qu'il est indisponible, repli sur premier disponible
   if (!_rodentAvailable) {
-    if (_selectedEngine === "rodent") selectEngine("stockfish");
-    if (_laboEngine === "rodent")     laboSelectEngine("stockfish");
+    const fallback = _firstAvailableEngine(false);
+    if (_selectedEngine === "rodent" && fallback) selectEngine(fallback);
+    if (_laboEngine === "rodent" && fallback)     laboSelectEngine(fallback);
   }
   _applyRodentAvailability();
 });
