@@ -151,3 +151,29 @@ Le Chessnut Air nécessite un quirk usbhid :
 `/etc/modprobe.d/chessnut.conf` → `options usbhid quirks=0x2d80:0x8003:0x40`
 
 Le `.so` C++ (`nicsoft/niclink/_niclink.cpython-*.so`) est compilé depuis `src/` avec CMake. Sur nouveau PC, recompiler depuis `src/` selon `INSTALLATION_ALCHESS.md` section 4c.
+
+## Bridge inter-agents (Linux ↔ Windows)
+
+Communication via GitHub Issues du repo AlainDelree/AlChess.
+
+**"lis tes tâches"** :
+```bash
+gh issue list --repo AlainDelree/AlChess --label "for-linux" --state open
+```
+
+**"traite la tâche #N"** :
+```bash
+gh issue view N --repo AlainDelree/AlChess
+# effectue la tâche, puis :
+gh issue comment N --repo AlainDelree/AlChess --body "Résultat : ..."
+gh issue close N --repo AlainDelree/AlChess
+```
+
+**"crée une tâche pour Windows"** :
+```bash
+gh issue create \
+  --repo AlainDelree/AlChess \
+  --title "TITRE" \
+  --body "## Contexte\n\n## Tâche demandée\n\n## Résultat attendu" \
+  --label "bridge,for-windows"
+```
