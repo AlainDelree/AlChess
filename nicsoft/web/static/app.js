@@ -1862,6 +1862,33 @@ function fermerModal() {
   if (cancel) cancel.style.display = "";
 }
 
+// ── Aide contextuelle « panier » ──────────────────────────────────────────
+// Modal purement informatif (titre + texte + un seul bouton « Fermer »).
+// Réutilise le modal standard mais sans actionType ni bouton de confirmation.
+function ouvrirAidePanier() {
+  document.getElementById("modal-title").textContent = t("aide.panier.titre");
+  const sub = document.getElementById("modal-subtitle");
+  if (sub) {
+    // Wrapper local : neutralise word-break/text-align du modal-subtitle
+    // sans laisser fuiter de style vers les autres usages du modal.
+    sub.innerHTML =
+      '<div style="text-align:left; word-break:normal; line-height:1.5;">'
+      + t("aide.panier.contenu") + '</div>';
+  }
+  const btn = document.getElementById("modal-confirm");
+  btn.textContent = t("aide.panier.fermer");
+  btn.className = "btn btn-reprendre";
+  btn.onclick = () => fermerModal();
+  const std  = document.getElementById("modal-btns-standard");
+  const coul = document.getElementById("modal-btns-couleur");
+  if (std)  std.style.display  = "flex";
+  if (coul) coul.style.display = "none";
+  // Variante informative : un seul bouton → masquer « Annuler ».
+  const cancel = document.getElementById("modal-cancel");
+  if (cancel) cancel.style.display = "none";
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
 // ── Actions ───────────────────────────────────────────────────────────────
 
 function sendAction(data) {

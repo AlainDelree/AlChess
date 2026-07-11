@@ -14,6 +14,11 @@
   "common.conversion":         "Converting…",
   "common.verification":       "Checking…",
 
+  "aide.panier.titre":         "The basket 🧺",
+  "aide.panier.fermer":        "Close",
+  "aide.panier.icone_title":   "Help about the basket",
+  "aide.panier.contenu":       "The basket keeps PGN files in memory for the duration of the session, without saving anything to disk. Handy for resuming a game on another screen.<ul><li><strong>Add a PGN</strong>: from Transcription or Game analysis, click « Add to basket ».</li><li><strong>Retrieve a PGN</strong>: in Game analysis, the Lab or the Exercise tools, pick it from the basket and click « Load ».</li><li><strong>Colour</strong>: each PGN takes the colour of the screen where it was created, so you can tell its origin at a glance.</li><li><strong>Limit</strong>: 10 PGN maximum. Beyond that, the oldest one is automatically replaced. Nothing is kept after the program is closed.</li></ul>",
+
   "menu.titre":                "AlChess",
   "menu.sous_titre_virtuel":   "Boardless mode — choose a menu",
   "menu.sous_titre_connecte":  "Board connected — choose a menu",

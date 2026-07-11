@@ -14,6 +14,11 @@
   "common.conversion":         "Konvertieren…",
   "common.verification":       "Überprüfen…",
 
+  "aide.panier.titre":         "Der Korb 🧺",
+  "aide.panier.fermer":        "Schließen",
+  "aide.panier.icone_title":   "Hilfe zum Korb",
+  "aide.panier.contenu":       "Der Korb behält PGN-Dateien für die Dauer der Sitzung im Speicher, ohne etwas auf der Festplatte zu speichern. Praktisch, um eine Partie auf einem anderen Bildschirm fortzusetzen.<ul><li><strong>PGN hinzufügen</strong>: In der Übertragung oder der Partieanalyse auf « Zum Korb hinzufügen » klicken.</li><li><strong>PGN abrufen</strong>: In der Partieanalyse, im Labor oder in den Übungswerkzeugen im Korb auswählen und auf « Laden » klicken.</li><li><strong>Farbe</strong>: Jede PGN erhält die Farbe des Bildschirms, auf dem sie erstellt wurde, um ihre Herkunft auf einen Blick zu erkennen.</li><li><strong>Grenze</strong>: Maximal 10 PGN. Darüber hinaus wird die älteste automatisch ersetzt. Nach dem Schließen des Programms bleibt nichts erhalten.</li></ul>",
+
   "menu.titre":                "AlChess",
   "menu.sous_titre_virtuel":   "Brettloser Modus — Menü wählen",
   "menu.sous_titre_connecte":  "Brett verbunden — Menü wählen",

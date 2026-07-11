@@ -675,3 +675,15 @@
 .add-label { font-size:0.82rem; font-weight:600; color:#3a5a7a; }
 .add-input { padding:6px 8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; font-size:0.9rem; }
 .add-input:focus { outline:none; border-color:#e94560; }
+
+/* ── Icône d'aide « ? » près des zones panier ── */
+.aide-panier-icone {
+  flex-shrink:0; align-self:center;
+  width:20px; height:20px; border-radius:50%;
+  background:#3a5a7a; color:#e8f0f8;
+  font-size:0.72rem; font-weight:700; font-family:sans-serif;
+  display:inline-flex; align-items:center; justify-content:center;
+  cursor:pointer; user-select:none;
+  transition:background 0.15s;
+}
+.aide-panier-icone:hover { background:#e94560; }

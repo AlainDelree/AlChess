@@ -435,9 +435,12 @@
         data-i18n="retrans.nulle">Nulle (½-½)</button>
       <button class="btn btn-continuer" onclick="retransEnd('*')"
         style="width:100%; margin-bottom:4px; font-size:0.82rem;" data-i18n="retrans.btn.sauver">← Sauver et quitter</button>
-      <button class="btn" onclick="basketAddRetrans()"
-        style="width:100%; margin-bottom:4px; font-size:0.82rem; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;"
-        data-i18n="retrans.btn.corbeille">🧺 Ajouter à la corbeille</button>
+      <div style="display:flex; gap:6px; align-items:center; margin-bottom:4px;">
+        <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
+        <button class="btn" onclick="basketAddRetrans()"
+          style="flex:1; margin-bottom:0; font-size:0.82rem; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;"
+          data-i18n="retrans.btn.corbeille">🧺 Ajouter à la corbeille</button>
+      </div>
       <button class="btn" onclick="retransQuitSansSauver()"
         style="width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#3a5a7a;"
         data-i18n="retrans.btn.quitter">✕ Quitter sans sauver</button>
@@ -654,6 +657,7 @@
         <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
         <!-- Corbeille de session -->
         <div id="basket-row-analyse" style="display:flex; gap:6px; align-items:stretch;">
+          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
           <div id="basket-select-analyse" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
             <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
             <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
@@ -1015,6 +1019,7 @@
         <input type="file" id="labo-pgn-input" accept=".pgn" style="display:none" onchange="laboLoadPgn(event)">
         <button class="btn btn-best" style="margin-bottom:0;" onclick="document.getElementById('labo-pgn-input').click()" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
         <div style="display:flex; gap:6px; align-items:stretch;">
+          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
           <div id="basket-select-labo" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
             <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
             <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
@@ -1073,6 +1078,7 @@
 
     <!-- Corbeille de session -->
     <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
+      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
       <div id="basket-select-outils-pgn" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
         <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
         <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
@@ -1102,6 +1108,7 @@
     <p class="outil-desc" data-i18n-html="outils.convertir.desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
     <!-- Corbeille de session -->
     <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
+      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
       <div id="basket-select-outils-uci" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
         <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
         <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
@@ -1410,7 +1417,7 @@
     <!-- Boutons standard (confirmation simple) -->
     <div id="modal-btns-standard" style="display:flex; gap:12px; justify-content:center;">
       <button id="modal-confirm" class="btn" style="min-width:120px;"></button>
-      <button class="btn btn-continuer" style="min-width:100px;" onclick="fermerModal()" data-i18n="modal.annuler">Annuler</button>
+      <button id="modal-cancel" class="btn btn-continuer" style="min-width:100px;" onclick="fermerModal()" data-i18n="modal.annuler">Annuler</button>
     </div>
     <!-- Boutons couleur (abandon HH : qui abandonne ?) -->
     <div id="modal-btns-couleur" style="display:none; flex-direction:column; gap:10px; align-items:center;">

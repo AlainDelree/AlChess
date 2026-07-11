@@ -14,6 +14,11 @@
   "common.conversion":         "Conversion…",
   "common.verification":       "Vérification…",
 
+  "aide.panier.titre":         "Le panier 🧺",
+  "aide.panier.fermer":        "Fermer",
+  "aide.panier.icone_title":   "Aide sur le panier",
+  "aide.panier.contenu":       "Le panier garde des fichiers PGN en mémoire le temps de la session, sans rien enregistrer sur le disque. Pratique pour reprendre une partie dans un autre écran.<ul><li><strong>Ajouter un PGN</strong> : depuis la Retranscription ou l'Analyse de partie, cliquez sur « Ajouter au panier ».</li><li><strong>Récupérer un PGN</strong> : dans l'Analyse de partie, le Labo ou les Outils Exercices, choisissez-le dans le panier et cliquez sur « Charger ».</li><li><strong>Couleur</strong> : chaque PGN prend la couleur de l'écran où il a été créé, pour repérer sa provenance d'un coup d'œil.</li><li><strong>Limite</strong> : 10 PGN maximum. Au-delà, le plus ancien est automatiquement remplacé. Rien n'est conservé après la fermeture du programme.</li></ul>",
+
   "menu.titre":                "AlChess",
   "menu.sous_titre_virtuel":   "Mode sans échiquier — choisissez un menu",
   "menu.sous_titre_connecte":  "Échiquier connecté — choisissez un menu",
