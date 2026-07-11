@@ -253,6 +253,20 @@
       transition: all 0.2s;
     }
     .color-btn.selected { border-color: #e94560; color: #1a2a3a; background: #a0b8d0; font-weight: 600; }
+    /* Badge profil moteur (tagline) — compact, à côté du nom */
+    .engine-tagline {
+      display: inline-block;
+      font-size: 0.6rem;
+      line-height: 1;
+      padding: 2px 4px;
+      border-radius: 4px;
+      vertical-align: middle;
+      font-weight: 600;
+      background: rgba(26, 42, 58, 0.14);
+      color: #1a2a3a;
+      white-space: nowrap;
+    }
+    .color-btn.selected .engine-tagline { background: rgba(26, 42, 58, 0.22); }
     /* Moteur indisponible (ex. Rodent absent / handshake UCI KO) */
     .color-btn.engine-unavailable {
       opacity: 0.4;

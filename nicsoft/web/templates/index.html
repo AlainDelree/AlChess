@@ -151,9 +151,9 @@
         <div class="card" style="padding:14px 16px;">
           <h2 data-i18n="config.moteur">Moteur</h2>
           <div style="display:flex; gap:8px; margin-bottom:14px;">
-            <button class="color-btn selected" id="cfg-engine-stockfish" onclick="selectEngine('stockfish')">⚡ Stockfish</button>
-            <button class="color-btn"          id="cfg-engine-maia"      onclick="selectEngine('maia')">🧠 Maia Chess</button>
-            <button class="color-btn"          id="cfg-engine-rodent"    onclick="selectEngine('rodent')">🐭 Rodent</button>
+            <button class="color-btn selected" id="cfg-engine-stockfish" onclick="selectEngine('stockfish')">⚡ Stockfish <span class="engine-tagline" data-i18n="config.tagline.stockfish">Best</span></button>
+            <button class="color-btn"          id="cfg-engine-maia"      onclick="selectEngine('maia')">🧠 Maia Chess <span class="engine-tagline" data-i18n="config.tagline.maia">Human</span></button>
+            <button class="color-btn"          id="cfg-engine-rodent"    onclick="selectEngine('rodent')">🐭 Rodent <span class="engine-tagline" data-i18n="config.tagline.rodent">Weak</span></button>
           </div>
           <div id="cfg-rodent-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
                data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</div>
