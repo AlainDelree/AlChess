@@ -436,10 +436,10 @@
       <button class="btn btn-continuer" onclick="retransEnd('*')"
         style="width:100%; margin-bottom:4px; font-size:0.82rem;" data-i18n="retrans.btn.sauver">← Sauver et quitter</button>
       <div style="display:flex; gap:6px; align-items:center; margin-bottom:4px;">
-        <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
+        <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
         <button class="btn" onclick="basketAddRetrans()"
           style="flex:1; margin-bottom:0; font-size:0.82rem; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;"
-          data-i18n="retrans.btn.corbeille">🧺 Ajouter à la corbeille</button>
+          data-i18n="retrans.btn.corbeille">🗂️ Ajouter au classeur</button>
       </div>
       <button class="btn" onclick="retransQuitSansSauver()"
         style="width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#3a5a7a;"
@@ -648,22 +648,22 @@
             </optgroup>
           </select>
           <button class="btn btn-reprendre" style="width:100%; margin-bottom:0; padding:8px;" onclick="sauvegarderAlChess()" data-i18n="common.sauvegarder">💾 Sauvegarder dans AlChess</button>
-          <button class="btn" style="width:100%; margin-bottom:0; padding:8px; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;" onclick="basketAdd()" data-i18n="retrans.btn.corbeille">🧺 Ajouter à la corbeille</button>
+          <button class="btn" style="width:100%; margin-bottom:0; padding:8px; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;" onclick="basketAdd()" data-i18n="retrans.btn.corbeille">🗂️ Ajouter au classeur</button>
         </div>
       </div>
       <!-- Actions analyse + retour menu -->
       <div class="card" style="padding:14px 18px; display:flex; flex-direction:column; gap:8px;">
         <input type="file" id="pgn-file-input" accept=".pgn" style="display:none" onchange="loadPgnFile(event)">
         <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
-        <!-- Corbeille de session -->
+        <!-- Classeur de session -->
         <div id="basket-row-analyse" style="display:flex; gap:6px; align-items:stretch;">
-          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
+          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
           <div id="basket-select-analyse" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-            <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
+            <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
             <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
             <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
           </div>
-          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToAnalyse()" data-i18n="common.charger">🧺 Charger</button>
+          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToAnalyse()" data-i18n="common.charger">🗂️ Charger</button>
         </div>
         <!-- Sélecteur nombre de coups séquence -->
         <div id="rv-seq-row" style="display:none; align-items:center; gap:8px;">
@@ -1019,13 +1019,13 @@
         <input type="file" id="labo-pgn-input" accept=".pgn" style="display:none" onchange="laboLoadPgn(event)">
         <button class="btn btn-best" style="margin-bottom:0;" onclick="document.getElementById('labo-pgn-input').click()" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
         <div style="display:flex; gap:6px; align-items:stretch;">
-          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
+          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
           <div id="basket-select-labo" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-            <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
+            <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
             <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
             <div class="basket-sel-list" style="display:none; position:absolute; top:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-top:none; border-radius:0 0 4px 4px; z-index:200; max-height:180px; overflow-y:auto;"></div>
           </div>
-          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToLabo()" data-i18n="common.charger">🧺 Charger</button>
+          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToLabo()" data-i18n="common.charger">🗂️ Charger</button>
         </div>
         <div id="labo-pgn-nav" style="display:none; flex-direction:column; gap:5px;">
           <div id="labo-pgn-info" style="font-size:0.75rem; color:#3a5a7a; text-align:center;"></div>
@@ -1076,15 +1076,15 @@
     </div>
     <input type="file" id="outils-pgn-input" accept=".pgn" multiple style="display:none;" onchange="outilsPgnFilesSelected(this.files)">
 
-    <!-- Corbeille de session -->
+    <!-- Classeur de session -->
     <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
-      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
+      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
       <div id="basket-select-outils-pgn" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-        <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
+        <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
         <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
         <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
       </div>
-      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsPgn()" data-i18n="common.charger">🧺 Charger</button>
+      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsPgn()" data-i18n="common.charger">🗂️ Charger</button>
     </div>
 
     <!-- Liste de prévisualisation -->
@@ -1106,15 +1106,15 @@
       <span class="outil-title" data-i18n="outils.convertir.titre">🔄 Convertir SAN → UCI</span>
     </div>
     <p class="outil-desc" data-i18n-html="outils.convertir.desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
-    <!-- Corbeille de session -->
+    <!-- Classeur de session -->
     <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
-      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le panier">?</span>
+      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
       <div id="basket-select-outils-uci" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-        <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— corbeille vide —</span>
+        <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
         <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
         <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
       </div>
-      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsUci()" data-i18n="common.charger">🧺 Charger</button>
+      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsUci()" data-i18n="common.charger">🗂️ Charger</button>
     </div>
 
     <div style="position:relative;">

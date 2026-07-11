@@ -766,7 +766,7 @@ socket.on("app_state", (data) => {
       }
     }
   }
-  // Mettre à jour la source corbeille selon l'état entrant
+  // Mettre à jour la source classeur selon l'état entrant
   if (data.state === "labo") {
     _basketSource = "Labo";
   } else if (data.state === "retrans_playing") {
@@ -1862,7 +1862,7 @@ function fermerModal() {
   if (cancel) cancel.style.display = "";
 }
 
-// ── Aide contextuelle « panier » ──────────────────────────────────────────
+// ── Aide contextuelle « classeur » ──────────────────────────────────────────
 // Modal purement informatif (titre + texte + un seul bouton « Fermer »).
 // Réutilise le modal standard mais sans actionType ni bouton de confirmation.
 function ouvrirAidePanier() {
@@ -4498,7 +4498,7 @@ socket.on("virtual_move_illegal", (data) => {
   showToast("Coup illégal : " + (data.uci || ""), "warning");
 });
 
-// ── Corbeille de session ──────────────────────────────────────────────────────
+// ── Classeur de session ──────────────────────────────────────────────────────
 
 let _basket       = [];   // [{label}] — miroir côté JS
 let _basketN      = 0;    // compteur d'itération global
@@ -4652,7 +4652,7 @@ function basketLoadToOutilsPgn() {
   socket.emit("basket_load", { idx });
   socket.once("basket_load_result", (data) => {
     if (!data.pgn) return;
-    _outilsPgnFiles = [{ name: data.label || "corbeille.pgn", content: data.pgn }];
+    _outilsPgnFiles = [{ name: data.label || "classeur.pgn", content: data.pgn }];
     document.getElementById("outils-pgn-preview-list").style.display = "none";
     document.getElementById("outils-pgn-preview-list").innerHTML = "";
     document.getElementById("outils-pgn-result").style.display = "none";
