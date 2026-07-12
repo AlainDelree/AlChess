@@ -23,6 +23,10 @@
 
 ## ✅ Bugs résolus récemment
 
+### Session du 12 juillet
+
+- **Menu principal sur deux colonnes** (commit `e36c0d5`) — Les 7 modes regroupés par usage : colonne « Jouer » (Pédagogique, Humain vs Humain, Laboratoire, Exercices) et colonne « Outils » (Analyse, Retranscrire, Outils Exercices), avec intitulés de colonne en i18n (`menu.col.jouer`/`menu.col.outils`). Plus de scroll. Mise en page uniquement : grisage (`data-needs-board`), split « Virtuel » et tooltips inchangés ; responsive 1 colonne sous 700px. Rendu validé (DE).
+
 ### Session du 11 juillet (soirée) — 4 livraisons
 
 - **Statut « Application connectée »** (issue #28, commit 217c311) — Le libellé « Connecté » du badge Socket.IO renommé (i18n `status.connecte`/`status.deconnecte`), puis affiné en « Application connectée » (issue #29). Clarifie que ce badge concerne la liaison navigateur↔serveur, pas l'échiquier.
@@ -112,7 +116,6 @@
   - ~~**Statut « Connected » trompeur**~~ ✅ **FAIT** (session 11 juillet soirée) — badges renommés « Application connectée » + « Échiquier connecté/non détecté ».
   - ~~**Griser les moteurs indisponibles**~~ ✅ **FAIT** (issue #25, release v1.1.0).
   - **Déconnexion échiquier en cours de session mal gérée** `[Les deux]` — Si l'échiquier est détecté au démarrage puis se déconnecte (câble détaché), lancer une partie **Pédagogique** (mode physique) renvoie au menu **sans info claire**. Pire : dans le menu, **rien n'est grisé** sauf le bouton « Reconnect Board » (qui, lui, serait justement utile). Après une tentative de partie physique, le menu revient et « Reconnect Board » se dégrise — mais les modes physiques concernés (Pédagogique, HH…) **ne se grisent toujours pas**. → Il faut : détecter la perte USB en cours de route (lié au bug `driver.py` ci-dessous), griser tous les modes nécessitant le board tant qu'il est absent, et afficher un message clair invitant à reconnecter. Même racine que le bug « HH — écran de rangement ignoré si échiquier déconnecté silencieusement ». **Note** : nécessite l'échiquier branché pour être testé.
-- **Menu principal sur deux colonnes** `[Les deux]` — Réorganiser le menu principal en 2 colonnes pour une meilleure vue d'ensemble et éviter d'avoir à scroller.
 - **Tutoriels utilisateur** `[Les deux]` — Créer des tutoriels / aides in-app pour les fonctionnalités pas évidentes à comprendre seul. But : rendre le programme accessible sans accompagnement. *(Tutoriel du classeur livré — session 11 juillet soirée. D'autres aides in-app possibles à l'avenir.)*
 - **Nettoyer le dossier Rodent dans le packaging** — ✅ **Traité pour v1.0** : `make_release.sh` exclut totalement `engines/rodent-iv` (commit `f7ed4d1`, voir résolus). **Reste pour v1.1** (une fois Rodent réintégré) : tri fin par OS — `engines/rodent-iv/` contient aussi `mac/` (binaire macOS), `sources/` (code C++) et `books/` volumineux, inutiles dans un paquet utilisateur final.
 - **Harmoniser la langue de `install_alchess.ps1`** `[Windows]` — Actuellement mixte (FR + bloc VC++ en EN). À terme, tout passer en anglais pour l'homogénéité (utilisateurs Windows).
