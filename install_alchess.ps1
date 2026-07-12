@@ -1,10 +1,10 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Installateur AlChess pour Windows 10+
+    AlChess installer for Windows 10+
 .DESCRIPTION
-    Installe Python 3.12, crée le venv, installe les dépendances,
-    et propose de télécharger Stockfish.
+    Installs Python 3.12, creates the venv, installs the dependencies,
+    and offers to download Stockfish.
 #>
 
 Set-StrictMode -Version Latest
@@ -20,7 +20,7 @@ $VCREDIST_EXE  = "$env:TEMP\vc_redist.x64.exe"
 function Write-Header {
     Write-Host ""
     Write-Host "================================================" -ForegroundColor Cyan
-    Write-Host "   AlChess - Installateur Windows" -ForegroundColor Cyan
+    Write-Host "   AlChess - Windows Installer" -ForegroundColor Cyan
     Write-Host "================================================" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -41,34 +41,34 @@ function Write-Fail($msg) {
     Write-Host "[X] $msg" -ForegroundColor Red
 }
 
-# -- Vérification Windows 10+ -------------------------------------------------
+# -- Windows 10+ check --------------------------------------------------------
 
 function Assert-Windows10 {
     $build = [System.Environment]::OSVersion.Version.Build
     if ($build -lt 10240) {
-        Write-Fail "Windows 10 ou supérieur requis (build détecté : $build)."
-        Write-Host "    Téléchargez Python 3.12 manuellement : https://www.python.org/downloads/" -ForegroundColor Yellow
+        Write-Fail "Windows 10 or later required (detected build: $build)."
+        Write-Host "    Download Python 3.12 manually: https://www.python.org/downloads/" -ForegroundColor Yellow
         exit 1
     }
 }
 
-# -- Vérification / installation Python 3.12 ----------------------------------
+# -- Python 3.12 check / installation -----------------------------------------
 
 function Get-Python312 {
-    # Tente py -3.12 (Windows Launcher)
+    # Try py -3.12 (Windows Launcher)
     try {
         $ver = & py -3.12 --version 2>&1
         if ($ver -match "Python 3\.1[2-9]") {
-            Write-Step "Python 3.12+ détecté : $ver"
+            Write-Step "Python 3.12+ detected: $ver"
             return "py -3.12"
         }
     } catch {}
 
-    # Tente python --version (si 3.12+ dans PATH)
+    # Try python --version (if 3.12+ is in PATH)
     try {
         $ver = & python --version 2>&1
         if ($ver -match "Python 3\.1[2-9]") {
-            Write-Step "Python 3.12+ détecté : $ver"
+            Write-Step "Python 3.12+ detected: $ver"
             return "python"
         }
     } catch {}
@@ -77,73 +77,73 @@ function Get-Python312 {
 }
 
 function Install-Python312 {
-    Write-Warn "Python 3.12+ non trouvé. Tentative d'installation via winget..."
+    Write-Warn "Python 3.12+ not found. Attempting installation via winget..."
 
-    # Vérifier winget
+    # Check winget
     try {
         & winget --version | Out-Null
     } catch {
-        Write-Fail "winget non disponible sur ce système."
+        Write-Fail "winget is not available on this system."
         Write-Host ""
-        Write-Host "    Installez Python 3.12 manuellement depuis :" -ForegroundColor Yellow
+        Write-Host "    Install Python 3.12 manually from:" -ForegroundColor Yellow
         Write-Host "    https://www.python.org/downloads/release/python-3120/" -ForegroundColor Cyan
-        Write-Host "    Cochez 'Add Python to PATH' lors de l'installation." -ForegroundColor Yellow
-        Write-Host "    Puis relancez ce script." -ForegroundColor Yellow
+        Write-Host "    Check 'Add Python to PATH' during installation." -ForegroundColor Yellow
+        Write-Host "    Then re-run this script." -ForegroundColor Yellow
         exit 1
     }
 
-    Write-Info "Installation de Python 3.12 via winget (non-destructif)..."
+    Write-Info "Installing Python 3.12 via winget (non-destructive)..."
     & winget install Python.Python.3.12 --accept-package-agreements --accept-source-agreements
     if ($LASTEXITCODE -ne 0) {
-        Write-Fail "Échec de l'installation via winget."
-        Write-Host "    Installez Python 3.12 manuellement : https://www.python.org/downloads/" -ForegroundColor Yellow
+        Write-Fail "winget installation failed."
+        Write-Host "    Install Python 3.12 manually: https://www.python.org/downloads/" -ForegroundColor Yellow
         exit 1
     }
 
-    # Rafraîchir le PATH
+    # Refresh the PATH
     $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" +
                 [System.Environment]::GetEnvironmentVariable("PATH", "User")
 
     $pyCmd = Get-Python312
     if (-not $pyCmd) {
-        Write-Fail "Python 3.12 installé mais non détecté. Redémarrez le terminal et relancez."
+        Write-Fail "Python 3.12 installed but not detected. Restart the terminal and re-run."
         exit 1
     }
     return $pyCmd
 }
 
-# -- Création du venv ---------------------------------------------------------
+# -- Venv creation ------------------------------------------------------------
 
 function New-Venv($pyCmd) {
     $venvPath = "$scriptDir\venv"
     if (Test-Path "$venvPath\Scripts\python.exe") {
-        Write-Step "Environnement virtuel déjà présent - mise à jour des dépendances."
+        Write-Step "Virtual environment already present - updating dependencies."
     } else {
-        Write-Step "Création de l'environnement virtuel..."
+        Write-Step "Creating the virtual environment..."
         if ($pyCmd -eq "py -3.12") {
             & py -3.12 -m venv "$venvPath"
         } else {
             & python -m venv "$venvPath"
         }
         if ($LASTEXITCODE -ne 0) {
-            Write-Fail "Échec de la création du venv."
+            Write-Fail "Failed to create the venv."
             exit 1
         }
     }
 }
 
-# -- Installation des dépendances ---------------------------------------------
+# -- Dependencies installation ------------------------------------------------
 
 function Install-Dependencies {
-    Write-Step "Installation des dépendances Python..."
+    Write-Step "Installing Python dependencies..."
     $pip = "$scriptDir\venv\Scripts\pip.exe"
     & $pip install --upgrade pip --quiet
     & $pip install -r "$scriptDir\requirements.txt" --quiet
     if ($LASTEXITCODE -ne 0) {
-        Write-Fail "Échec de l'installation des dépendances."
+        Write-Fail "Failed to install dependencies."
         exit 1
     }
-    Write-Info "Dépendances installées."
+    Write-Info "Dependencies installed."
 }
 
 # -- Stockfish ----------------------------------------------------------------
@@ -155,33 +155,32 @@ function Find-Stockfish {
 }
 
 function Install-Stockfish {
-    Write-Step "Téléchargement de Stockfish..."
+    Write-Step "Downloading Stockfish..."
     try {
-        Write-Info "Source : $STOCKFISH_URL"
+        Write-Info "Source: $STOCKFISH_URL"
         Invoke-WebRequest -Uri $STOCKFISH_URL -OutFile $STOCKFISH_ZIP -UseBasicParsing
-        Write-Info "Extraction..."
+        Write-Info "Extracting..."
         if (-not (Test-Path $ENGINES_DIR)) { New-Item -ItemType Directory -Path $ENGINES_DIR | Out-Null }
         Expand-Archive -Path $STOCKFISH_ZIP -DestinationPath $ENGINES_DIR -Force
         Remove-Item $STOCKFISH_ZIP -ErrorAction SilentlyContinue
-        Write-Step "Stockfish installé dans $ENGINES_DIR"
+        Write-Step "Stockfish installed in $ENGINES_DIR"
     } catch {
-        Write-Warn "Échec du téléchargement : $_"
-        Write-Info "Téléchargez Stockfish manuellement depuis https://stockfishchess.org/download/"
-        Write-Info "et placez le .exe dans le dossier engines\"
+        Write-Warn "Download failed: $_"
+        Write-Info "Download Stockfish manually from https://stockfishchess.org/download/"
+        Write-Info "and place the .exe in the engines\ folder"
     }
 }
 
-# -- Visual C++ runtime (requis par lc0/Maia) ---------------------------------
-# NOTE : messages EN ANGLAIS pour cette fonction (destinés à l'utilisateur final).
+# -- Visual C++ runtime (required by lc0/Maia) --------------------------------
 
 function Install-VCRedist {
-    # a. Déjà présent ?
+    # a. Already present?
     if (Test-Path "$env:SystemRoot\System32\MSVCP140.dll") {
         Write-Step "Visual C++ runtime already present"
         return
     }
 
-    # b. Pas de runtime : tester la connexion internet AVANT de télécharger.
+    # b. No runtime: test the internet connection BEFORE downloading.
     if (-not (Test-Connection -ComputerName aka.ms -Count 1 -Quiet)) {
         Write-Warn "No internet connection detected."
         Write-Warn "The Visual C++ runtime is required for the Maia engine (lc0)."
@@ -191,7 +190,7 @@ function Install-VCRedist {
         return
     }
 
-    # c. Connexion OK : télécharger puis installer en silencieux.
+    # c. Connection OK: download then install silently.
     Write-Step "Downloading Visual C++ runtime (required for Maia engine)..."
     try {
         Write-Info "Source: $VCREDIST_URL"
@@ -204,7 +203,7 @@ function Install-VCRedist {
         Remove-Item $VCREDIST_EXE -ErrorAction SilentlyContinue
         Write-Step "Visual C++ runtime installed"
     } catch {
-        # d. Échec : message clair + choix de continuer sans Maia.
+        # d. Failure: clear message + option to continue without Maia.
         Write-Warn "Failed to install the Visual C++ runtime: $_"
         Write-Warn "The Maia engine (lc0) will NOT work without this runtime."
         Write-Warn "To fix this later, download and install it manually from:"
@@ -220,12 +219,12 @@ function Install-VCRedist {
     }
 }
 
-# -- Script de lancement ------------------------------------------------------
+# -- Launch script ------------------------------------------------------------
 
 function Assert-LaunchScript {
     $ps1 = "$scriptDir\start_alchess.ps1"
     if (-not (Test-Path $ps1)) {
-        Write-Warn "start_alchess.ps1 non trouvé - création..."
+        Write-Warn "start_alchess.ps1 not found - creating it..."
         @(
             '$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition',
             '$env:PYTHONPYCACHEPREFIX = "$env:TEMP\alchess_pyc"',
@@ -247,35 +246,35 @@ if (-not $pyCmd) {
     $pyCmd = Install-Python312
 }
 
-# Venv + dépendances
+# Venv + dependencies
 New-Venv $pyCmd
 Install-Dependencies
 
 # Stockfish
 if (Find-Stockfish) {
-    Write-Step "Stockfish déjà présent dans engines\ - aucun téléchargement nécessaire."
+    Write-Step "Stockfish already present in engines\ - no download needed."
 } else {
     Write-Host ""
-    Write-Host "Stockfish (moteur d'échecs) non détecté." -ForegroundColor Yellow
-    $rep = Read-Host "Voulez-vous le télécharger automatiquement ? (O/N)"
+    Write-Host "Stockfish (chess engine) not detected." -ForegroundColor Yellow
+    $rep = Read-Host "Download it automatically? (Y/N)"
     if ($rep -match "^[oOyY]") {
         Install-Stockfish
     } else {
-        Write-Info "Pas de téléchargement. Placez stockfish.exe dans le dossier engines\ et relancez."
+        Write-Info "No download. Place stockfish.exe in the engines\ folder and re-run."
     }
 }
 
-# Visual C++ runtime (requis par lc0/Maia)
+# Visual C++ runtime (required by lc0/Maia)
 Install-VCRedist
 
 Assert-LaunchScript
 
 Write-Host ""
 Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "   Installation terminée !" -ForegroundColor Green
+Write-Host "   Installation complete!" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Pour lancer AlChess :" -ForegroundColor White
-Write-Host "   Double-cliquez sur start_alchess.ps1" -ForegroundColor Cyan
-Write-Host "   ou dans PowerShell : .\start_alchess.ps1" -ForegroundColor Cyan
+Write-Host "To launch AlChess:" -ForegroundColor White
+Write-Host "   Double-click start_alchess.ps1" -ForegroundColor Cyan
+Write-Host "   or in PowerShell: .\start_alchess.ps1" -ForegroundColor Cyan
 Write-Host ""
