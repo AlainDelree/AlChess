@@ -49,8 +49,9 @@ _Généré le 2026-05-22_
 
 | Fichier | Rôle | Modifié le |
 |---------|------|------------|
-| `install_alchess.ps1` | Installateur PowerShell complet | 2026-05-21 |
-| `installer.bat` | Lanceur BAT pour install PS1 | 2026-05-21 |
+| `install_alchess.ps1` | Installateur PowerShell complet (+ raccourci bureau) | 2026-07-13 |
+| `1-Installer.bat` | Wrapper BAT pour lancer l'installateur PS1 | 2026-07-13 |
+| `2-Lancer_AlChess.bat` | Wrapper BAT pour lancer AlChess (start_alchess.ps1) | 2026-07-13 |
 | `start_alchess.ps1` | Lanceur Windows (chemin auto-détecté) | 2026-05-21 |
 
 ### Moteurs (`engines/`)

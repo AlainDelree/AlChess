@@ -54,7 +54,8 @@ INCLUDE=(
   LICENSE
   install.sh
   start_alchess.sh
-  installer.bat
+  1-Installer.bat
+  2-Lancer_AlChess.bat
   install_alchess.ps1
   start_alchess.ps1
   99-chessnutair.rules.example
@@ -132,7 +133,7 @@ build_linux() {
   local out="$DIST/$NAME-linux-x86_64"
   echo "=== Construction du paquet Linux ==="
   rsync -a "$STAGE"/ "$out"/
-  rm -f "$out/installer.bat" "$out/install_alchess.ps1" "$out/start_alchess.ps1"
+  rm -f "$out/1-Installer.bat" "$out/2-Lancer_AlChess.bat" "$out/install_alchess.ps1" "$out/start_alchess.ps1"
   rm -f "$out/engines/maia/lc0.exe" "$out/engines/rodent-iv/rodentIV.exe"
   rm -f "$out"/engines/maia/*.dll
   rm -f "$out"/engines/rodent-iv/*.dll

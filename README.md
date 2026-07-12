@@ -21,8 +21,8 @@ Pas besoin de connaître Git ou Python. Rendez-vous sur la page **[Releases](htt
 **Windows 10 / 11**
 1. Téléchargez `AlChess-vX.Y.Z-windows-x86_64.zip` depuis les [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
 2. Extrayez le ZIP (clic droit → « Extraire tout »)
-3. Double-cliquez sur **`installer.bat`** — le script installe Python si nécessaire, prépare l'environnement et télécharge les moteurs
-4. Lancez AlChess avec **`start_alchess.ps1`** — l'interface s'ouvre dans votre navigateur
+3. Double-cliquez sur **`1-Installer.bat`** — le script installe Python si nécessaire, prépare l'environnement, télécharge les moteurs et crée un raccourci **AlChess** sur le Bureau
+4. Lancez AlChess avec **`2-Lancer_AlChess.bat`** (ou le raccourci **AlChess** créé sur le Bureau) — l'interface s'ouvre dans votre navigateur
 
 > ℹ️ Ne fermez pas la fenêtre PowerShell pendant l'utilisation.
 
@@ -111,8 +111,8 @@ No need to know Git or Python. Go to the **[Releases](https://github.com/AlainDe
 **Windows 10 / 11**
 1. Download `AlChess-vX.Y.Z-windows-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
 2. Extract the ZIP (right-click → "Extract All")
-3. Double-click **`installer.bat`** — it installs Python if needed, sets up the environment and downloads the engines
-4. Launch AlChess with **`start_alchess.ps1`** — the interface opens in your browser
+3. Double-click **`1-Installer.bat`** — it installs Python if needed, sets up the environment, downloads the engines and creates an **AlChess** shortcut on the Desktop
+4. Launch AlChess with **`2-Lancer_AlChess.bat`** (or the **AlChess** shortcut created on the Desktop) — the interface opens in your browser
 
 > ℹ️ Do not close the PowerShell window while using the app.
 

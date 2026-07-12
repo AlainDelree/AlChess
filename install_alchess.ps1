@@ -274,7 +274,28 @@ Write-Host "================================================" -ForegroundColor C
 Write-Host "   Installation complete!" -ForegroundColor Green
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
+
+# -- Desktop shortcut ---------------------------------------------------------
+# Create a Desktop shortcut pointing to 2-Lancer_AlChess.bat (never the .ps1
+# directly, which the PowerShell execution policy can block on double-click).
+# The path is resolved dynamically from $scriptDir so the shortcut keeps working
+# even if the folder is moved after installation. Failure here is not fatal.
+try {
+    $desktop  = [Environment]::GetFolderPath("Desktop")
+    $lnkPath  = Join-Path $desktop "AlChess.lnk"
+    $wsh      = New-Object -ComObject WScript.Shell
+    $shortcut = $wsh.CreateShortcut($lnkPath)
+    $shortcut.TargetPath       = "$scriptDir\2-Lancer_AlChess.bat"
+    $shortcut.WorkingDirectory = $scriptDir
+    $shortcut.Description       = "Launch AlChess"
+    $shortcut.Save()
+    Write-Host "Desktop shortcut 'AlChess' created." -ForegroundColor Green
+} catch {
+    Write-Warn "Could not create the Desktop shortcut - you can still launch AlChess manually."
+}
+
+Write-Host ""
 Write-Host "To launch AlChess:" -ForegroundColor White
-Write-Host "   Double-click start_alchess.ps1" -ForegroundColor Cyan
-Write-Host "   or in PowerShell: .\start_alchess.ps1" -ForegroundColor Cyan
+Write-Host "   Double-click the 'AlChess' shortcut on your Desktop" -ForegroundColor Cyan
+Write-Host "   or double-click 2-Lancer_AlChess.bat in this folder" -ForegroundColor Cyan
 Write-Host ""
