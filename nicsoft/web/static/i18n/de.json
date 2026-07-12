@@ -34,6 +34,8 @@
   "menu.btn.debloquer":        "⟳ Schaltflächen entsperren",
   "menu.btn.quitter":          "✕ Beenden",
   "menu.btn.virtuel":          "Virtuell",
+  "menu.col.jouer":            "Spielen",
+  "menu.col.outils":           "Werkzeuge",
   "menu.virtual_mode":         "Brettloser Modus",
   "menu.checkbox_virtuel":     "Brettloser Modus",
   "menu.logs":                 "📋 Protokoll",

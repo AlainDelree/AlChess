@@ -34,6 +34,8 @@
   "menu.btn.debloquer":        "⟳ Unlock buttons",
   "menu.btn.quitter":          "✕ Quit",
   "menu.btn.virtuel":          "Virtual",
+  "menu.col.jouer":            "Play",
+  "menu.col.outils":           "Tools",
   "menu.virtual_mode":         "Boardless mode",
   "menu.checkbox_virtuel":     "Boardless mode",
   "menu.logs":                 "📋 Logs",

@@ -34,6 +34,8 @@
   "menu.btn.debloquer":        "⟳ Débloquer les boutons",
   "menu.btn.quitter":          "✕ Quitter",
   "menu.btn.virtuel":          "Virtuel",
+  "menu.col.jouer":            "Jouer",
+  "menu.col.outils":           "Outils",
   "menu.virtual_mode":         "Mode sans échiquier",
   "menu.checkbox_virtuel":     "Mode sans échiquier physique",
   "menu.logs":                 "📋 Logs",
