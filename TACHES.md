@@ -23,6 +23,13 @@
 
 ## ✅ Bugs résolus récemment
 
+### Session du 11 juillet (soirée) — 4 livraisons
+
+- **Statut « Application connectée »** (issue #28, commit 217c311) — Le libellé « Connecté » du badge Socket.IO renommé (i18n `status.connecte`/`status.deconnecte`), puis affiné en « Application connectée » (issue #29). Clarifie que ce badge concerne la liaison navigateur↔serveur, pas l'échiquier.
+- **Deux badges de statut** (issues #29 + #31, commits 4b06673 puis 16ba34f) — Header : badge 1 « Application connectée » (liaison Socket.IO) + badge 2 échiquier à 2 états : 🟢 « Échiquier connecté » / 🟠 « Échiquier non détecté — mode virtuel disponible ». Branché sur `board_ok`/`board_error`. Nouvelles clés `status.board.*`, i18n FR/EN/DE. Validé à l'écran.
+- **Tutoriel in-app du classeur** (issue #32, commit 5d1c1c4) — Icône « ? » aux 5 zones classeur (Retranscription, Analyse, Labo, Outils PGN, Outils UCI) ouvrant un modal d'aide informatif (clés `aide.panier.*`), i18n FR/EN/DE.
+- **Renommage « corbeille »/« panier » → « classeur »** (issue #33, commit a13c09c) — Harmonisation complète : valeurs i18n FR/EN/DE (classeur / folder / Ordner), emoji 🧺 → 🗂️, fallbacks HTML, tooltips, commentaires. Aucun résidu visible. Rendu DE validé (« 🗂️ Zum Ordner hinzufügen » tient dans le bouton).
+
 ### Release publique v1.1.0 🎉 (2026-07-11)
 
 - **Release publique v1.1.0 en ligne** 🎉 — https://github.com/AlainDelree/AlChess/releases/tag/v1.1.0 — tag `v1.1.0` marqué **latest**. ZIP Linux (~210 Mo) + Windows (~215 Mo) téléchargeables, **Rodent IV inclus** (les 3 moteurs : Stockfish + Maia + Rodent). Intègre les taglines moteurs (badge i18n sur les boutons de sélection, issue #23) et le grisage des moteurs indisponibles (issue #25). Rodent vérifié présent dans les 2 ZIP.
@@ -89,7 +96,7 @@
 
 - **Menu — split button Pédagogique/Labo/Exercices** — bouton coupé en deux : moitié gauche ♟ (physique, grisée si board absent), moitié droite 🖥 Virtuel (toujours active). Checkbox "mode sans échiquier" supprimée. (commit 55a985c)
 - **Menu — descriptions en tooltip** — bulles d'explication masquées par défaut, visibles au survol uniquement (évite le chevauchement). (commit e419851)
-- **Corbeille renommée en Panier (FR)** — "corbeille" évoquait la poubelle. 3 clés fr.json mises à jour (`common.corbeille_vide`, `retrans.btn.corbeille`, `toast.corbeille`). EN inchangé ("basket" déjà correct). (commit df53509)
+- **Corbeille renommée en Classeur (FR)** — "corbeille" évoquait la poubelle → renommée "panier" (commit df53509), puis "classeur" (commit a13c09c, session 11 juillet soirée) avec emoji 🗂️ et i18n FR/EN/DE complet.
 - **HH — Reprendre la partie ne réagit pas** — `_handle_pause()` attendait `"reprendre"` mais le bouton envoie `"resume_pause"`. Ajout du handler manquant. (commit a6c4a53)
 - **HH — See best move grisé pendant pause** — Stockfish lancé au moment de la pause pour calculer le meilleur coup et activer le bouton. (commit b0ec04a)
 - **HH — combobox game_type vide en test random** — Valeurs françaises obsolètes dans `_randomizeConfigHH()`, remplacées par les valeurs anglaises. (commit db17977)
@@ -102,10 +109,11 @@
 ## 💡 Fonctionnalités à venir
 
 - **Chantier « l'UI reflète l'état réel du système »** `[Les deux]` — Regroupe plusieurs points de la même famille, à concevoir ensemble :
-  - **Statut « Connected » trompeur** — le point vert + « Connected » reflète UNIQUEMENT la connexion Socket.IO navigateur↔serveur, PAS l'échiquier (diagnostic bridge confirmé : `index.html:28-29`, `app.js:584-603`, `server.py:138-145`). L'état échiquier est séparé (`_board_status`, `board_ok`/`board_error`, `alchess.py:172`). **Option A retenue** : renommer le libellé (ex. « Serveur connecté » / « Server connected ») dans les 3 i18n (`status.connecte`/`status.deconnecte`, ~ligne 371-372). Justif. : l'écran menu affiche déjà une phrase rouge quand l'échiquier est absent.
-  - **Déconnexion échiquier en cours de session mal gérée** `[Les deux]` — Si l'échiquier est détecté au démarrage puis se déconnecte (câble détaché), lancer une partie **Pédagogique** (mode physique) renvoie au menu **sans info claire**. Pire : dans le menu, **rien n'est grisé** sauf le bouton « Reconnect Board » (qui, lui, serait justement utile). Après une tentative de partie physique, le menu revient et « Reconnect Board » se dégrise — mais les modes physiques concernés (Pédagogique, HH…) **ne se grisent toujours pas**. → Il faut : détecter la perte USB en cours de route (lié au bug `driver.py` ci-dessous), griser tous les modes nécessitant le board tant qu'il est absent, et afficher un message clair invitant à reconnecter. Même racine que le bug « HH — écran de rangement ignoré si échiquier déconnecté silencieusement ».
+  - ~~**Statut « Connected » trompeur**~~ ✅ **FAIT** (session 11 juillet soirée) — badges renommés « Application connectée » + « Échiquier connecté/non détecté ».
+  - ~~**Griser les moteurs indisponibles**~~ ✅ **FAIT** (issue #25, release v1.1.0).
+  - **Déconnexion échiquier en cours de session mal gérée** `[Les deux]` — Si l'échiquier est détecté au démarrage puis se déconnecte (câble détaché), lancer une partie **Pédagogique** (mode physique) renvoie au menu **sans info claire**. Pire : dans le menu, **rien n'est grisé** sauf le bouton « Reconnect Board » (qui, lui, serait justement utile). Après une tentative de partie physique, le menu revient et « Reconnect Board » se dégrise — mais les modes physiques concernés (Pédagogique, HH…) **ne se grisent toujours pas**. → Il faut : détecter la perte USB en cours de route (lié au bug `driver.py` ci-dessous), griser tous les modes nécessitant le board tant qu'il est absent, et afficher un message clair invitant à reconnecter. Même racine que le bug « HH — écran de rangement ignoré si échiquier déconnecté silencieusement ». **Note** : nécessite l'échiquier branché pour être testé.
 - **Menu principal sur deux colonnes** `[Les deux]` — Réorganiser le menu principal en 2 colonnes pour une meilleure vue d'ensemble et éviter d'avoir à scroller.
-- **Tutoriels utilisateur** `[Les deux]` — Créer des tutoriels / aides in-app pour les fonctionnalités pas évidentes à comprendre seul (ex. le fonctionnement de la **corbeille**). But : rendre le programme accessible sans accompagnement.
+- **Tutoriels utilisateur** `[Les deux]` — Créer des tutoriels / aides in-app pour les fonctionnalités pas évidentes à comprendre seul. But : rendre le programme accessible sans accompagnement. *(Tutoriel du classeur livré — session 11 juillet soirée. D'autres aides in-app possibles à l'avenir.)*
 - **Nettoyer le dossier Rodent dans le packaging** — ✅ **Traité pour v1.0** : `make_release.sh` exclut totalement `engines/rodent-iv` (commit `f7ed4d1`, voir résolus). **Reste pour v1.1** (une fois Rodent réintégré) : tri fin par OS — `engines/rodent-iv/` contient aussi `mac/` (binaire macOS), `sources/` (code C++) et `books/` volumineux, inutiles dans un paquet utilisateur final.
 - **Harmoniser la langue de `install_alchess.ps1`** `[Windows]` — Actuellement mixte (FR + bloc VC++ en EN). À terme, tout passer en anglais pour l'homogénéité (utilisateurs Windows).
 - **Lancement Windows plus ergonomique** `[Windows]` — Créer un raccourci sur le bureau lançant `start_alchess.ps1` d'un double-clic (comme le raccourci que `install.sh` crée sous Linux), plutôt que de passer par le terminal.
