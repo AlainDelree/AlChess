@@ -162,6 +162,10 @@ function Install-Stockfish {
         Write-Info "Extracting..."
         if (-not (Test-Path $ENGINES_DIR)) { New-Item -ItemType Directory -Path $ENGINES_DIR | Out-Null }
         Expand-Archive -Path $STOCKFISH_ZIP -DestinationPath $ENGINES_DIR -Force
+        # Remove the "Mark of the Web" (Zone.Identifier) attribute added to files
+        # downloaded from Internet, otherwise Windows refuses to launch the unsigned
+        # .exe from a subprocess -> PermissionError [WinError 5] (issue #42).
+        Get-ChildItem -Path $ENGINES_DIR -Filter "*.exe" -Recurse | Unblock-File
         Remove-Item $STOCKFISH_ZIP -ErrorAction SilentlyContinue
         Write-Step "Stockfish installed in $ENGINES_DIR"
     } catch {
@@ -195,6 +199,9 @@ function Install-VCRedist {
     try {
         Write-Info "Source: $VCREDIST_URL"
         Invoke-WebRequest -Uri $VCREDIST_URL -OutFile $VCREDIST_EXE -UseBasicParsing
+        # Remove the "Mark of the Web" attribute so Windows does not block the
+        # downloaded installer when launched silently (issue #42).
+        Unblock-File -Path $VCREDIST_EXE
         Write-Info "Installing Visual C++ runtime (silent)..."
         & $VCREDIST_EXE /install /quiet /norestart
         if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne 3010) {
