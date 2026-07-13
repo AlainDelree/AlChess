@@ -150,7 +150,7 @@ function Install-Dependencies {
 
 function Find-Stockfish {
     if (-not (Test-Path $ENGINES_DIR)) { return $false }
-    $exes = Get-ChildItem -Path $ENGINES_DIR -Filter "stockfish*.exe" -Recurse -ErrorAction SilentlyContinue
+    $exes = @(Get-ChildItem -Path $ENGINES_DIR -Filter "stockfish*.exe" -Recurse -ErrorAction SilentlyContinue)
     return ($exes.Count -gt 0)
 }
 
