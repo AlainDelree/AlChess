@@ -453,7 +453,7 @@ def find_stockfish() -> str | None:
     import shutil
     # Windows : glob stockfish*.exe dans engines/
     if sys.platform == "win32":
-        for p in sorted(ENGINES_DIR.glob("stockfish*.exe")):
+        for p in sorted(ENGINES_DIR.rglob("stockfish*.exe")):
             return str(p)
     candidates = [
         shutil.which("stockfish"),
