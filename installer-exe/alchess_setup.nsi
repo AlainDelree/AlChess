@@ -1118,16 +1118,26 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             ; ================================================================
             ExecShell "open" "$TEMP\vc_redist.x64.exe" "/install /quiet /norestart" SW_HIDE
 
-            ; Attendre que l'installation se termine (delai fixe 5 secondes).
-            ; L'install silent du VC++ runtime est rapide (~2-3s typiquement).
-            ; On attend 5s pour avoir une marge de securite.
-            DetailPrint "  Attente de l'installation (5 secondes)..."
-            Sleep 5000
+            ; Remplace le Sleep 5000 fixe par un polling : verifie MSVCP140.dll
+            ; toutes les 2 secondes, jusqu'a 60 secondes au total. Laisse le temps
+            ; a l'utilisateur de voir l'invite UAC et de cliquer "Oui" avant de
+            ; conclure a un echec (le Sleep fixe de 5s etait beaucoup trop court
+            ; pour une interaction humaine, confirme par test VM reel - issue #57).
+            DetailPrint "  Installation en cours (repondez a l'invite de securite Windows si elle apparait)..."
+            StrCpy $R1 0  ; compteur de tentatives (30 x 2s = 60s max)
+        vcredist_poll_loop:
+            Sleep 2000
+            IntOp $R1 $R1 + 1
+            IfFileExists "$SYSDIR\MSVCP140.dll" vcredist_poll_done vcredist_poll_continue
+        vcredist_poll_continue:
+            ; Tant que le compteur < 30, on continue le polling ; sinon timeout.
+            IntCmp $R1 30 vcredist_poll_done vcredist_poll_loop vcredist_poll_done
 
+        vcredist_poll_done:
             ; Nettoyer le fichier telecharge
             Delete "$TEMP\vc_redist.x64.exe"
 
-            ; 3. Verifier le succes via la presence de MSVCP140.dll
+            ; Verification finale via la presence de MSVCP140.dll
             IfFileExists "$SYSDIR\MSVCP140.dll" vcredist_install_ok vcredist_install_fail
 
         vcredist_install_ok:
