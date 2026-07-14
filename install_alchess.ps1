@@ -54,24 +54,74 @@ function Assert-Windows10 {
 
 # -- Python 3.12 check / installation -----------------------------------------
 
+function Test-PythonVersionString($versionString) {
+    if ($versionString -match "Python (\d+\.\d+)(\.\d+)?") {
+        try { return [version]$Matches[1] } catch { return $null }
+    }
+    return $null
+}
+
 function Get-Python312 {
-    # Try py -3.12 (Windows Launcher)
+    $minVersion = [version]"3.12"
+
+    # 1. py -0p : enumere toutes les versions Python enregistrees aupres du
+    #    lanceur Windows avec leur chemin complet - plus fiable qu'un test
+    #    unique sur "-3.12".
     try {
-        $ver = & py -3.12 --version 2>&1
-        if ($ver -match "Python 3\.1[2-9]") {
-            Write-Step "Python 3.12+ detected: $ver"
-            return "py -3.12"
+        $list = & py -0p 2>$null
+        if ($LASTEXITCODE -eq 0 -and $list) {
+            foreach ($line in $list) {
+                if ($line -match "-(\d+\.\d+)(?:-\d+)?\s+(.+\.exe)\s*$") {
+                    $v = [version]$Matches[1]
+                    $path = $Matches[2].Trim()
+                    if ($v -ge $minVersion -and (Test-Path $path)) {
+                        Write-Step "Python $v detected via py launcher: $path"
+                        return $path
+                    }
+                }
+            }
         }
     } catch {}
 
-    # Try python --version (if 3.12+ is in PATH)
+    # 2. python --version dans le PATH
     try {
-        $ver = & python --version 2>&1
-        if ($ver -match "Python 3\.1[2-9]") {
-            Write-Step "Python 3.12+ detected: $ver"
-            return "python"
+        $ver = & python --version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            $v = Test-PythonVersionString "$ver"
+            if ($v -and $v -ge $minVersion) {
+                Write-Step "Python $v detected in PATH: $ver"
+                return "python"
+            }
         }
     } catch {}
+
+    # 3. Chemins d'installation standards, si ni py ni python ne sont dans
+    #    le PATH (cas signale par un utilisateur externe).
+    $searchRoots = @(
+        "$env:LOCALAPPDATA\Programs\Python",
+        "$env:ProgramFiles",
+        "${env:ProgramFiles(x86)}"
+    )
+    foreach ($root in $searchRoots) {
+        if (-not (Test-Path $root)) { continue }
+        $dirs = Get-ChildItem -Path $root -Directory -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -match "^Python3(1[2-9]|[2-9]\d)$" } |
+            Sort-Object Name -Descending
+        foreach ($dir in $dirs) {
+            $exe = Join-Path $dir.FullName "python.exe"
+            if (-not (Test-Path $exe)) { continue }
+            try {
+                $ver = & $exe --version 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    $v = Test-PythonVersionString "$ver"
+                    if ($v -and $v -ge $minVersion) {
+                        Write-Step "Python $v detected at $exe"
+                        return $exe
+                    }
+                }
+            } catch {}
+        }
+    }
 
     return $null
 }
@@ -120,11 +170,7 @@ function New-Venv($pyCmd) {
         Write-Step "Virtual environment already present - updating dependencies."
     } else {
         Write-Step "Creating the virtual environment..."
-        if ($pyCmd -eq "py -3.12") {
-            & py -3.12 -m venv "$venvPath"
-        } else {
-            & python -m venv "$venvPath"
-        }
+        & $pyCmd -m venv "$venvPath"
         if ($LASTEXITCODE -ne 0) {
             Write-Fail "Failed to create the venv."
             exit 1
