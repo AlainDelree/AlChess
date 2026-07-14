@@ -11,7 +11,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$STOCKFISH_URL = "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip"
+# L'URL Stockfish n'est plus une constante unique : elle depend de la variante
+# CPU (avx2 / sse41-popcnt / base). Voir Get-StockfishUrl et Install-Stockfish.
 $STOCKFISH_ZIP = "$env:TEMP\stockfish.zip"
 $ENGINES_DIR   = "$scriptDir\engines"
 $VCREDIST_URL  = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
@@ -200,25 +201,130 @@ function Find-Stockfish {
     return ($exes.Count -gt 0)
 }
 
-function Install-Stockfish {
-    Write-Step "Downloading Stockfish..."
+# URL d'un asset Stockfish officiel pour une variante CPU donnee.
+#   ""             -> stockfish-windows-x86-64.zip          (baseline, tout CPU 64-bit)
+#   "sse41-popcnt" -> stockfish-windows-x86-64-sse41-popcnt.zip
+#   "avx2"         -> stockfish-windows-x86-64-avx2.zip
+function Get-StockfishUrl($variant) {
+    $suffix = if ($variant) { "-$variant" } else { "" }
+    return "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64$suffix.zip"
+}
+
+# Filtre rapide (non decisif) : si AVX2 n'est PAS present, inutile de meme
+# essayer la variante avx2. On NE peut PAS detecter BMI2 de facon fiable avant
+# Windows 11 24H2 (PF_BMI2_INSTRUCTIONS_AVAILABLE renvoie 0 sur tout systeme
+# anterieur, avec ou sans BMI2) -> la seule methode robuste reste le test
+# d'execution reel dans Install-Stockfish. PF_AVX2_INSTRUCTIONS_AVAILABLE (40)
+# est en revanche fiable depuis Windows 10 2004, garanti par Assert-Windows10.
+function Test-Avx2Support {
     try {
-        Write-Info "Source: $STOCKFISH_URL"
-        Invoke-WebRequest -Uri $STOCKFISH_URL -OutFile $STOCKFISH_ZIP -UseBasicParsing
+        Add-Type -Namespace NativeCpu -Name Features -MemberDefinition @"
+[DllImport("kernel32.dll")]
+public static extern bool IsProcessorFeaturePresent(uint feature);
+"@ -ErrorAction Stop
+        # PF_AVX2_INSTRUCTIONS_AVAILABLE = 40
+        return [NativeCpu.Features]::IsProcessorFeaturePresent(40)
+    } catch {
+        # Si l'appel echoue pour une raison quelconque, ne pas bloquer :
+        # laisser le test d'execution reel trancher.
+        return $true
+    }
+}
+
+# Lance l'executable Stockfish une fois avec "quit" en entree et renvoie son
+# code de sortie. Un CPU qui ne supporte pas les instructions requises fait
+# crasher le process des l'initialisation avec 0xC000001D (illegal instruction,
+# vu comme -1073741795). On utilise Start-Process avec redirection stdin par
+# fichier + WaitForExit(timeout) plutot qu'un simple pipe "quit" | & exe : cela
+# garantit qu'on ne reste jamais bloque si le binaire n'ecoute pas stdin comme
+# prevu, tout en capturant le code de sortie natif.
+# Renvoie : le code de sortie (int), ou $null si le process a du etre tue au
+# timeout (= il tournait normalement, pas de crash immediat).
+function Invoke-StockfishProbe($exePath) {
+    $probeIn  = "$env:TEMP\sf_probe_in.txt"
+    $probeOut = "$env:TEMP\sf_probe_out.txt"
+    $probeErr = "$env:TEMP\sf_probe_err.txt"
+    "quit" | Set-Content -Path $probeIn -Encoding ASCII
+    $proc = Start-Process -FilePath $exePath `
+        -RedirectStandardInput  $probeIn `
+        -RedirectStandardOutput $probeOut `
+        -RedirectStandardError  $probeErr `
+        -NoNewWindow -PassThru
+    $exitCode = $null
+    if ($proc.WaitForExit(5000)) {
+        $exitCode = $proc.ExitCode
+    } else {
+        # Toujours vivant apres 5 s : il n'a pas crashe a l'init -> on le tue et
+        # on considere qu'il fonctionne (aucun illegal instruction immediat).
+        try { $proc.Kill() } catch {}
+    }
+    Remove-Item $probeIn, $probeOut, $probeErr -ErrorAction SilentlyContinue
+    return $exitCode
+}
+
+function Install-Stockfish {
+    # Cascade de variantes, de la plus rapide a la plus compatible. On ne garde
+    # que la premiere qui s'execute reellement sans crasher sur ce CPU.
+    $variants = @("avx2", "sse41-popcnt", "")
+    if (-not (Test-Avx2Support)) {
+        Write-Info "AVX2 non detecte - variante avx2 ignoree d'entree."
+        $variants = $variants | Where-Object { $_ -ne "avx2" }
+    }
+
+    foreach ($variant in $variants) {
+        $label = if ($variant) { $variant } else { "x86-64 (base)" }
+        $url   = Get-StockfishUrl $variant
+        Write-Step "Downloading Stockfish ($label)..."
+        Write-Info "Source: $url"
+        try {
+            Invoke-WebRequest -Uri $url -OutFile $STOCKFISH_ZIP -UseBasicParsing
+        } catch {
+            Write-Warn "Download failed for $label : $_"
+            continue
+        }
+
         Write-Info "Extracting..."
         if (-not (Test-Path $ENGINES_DIR)) { New-Item -ItemType Directory -Path $ENGINES_DIR | Out-Null }
         Expand-Archive -Path $STOCKFISH_ZIP -DestinationPath $ENGINES_DIR -Force
+        Remove-Item $STOCKFISH_ZIP -ErrorAction SilentlyContinue
         # Remove the "Mark of the Web" (Zone.Identifier) attribute added to files
         # downloaded from Internet, otherwise Windows refuses to launch the unsigned
         # .exe from a subprocess -> PermissionError [WinError 5] (issue #42).
         Get-ChildItem -Path $ENGINES_DIR -Filter "*.exe" -Recurse | Unblock-File
-        Remove-Item $STOCKFISH_ZIP -ErrorAction SilentlyContinue
-        Write-Step "Stockfish installed in $ENGINES_DIR"
-    } catch {
-        Write-Warn "Download failed: $_"
-        Write-Info "Download Stockfish manually from https://stockfishchess.org/download/"
-        Write-Info "and place the .exe in the engines\ folder"
+
+        $exe = @(Get-ChildItem -Path $ENGINES_DIR -Filter "stockfish*.exe" -Recurse)[0]
+        if (-not $exe) {
+            Write-Warn "No executable found after extracting $label."
+            continue
+        }
+
+        # Test d'execution reel : seule methode fiable pour confirmer que le CPU
+        # supporte les instructions requises (BMI2 non detectable de facon fiable
+        # avant Windows 11 24H2, cf. Test-Avx2Support / contexte issue #49).
+        $exitCode = Invoke-StockfishProbe $exe.FullName
+        # 0xC000001D = -1073741795 : illegal instruction (CPU incompatible).
+        if ($exitCode -eq -1073741795) {
+            Write-Warn "$label ne s'execute pas sur ce CPU (illegal instruction), variante suivante..."
+            # Nettoyer uniquement le dossier de CETTE variante, jamais tout
+            # $ENGINES_DIR (qui peut contenir Maia/Rodent). Les assets Stockfish
+            # officiels s'extraient dans un sous-dossier "stockfish\" : on le
+            # supprime ; garde-fou au cas ou l'exe serait extrait a la racine.
+            $enginesFull = (Resolve-Path $ENGINES_DIR).Path
+            if ($exe.Directory.FullName -ne $enginesFull) {
+                Remove-Item -Path $exe.Directory.FullName -Recurse -Force -ErrorAction SilentlyContinue
+            } else {
+                Remove-Item -Path $exe.FullName -Force -ErrorAction SilentlyContinue
+            }
+            continue
+        }
+
+        Write-Step "Stockfish ($label) installed and confirmed working in $ENGINES_DIR"
+        return
     }
+
+    Write-Fail "No working Stockfish variant could be installed."
+    Write-Info "Download Stockfish manually from https://stockfishchess.org/download/"
+    Write-Info "and place the .exe in the engines\ folder"
 }
 
 # -- Visual C++ runtime (required by lc0/Maia) --------------------------------
