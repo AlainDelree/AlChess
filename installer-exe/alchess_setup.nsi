@@ -14,15 +14,17 @@
 ;  => PAS d'installeur autonome qui telecharge le code de l'app (hors scope).
 ;
 ;  --- ETAT DES PHASES --------------------------------------------------------
-;  Phase 1 (#50, #51) : outillage NSIS valide, plugin Inetc en place.
+;  Phase 1 (#50, #51, #56) : outillage NSIS valide, plugins Inetc
+;                            (telechargement) et nsisunz (extraction ZIP)
+;                            en place.
 ;  Phase 2 (#52) : vrai squelette (pages MUI2, sections vides).
 ;  Phase 3 (#53, #54) : Section "Verification Python" — portage de
 ;                        Get-Python312 en NSIS natif (3 strategies).
 ;  Phase 4 (#55, CE FICHIER) : Section "Installation Stockfish" — portage de
 ;                              Install-Stockfish avec cascade CPU (avx2 ->
 ;                              sse41-popcnt -> base) et test d'execution reel.
-;                              BLOCAGE : plugin d'extraction ZIP requis (nsisunz
-;                              ou ZipDLL), non present — issue separee.
+;                              Extraction ZIP via plugin nsisunz, installe en
+;                              phase 1bis (#56).
 ;  Phase 5  : Section "Runtime Visual C++"   — portage de Install-VCRedist.
 ;
 ;  --- AVERTISSEMENT PHASE 3 --------------------------------------------------
@@ -783,11 +785,10 @@ FunctionEnd
 ;  Entree : $R0 = URL, $R1 = label (ex: "avx2", "sse41-popcnt", "x86-64 base")
 ;  Sortie : $StockfishOK = 1 si succes, 0 sinon
 ;
-;  BLOCAGE PHASE 4 : L'extraction ZIP necessite un plugin comme nsisunz ou
-;  ZipDLL. Ces plugins ne sont PAS dans l'installation NSIS standard Ubuntu.
-;  La partie extraction ci-dessous est un PLACEHOLDER qui echouera si le
-;  plugin n'est pas installe. Voir commentaire en tete de section pour la
-;  resolution (issue separee pour installation du plugin).
+;  EXTRACTION ZIP (#56) : realisee via le plugin nsisunz (nsisunz::UnzipToLog),
+;  installe dans /usr/share/nsis/Plugins/ (meme processus qu'Inetc en #51).
+;  NSIS n'ayant pas de dezipage natif, ce plugin est requis pour extraire
+;  l'asset Stockfish telecharge.
 ; ---------------------------------------------------------------------------
 Function TryStockfishVariant
     StrCpy $StockfishOK 0
@@ -812,41 +813,27 @@ Function TryStockfishVariant
 
         extract_zip:
             ; ============================================================
-            ; BLOCAGE : extraction ZIP
+            ; Extraction ZIP via plugin nsisunz (installe systeme, #56)
             ; ============================================================
-            ; NSIS n'a pas de dezipage natif. Les plugins usuels sont :
-            ;   - nsisunz (nsisunz::UnzipToLog)
-            ;   - ZipDLL (ZipDLL::extractall)
-            ; Aucun n'est present dans /usr/share/nsis/Plugins/ (verifie).
-            ;
-            ; SOLUTION TEMPORAIRE : placeholder qui affiche un message
-            ; d'erreur et retourne. L'installation du plugin fera l'objet
-            ; d'une issue separee (meme processus que Inetc en phase 1bis).
-            ;
-            ; Une fois le plugin installe, decommenter le bloc ci-dessous
-            ; et supprimer le placeholder.
+            ; NSIS n'a pas de dezipage natif. Le plugin nsisunz
+            ; (nsisunz::UnzipToLog) est desormais installe dans
+            ; /usr/share/nsis/Plugins/ (issue #56, meme processus qu'Inetc
+            ; en #51). Choix nsisunz plutot que ZipDLL : origine zlib/NSIS,
+            ; contrainte de licence moindre. AlChess etant sous GPL v3, les
+            ; deux auraient convenu ; nsisunz privilegie par prudence.
             ; ============================================================
+            DetailPrint "  Extraction..."
+            nsisunz::UnzipToLog "$TEMP\stockfish.zip" "$EXEDIR\${ENGINES_SUBDIR}"
+            Pop $R6  ; "success" ou message d'erreur
+            StrCmp $R6 "success" extract_ok extract_fail
 
-            ; --- PLACEHOLDER (a remplacer quand plugin disponible) ---
-            DetailPrint "  ERREUR : extraction ZIP non implementee."
-            DetailPrint "  Plugin nsisunz ou ZipDLL requis (non installe)."
-            DetailPrint "  Voir issue separee pour installation du plugin."
+        extract_fail:
+            DetailPrint "  Echec extraction : $R6"
             Delete "$TEMP\stockfish.zip"
             Return
 
-            ; --- CODE REEL (decommenter quand plugin disponible) ---
-            ; DetailPrint "  Extraction..."
-            ; nsisunz::UnzipToLog "$TEMP\stockfish.zip" "$EXEDIR\${ENGINES_SUBDIR}"
-            ; Pop $R6  ; "success" ou message d'erreur
-            ; StrCmp $R6 "success" extract_ok extract_fail
-            ;
-            ; extract_fail:
-            ;     DetailPrint "  Echec extraction : $R6"
-            ;     Delete "$TEMP\stockfish.zip"
-            ;     Return
-            ;
-            ; extract_ok:
-            ;     Delete "$TEMP\stockfish.zip"
+        extract_ok:
+            Delete "$TEMP\stockfish.zip"
 
         ; 3. Trouver l'executable (apres extraction)
         ; L'asset Stockfish s'extrait dans stockfish/stockfish-windows-x86-64[-variante].exe
@@ -856,6 +843,15 @@ Function TryStockfishVariant
         no_exe_found:
             DetailPrint "  Aucun executable trouve apres extraction."
             FindClose $R6
+            ; A ce stade $R0 contient ENCORE l'URL de telechargement (jamais
+            ; reassignee, car aucun exe n'a ete trouve — la reaffectation en
+            ; chemin de fichier n'a lieu que dans found_exe). Or
+            ; CleanupStockfishVariant fait "Delete $R0" dans sa branche
+            ; skip_cleanup : sans ce reset, il tenterait de supprimer une
+            ; chaine d'URL (echoue silencieusement, sans effet utile). On vide
+            ; $R0 pour neutraliser ce cas. (bug latent releve en relecture #55,
+            ; corrige #56)
+            StrCpy $R0 ""
             Call CleanupStockfishVariant
             Return
 
@@ -950,12 +946,10 @@ SectionGroup "Configuration AlChess" SecGroupConfig
     ;   avx2 -> sse41-popcnt -> base (x86-64)
     ; On ne garde que la premiere qui s'execute sans crasher (illegal instr).
     ;
-    ; BLOCAGE ACTUEL : l'extraction ZIP necessite un plugin (nsisunz ou
-    ; ZipDLL) non present dans l'installation NSIS Ubuntu standard.
-    ; La compilation passe mais l'extraction echouera a l'execution.
-    ; => Issue separee pour installer le plugin (meme processus que Inetc).
-    ;
-    ; Une fois le plugin installe, ce code fonctionnera tel quel.
+    ; EXTRACTION ZIP (#56) : via plugin nsisunz, installe dans
+    ; /usr/share/nsis/Plugins/ (meme processus qu'Inetc en #51).
+    ; La chaine complete (telechargement Inetc + extraction nsisunz + probe)
+    ; reste a valider en execution reelle sur VM Windows.
     Section "Installation Stockfish" SecStockfish
         DetailPrint "================================================"
         DetailPrint "Installation de Stockfish"
