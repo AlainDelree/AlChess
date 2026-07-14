@@ -20,12 +20,15 @@
 ;  Phase 2 (#52) : vrai squelette (pages MUI2, sections vides).
 ;  Phase 3 (#53, #54) : Section "Verification Python" — portage de
 ;                        Get-Python312 en NSIS natif (3 strategies).
-;  Phase 4 (#55, CE FICHIER) : Section "Installation Stockfish" — portage de
-;                              Install-Stockfish avec cascade CPU (avx2 ->
-;                              sse41-popcnt -> base) et test d'execution reel.
-;                              Extraction ZIP via plugin nsisunz, installe en
-;                              phase 1bis (#56).
-;  Phase 5  : Section "Runtime Visual C++"   — portage de Install-VCRedist.
+;  Phase 4 (#55, #56) : Section "Installation Stockfish" — portage de
+;                        Install-Stockfish avec cascade CPU (avx2 ->
+;                        sse41-popcnt -> base) et test d'execution reel.
+;                        Extraction ZIP via plugin nsisunz (#56).
+;  Phase 5 (#57, CE FICHIER) : Section "Runtime Visual C++" — portage de
+;                              Install-VCRedist. Utilise ExecShell "open"
+;                              pour declencher l'UAC (requireAdministrator
+;                              dans le manifeste vc_redist), avec verification
+;                              post-installation via MSVCP140.dll.
 ;
 ;  --- AVERTISSEMENT PHASE 3 --------------------------------------------------
 ;  Cette section SecPython a ete validee uniquement par COMPILATION (makensis
@@ -66,6 +69,9 @@ Var VersionOK        ; 1 si version >= 3.12, 0 sinon
 Var HasAvx2          ; 1 si AVX2 present, 0 sinon
 Var StockfishOK      ; 1 si une variante Stockfish fonctionnelle a ete installee
 
+; Variables pour la section VCRedist (phase 5)
+Var VCRedistOK       ; 1 si VC++ installe avec succes, 0 sinon
+
 ; ---------------------------------------------------------------------------
 ;  Variables de chemin — equivalents des chemins de install_alchess.ps1.
 ;  Toutes les references sont relatives a $EXEDIR (dossier du .exe execute),
@@ -91,6 +97,10 @@ Var StockfishOK      ; 1 si une variante Stockfish fonctionnelle a ete installee
 !define SF_URL_AVX2 "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip"
 !define SF_URL_SSE41 "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-sse41-popcnt.zip"
 !define SF_URL_BASE "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64.zip"
+
+; URL Visual C++ Runtime (phase 5, issue #57)
+; Meme URL que $VCREDIST_URL dans install_alchess.ps1
+!define VCREDIST_URL "https://aka.ms/vs/17/release/vc_redist.x64.exe"
 
 ; Code de sortie "illegal instruction" (CPU incompatible) :
 ; 0xC000001D = -1073741795 en decimal signe
@@ -1013,9 +1023,132 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             DetailPrint "================================================"
     SectionEnd
 
-    ; -- Phase 5 : portage de Install-VCRedist -------------------------------
+    ; -- Phase 5 : portage de Install-VCRedist (issue #57) --------------------
+    ; Equivalent de Install-VCRedist dans install_alchess.ps1.
+    ;
+    ; Le runtime Visual C++ est requis par lc0 (moteur Maia). L'installeur
+    ; vc_redist.x64.exe porte un manifeste requireAdministrator. Contrairement
+    ; a nsExec::ExecToStack (utilise pour Stockfish), qui passe par CreateProcess
+    ; et NE declenche PAS l'elevation UAC, ExecShell passe par ShellExecuteEx
+    ; et DECLENCHE correctement l'invite UAC pour un exe avec ce manifeste.
+    ;
+    ; LIMITE ACCEPTEE : ExecShell ne permet pas d'attendre la fin du process
+    ; ni de recuperer son code de sortie nativement. Un plugin type
+    ; "ExecShellWaitEx" ou "ShellExecAsUser" n'est pas installe par defaut.
+    ; Alternative retenue : lancer l'installeur, attendre un delai fixe (5s),
+    ; puis verifier la presence de MSVCP140.dll pour confirmer le succes.
+    ; C'est moins precis qu'un code de sortie, mais suffisant pour notre cas
+    ; d'usage (install silent d'un runtime officiel Microsoft).
+    ;
+    ; SIMPLIFICATION VS .PS1 : le test de connexion prealable (Test-Connection)
+    ; est omis. Si le telechargement Inetc echoue, on affiche directement le
+    ; message d'avertissement (equivalent au cas "pas de connexion" du .ps1).
+    ; Resultat fonctionnellement identique, code plus simple.
     Section "Runtime Visual C++" SecVCRedist
-        DetailPrint "[Phase 5] Installation du runtime Visual C++ (Maia) — a implementer."
+        DetailPrint "================================================"
+        DetailPrint "Runtime Visual C++ (requis pour Maia)"
+        DetailPrint "================================================"
+
+        ; Initialiser le flag
+        StrCpy $VCRedistOK 0
+
+        ; 1. Verifier si deja present ($SYSDIR = $env:SystemRoot\System32)
+        IfFileExists "$SYSDIR\MSVCP140.dll" vcredist_present vcredist_needed
+
+        vcredist_present:
+            DetailPrint "Runtime Visual C++ deja installe."
+            StrCpy $VCRedistOK 1
+            Goto end_vcredist
+
+        vcredist_needed:
+            DetailPrint "Runtime Visual C++ non detecte — telechargement..."
+
+            ; 2. Telecharger via Inetc (meme methode que Stockfish)
+            DetailPrint "  Source : ${VCREDIST_URL}"
+            inetc::get /caption "Telechargement Visual C++ Runtime" "${VCREDIST_URL}" "$TEMP\vc_redist.x64.exe" /end
+            Pop $R0  ; "OK" ou message d'erreur
+
+            StrCmp $R0 "OK" vcredist_dl_ok vcredist_dl_fail
+
+        vcredist_dl_fail:
+            ; Echec telechargement : message equivalent au .ps1 (pas de connexion)
+            DetailPrint "Echec du telechargement : $R0"
+            DetailPrint "================================================"
+            DetailPrint "AVERTISSEMENT : Le runtime Visual C++ n'a pas pu"
+            DetailPrint "etre telecharge. Le moteur Maia (lc0) ne fonctionnera"
+            DetailPrint "pas sans ce runtime."
+            DetailPrint ""
+            DetailPrint "Telechargez-le manuellement depuis :"
+            DetailPrint "  https://aka.ms/vs/17/release/vc_redist.x64.exe"
+            DetailPrint ""
+            DetailPrint "Stockfish et les autres modes fonctionneront normalement."
+            DetailPrint "================================================"
+            ; Pas de MessageBox ici : l'echec de telechargement n'est pas bloquant
+            ; (meme comportement que le .ps1 qui continue sans Maia)
+            Goto end_vcredist
+
+        vcredist_dl_ok:
+            DetailPrint "  Telechargement reussi."
+            DetailPrint "  Installation du runtime (invite UAC attendue)..."
+
+            ; ================================================================
+            ; POINT CRITIQUE : ELEVATION UAC
+            ; ================================================================
+            ; vc_redist.x64.exe porte un manifeste requireAdministrator.
+            ; nsExec::ExecToStack (utilise pour Stockfish) passe par CreateProcess
+            ; qui NE declenche PAS l'elevation automatique -> erreur.
+            ; ExecShell passe par ShellExecuteEx qui DECLENCHE l'UAC.
+            ;
+            ; Syntaxe : ExecShell "open" "chemin" "parametres" SW_HIDE
+            ; On passe /install /quiet /norestart comme le .ps1.
+            ;
+            ; LIMITE : ExecShell n'attend pas la fin du process. On ne peut pas
+            ; recuperer le code de sortie (0=succes, 3010=redemarrage requis).
+            ; Alternative : attendre un delai fixe puis verifier MSVCP140.dll.
+            ; ================================================================
+            ExecShell "open" "$TEMP\vc_redist.x64.exe" "/install /quiet /norestart" SW_HIDE
+
+            ; Attendre que l'installation se termine (delai fixe 5 secondes).
+            ; L'install silent du VC++ runtime est rapide (~2-3s typiquement).
+            ; On attend 5s pour avoir une marge de securite.
+            DetailPrint "  Attente de l'installation (5 secondes)..."
+            Sleep 5000
+
+            ; Nettoyer le fichier telecharge
+            Delete "$TEMP\vc_redist.x64.exe"
+
+            ; 3. Verifier le succes via la presence de MSVCP140.dll
+            IfFileExists "$SYSDIR\MSVCP140.dll" vcredist_install_ok vcredist_install_fail
+
+        vcredist_install_ok:
+            DetailPrint "Runtime Visual C++ installe avec succes."
+            StrCpy $VCRedistOK 1
+            Goto end_vcredist
+
+        vcredist_install_fail:
+            ; Echec d'installation : message + question Y/N comme le .ps1
+            DetailPrint "================================================"
+            DetailPrint "ECHEC : Le runtime Visual C++ n'a pas pu etre installe."
+            DetailPrint ""
+            DetailPrint "Le moteur Maia (lc0) ne fonctionnera pas sans ce runtime."
+            DetailPrint "Stockfish et les autres modes fonctionneront normalement."
+            DetailPrint ""
+            DetailPrint "Pour corriger plus tard, telechargez et installez :"
+            DetailPrint "  https://aka.ms/vs/17/release/vc_redist.x64.exe"
+            DetailPrint "================================================"
+
+            ; MessageBox Y/N : equivalent de Read-Host "Continue? (Y/N)" du .ps1
+            MessageBox MB_YESNO|MB_ICONQUESTION "L'installation du runtime Visual C++ a echoue.$\r$\n$\r$\nLe moteur Maia ne fonctionnera pas sans ce runtime.$\r$\nStockfish et les autres modes fonctionneront normalement.$\r$\n$\r$\nContinuer l'installation sans le support Maia ?" IDYES vcredist_continue IDNO vcredist_abort
+
+        vcredist_abort:
+            DetailPrint "Installation annulee par l'utilisateur."
+            Abort
+
+        vcredist_continue:
+            DetailPrint "Poursuite de l'installation sans le support Maia."
+
+        end_vcredist:
+            DetailPrint "================================================"
     SectionEnd
 
 SectionGroupEnd
