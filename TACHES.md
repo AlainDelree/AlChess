@@ -183,6 +183,13 @@
     - ✅ `launcher.py` (GTK splash) : ignoré sur Windows — on lance directement via `start_alchess.ps1`
     - ✅ **`install_alchess.ps1` testé et validé sur VM Windows** (session 2026-05-24)
 
+- **Améliorer la visibilité moteurs de recherche** `[Les deux]` — Repo déjà
+  indexé par Bing (retour utilisateur externe, issue #40). Pistes à explorer :
+  image de prévisualisation sociale (Settings → Social preview), vérifier que
+  le README couvre des formulations naturelles qu'un débutant chercherait (pas
+  seulement du vocabulaire technique), poster sur des communautés pertinentes
+  (r/chess, forums Chessnut, listes "awesome-chess"). Non urgent.
+
 ---
 ## 🧪 Tests automatisés
 
