@@ -1,5 +1,5 @@
 ; ============================================================================
-;  alchess_setup.nsi  —  Installeur AlChess (phase 4 : cascade Stockfish)
+;  alchess_setup.nsi  —  Installeur AlChess (phase 6 : finitions, code complet)
 ;
 ;  Installeur Windows compile (AlChess_Setup.exe), developpe EN PARALLELE de
 ;  install_alchess.ps1 (script PowerShell existant, non modifie).
@@ -24,11 +24,17 @@
 ;                        Install-Stockfish avec cascade CPU (avx2 ->
 ;                        sse41-popcnt -> base) et test d'execution reel.
 ;                        Extraction ZIP via plugin nsisunz (#56).
-;  Phase 5 (#57, CE FICHIER) : Section "Runtime Visual C++" — portage de
-;                              Install-VCRedist. Utilise ExecShell "open"
-;                              pour declencher l'UAC (requireAdministrator
-;                              dans le manifeste vc_redist), avec verification
-;                              post-installation via MSVCP140.dll.
+;  Phase 5 (#57) : Section "Runtime Visual C++" — portage de
+;                  Install-VCRedist. Utilise ExecShell "open" pour declencher
+;                  l'UAC (requireAdministrator dans le manifeste vc_redist),
+;                  avec verification post-installation via MSVCP140.dll.
+;  Phase 6 (#58, CE FICHIER) : finitions. Raccourci bureau natif
+;                              (CreateShortcut, cible 2-Lancer_AlChess.bat),
+;                              implementation reelle de LaunchAlChess (bouton
+;                              "Lancer AlChess" de la page Finish), message de
+;                              fin. Le code des 6 phases est desormais COMPLET.
+;                              => VALIDATION VM WINDOWS RESTE A FAIRE (aucune
+;                                 phase n'a jamais tourne sur un vrai Windows).
 ;
 ;  --- AVERTISSEMENT PHASE 3 --------------------------------------------------
 ;  Cette section SecPython a ete validee uniquement par COMPILATION (makensis
@@ -122,10 +128,9 @@ RequestExecutionLevel user
 ShowInstDetails show
 
 ; ---------------------------------------------------------------------------
-;  Finish page : case a cocher "Lancer AlChess" (preparation du lancement de
-;  l'app une fois toutes les phases terminees). La cible est encore inactive
-;  (fonction LaunchAlChess = placeholder) ; elle pointera vers le lanceur
-;  co-localise (2-Lancer_AlChess.bat / start_alchess) dans une phase ulterieure.
+;  Finish page : case a cocher "Lancer AlChess". Active (phase 6, #58) : la
+;  fonction LaunchAlChess lance le lanceur co-localise 2-Lancer_AlChess.bat
+;  depuis $EXEDIR via Exec.
 ; ---------------------------------------------------------------------------
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_TEXT "Lancer AlChess"
@@ -164,13 +169,18 @@ Function .onInit
 FunctionEnd
 
 ; ---------------------------------------------------------------------------
-;  Placeholder du bouton "Lancer AlChess" de la page Finish.
-;  Sera implemente quand toutes les phases seront terminees (lancera le
-;  binaire co-localise depuis $EXEDIR).
+;  LaunchAlChess (phase 6, issue #58)
+;  Cible du bouton "Lancer AlChess" de la page Finish. Lance le lanceur
+;  co-localise 2-Lancer_AlChess.bat depuis $EXEDIR — JAMAIS le .ps1
+;  directement (le .bat encapsule l'appel PowerShell avec -ExecutionPolicy
+;  Bypass, exactement comme le raccourci bureau, cf. install_alchess.ps1).
+;
+;  Exec (et non ExecWait) : l'installeur se ferme juste apres cette page,
+;  inutile d'attendre le retour de l'app — le serveur AlChess reste ouvert
+;  en continu (le .bat n'a volontairement pas de "pause" final).
 ; ---------------------------------------------------------------------------
 Function LaunchAlChess
-    ; TODO (phase finale) : Exec '"$EXEDIR\2-Lancer_AlChess.bat"'
-    DetailPrint "Lancement d'AlChess — a implementer (phase finale)."
+    Exec '"$EXEDIR\2-Lancer_AlChess.bat"'
 FunctionEnd
 
 ; ============================================================================
@@ -1152,3 +1162,49 @@ SectionGroup "Configuration AlChess" SecGroupConfig
     SectionEnd
 
 SectionGroupEnd
+
+; ============================================================================
+;  SECTION FINALE — RACCOURCI BUREAU + MESSAGE DE FIN (phase 6, issue #58)
+; ============================================================================
+;  Portage du bloc COM WScript.Shell de install_alchess.ps1 (~l.285-302).
+;  Le raccourci cible TOUJOURS 2-Lancer_AlChess.bat (jamais le .ps1
+;  directement) : le .bat encapsule l'appel PowerShell avec -ExecutionPolicy
+;  Bypass, ce qui evite le blocage de policy au double-clic d'un .ps1.
+;
+;  NSIS a une instruction native (CreateShortcut) bien plus simple que le COM
+;  du .ps1. En cas d'echec (dossier bureau protege, droits, etc.), on affiche
+;  un avertissement NON bloquant — comme le .ps1 qui catch l'erreur COM sans
+;  arreter l'installation.
+; ============================================================================
+Section "Raccourci bureau" SecShortcut
+    DetailPrint "================================================"
+    DetailPrint "Creation du raccourci bureau"
+    DetailPrint "================================================"
+
+    ; Reinitialiser le flag d'erreur avant CreateShortcut pour que IfErrors
+    ; ne remonte pas une erreur laissee par une instruction anterieure.
+    ClearErrors
+    CreateShortcut "$DESKTOP\AlChess.lnk" "$EXEDIR\2-Lancer_AlChess.bat" "" \
+        "" "" SW_SHOWNORMAL "" "Launch AlChess"
+    IfErrors shortcut_failed shortcut_ok
+
+    shortcut_failed:
+        DetailPrint "AVERTISSEMENT : impossible de creer le raccourci bureau."
+        DetailPrint "  Vous pourrez lancer AlChess directement via :"
+        DetailPrint "  $EXEDIR\2-Lancer_AlChess.bat"
+        Goto end_shortcut
+
+    shortcut_ok:
+        DetailPrint "Raccourci cree : $DESKTOP\AlChess.lnk"
+
+    end_shortcut:
+        ; -- Message de fin, coherent avec install_alchess.ps1 -------------
+        DetailPrint "================================================"
+        DetailPrint "Configuration d'AlChess terminee."
+        DetailPrint "================================================"
+        DetailPrint "Pour lancer AlChess :"
+        DetailPrint "  - double-cliquez le raccourci AlChess sur le bureau, OU"
+        DetailPrint "  - double-cliquez 2-Lancer_AlChess.bat dans ce dossier."
+        DetailPrint "AlChess ouvrira votre navigateur sur l'interface web."
+        DetailPrint "================================================"
+SectionEnd
