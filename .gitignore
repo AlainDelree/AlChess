@@ -29,6 +29,9 @@ engines/stockfish*.exe
 engines/stockfish-windows*/
 engines/lc0*.exe
 
+# Installeur NSIS compilé (binaire Windows généré par makensis — voir issue #50)
+installer-exe/*.exe
+
 # Fichiers de debug et test
 debug_*.txt
 test_windows_result.txt
