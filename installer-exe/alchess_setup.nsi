@@ -1074,6 +1074,117 @@ SectionGroup "Configuration AlChess" SecGroupConfig
         end_python_section:
     SectionEnd
 
+    ; -- Phase 3ter : portage de New-Venv (issue #61) ------------------------
+    ; Equivalent de la fonction New-Venv (install_alchess.ps1 ~l.168-188).
+    ;
+    ; POURQUOI CETTE SECTION EXISTE (la vraie cause du plantage au lancement) :
+    ; jusqu'ici le .nsi detectait/installait Python (phases 3 / 3bis) puis
+    ; affichait un DetailPrint "venv cible : ..." SANS jamais creer le venv ni
+    ; installer les dependances. Resultat observe en VM reelle (Windows 11 Pro,
+    ; test de bout en bout) : meme avec Python correctement detecte,
+    ; 2-Lancer_AlChess.ps1 plantait au lancement ("python.exe n'est pas
+    ; reconnu") car $EXEDIR\venv n'existait pas. New-Venv n'avait JAMAIS ete
+    ; portee en NSIS. Cette section comble enfin cette lacune.
+    ;
+    ; ORDRE D'EXECUTION : cette section est declaree JUSTE APRES SecPython dans
+    ; le SectionGroup. NSIS execute les sections dans l'ordre de declaration
+    ; (aucune dependance explicite entre sections ici), donc $PythonExe est
+    ; deja renseigne — soit par la detection (phase 3), soit par l'installation
+    ; auto winget (phase 3bis). Si Python n'avait pas ete trouve, SecPython
+    ; aurait deja Abort (via InstallPython312NSIS) et cette section ne
+    ; s'executerait pas. $PythonExe est une variable globale, donc sa valeur
+    ; persiste d'une section a l'autre.
+    ;
+    ; $PythonExe peut valoir soit un chemin complet (strategies 1/3), soit la
+    ; simple chaine "python" (strategie 2, python dans le PATH). Les deux formes
+    ; conviennent a nsExec (CreateProcess resout "python" via le PATH), tout
+    ; comme le .ps1 qui appelle "& $pyCmd -m venv" avec le meme $pyCmd.
+    Section "Environnement virtuel (venv)" SecVenv
+        DetailPrint "================================================"
+        DetailPrint "Creation de l'environnement virtuel (venv)"
+        DetailPrint "================================================"
+        DetailPrint "  venv cible : $EXEDIR\${VENV_SUBDIR}"
+        DetailPrint "  Python utilise : $PythonExe"
+
+        ; 1. Le venv existe-t-il deja ? (equivalent Test-Path venv\Scripts\python.exe)
+        IfFileExists "$EXEDIR\${VENV_SUBDIR}\Scripts\python.exe" venv_present venv_needed
+
+        venv_needed:
+            ; 2. Creer le venv. ExecToLog (pas ExecToStack) pour afficher la
+            ;    progression : la creation d'un venv prend quelques secondes,
+            ;    utile de montrer que ca travaille (comme winget en phase 3bis).
+            DetailPrint "Creation du venv en cours (peut prendre quelques secondes)..."
+            nsExec::ExecToLog '"$PythonExe" -m venv "$EXEDIR\${VENV_SUBDIR}"'
+            Pop $R0  ; code de sortie (ExecToLog ne pousse que le code)
+            IntCmp $R0 0 venv_created venv_create_fail venv_create_fail
+
+        venv_create_fail:
+            ; Equivalent de Write-Fail "Failed to create the venv." + exit 1.
+            ; Echec bloquant : sans venv, l'app ne peut PAS demarrer du tout.
+            DetailPrint "================================================"
+            DetailPrint "ECHEC : impossible de creer l'environnement virtuel (code $R0)."
+            DetailPrint "================================================"
+            MessageBox MB_OK|MB_ICONSTOP "Impossible de creer l'environnement virtuel (venv) (code $R0).$\r$\n$\r$\nAlChess ne pourra pas demarrer sans cet environnement.$\r$\nVerifiez que Python 3.12 est correctement installe, puis relancez cet installeur."
+            Abort
+
+        venv_created:
+            DetailPrint "  venv cree avec succes."
+            Goto install_deps
+
+        venv_present:
+            DetailPrint "  venv deja present — mise a jour des dependances."
+
+        ; 3. Installer / mettre a jour les dependances (dans les deux cas :
+        ;    venv fraichement cree OU deja present). Equivalent des deux appels
+        ;    pip du .ps1 (upgrade pip, puis install -r requirements.txt).
+        install_deps:
+            DetailPrint "Mise a jour de pip..."
+            nsExec::ExecToLog '"$EXEDIR\${VENV_SUBDIR}\Scripts\pip.exe" install --upgrade pip --quiet'
+            Pop $R0  ; code de sortie
+            ; L'echec de la mise a jour de pip n'est PAS bloquant : le pip fourni
+            ; par le venv est generalement suffisant pour installer les deps.
+            IntCmp $R0 0 pip_upgrade_ok pip_upgrade_warn pip_upgrade_warn
+
+        pip_upgrade_warn:
+            DetailPrint "  AVERTISSEMENT : echec de la mise a jour de pip (code $R0)."
+            DetailPrint "  On continue avec le pip du venv."
+
+        pip_upgrade_ok:
+            DetailPrint "Installation des dependances (requirements.txt)..."
+            nsExec::ExecToLog '"$EXEDIR\${VENV_SUBDIR}\Scripts\pip.exe" install -r "$EXEDIR\requirements.txt" --quiet'
+            Pop $R0  ; code de sortie
+            IntCmp $R0 0 deps_ok deps_fail deps_fail
+
+        deps_fail:
+            ; CHOIX DOCUMENTE (issue #61) : en cas d'echec de l'installation des
+            ; dependances, on affiche un message clair MAIS on ne fait PAS Abort.
+            ; Raison : contrairement a la creation du venv (sans quoi rien ne
+            ; demarre), une install de deps partiellement echouee peut laisser
+            ; l'app fonctionner en partie (ex. une seule dependance optionnelle
+            ; manquante). Aborter effacerait tout le travail deja fait alors que
+            ; l'utilisateur pourra souvent relancer "pip install -r
+            ; requirements.txt" a la main. Choix prudent, coherent avec l'esprit
+            ; du reste du chantier (on prefere documenter plutot que deviner un
+            ; comportement destructeur).
+            DetailPrint "================================================"
+            DetailPrint "AVERTISSEMENT : l'installation des dependances a echoue (code $R0)."
+            DetailPrint "================================================"
+            DetailPrint "AlChess pourrait ne pas fonctionner correctement."
+            DetailPrint "Vous pouvez reessayer manuellement en ouvrant un terminal"
+            DetailPrint "dans ce dossier et en lancant :"
+            DetailPrint "  venv\Scripts\pip.exe install -r requirements.txt"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "L'installation des dependances Python a echoue (code $R0).$\r$\n$\r$\nAlChess pourrait ne pas fonctionner correctement.$\r$\n$\r$\nVous pourrez reessayer plus tard en ouvrant un terminal dans ce dossier et en lancant :$\r$\n  venv\Scripts\pip.exe install -r requirements.txt"
+            Goto end_venv_section
+
+        deps_ok:
+            DetailPrint "  Dependances installees avec succes."
+
+        end_venv_section:
+            DetailPrint "================================================"
+            DetailPrint "Environnement virtuel pret."
+            DetailPrint "================================================"
+    SectionEnd
+
     ; -- Phase 4 : portage de Install-Stockfish (cascade CPU) ----------------
     ; Equivalent de Install-Stockfish dans install_alchess.ps1 (issue #49).
     ;
