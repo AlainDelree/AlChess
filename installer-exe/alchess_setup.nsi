@@ -1,5 +1,5 @@
 ; ============================================================================
-;  alchess_setup.nsi  —  Squelette reel de l'installeur AlChess (phase 2)
+;  alchess_setup.nsi  —  Installeur AlChess (phase 3 : detection Python)
 ;
 ;  Installeur Windows compile (AlChess_Setup.exe), developpe EN PARALLELE de
 ;  install_alchess.ps1 (script PowerShell existant, non modifie).
@@ -15,10 +15,23 @@
 ;
 ;  --- ETAT DES PHASES --------------------------------------------------------
 ;  Phase 1 (#50, #51) : outillage NSIS valide, plugin Inetc en place.
-;  Phase 2 (#52, CE FICHIER) : vrai squelette (pages MUI2, sections vides).
-;  Phase 3  : Section "Verification Python"  — portage de Get-Python312.
+;  Phase 2 (#52) : vrai squelette (pages MUI2, sections vides).
+;  Phase 3 (#53, CE FICHIER) : Section "Verification Python" — portage de
+;                              Get-Python312 en NSIS natif (3 strategies).
 ;  Phase 4  : Section "Installation Stockfish" — portage de Install-Stockfish.
 ;  Phase 5  : Section "Runtime Visual C++"   — portage de Install-VCRedist.
+;
+;  --- AVERTISSEMENT PHASE 3 --------------------------------------------------
+;  Cette section SecPython a ete validee uniquement par COMPILATION (makensis
+;  sous Linux). Elle n'a JAMAIS ete executee sur un vrai Windows. Le portage
+;  de la logique regex du .ps1 vers du decoupage de chaines NSIS est sujet a
+;  erreurs : la syntaxe StrStr, FileReadLine, FindFirst/FindNext a ete suivie
+;  selon la doc NSIS officielle, mais des bugs de runtime sont tres probables.
+;  Les hypotheses non certaines :
+;  - FileReadLine renvoie une ligne vide ("") en fin de fichier (pas d'erreur).
+;  - nsExec::ExecToStack avec redirection cmd /c fonctionne comme attendu.
+;  - Les chemins $LOCALAPPDATA, $PROGRAMFILES, $PROGRAMFILES64 sont fiables.
+;  La validation VM sera plus longue que d'habitude pour cette phase.
 ;
 ;  Compilation : makensis installer-exe/alchess_setup.nsi
 ;  Voir GitHub issue #50 pour le contexte global et les phases suivantes.
@@ -27,7 +40,21 @@
 Unicode true
 
 !include "MUI2.nsh"
-!include "WinVer.nsh"          ; fournit la macro ${AtLeastWin10}
+!include "WinVer.nsh"
+!include "LogicLib.nsh"
+!include "WordFunc.nsh"
+!include "FileFunc.nsh"
+
+; ---------------------------------------------------------------------------
+;  Variables globales
+; ---------------------------------------------------------------------------
+Var PythonExe        ; Chemin vers python.exe detecte, ou vide si rien trouve
+Var TempLine         ; Ligne temporaire pour lecture de fichier
+Var TempVersion      ; Version extraite (ex: "3.12")
+Var TempPath         ; Chemin extrait
+Var TempMajor        ; Partie majeure de la version (ex: 3)
+Var TempMinor        ; Partie mineure de la version (ex: 12)
+Var VersionOK        ; 1 si version >= 3.12, 0 sinon
 
 ; ---------------------------------------------------------------------------
 ;  Variables de chemin — equivalents des chemins de install_alchess.ps1.
@@ -46,6 +73,8 @@ Unicode true
 ; ---------------------------------------------------------------------------
 !define ENGINES_SUBDIR "engines"     ; ~ $ENGINES_DIR (relatif a $EXEDIR)
 !define VENV_SUBDIR    "venv"        ; ~ $venvPath    (relatif a $EXEDIR)
+!define MIN_PYTHON_MAJOR 3
+!define MIN_PYTHON_MINOR 12
 
 ; ---------------------------------------------------------------------------
 ;  Branding — coherent avec Write-Header de install_alchess.ps1
@@ -115,9 +144,493 @@ Function LaunchAlChess
 FunctionEnd
 
 ; ============================================================================
+;  FONCTIONS UTILITAIRES POUR LA DETECTION PYTHON
+; ============================================================================
+
+; ---------------------------------------------------------------------------
+;  ExtractVersionFromLine
+;  Extrait une version X.Y d'une ligne contenant "-V:X.Y" (format py -0p).
+;  Entree : ligne dans $TempLine
+;  Sortie : version dans $TempVersion (ou vide si non trouvee)
+;           chemin dans $TempPath (ou vide si non trouve)
+;
+;  Format attendu : "-V:3.12 *  C:\path\to\python.exe" ou sans le *
+;  Le * optionnel indique la version par defaut du lanceur.
+; ---------------------------------------------------------------------------
+Function ExtractVersionFromLine
+    StrCpy $TempVersion ""
+    StrCpy $TempPath ""
+
+    ; Chercher "-V:" dans la ligne
+    StrCpy $R0 $TempLine
+    StrCpy $R1 0  ; position de depart
+
+    ; Recherche manuelle de "-V:" dans la chaine
+    StrLen $R2 $R0
+    ${If} $R2 == 0
+        Return
+    ${EndIf}
+
+    ; Parcourir la chaine pour trouver "-V:"
+    StrCpy $R3 0  ; index courant
+    find_vcolon_loop:
+        IntCmp $R3 $R2 not_found 0 not_found
+        StrCpy $R4 $R0 3 $R3  ; extraire 3 caracteres a partir de $R3
+        StrCmp $R4 "-V:" found_vcolon 0
+        IntOp $R3 $R3 + 1
+        Goto find_vcolon_loop
+
+    not_found:
+        Return
+
+    found_vcolon:
+        ; $R3 = position de "-V:"
+        ; Extraire la version apres "-V:"
+        IntOp $R5 $R3 + 3  ; position apres "-V:"
+
+        ; Extraire jusqu'a l'espace ou fin de ligne
+        StrCpy $R6 ""  ; accumulateur de version
+        extract_version_loop:
+            StrCpy $R7 $R0 1 $R5  ; caractere courant
+            StrCmp $R7 "" version_done 0
+            StrCmp $R7 " " version_done 0
+            StrCpy $R6 "$R6$R7"
+            IntOp $R5 $R5 + 1
+            Goto extract_version_loop
+
+        version_done:
+            StrCpy $TempVersion $R6
+
+            ; Maintenant chercher le chemin (apres le * optionnel)
+            ; Sauter les espaces et le * eventuel
+            skip_spaces_and_star:
+                StrCpy $R7 $R0 1 $R5
+                StrCmp $R7 "" path_not_found 0
+                StrCmp $R7 " " skip_char 0
+                StrCmp $R7 "*" skip_char 0
+                Goto start_extract_path
+                skip_char:
+                    IntOp $R5 $R5 + 1
+                    Goto skip_spaces_and_star
+
+            start_extract_path:
+                ; Le reste de la ligne est le chemin
+                StrCpy $TempPath $R0 "" $R5
+                ; Nettoyer les espaces en fin de chemin (trim)
+                StrLen $R8 $TempPath
+                ${If} $R8 > 0
+                    IntOp $R8 $R8 - 1
+                    trim_loop:
+                        IntCmp $R8 0 trim_done 0 trim_done
+                        StrCpy $R9 $TempPath 1 $R8
+                        StrCmp $R9 " " do_trim 0
+                        StrCmp $R9 "$\r" do_trim 0
+                        StrCmp $R9 "$\n" do_trim 0
+                        Goto trim_done
+                        do_trim:
+                            StrCpy $TempPath $TempPath $R8
+                            IntOp $R8 $R8 - 1
+                            Goto trim_loop
+                ${EndIf}
+                trim_done:
+                Return
+
+            path_not_found:
+                StrCpy $TempPath ""
+                Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  ExtractVersionFromPythonOutput
+;  Extrait la version X.Y d'une sortie "Python X.Y.Z".
+;  Entree : sortie dans $TempLine
+;  Sortie : version dans $TempVersion (ou vide si non trouvee)
+; ---------------------------------------------------------------------------
+Function ExtractVersionFromPythonOutput
+    StrCpy $TempVersion ""
+
+    ; Chercher "Python " dans la ligne
+    StrCpy $R0 $TempLine
+    StrLen $R2 $R0
+
+    ${If} $R2 < 10
+        Return
+    ${EndIf}
+
+    ; Chercher "Python "
+    StrCpy $R3 0
+    find_python_loop:
+        IntCmp $R3 $R2 not_found_py 0 not_found_py
+        StrCpy $R4 $R0 7 $R3  ; "Python "
+        StrCmp $R4 "Python " found_python 0
+        IntOp $R3 $R3 + 1
+        Goto find_python_loop
+
+    not_found_py:
+        Return
+
+    found_python:
+        ; Extraire la version apres "Python "
+        IntOp $R5 $R3 + 7
+
+        ; Extraire X.Y (premier et deuxieme segment seulement)
+        StrCpy $R6 ""  ; accumulateur
+        StrCpy $R7 0   ; compteur de points
+        extract_py_ver_loop:
+            StrCpy $R8 $R0 1 $R5
+            StrCmp $R8 "" py_ver_done 0
+            StrCmp $R8 " " py_ver_done 0
+            StrCmp $R8 "$\r" py_ver_done 0
+            StrCmp $R8 "$\n" py_ver_done 0
+            ; Si c'est un point, incrementer le compteur
+            StrCmp $R8 "." check_dots 0
+            ; Sinon, ajouter le caractere
+            StrCpy $R6 "$R6$R8"
+            IntOp $R5 $R5 + 1
+            Goto extract_py_ver_loop
+
+            check_dots:
+                IntOp $R7 $R7 + 1
+                ; Si on a deja 1 point, on s'arrete (on veut X.Y, pas X.Y.Z)
+                IntCmp $R7 1 add_dot py_ver_done add_dot
+                add_dot:
+                    StrCpy $R6 "$R6."
+                    IntOp $R5 $R5 + 1
+                    Goto extract_py_ver_loop
+
+        py_ver_done:
+            StrCpy $TempVersion $R6
+            Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  CompareVersionToMinimum
+;  Compare $TempVersion (format "X.Y") au minimum requis (3.12).
+;  Sortie : $VersionOK = 1 si >= 3.12, 0 sinon
+; ---------------------------------------------------------------------------
+Function CompareVersionToMinimum
+    StrCpy $VersionOK 0
+    StrCpy $TempMajor ""
+    StrCpy $TempMinor ""
+
+    ; Extraire major et minor de $TempVersion
+    StrCpy $R0 $TempVersion
+    StrLen $R1 $R0
+
+    ${If} $R1 == 0
+        Return
+    ${EndIf}
+
+    ; Trouver le point
+    StrCpy $R2 0  ; index
+    find_dot_loop:
+        IntCmp $R2 $R1 no_dot 0 no_dot
+        StrCpy $R3 $R0 1 $R2
+        StrCmp $R3 "." found_dot 0
+        IntOp $R2 $R2 + 1
+        Goto find_dot_loop
+
+    no_dot:
+        Return
+
+    found_dot:
+        ; $R2 = position du point
+        StrCpy $TempMajor $R0 $R2        ; partie avant le point
+        IntOp $R4 $R2 + 1
+        StrCpy $TempMinor $R0 "" $R4     ; partie apres le point
+
+        ; Nettoyer TempMinor (peut avoir des caracteres parasites)
+        StrCpy $R5 ""
+        StrCpy $R6 0
+        clean_minor_loop:
+            StrCpy $R7 $TempMinor 1 $R6
+            StrCmp $R7 "" clean_minor_done 0
+            ; Garder seulement les chiffres
+            StrCmp $R7 "0" add_digit 0
+            StrCmp $R7 "1" add_digit 0
+            StrCmp $R7 "2" add_digit 0
+            StrCmp $R7 "3" add_digit 0
+            StrCmp $R7 "4" add_digit 0
+            StrCmp $R7 "5" add_digit 0
+            StrCmp $R7 "6" add_digit 0
+            StrCmp $R7 "7" add_digit 0
+            StrCmp $R7 "8" add_digit 0
+            StrCmp $R7 "9" add_digit 0
+            Goto clean_minor_done
+            add_digit:
+                StrCpy $R5 "$R5$R7"
+                IntOp $R6 $R6 + 1
+                Goto clean_minor_loop
+        clean_minor_done:
+            StrCpy $TempMinor $R5
+
+        ; Comparer major > MIN_PYTHON_MAJOR ?
+        IntCmp $TempMajor ${MIN_PYTHON_MAJOR} check_minor version_too_old version_ok
+
+        check_minor:
+            ; major == MIN_PYTHON_MAJOR, comparer minor
+            IntCmp $TempMinor ${MIN_PYTHON_MINOR} version_ok version_too_old version_ok
+
+        version_too_old:
+            StrCpy $VersionOK 0
+            Return
+
+        version_ok:
+            StrCpy $VersionOK 1
+            Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  TryPy0p
+;  Strategie 1 : utiliser "py -0p" pour enumerer les versions Python
+;  Sortie : $PythonExe contient le chemin si trouve, sinon vide
+; ---------------------------------------------------------------------------
+Function TryPy0p
+    DetailPrint "Strategie 1 : recherche via py -0p (lanceur Windows)..."
+
+    ; Executer py -0p et rediriger vers un fichier temporaire
+    nsExec::ExecToStack 'cmd /c py -0p > "$TEMP\py0p.txt" 2>NUL'
+    Pop $R0  ; exit code
+    Pop $R1  ; output (vide car redirige)
+
+    ; Si py n'existe pas, exit code != 0
+    IntCmp $R0 0 py_found py_not_found py_not_found
+
+    py_not_found:
+        DetailPrint "  Lanceur py non disponible."
+        Delete "$TEMP\py0p.txt"
+        Return
+
+    py_found:
+        ; Ouvrir le fichier et parcourir les lignes
+        FileOpen $R2 "$TEMP\py0p.txt" r
+        ${If} $R2 == ""
+            DetailPrint "  Impossible d'ouvrir le fichier temporaire."
+            Return
+        ${EndIf}
+
+        read_line_loop:
+            FileRead $R2 $TempLine
+            StrCmp $TempLine "" end_of_file 0
+
+            ; Appeler la fonction d'extraction
+            Call ExtractVersionFromLine
+
+            ; Verifier si on a trouve une version
+            StrCmp $TempVersion "" read_line_loop 0
+
+            ; Comparer la version
+            Call CompareVersionToMinimum
+            IntCmp $VersionOK 1 check_path read_line_loop read_line_loop
+
+            check_path:
+                ; Verifier que le chemin existe
+                StrCmp $TempPath "" read_line_loop 0
+                IfFileExists $TempPath found_valid_python read_line_loop
+
+            found_valid_python:
+                DetailPrint "  Python $TempVersion detecte : $TempPath"
+                StrCpy $PythonExe $TempPath
+                FileClose $R2
+                Delete "$TEMP\py0p.txt"
+                Return
+
+        end_of_file:
+            FileClose $R2
+            Delete "$TEMP\py0p.txt"
+            DetailPrint "  Aucune version compatible trouvee via py -0p."
+            Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  TryPythonInPath
+;  Strategie 2 : tester "python --version" dans le PATH
+;  Sortie : $PythonExe = "python" si trouve, sinon inchange
+; ---------------------------------------------------------------------------
+Function TryPythonInPath
+    DetailPrint "Strategie 2 : recherche de python dans le PATH..."
+
+    nsExec::ExecToStack 'cmd /c python --version 2>&1'
+    Pop $R0  ; exit code
+    Pop $TempLine  ; output "Python X.Y.Z"
+
+    IntCmp $R0 0 python_in_path python_not_in_path python_not_in_path
+
+    python_not_in_path:
+        DetailPrint "  python non trouve dans le PATH."
+        Return
+
+    python_in_path:
+        ; Extraire la version
+        Call ExtractVersionFromPythonOutput
+        StrCmp $TempVersion "" python_not_in_path 0
+
+        ; Comparer
+        Call CompareVersionToMinimum
+        IntCmp $VersionOK 1 python_path_ok python_not_in_path python_not_in_path
+
+        python_path_ok:
+            DetailPrint "  Python $TempVersion detecte dans le PATH."
+            StrCpy $PythonExe "python"
+            Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  TryScanStandardDirs
+;  Strategie 3 : scanner les dossiers d'installation standards
+;  Sortie : $PythonExe contient le chemin si trouve, sinon inchange
+; ---------------------------------------------------------------------------
+Function TryScanStandardDirs
+    DetailPrint "Strategie 3 : scan des dossiers d'installation standards..."
+
+    ; Liste des racines a scanner :
+    ; 1. $LOCALAPPDATA\Programs\Python\Python3*
+    ; 2. $PROGRAMFILES\Python3*
+    ; 3. $PROGRAMFILES64\Python3*
+
+    ; --- Racine 1 : LOCALAPPDATA ---
+    StrCpy $R0 "$LOCALAPPDATA\Programs\Python"
+    IfFileExists "$R0\*.*" scan_localappdata skip_localappdata
+
+    scan_localappdata:
+        DetailPrint "  Scan de $R0..."
+        FindFirst $R1 $R2 "$R0\Python3*"
+        ${If} $R1 != ""
+            scan_localappdata_loop:
+                StrCmp $R2 "" scan_localappdata_done 0
+                StrCmp $R2 "." scan_localappdata_next 0
+                StrCmp $R2 ".." scan_localappdata_next 0
+
+                ; Verifier si c'est un dossier Python3xx valide
+                StrCpy $R3 "$R0\$R2\python.exe"
+                IfFileExists $R3 test_localappdata_python scan_localappdata_next
+
+                test_localappdata_python:
+                    Call TestPythonExe
+                    IntCmp $VersionOK 1 found_in_localappdata scan_localappdata_next scan_localappdata_next
+
+                found_in_localappdata:
+                    DetailPrint "  Python $TempVersion detecte : $R3"
+                    StrCpy $PythonExe $R3
+                    FindClose $R1
+                    Return
+
+                scan_localappdata_next:
+                    FindNext $R1 $R2
+                    Goto scan_localappdata_loop
+
+            scan_localappdata_done:
+                FindClose $R1
+        ${EndIf}
+
+    skip_localappdata:
+
+    ; --- Racine 2 : PROGRAMFILES ---
+    StrCpy $R0 "$PROGRAMFILES"
+    IfFileExists "$R0\*.*" scan_programfiles skip_programfiles
+
+    scan_programfiles:
+        DetailPrint "  Scan de $R0..."
+        FindFirst $R1 $R2 "$R0\Python3*"
+        ${If} $R1 != ""
+            scan_programfiles_loop:
+                StrCmp $R2 "" scan_programfiles_done 0
+                StrCmp $R2 "." scan_programfiles_next 0
+                StrCmp $R2 ".." scan_programfiles_next 0
+
+                StrCpy $R3 "$R0\$R2\python.exe"
+                IfFileExists $R3 test_programfiles_python scan_programfiles_next
+
+                test_programfiles_python:
+                    Call TestPythonExe
+                    IntCmp $VersionOK 1 found_in_programfiles scan_programfiles_next scan_programfiles_next
+
+                found_in_programfiles:
+                    DetailPrint "  Python $TempVersion detecte : $R3"
+                    StrCpy $PythonExe $R3
+                    FindClose $R1
+                    Return
+
+                scan_programfiles_next:
+                    FindNext $R1 $R2
+                    Goto scan_programfiles_loop
+
+            scan_programfiles_done:
+                FindClose $R1
+        ${EndIf}
+
+    skip_programfiles:
+
+    ; --- Racine 3 : PROGRAMFILES64 (si different de PROGRAMFILES) ---
+    StrCmp $PROGRAMFILES64 $PROGRAMFILES done_scanning 0
+    StrCpy $R0 "$PROGRAMFILES64"
+    IfFileExists "$R0\*.*" scan_programfiles64 done_scanning
+
+    scan_programfiles64:
+        DetailPrint "  Scan de $R0..."
+        FindFirst $R1 $R2 "$R0\Python3*"
+        ${If} $R1 != ""
+            scan_programfiles64_loop:
+                StrCmp $R2 "" scan_programfiles64_done 0
+                StrCmp $R2 "." scan_programfiles64_next 0
+                StrCmp $R2 ".." scan_programfiles64_next 0
+
+                StrCpy $R3 "$R0\$R2\python.exe"
+                IfFileExists $R3 test_programfiles64_python scan_programfiles64_next
+
+                test_programfiles64_python:
+                    Call TestPythonExe
+                    IntCmp $VersionOK 1 found_in_programfiles64 scan_programfiles64_next scan_programfiles64_next
+
+                found_in_programfiles64:
+                    DetailPrint "  Python $TempVersion detecte : $R3"
+                    StrCpy $PythonExe $R3
+                    FindClose $R1
+                    Return
+
+                scan_programfiles64_next:
+                    FindNext $R1 $R2
+                    Goto scan_programfiles64_loop
+
+            scan_programfiles64_done:
+                FindClose $R1
+        ${EndIf}
+
+    done_scanning:
+        DetailPrint "  Aucune version compatible trouvee dans les dossiers standards."
+        Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  TestPythonExe
+;  Teste un executable Python et verifie sa version.
+;  Entree : $R3 = chemin vers python.exe
+;  Sortie : $TempVersion = version, $VersionOK = 1 si >= 3.12
+; ---------------------------------------------------------------------------
+Function TestPythonExe
+    StrCpy $VersionOK 0
+    StrCpy $TempVersion ""
+
+    ; Executer python --version
+    nsExec::ExecToStack 'cmd /c "$R3" --version 2>&1'
+    Pop $R4  ; exit code
+    Pop $TempLine  ; output
+
+    IntCmp $R4 0 extract_test_version test_failed test_failed
+
+    test_failed:
+        Return
+
+    extract_test_version:
+        Call ExtractVersionFromPythonOutput
+        StrCmp $TempVersion "" test_failed 0
+        Call CompareVersionToMinimum
+        Return
+FunctionEnd
+
+; ============================================================================
 ;  SECTIONS DE CONFIGURATION
-;  Toutes co-localisees sur $EXEDIR. Vides pour l'instant (un DetailPrint
-;  chacune) — remplies dans les phases 3-5.
+;  Toutes co-localisees sur $EXEDIR. Remplies progressivement (phases 3-5).
 ; ============================================================================
 
 SectionGroup "Configuration AlChess" SecGroupConfig
@@ -125,8 +638,45 @@ SectionGroup "Configuration AlChess" SecGroupConfig
     ; -- Phase 3 : portage de Get-Python312 / Install-Python312 --------------
     Section "Verification Python" SecPython
         DetailPrint "Racine de configuration (EXEDIR) : $EXEDIR"
-        DetailPrint "[Phase 3] Verification de Python 3.12 — a implementer."
-        DetailPrint "  venv cible : $EXEDIR\${VENV_SUBDIR}"
+        DetailPrint "================================================"
+        DetailPrint "Recherche de Python ${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR}+..."
+        DetailPrint "================================================"
+
+        ; Initialiser la variable resultat
+        StrCpy $PythonExe ""
+
+        ; Strategie 1 : py -0p
+        Call TryPy0p
+        StrCmp $PythonExe "" try_path found_python
+
+        try_path:
+            ; Strategie 2 : python dans le PATH
+            Call TryPythonInPath
+            StrCmp $PythonExe "" try_scan found_python
+
+        try_scan:
+            ; Strategie 3 : scan des dossiers standards
+            Call TryScanStandardDirs
+            StrCmp $PythonExe "" no_python found_python
+
+        found_python:
+            DetailPrint "================================================"
+            DetailPrint "Python detecte : $PythonExe"
+            DetailPrint "================================================"
+            DetailPrint "  venv cible : $EXEDIR\${VENV_SUBDIR}"
+            Goto end_python_section
+
+        no_python:
+            DetailPrint "================================================"
+            DetailPrint "AUCUN Python ${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR}+ detecte."
+            DetailPrint "================================================"
+            DetailPrint "La phase 3bis (installation automatique de Python)"
+            DetailPrint "sera implementee dans une issue separee."
+            DetailPrint "En attendant, installez Python 3.12+ manuellement depuis :"
+            DetailPrint "  https://www.python.org/downloads/"
+            DetailPrint "puis relancez cet installeur."
+
+        end_python_section:
     SectionEnd
 
     ; -- Phase 4 : portage de Find-Stockfish / Install-Stockfish -------------
