@@ -188,18 +188,45 @@ Function ExtractVersionFromLine
         ; Extraire la version apres "-V:"
         IntOp $R5 $R3 + 3  ; position apres "-V:"
 
-        ; Extraire jusqu'a l'espace ou fin de ligne
+        ; Extraire jusqu'a l'espace, la fin de ligne, ou tout caractere qui
+        ; n'est ni un chiffre ni un point (issue #54, correctif secondaire).
+        ; Evite d'absorber un suffixe d'architecture colle sans espace, ex.
+        ; "-V:3.12-32" (install 32-bit) ne doit donner que "3.12", pas "3.12-32".
         StrCpy $R6 ""  ; accumulateur de version
         extract_version_loop:
             StrCpy $R7 $R0 1 $R5  ; caractere courant
             StrCmp $R7 "" version_done 0
-            StrCmp $R7 " " version_done 0
-            StrCpy $R6 "$R6$R7"
-            IntOp $R5 $R5 + 1
-            Goto extract_version_loop
+            ; whitelist : n'accepter qu'un chiffre ou un point, sinon on s'arrete
+            StrCmp $R7 "." keep_ver_char 0
+            StrCmp $R7 "0" keep_ver_char 0
+            StrCmp $R7 "1" keep_ver_char 0
+            StrCmp $R7 "2" keep_ver_char 0
+            StrCmp $R7 "3" keep_ver_char 0
+            StrCmp $R7 "4" keep_ver_char 0
+            StrCmp $R7 "5" keep_ver_char 0
+            StrCmp $R7 "6" keep_ver_char 0
+            StrCmp $R7 "7" keep_ver_char 0
+            StrCmp $R7 "8" keep_ver_char 0
+            StrCmp $R7 "9" keep_ver_char 0
+            Goto version_done
+            keep_ver_char:
+                StrCpy $R6 "$R6$R7"
+                IntOp $R5 $R5 + 1
+                Goto extract_version_loop
 
         version_done:
             StrCpy $TempVersion $R6
+
+            ; L'extraction de version a pu s'arreter sur un suffixe d'archi
+            ; colle (ex. "-32" dans "-V:3.12-32"). Sauter ce reste de token
+            ; jusqu'au prochain espace (ou fin de ligne) avant de chercher le
+            ; chemin, sinon le "-32" serait pris pour le debut du chemin.
+            skip_arch_suffix:
+                StrCpy $R7 $R0 1 $R5
+                StrCmp $R7 "" path_not_found 0
+                StrCmp $R7 " " skip_spaces_and_star 0
+                IntOp $R5 $R5 + 1
+                Goto skip_arch_suffix
 
             ; Maintenant chercher le chemin (apres le * optionnel)
             ; Sauter les espaces et le * eventuel
@@ -291,8 +318,13 @@ Function ExtractVersionFromPythonOutput
 
             check_dots:
                 IntOp $R7 $R7 + 1
-                ; Si on a deja 1 point, on s'arrete (on veut X.Y, pas X.Y.Z)
-                IntCmp $R7 1 add_dot py_ver_done add_dot
+                ; Si on a deja 1 point, on s'arrete (on veut X.Y, pas X.Y.Z).
+                ; IntCmp val1 val2 <egal> <inferieur> <superieur> : au 1er point
+                ; (R7==1) on ajoute le point et on continue ; au 2e point et
+                ; au-dela (R7>1) on s'arrete. Le cas <superieur> DOIT donc
+                ; pointer sur py_ver_done, sinon "3.9.7" donne "3.9.7" (bug #54)
+                ; puis un minor gonfle ("97") qui accepte a tort une version < 3.12.
+                IntCmp $R7 1 add_dot py_ver_done py_ver_done
                 add_dot:
                     StrCpy $R6 "$R6."
                     IntOp $R5 $R5 + 1
