@@ -1,5 +1,5 @@
 ; ============================================================================
-;  alchess_setup.nsi  —  Installeur AlChess (phase 3 : detection Python)
+;  alchess_setup.nsi  —  Installeur AlChess (phase 4 : cascade Stockfish)
 ;
 ;  Installeur Windows compile (AlChess_Setup.exe), developpe EN PARALLELE de
 ;  install_alchess.ps1 (script PowerShell existant, non modifie).
@@ -16,9 +16,13 @@
 ;  --- ETAT DES PHASES --------------------------------------------------------
 ;  Phase 1 (#50, #51) : outillage NSIS valide, plugin Inetc en place.
 ;  Phase 2 (#52) : vrai squelette (pages MUI2, sections vides).
-;  Phase 3 (#53, CE FICHIER) : Section "Verification Python" — portage de
-;                              Get-Python312 en NSIS natif (3 strategies).
-;  Phase 4  : Section "Installation Stockfish" — portage de Install-Stockfish.
+;  Phase 3 (#53, #54) : Section "Verification Python" — portage de
+;                        Get-Python312 en NSIS natif (3 strategies).
+;  Phase 4 (#55, CE FICHIER) : Section "Installation Stockfish" — portage de
+;                              Install-Stockfish avec cascade CPU (avx2 ->
+;                              sse41-popcnt -> base) et test d'execution reel.
+;                              BLOCAGE : plugin d'extraction ZIP requis (nsisunz
+;                              ou ZipDLL), non present — issue separee.
 ;  Phase 5  : Section "Runtime Visual C++"   — portage de Install-VCRedist.
 ;
 ;  --- AVERTISSEMENT PHASE 3 --------------------------------------------------
@@ -56,6 +60,10 @@ Var TempMajor        ; Partie majeure de la version (ex: 3)
 Var TempMinor        ; Partie mineure de la version (ex: 12)
 Var VersionOK        ; 1 si version >= 3.12, 0 sinon
 
+; Variables pour la section Stockfish (phase 4)
+Var HasAvx2          ; 1 si AVX2 present, 0 sinon
+Var StockfishOK      ; 1 si une variante Stockfish fonctionnelle a ete installee
+
 ; ---------------------------------------------------------------------------
 ;  Variables de chemin — equivalents des chemins de install_alchess.ps1.
 ;  Toutes les references sont relatives a $EXEDIR (dossier du .exe execute),
@@ -75,6 +83,16 @@ Var VersionOK        ; 1 si version >= 3.12, 0 sinon
 !define VENV_SUBDIR    "venv"        ; ~ $venvPath    (relatif a $EXEDIR)
 !define MIN_PYTHON_MAJOR 3
 !define MIN_PYTHON_MINOR 12
+
+; URLs Stockfish — cascade de variantes (avx2 -> sse41-popcnt -> base)
+; Meme logique que Get-StockfishUrl dans install_alchess.ps1
+!define SF_URL_AVX2 "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-avx2.zip"
+!define SF_URL_SSE41 "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64-sse41-popcnt.zip"
+!define SF_URL_BASE "https://github.com/official-stockfish/Stockfish/releases/latest/download/stockfish-windows-x86-64.zip"
+
+; Code de sortie "illegal instruction" (CPU incompatible) :
+; 0xC000001D = -1073741795 en decimal signe
+!define EXIT_ILLEGAL_INSTRUCTION -1073741795
 
 ; ---------------------------------------------------------------------------
 ;  Branding — coherent avec Write-Header de install_alchess.ps1
@@ -661,6 +679,220 @@ Function TestPythonExe
 FunctionEnd
 
 ; ============================================================================
+;  FONCTIONS UTILITAIRES POUR STOCKFISH (PHASE 4)
+; ============================================================================
+
+; ---------------------------------------------------------------------------
+;  TestAvx2Support
+;  Detecte si le CPU supporte AVX2 via IsProcessorFeaturePresent(40).
+;  Equivalent de Test-Avx2Support dans install_alchess.ps1.
+;  ATTENTION : ce test NE detecte PAS BMI2 (non fiable avant Windows 11 24H2).
+;  Le test d'execution reel reste la seule methode robuste.
+;  Sortie : $HasAvx2 = 1 si AVX2 present, 0 sinon
+; ---------------------------------------------------------------------------
+Function TestAvx2Support
+    ; PF_AVX2_INSTRUCTIONS_AVAILABLE = 40
+    System::Call "kernel32::IsProcessorFeaturePresent(i 40) i .r0"
+    StrCpy $HasAvx2 $R0
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  DownloadStockfish
+;  Telecharge une variante Stockfish via Inetc.
+;  Entree : $R0 = URL, $R1 = label pour affichage
+;  Sortie : $R2 = "OK" si succes, message d'erreur sinon
+;           Fichier telecharge dans $TEMP\stockfish.zip
+; ---------------------------------------------------------------------------
+Function DownloadStockfish
+    DetailPrint "Telechargement Stockfish ($R1)..."
+    DetailPrint "  Source : $R0"
+    inetc::get /caption "Telechargement Stockfish ($R1)" "$R0" "$TEMP\stockfish.zip" /end
+    Pop $R2  ; "OK" ou message d'erreur
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  ProbeStockfish
+;  Lance l'executable Stockfish avec "quit" en entree pour verifier qu'il
+;  fonctionne sur ce CPU. Equivalent de Invoke-StockfishProbe dans le .ps1.
+;
+;  ATTENTION TIMEOUT : nsExec::ExecToStack attend indefiniment la fin du
+;  process. Pour eviter un blocage, on passe "quit" via une redirection
+;  stdin depuis un fichier temporaire (cmd /c < fichier). Si Stockfish
+;  demarre normalement, il lit "quit" et quitte immediatement (exit code 0).
+;  Si le binaire crashe (illegal instruction), le code de sortie est
+;  0xC000001D (-1073741795).
+;
+;  Entree : $R0 = chemin vers stockfish.exe
+;  Sortie : $R3 = code de sortie (0 = OK, -1073741795 = illegal instruction)
+;
+;  NOTE : contrairement au .ps1 qui utilisait Start-Process avec timeout
+;  explicite (5s), NSIS n'a pas de timeout natif pour nsExec. Le risque
+;  theorique de blocage est mitige par le fait que Stockfish lit toujours
+;  stdin au demarrage (meme les variantes incompatibles crashent avant la
+;  boucle UCI). Si un binaire ne reagit pas a "quit", l'installeur se
+;  bloquerait — accepte pour l'instant, pas de meilleure solution NSIS.
+; ---------------------------------------------------------------------------
+Function ProbeStockfish
+    ; Creer le fichier stdin avec "quit"
+    FileOpen $R4 "$TEMP\sf_probe_in.txt" w
+    FileWrite $R4 "quit$\r$\n"
+    FileClose $R4
+
+    ; Lancer Stockfish avec redirection stdin depuis le fichier
+    ; La syntaxe cmd /c ... < file fonctionne avec nsExec
+    nsExec::ExecToStack 'cmd /c "$R0" < "$TEMP\sf_probe_in.txt"'
+    Pop $R3  ; exit code
+    Pop $R5  ; output (ignore)
+
+    ; Nettoyer le fichier temporaire
+    Delete "$TEMP\sf_probe_in.txt"
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  CleanupStockfishVariant
+;  Supprime la variante Stockfish en echec. Garde-fou : ne supprime que le
+;  sous-dossier stockfish/, jamais engines/ entier (qui contient Maia/Rodent).
+;  Equivalent du bloc "Remove-Item ... -ne (Resolve-Path $ENGINES_DIR)"
+;  dans install_alchess.ps1.
+;
+;  Entree : $R0 = chemin vers stockfish.exe qui a echoue
+; ---------------------------------------------------------------------------
+Function CleanupStockfishVariant
+    ; Determiner le dossier parent de l'exe
+    ; L'exe est dans $EXEDIR\engines\stockfish\stockfish-xxx.exe
+    ; On veut supprimer $EXEDIR\engines\stockfish\ mais JAMAIS $EXEDIR\engines\
+    ; Strategie : supprimer uniquement $EXEDIR\${ENGINES_SUBDIR}\stockfish (chemin fixe)
+    ; car c'est toujours le dossier d'extraction de l'asset officiel
+    IfFileExists "$EXEDIR\${ENGINES_SUBDIR}\stockfish\*.*" do_cleanup skip_cleanup
+
+    do_cleanup:
+        DetailPrint "  Nettoyage du dossier stockfish echoue..."
+        RMDir /r "$EXEDIR\${ENGINES_SUBDIR}\stockfish"
+        Return
+
+    skip_cleanup:
+        ; L'exe etait peut-etre directement dans engines/ (cas anormal)
+        ; Supprimer seulement l'exe, pas le dossier engines/ entier
+        Delete "$R0"
+        Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  TryStockfishVariant
+;  Essaie d'installer une variante Stockfish : telecharge, extrait, teste.
+;  Entree : $R0 = URL, $R1 = label (ex: "avx2", "sse41-popcnt", "x86-64 base")
+;  Sortie : $StockfishOK = 1 si succes, 0 sinon
+;
+;  BLOCAGE PHASE 4 : L'extraction ZIP necessite un plugin comme nsisunz ou
+;  ZipDLL. Ces plugins ne sont PAS dans l'installation NSIS standard Ubuntu.
+;  La partie extraction ci-dessous est un PLACEHOLDER qui echouera si le
+;  plugin n'est pas installe. Voir commentaire en tete de section pour la
+;  resolution (issue separee pour installation du plugin).
+; ---------------------------------------------------------------------------
+Function TryStockfishVariant
+    StrCpy $StockfishOK 0
+
+    ; 1. Telecharger
+    Call DownloadStockfish
+    StrCmp $R2 "OK" dl_ok dl_fail
+
+    dl_fail:
+        DetailPrint "  Echec telechargement ($R1) : $R2"
+        Delete "$TEMP\stockfish.zip"
+        Return
+
+    dl_ok:
+        DetailPrint "  Telechargement reussi."
+
+        ; 2. Creer le dossier engines s'il n'existe pas
+        IfFileExists "$EXEDIR\${ENGINES_SUBDIR}\*.*" extract_zip create_engines_dir
+
+        create_engines_dir:
+            CreateDirectory "$EXEDIR\${ENGINES_SUBDIR}"
+
+        extract_zip:
+            ; ============================================================
+            ; BLOCAGE : extraction ZIP
+            ; ============================================================
+            ; NSIS n'a pas de dezipage natif. Les plugins usuels sont :
+            ;   - nsisunz (nsisunz::UnzipToLog)
+            ;   - ZipDLL (ZipDLL::extractall)
+            ; Aucun n'est present dans /usr/share/nsis/Plugins/ (verifie).
+            ;
+            ; SOLUTION TEMPORAIRE : placeholder qui affiche un message
+            ; d'erreur et retourne. L'installation du plugin fera l'objet
+            ; d'une issue separee (meme processus que Inetc en phase 1bis).
+            ;
+            ; Une fois le plugin installe, decommenter le bloc ci-dessous
+            ; et supprimer le placeholder.
+            ; ============================================================
+
+            ; --- PLACEHOLDER (a remplacer quand plugin disponible) ---
+            DetailPrint "  ERREUR : extraction ZIP non implementee."
+            DetailPrint "  Plugin nsisunz ou ZipDLL requis (non installe)."
+            DetailPrint "  Voir issue separee pour installation du plugin."
+            Delete "$TEMP\stockfish.zip"
+            Return
+
+            ; --- CODE REEL (decommenter quand plugin disponible) ---
+            ; DetailPrint "  Extraction..."
+            ; nsisunz::UnzipToLog "$TEMP\stockfish.zip" "$EXEDIR\${ENGINES_SUBDIR}"
+            ; Pop $R6  ; "success" ou message d'erreur
+            ; StrCmp $R6 "success" extract_ok extract_fail
+            ;
+            ; extract_fail:
+            ;     DetailPrint "  Echec extraction : $R6"
+            ;     Delete "$TEMP\stockfish.zip"
+            ;     Return
+            ;
+            ; extract_ok:
+            ;     Delete "$TEMP\stockfish.zip"
+
+        ; 3. Trouver l'executable (apres extraction)
+        ; L'asset Stockfish s'extrait dans stockfish/stockfish-windows-x86-64[-variante].exe
+        FindFirst $R6 $R7 "$EXEDIR\${ENGINES_SUBDIR}\stockfish\stockfish*.exe"
+        StrCmp $R6 "" no_exe_found found_exe
+
+        no_exe_found:
+            DetailPrint "  Aucun executable trouve apres extraction."
+            FindClose $R6
+            Call CleanupStockfishVariant
+            Return
+
+        found_exe:
+            StrCpy $R0 "$EXEDIR\${ENGINES_SUBDIR}\stockfish\$R7"
+            FindClose $R6
+            DetailPrint "  Executable trouve : $R0"
+
+        ; 4. Test d'execution reel (probe)
+        DetailPrint "  Test d'execution..."
+        Call ProbeStockfish
+
+        ; Verifier le code de sortie
+        IntCmp $R3 0 probe_ok check_illegal check_illegal
+
+        check_illegal:
+            IntCmp $R3 ${EXIT_ILLEGAL_INSTRUCTION} probe_illegal probe_other probe_other
+
+        probe_illegal:
+            DetailPrint "  ECHEC : illegal instruction (CPU incompatible)."
+            DetailPrint "  Code de sortie : $R3"
+            Call CleanupStockfishVariant
+            Return
+
+        probe_other:
+            ; Autre code de sortie non-zero : peut etre une erreur mineure
+            ; On considere que si ce n'est pas "illegal instruction", ca passe
+            ; (meme comportement que le .ps1 qui ne testait que -1073741795)
+            DetailPrint "  Code de sortie : $R3 (non fatal, on continue)"
+
+        probe_ok:
+            DetailPrint "  Stockfish ($R1) installe et fonctionnel !"
+            StrCpy $StockfishOK 1
+            Return
+FunctionEnd
+
+; ============================================================================
 ;  SECTIONS DE CONFIGURATION
 ;  Toutes co-localisees sur $EXEDIR. Remplies progressivement (phases 3-5).
 ; ============================================================================
@@ -711,10 +943,80 @@ SectionGroup "Configuration AlChess" SecGroupConfig
         end_python_section:
     SectionEnd
 
-    ; -- Phase 4 : portage de Find-Stockfish / Install-Stockfish -------------
+    ; -- Phase 4 : portage de Install-Stockfish (cascade CPU) ----------------
+    ; Equivalent de Install-Stockfish dans install_alchess.ps1 (issue #49).
+    ;
+    ; Cascade de variantes, de la plus rapide a la plus compatible :
+    ;   avx2 -> sse41-popcnt -> base (x86-64)
+    ; On ne garde que la premiere qui s'execute sans crasher (illegal instr).
+    ;
+    ; BLOCAGE ACTUEL : l'extraction ZIP necessite un plugin (nsisunz ou
+    ; ZipDLL) non present dans l'installation NSIS Ubuntu standard.
+    ; La compilation passe mais l'extraction echouera a l'execution.
+    ; => Issue separee pour installer le plugin (meme processus que Inetc).
+    ;
+    ; Une fois le plugin installe, ce code fonctionnera tel quel.
     Section "Installation Stockfish" SecStockfish
-        DetailPrint "[Phase 4] Installation de Stockfish — a implementer."
+        DetailPrint "================================================"
+        DetailPrint "Installation de Stockfish"
+        DetailPrint "================================================"
         DetailPrint "  dossier moteurs : $EXEDIR\${ENGINES_SUBDIR}"
+
+        ; Initialiser le flag de succes
+        StrCpy $StockfishOK 0
+
+        ; Verifier si Stockfish est deja present
+        FindFirst $R8 $R9 "$EXEDIR\${ENGINES_SUBDIR}\stockfish\stockfish*.exe"
+        StrCmp $R8 "" check_avx2 already_present
+
+        already_present:
+            FindClose $R8
+            DetailPrint "Stockfish deja present : $EXEDIR\${ENGINES_SUBDIR}\stockfish\$R9"
+            DetailPrint "Installation sautee."
+            StrCpy $StockfishOK 1
+            Goto end_stockfish
+
+        check_avx2:
+            FindClose $R8
+
+            ; Test AVX2 (filtre rapide, non decisif pour BMI2)
+            Call TestAvx2Support
+            IntCmp $HasAvx2 1 try_avx2 skip_avx2 skip_avx2
+
+        try_avx2:
+            DetailPrint "AVX2 detecte — tentative variante avx2..."
+            StrCpy $R0 "${SF_URL_AVX2}"
+            StrCpy $R1 "avx2"
+            Call TryStockfishVariant
+            IntCmp $StockfishOK 1 end_stockfish try_sse41 try_sse41
+
+        skip_avx2:
+            DetailPrint "AVX2 non detecte — variante avx2 ignoree."
+
+        try_sse41:
+            DetailPrint "Tentative variante sse41-popcnt..."
+            StrCpy $R0 "${SF_URL_SSE41}"
+            StrCpy $R1 "sse41-popcnt"
+            Call TryStockfishVariant
+            IntCmp $StockfishOK 1 end_stockfish try_base try_base
+
+        try_base:
+            DetailPrint "Tentative variante base (x86-64)..."
+            StrCpy $R0 "${SF_URL_BASE}"
+            StrCpy $R1 "x86-64 base"
+            Call TryStockfishVariant
+            IntCmp $StockfishOK 1 end_stockfish all_failed all_failed
+
+        all_failed:
+            DetailPrint "================================================"
+            DetailPrint "ECHEC : aucune variante Stockfish fonctionnelle."
+            DetailPrint "================================================"
+            DetailPrint "Telechargez Stockfish manuellement depuis :"
+            DetailPrint "  https://stockfishchess.org/download/"
+            DetailPrint "et placez l'executable dans le dossier engines\"
+
+        end_stockfish:
+            DetailPrint "================================================"
     SectionEnd
 
     ; -- Phase 5 : portage de Install-VCRedist -------------------------------
