@@ -8,7 +8,7 @@ BRIDGE_AGENT_DOC). Reflète la structure réelle vérifiée le 14 juillet 2026.
 - `nicsoft/web/templates/` — HTML
 - `nicsoft/web/static/` — JS, CSS, i18n, pièces SVG
 
-Toute issue routée `SPECS=Vue` reste dans ce périmètre. Ne pas toucher à la
+Toute issue routée `SPECS=vue` reste dans ce périmètre. Ne pas toucher à la
 logique de jeu (`core/`, `engine/`) ni à la persistance.
 
 ## Fichiers clés

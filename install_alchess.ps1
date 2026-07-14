@@ -71,7 +71,7 @@ function Get-Python312 {
         $list = & py -0p 2>$null
         if ($LASTEXITCODE -eq 0 -and $list) {
             foreach ($line in $list) {
-                if ($line -match "-(\d+\.\d+)(?:-\d+)?\s+(.+\.exe)\s*$") {
+                if ($line -match "-V:(\d+\.\d+)(?:-\d+)?\s+\*?\s*(.+\.exe)\s*$") {
                     $v = [version]$Matches[1]
                     $path = $Matches[2].Trim()
                     if ($v -ge $minVersion -and (Test-Path $path)) {
