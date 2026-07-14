@@ -20,6 +20,12 @@
 ;  Phase 2 (#52) : vrai squelette (pages MUI2, sections vides).
 ;  Phase 3 (#53, #54) : Section "Verification Python" — portage de
 ;                        Get-Python312 en NSIS natif (3 strategies).
+;  Phase 3bis (#60) : portage de Install-Python312 — si les 3 strategies de
+;                     detection echouent, installation automatique de Python
+;                     3.12 via winget (fonction InstallPython312NSIS), puis
+;                     re-detection via TryScanStandardDirs (aveugle au PATH).
+;                     Complete enfin le parcours "sans Python" qui plantait
+;                     auparavant au lancement de l'app (venv jamais cree).
 ;  Phase 4 (#55, #56) : Section "Installation Stockfish" — portage de
 ;                        Install-Stockfish avec cascade CPU (avx2 ->
 ;                        sse41-popcnt -> base) et test d'execution reel.
@@ -700,6 +706,106 @@ Function TestPythonExe
         Return
 FunctionEnd
 
+; ---------------------------------------------------------------------------
+;  InstallPython312NSIS (phase 3bis, issue #60)
+;  Portage de Install-Python312 (install_alchess.ps1 ~l.130-164).
+;  Appelee UNIQUEMENT quand les 3 strategies de detection de SecPython
+;  (#53/#54) n'ont rien trouve. Installe Python 3.12 via winget, puis
+;  reutilise TryScanStandardDirs (strategie 3, phase 3) pour confirmer la
+;  detection.
+;
+;  POURQUOI RE-SCAN plutot que rafraichir le PATH : apres un winget install,
+;  le PATH mis a jour n'est ecrit que dans le registre (HKLM/HKCU\Environment).
+;  Le process NSIS a capture SON PATH au demarrage et ne le verra jamais
+;  changer. Reconstruire le PATH a la main (concat registre Machine + User)
+;  est fragile. TryScanStandardDirs scanne directement
+;  %LOCALAPPDATA%\Programs\Python\Python3* (ou winget installe par defaut en
+;  scope utilisateur, l'installeur tournant en RequestExecutionLevel user) :
+;  il trouve Python fraichement installe sans dependre du PATH du tout.
+;
+;  ELEVATION UAC : contrairement a vc_redist.x64.exe (phase 5), winget en
+;  scope utilisateur ne demande normalement PAS d'elevation. On utilise donc
+;  nsExec (et non ExecShell comme pour le VC++ redist) : nsExec attend
+;  reellement la fin du process et recupere son vrai code de sortie, sans
+;  Sleep fixe a deviner. ExecToLog (plutot qu'ExecToStack) affiche en plus la
+;  progression de winget en direct, utile car le telechargement de Python peut
+;  prendre un moment. HYPOTHESE NON VERIFIEE (Linux) : si un test VM revele que
+;  winget demande malgre tout une elevation, il faudra le documenter plutot que
+;  de forcer un correctif non teste.
+;
+;  Cette fonction Abort proprement (message clair + lien manuel) dans les 3
+;  cas d'echec : winget absent, install ratee, installe-mais-non-detecte.
+;  En cas de succes, $PythonExe contient le chemin (renseigne par
+;  TryScanStandardDirs) et la fonction Return normalement.
+; ---------------------------------------------------------------------------
+Function InstallPython312NSIS
+    DetailPrint "================================================"
+    DetailPrint "Installation automatique de Python 3.12 via winget"
+    DetailPrint "================================================"
+
+    ; 1. Verifier que winget est disponible. cmd /c garantit un lancement
+    ;    (cmd.exe existe toujours) : si winget est absent, cmd renvoie un code
+    ;    non-zero (9009 = commande introuvable), qu'on teste ci-dessous.
+    DetailPrint "Verification de la disponibilite de winget..."
+    nsExec::ExecToStack 'cmd /c winget --version'
+    Pop $R0  ; code de sortie
+    Pop $R1  ; sortie (version winget si present)
+    IntCmp $R0 0 winget_ok winget_absent winget_absent
+
+    winget_absent:
+        DetailPrint "================================================"
+        DetailPrint "ECHEC : winget n'est pas disponible sur ce systeme."
+        DetailPrint "================================================"
+        DetailPrint "Installez Python 3.12 manuellement depuis :"
+        DetailPrint "  https://www.python.org/downloads/release/python-3120/"
+        DetailPrint "Cochez 'Add Python to PATH' pendant l'installation,"
+        DetailPrint "puis relancez cet installeur."
+        MessageBox MB_OK|MB_ICONSTOP "winget n'est pas disponible sur ce systeme.$\r$\n$\r$\nInstallez Python 3.12 manuellement depuis :$\r$\nhttps://www.python.org/downloads/release/python-3120/$\r$\n$\r$\nCochez 'Add Python to PATH' pendant l'installation, puis relancez cet installeur."
+        Abort
+
+    winget_ok:
+        DetailPrint "  winget disponible."
+
+        ; 2. Installer Python 3.12 via winget. ExecToLog affiche la progression
+        ;    en direct dans les details (telechargement potentiellement long).
+        DetailPrint "Installation de Python 3.12 via winget (le telechargement peut prendre un moment)..."
+        nsExec::ExecToLog 'cmd /c winget install Python.Python.3.12 --accept-package-agreements --accept-source-agreements'
+        Pop $R0  ; code de sortie (ExecToLog ne pousse que le code, pas la sortie)
+        IntCmp $R0 0 winget_install_ok winget_install_fail winget_install_fail
+
+    winget_install_fail:
+        DetailPrint "================================================"
+        DetailPrint "ECHEC : l'installation de Python via winget a echoue (code $R0)."
+        DetailPrint "================================================"
+        DetailPrint "Installez Python 3.12 manuellement depuis :"
+        DetailPrint "  https://www.python.org/downloads/release/python-3120/"
+        DetailPrint "puis relancez cet installeur."
+        MessageBox MB_OK|MB_ICONSTOP "L'installation de Python via winget a echoue (code $R0).$\r$\n$\r$\nInstallez Python 3.12 manuellement depuis :$\r$\nhttps://www.python.org/downloads/release/python-3120/$\r$\n$\r$\npuis relancez cet installeur."
+        Abort
+
+    winget_install_ok:
+        DetailPrint "  Installation winget terminee."
+
+        ; 3. Re-scan des dossiers standards (strategie 3, reutilisation directe).
+        ;    Aveugle au PATH : trouve Python fraichement installe sans bidouiller
+        ;    de variable d'environnement (cf. commentaire d'en-tete).
+        DetailPrint "Verification de la detection de Python fraichement installe..."
+        Call TryScanStandardDirs
+        StrCmp $PythonExe "" python_installed_not_detected python_install_success
+
+    python_installed_not_detected:
+        DetailPrint "================================================"
+        DetailPrint "Python a ete installe mais n'est pas encore detecte."
+        DetailPrint "================================================"
+        DetailPrint "Redemarrez votre PC puis relancez cet installeur."
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Python 3.12 a ete installe mais n'est pas encore detecte par l'installeur.$\r$\n$\r$\nRedemarrez votre PC puis relancez cet installeur."
+        Abort
+
+    python_install_success:
+        DetailPrint "  Python detecte apres installation : $PythonExe"
+        Return
+FunctionEnd
+
 ; ============================================================================
 ;  FONCTIONS UTILITAIRES POUR STOCKFISH (PHASE 4)
 ; ============================================================================
@@ -950,11 +1056,20 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             DetailPrint "================================================"
             DetailPrint "AUCUN Python ${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR}+ detecte."
             DetailPrint "================================================"
-            DetailPrint "La phase 3bis (installation automatique de Python)"
-            DetailPrint "sera implementee dans une issue separee."
-            DetailPrint "En attendant, installez Python 3.12+ manuellement depuis :"
-            DetailPrint "  https://www.python.org/downloads/"
-            DetailPrint "puis relancez cet installeur."
+            DetailPrint "Tentative d'installation automatique via winget (phase 3bis, #60)..."
+
+            ; Phase 3bis (#60) : installer Python automatiquement au lieu de se
+            ; contenter d'un message d'echec. InstallPython312NSIS gere seule les
+            ; cas d'echec (winget absent, install ratee, non detecte apres
+            ; install) : message clair + lien manuel + Abort propre. Si elle
+            ; Return, l'install a reussi ET $PythonExe est renseigne (via le
+            ; re-scan TryScanStandardDirs).
+            Call InstallPython312NSIS
+
+            DetailPrint "================================================"
+            DetailPrint "Python installe automatiquement avec succes : $PythonExe"
+            DetailPrint "================================================"
+            DetailPrint "  venv cible : $EXEDIR\${VENV_SUBDIR}"
 
         end_python_section:
     SectionEnd
