@@ -84,6 +84,9 @@ Var StockfishOK      ; 1 si une variante Stockfish fonctionnelle a ete installee
 ; Variables pour la section VCRedist (phase 5)
 Var VCRedistOK       ; 1 si VC++ installe avec succes, 0 sinon
 
+; Variable pour les points de controle horodates (diagnostic #64, suite #62)
+Var LogMsg           ; Message a ecrire dans alchess_install_debug.log
+
 ; ---------------------------------------------------------------------------
 ;  Variables de chemin — equivalents des chemins de install_alchess.ps1.
 ;  Toutes les references sont relatives a $EXEDIR (dossier du .exe execute),
@@ -187,6 +190,53 @@ FunctionEnd
 ; ---------------------------------------------------------------------------
 Function LaunchAlChess
     Exec '"$EXEDIR\2-Lancer_AlChess.bat"'
+FunctionEnd
+
+; ============================================================================
+;  POINTS DE CONTROLE HORODATES — DIAGNOSTIC DISPARITION DU VENV (#64, suite #62)
+; ============================================================================
+;  Le diagnostic #62 n'a trouve AUCUNE cause dans notre code a la disparition
+;  du venv apres une creation reussie. Plutot que d'attendre Process Monitor sur
+;  la VM, on ecrit des points de controle horodates DURABLES (dans un fichier
+;  log persistant, pas des DetailPrint qui disparaissent si la fenetre se ferme)
+;  a plusieurs etapes cles du flux d'installation. Chaque ligne permet de borner
+;  precisement le moment ou le venv disparait (ou de confirmer qu'il ne
+;  disparait jamais et que le probleme est ailleurs, ex. au lancement de l'app).
+;
+;  Le fichier vit dans $EXEDIR\alchess_install_debug.log (PAS $TEMP) afin
+;  qu'Alain puisse le consulter facilement apres coup, meme si l'installeur a
+;  plante ou a ete ferme. Il n'est JAMAIS supprime automatiquement — retrait
+;  manuel une fois le diagnostic termine.
+; ---------------------------------------------------------------------------
+
+; ---------------------------------------------------------------------------
+;  LogCheckpoint
+;  Ecrit un horodatage systeme fiable (%date% %time%, fournis par cmd) suivi
+;  du contenu de $LogMsg dans le fichier log persistant. On preserve $0 (seul
+;  registre utilise en interne) pour ne rien casser cote appelant.
+; ---------------------------------------------------------------------------
+Function LogCheckpoint
+    Push $0
+    nsExec::ExecToLog 'cmd /c echo %date% %time% - $LogMsg >> "$EXEDIR\alchess_install_debug.log"'
+    Pop $0   ; code de sortie nsExec (ignore)
+    Pop $0   ; restaure la valeur d'origine de $0
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  LogVenvState
+;  Verifie la presence de venv\Scripts\python.exe et journalise l'etat en
+;  ajoutant " : PRESENT" ou " : ABSENT" au prefixe passe dans $LogMsg.
+;  Aucun registre utilise (au-dela de ceux preserves par LogCheckpoint).
+; ---------------------------------------------------------------------------
+Function LogVenvState
+    IfFileExists "$EXEDIR\${VENV_SUBDIR}\Scripts\python.exe" lvs_present lvs_absent
+    lvs_present:
+        StrCpy $LogMsg "$LogMsg : PRESENT"
+        Goto lvs_log
+    lvs_absent:
+        StrCpy $LogMsg "$LogMsg : ABSENT"
+    lvs_log:
+        Call LogCheckpoint
 FunctionEnd
 
 ; ============================================================================
@@ -1179,6 +1229,18 @@ SectionGroup "Configuration AlChess" SecGroupConfig
         deps_ok:
             DetailPrint "  Dependances installees avec succes."
 
+            ; -- CHECKPOINT 1 (diagnostic #64, suite #62) --------------------
+            ; venv cree + dependances installees avec succes. On borne ici
+            ; l'etat du venv juste apres sa creation reussie, puis a nouveau
+            ; apres 1 seconde, pour detecter une disparition immediate.
+            StrCpy $LogMsg "CHECKPOINT 1 - venv cree, deps installees"
+            Call LogCheckpoint
+            StrCpy $LogMsg "CHECKPOINT 1 - etat immediat du venv"
+            Call LogVenvState
+            Sleep 1000
+            StrCpy $LogMsg "CHECKPOINT 1 - verification +1s"
+            Call LogVenvState
+
         end_venv_section:
             DetailPrint "================================================"
             DetailPrint "Environnement virtuel pret."
@@ -1257,6 +1319,13 @@ SectionGroup "Configuration AlChess" SecGroupConfig
 
         end_stockfish:
             DetailPrint "================================================"
+
+            ; -- CHECKPOINT 3 (diagnostic #64, suite #62) --------------------
+            ; Fin de l'installation de Stockfish. Si le venv a disparu ici mais
+            ; etait present au checkpoint 1, la disparition survient PENDANT
+            ; l'installation de Stockfish.
+            StrCpy $LogMsg "CHECKPOINT 3 - fin SecStockfish"
+            Call LogVenvState
     SectionEnd
 
     ; -- Phase 5 : portage de Install-VCRedist (issue #57) --------------------
@@ -1404,6 +1473,13 @@ SectionGroup "Configuration AlChess" SecGroupConfig
 
         end_vcredist:
             DetailPrint "================================================"
+
+            ; -- CHECKPOINT 4 (diagnostic #64, suite #62) --------------------
+            ; Fin de l'installation du runtime Visual C++. Si le venv etait
+            ; present au checkpoint 3 mais absent ici, la disparition survient
+            ; PENDANT l'installation du VC++ redist.
+            StrCpy $LogMsg "CHECKPOINT 4 - fin SecVCRedist"
+            Call LogVenvState
     SectionEnd
 
 SectionGroupEnd
@@ -1422,6 +1498,14 @@ SectionGroupEnd
 ;  arreter l'installation.
 ; ============================================================================
 Section "Raccourci bureau" SecShortcut
+    ; -- CHECKPOINT 5 (diagnostic #64, suite #62) ------------------------
+    ; Toute derniere verification, juste avant la creation du raccourci et la
+    ; fin de l'installation. Si le venv est encore present ici, c'est qu'il ne
+    ; disparait PAS pendant l'installation : le probleme est alors ailleurs
+    ; (probablement au lancement de l'app, pas dans l'installeur).
+    StrCpy $LogMsg "CHECKPOINT 5 - fin installation (avant raccourci)"
+    Call LogVenvState
+
     DetailPrint "================================================"
     DetailPrint "Creation du raccourci bureau"
     DetailPrint "================================================"
