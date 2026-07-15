@@ -541,15 +541,26 @@ Function TryPy0p
             FileRead $R2 $TempLine
             StrCmp $TempLine "" end_of_file 0
 
+            ; #67 (verification generale strategies 1/2) : ExtractVersionFromLine
+            ; (utilise $R0-$R9) et CompareVersionToMinimum ecrasent $R2, qui est
+            ; ICI le handle de fichier ouvert par FileOpen. Sans sauvegarde, la
+            ; boucle de lecture ne lit plus qu'une seule ligne (FileRead sur un
+            ; handle corrompu). On preserve le handle sur la pile.
+            Push $R2
             ; Appeler la fonction d'extraction
             Call ExtractVersionFromLine
 
             ; Verifier si on a trouve une version
-            StrCmp $TempVersion "" read_line_loop 0
+            StrCmp $TempVersion "" line_no_version 0
 
             ; Comparer la version
             Call CompareVersionToMinimum
+            Pop $R2                       ; restaurer le handle avant de continuer
             IntCmp $VersionOK 1 check_path read_line_loop read_line_loop
+
+            line_no_version:
+                Pop $R2                   ; restaurer le handle (pile equilibree)
+                Goto read_line_loop
 
             check_path:
                 ; Verifier que le chemin existe
@@ -640,7 +651,22 @@ Function TryScanStandardDirs
                 IfFileExists $R3 test_localappdata_python scan_localappdata_next
 
                 test_localappdata_python:
+                    ; #67 : TestPythonExe -> ExtractVersionFromPythonOutput /
+                    ; CompareVersionToMinimum reutilisent $R0-$R3 (registres
+                    ; globaux NSIS, aucune pile automatique entre fonctions).
+                    ; Sans sauvegarde, $R3 (chemin complet) devient "." et $R0
+                    ; (racine) / $R1 (handle FindFirst) sont ecrases : cela
+                    ; corrompt $PythonExe (bug confirme #66) ET casse la boucle
+                    ; de scan des la 2e version. Sauvegarde/restauration par pile.
+                    Push $R0
+                    Push $R1
+                    Push $R2
+                    Push $R3
                     Call TestPythonExe
+                    Pop $R3
+                    Pop $R2
+                    Pop $R1
+                    Pop $R0
                     IntCmp $VersionOK 1 found_in_localappdata scan_localappdata_next scan_localappdata_next
 
                 found_in_localappdata:
@@ -679,7 +705,17 @@ Function TryScanStandardDirs
                 IfFileExists $R3 test_programfiles_python scan_programfiles_next
 
                 test_programfiles_python:
+                    ; #67 : meme correctif que pour LOCALAPPDATA (voir plus haut) —
+                    ; preserver $R0-$R3 clobbers par la chaine TestPythonExe.
+                    Push $R0
+                    Push $R1
+                    Push $R2
+                    Push $R3
                     Call TestPythonExe
+                    Pop $R3
+                    Pop $R2
+                    Pop $R1
+                    Pop $R0
                     IntCmp $VersionOK 1 found_in_programfiles scan_programfiles_next scan_programfiles_next
 
                 found_in_programfiles:
@@ -719,7 +755,17 @@ Function TryScanStandardDirs
                 IfFileExists $R3 test_programfiles64_python scan_programfiles64_next
 
                 test_programfiles64_python:
+                    ; #67 : meme correctif que pour LOCALAPPDATA (voir plus haut) —
+                    ; preserver $R0-$R3 clobbers par la chaine TestPythonExe.
+                    Push $R0
+                    Push $R1
+                    Push $R2
+                    Push $R3
                     Call TestPythonExe
+                    Pop $R3
+                    Pop $R2
+                    Pop $R1
+                    Pop $R0
                     IntCmp $VersionOK 1 found_in_programfiles64 scan_programfiles64_next scan_programfiles64_next
 
                 found_in_programfiles64:
