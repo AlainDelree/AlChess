@@ -1156,6 +1156,25 @@ SectionGroup "Configuration AlChess" SecGroupConfig
         DetailPrint "  venv cible : $EXEDIR\${VENV_SUBDIR}"
         DetailPrint "  Python utilise : $PythonExe"
 
+        ; -- DIAGNOSTIC #65 (suite #64) ---------------------------------------
+        ; Le venv disparaissait en < 0.1s au CHECKPOINT 1 (log #64) : on
+        ; soupconne que $PythonExe pointe vers un faux interpreteur (stub
+        ; d'alias Windows Store) et que les commandes nsExec ne font rien tout
+        ; en retournant 0. On journalise donc AVANT toute creation :
+        ;   - la valeur EXACTE de $PythonExe ;
+        ;   - le comportement d'un simple "--version" (code de sortie + sortie
+        ;     redirigee dans le meme fichier log) pour confirmer si cet
+        ;     interpreteur est reellement fonctionnel.
+        StrCpy $LogMsg "PYTHONEXE UTILISE : $PythonExe"
+        Call LogCheckpoint
+
+        ; Test direct et independant : "$PythonExe" --version, sortie (stdout +
+        ; stderr) redirigee dans le fichier log via cmd /c, puis code de sortie.
+        nsExec::ExecToLog 'cmd /c ""$PythonExe" --version >> "$EXEDIR\alchess_install_debug.log" 2>&1"'
+        Pop $R0
+        StrCpy $LogMsg "CODE SORTIE python --version : $R0"
+        Call LogCheckpoint
+
         ; 1. Le venv existe-t-il deja ? (equivalent Test-Path venv\Scripts\python.exe)
         IfFileExists "$EXEDIR\${VENV_SUBDIR}\Scripts\python.exe" venv_present venv_needed
 
@@ -1166,6 +1185,19 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             DetailPrint "Creation du venv en cours (peut prendre quelques secondes)..."
             nsExec::ExecToLog '"$PythonExe" -m venv "$EXEDIR\${VENV_SUBDIR}"'
             Pop $R0  ; code de sortie (ExecToLog ne pousse que le code)
+            ; -- DIAGNOSTIC #65 : code de sortie exact (pas 0/non-0 traduit) --
+            StrCpy $LogMsg "CODE SORTIE creation venv : $R0"
+            Call LogCheckpoint
+            ; Le DOSSIER venv existe-t-il (meme vide) ? Distingue "rien cree du
+            ; tout" de "dossier cree mais python.exe/pip.exe manquants dedans".
+            IfFileExists "$EXEDIR\${VENV_SUBDIR}\*.*" venv_dir_present venv_dir_absent
+            venv_dir_present:
+                StrCpy $LogMsg "DOSSIER VENV : PRESENT"
+                Goto venv_dir_logged
+            venv_dir_absent:
+                StrCpy $LogMsg "DOSSIER VENV : ABSENT"
+            venv_dir_logged:
+                Call LogCheckpoint
             IntCmp $R0 0 venv_created venv_create_fail venv_create_fail
 
         venv_create_fail:
@@ -1191,6 +1223,9 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             DetailPrint "Mise a jour de pip..."
             nsExec::ExecToLog '"$EXEDIR\${VENV_SUBDIR}\Scripts\pip.exe" install --upgrade pip --quiet'
             Pop $R0  ; code de sortie
+            ; -- DIAGNOSTIC #65 : code de sortie exact --
+            StrCpy $LogMsg "CODE SORTIE pip upgrade : $R0"
+            Call LogCheckpoint
             ; L'echec de la mise a jour de pip n'est PAS bloquant : le pip fourni
             ; par le venv est generalement suffisant pour installer les deps.
             IntCmp $R0 0 pip_upgrade_ok pip_upgrade_warn pip_upgrade_warn
@@ -1203,6 +1238,9 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             DetailPrint "Installation des dependances (requirements.txt)..."
             nsExec::ExecToLog '"$EXEDIR\${VENV_SUBDIR}\Scripts\pip.exe" install -r "$EXEDIR\requirements.txt" --quiet'
             Pop $R0  ; code de sortie
+            ; -- DIAGNOSTIC #65 : code de sortie exact --
+            StrCpy $LogMsg "CODE SORTIE pip install -r requirements : $R0"
+            Call LogCheckpoint
             IntCmp $R0 0 deps_ok deps_fail deps_fail
 
         deps_fail:
