@@ -1288,8 +1288,16 @@ SectionGroup "Configuration AlChess" SecGroupConfig
         ; Initialiser le flag
         StrCpy $VCRedistOK 0
 
-        ; 1. Verifier si deja present ($SYSDIR = $env:SystemRoot\System32)
-        IfFileExists "$SYSDIR\MSVCP140.dll" vcredist_present vcredist_needed
+        ; 1. Verifier si deja present.
+        ; ATTENTION REDIRECTION WOW64 (issue #62 / #63) : cet installeur est un
+        ; process 32-bit (sortie x86-unicode). Windows redirige silencieusement
+        ; tout acces a $SYSDIR (System32) vers SysWOW64. Le MSVCP140.dll x64
+        ; installe par vc_redist.x64.exe reside dans le VRAI System32 et n'etait
+        ; donc jamais vu -> faux negatif systematique (retelechargement a chaque
+        ; run). On utilise le chemin virtuel $WINDIR\Sysnative qui, pour un
+        ; process 32-bit sur Windows 64-bit, pointe vers le vrai System32 sans
+        ; passer par la redirection.
+        IfFileExists "$WINDIR\Sysnative\MSVCP140.dll" vcredist_present vcredist_needed
 
         vcredist_present:
             DetailPrint "Runtime Visual C++ deja installe."
@@ -1354,7 +1362,7 @@ SectionGroup "Configuration AlChess" SecGroupConfig
         vcredist_poll_loop:
             Sleep 2000
             IntOp $R1 $R1 + 1
-            IfFileExists "$SYSDIR\MSVCP140.dll" vcredist_poll_done vcredist_poll_continue
+            IfFileExists "$WINDIR\Sysnative\MSVCP140.dll" vcredist_poll_done vcredist_poll_continue
         vcredist_poll_continue:
             ; Tant que le compteur < 30, on continue le polling ; sinon timeout.
             IntCmp $R1 30 vcredist_poll_done vcredist_poll_loop vcredist_poll_done
@@ -1364,7 +1372,8 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             Delete "$TEMP\vc_redist.x64.exe"
 
             ; Verification finale via la presence de MSVCP140.dll
-            IfFileExists "$SYSDIR\MSVCP140.dll" vcredist_install_ok vcredist_install_fail
+            ; (chemin Sysnative : voir note redirection WOW64 issue #62 / #63)
+            IfFileExists "$WINDIR\Sysnative\MSVCP140.dll" vcredist_install_ok vcredist_install_fail
 
         vcredist_install_ok:
             DetailPrint "Runtime Visual C++ installe avec succes."
