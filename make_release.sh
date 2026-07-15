@@ -59,6 +59,7 @@ INCLUDE=(
   install_alchess.ps1
   start_alchess.ps1
   99-chessnutair.rules.example
+  niclink_icon.ico
 )
 
 for item in "${INCLUDE[@]}"; do

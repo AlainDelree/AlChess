@@ -1615,8 +1615,8 @@ Section "Raccourci bureau" SecShortcut
     ; Reinitialiser le flag d'erreur avant CreateShortcut pour que IfErrors
     ; ne remonte pas une erreur laissee par une instruction anterieure.
     ClearErrors
-    CreateShortcut "$DESKTOP\AlChess.lnk" "$EXEDIR\2-Lancer_AlChess.bat" "" \
-        "" "" SW_SHOWNORMAL "" "Launch AlChess"
+    CreateShortcut "$DESKTOP\AlChess.lnk" "$EXEDIR\2-Lancer_AlChess.bat" \
+        "" "$EXEDIR\niclink_icon.ico" 0 SW_SHOWNORMAL "" "Launch AlChess"
     IfErrors shortcut_failed shortcut_ok
 
     shortcut_failed:
