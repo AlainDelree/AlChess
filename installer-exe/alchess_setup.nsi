@@ -559,6 +559,9 @@ Function TryPy0p
             found_valid_python:
                 DetailPrint "  Python $TempVersion detecte : $TempPath"
                 StrCpy $PythonExe $TempPath
+                ; -- DIAGNOSTIC #66 (suite #65) : tracer quelle strategie assigne $PythonExe --
+                StrCpy $LogMsg "STRATEGIE 1 (py -0p) a assigne PythonExe = $PythonExe"
+                Call LogCheckpoint
                 FileClose $R2
                 Delete "$TEMP\py0p.txt"
                 Return
@@ -600,6 +603,9 @@ Function TryPythonInPath
         python_path_ok:
             DetailPrint "  Python $TempVersion detecte dans le PATH."
             StrCpy $PythonExe "python"
+            ; -- DIAGNOSTIC #66 (suite #65) : tracer quelle strategie assigne $PythonExe --
+            StrCpy $LogMsg "STRATEGIE 2 (PATH) a assigne PythonExe = $PythonExe"
+            Call LogCheckpoint
             Return
 FunctionEnd
 
@@ -640,6 +646,9 @@ Function TryScanStandardDirs
                 found_in_localappdata:
                     DetailPrint "  Python $TempVersion detecte : $R3"
                     StrCpy $PythonExe $R3
+                    ; -- DIAGNOSTIC #66 (suite #65) : tracer quelle strategie assigne $PythonExe --
+                    StrCpy $LogMsg "STRATEGIE 3 (scan dossiers) a assigne PythonExe = $PythonExe"
+                    Call LogCheckpoint
                     FindClose $R1
                     Return
 
@@ -676,6 +685,9 @@ Function TryScanStandardDirs
                 found_in_programfiles:
                     DetailPrint "  Python $TempVersion detecte : $R3"
                     StrCpy $PythonExe $R3
+                    ; -- DIAGNOSTIC #66 (suite #65) : tracer quelle strategie assigne $PythonExe --
+                    StrCpy $LogMsg "STRATEGIE 3 (scan dossiers) a assigne PythonExe = $PythonExe"
+                    Call LogCheckpoint
                     FindClose $R1
                     Return
 
@@ -713,6 +725,9 @@ Function TryScanStandardDirs
                 found_in_programfiles64:
                     DetailPrint "  Python $TempVersion detecte : $R3"
                     StrCpy $PythonExe $R3
+                    ; -- DIAGNOSTIC #66 (suite #65) : tracer quelle strategie assigne $PythonExe --
+                    StrCpy $LogMsg "STRATEGIE 3 (scan dossiers) a assigne PythonExe = $PythonExe"
+                    Call LogCheckpoint
                     FindClose $R1
                     Return
 
@@ -841,6 +856,9 @@ Function InstallPython312NSIS
         ;    de variable d'environnement (cf. commentaire d'en-tete).
         DetailPrint "Verification de la detection de Python fraichement installe..."
         Call TryScanStandardDirs
+        ; -- DIAGNOSTIC #66 (suite #65) : valeur de $PythonExe apres le re-scan post-winget --
+        StrCpy $LogMsg "PHASE 3BIS (post-winget) re-scan a donne PythonExe = $PythonExe"
+        Call LogCheckpoint
         StrCmp $PythonExe "" python_installed_not_detected python_install_success
 
     python_installed_not_detected:
