@@ -149,6 +149,19 @@ build_windows() {
   local out="$DIST/$NAME-windows-x86_64"
   echo "=== Construction du paquet Windows ==="
   rsync -a "$STAGE"/ "$out"/
+  # Installeur .exe (NSIS) compilé — copié directement à la racine du paquet, à
+  # côté de 1-Installer.bat / 2-Lancer_AlChess.bat / install_alchess.ps1 (issue
+  # #68, chantier NSIS #50-#67). Coexiste avec le .ps1, ne le remplace pas. Le
+  # dossier source installer-exe/ n'est PAS dans la liste blanche INCLUDE : il
+  # contient le .nsi source et des fichiers de build intermédiaires qu'on ne veut
+  # pas livrer — seul le .exe compilé figure dans le ZIP.
+  if [[ -f "$REPO_ROOT/installer-exe/AlChess_Setup.exe" ]]; then
+    cp "$REPO_ROOT/installer-exe/AlChess_Setup.exe" "$out/"
+    echo "  ✓ Installeur .exe (NSIS) copié à la racine du paquet Windows"
+  else
+    echo "  ⚠️  ATTENTION : installer-exe/AlChess_Setup.exe introuvable"
+    echo "  Compiler d'abord avec : makensis installer-exe/alchess_setup.nsi"
+  fi
   rm -f "$out/install.sh" "$out/start_alchess.sh" "$out/99-chessnutair.rules.example"
   rm -f "$out/engines/maia/lc0" "$out/engines/rodent-iv/rodentIV"
   ( cd "$DIST" && zip -qr "$NAME-windows-x86_64.zip" "$NAME-windows-x86_64" )
@@ -189,6 +202,14 @@ validate() {
     grep -qiE "rodentIV\.exe" <<<"$list" \
       && echo "  ✅ Rodent (Windows) présent" \
       || echo "  ⚠️  Rodent (Windows) absent"
+    # Le ZIP préfixe chaque entrée par le dossier de tête du paquet
+    # (AlChess-vX/…) — comme pour rodentIV.exe/lc0.exe ci-dessus. On ancre donc
+    # sur « un unique segment de tête puis /AlChess_Setup.exe » ([^/]*/) pour
+    # vérifier que l'installeur est bien À LA RACINE du paquet (pas dans un
+    # sous-dossier), équivalent fidèle du ^AlChess_Setup.exe$ demandé (#68).
+    grep -qiE "^[^/]*/AlChess_Setup\.exe$" <<<"$list" \
+      && echo "  ✅ Installeur .exe (NSIS) présent" \
+      || echo "  ⚠️  ATTENTION : AlChess_Setup.exe absent du paquet Windows"
   fi
 
   # Détection d'intrus : uniquement ce qui peut se faufiler via un sous-dossier
