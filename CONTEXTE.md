@@ -5,6 +5,13 @@ l'état réel du dépôt vérifié le 11 juillet 2026 (branche de travail : `dev
 
 ---
 
+## Maintenance de ce fichier
+Si la tâche que tu exécutes modifie l'architecture, les dépendances, les
+conventions de code, ou l'état d'avancement majeur de ce projet, mets à
+jour ce CONTEXTE.md en conséquence, dans le même commit.
+
+---
+
 ## Projet
 
 **Nom** : AlChess (anciennement NicLink)
