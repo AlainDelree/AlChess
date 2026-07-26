@@ -19,12 +19,24 @@ Application d'entraînement aux échecs qui connecte un échiquier physique **Ch
 Pas besoin de connaître Git ou Python. Rendez-vous sur la page **[Releases](https://github.com/AlainDelree/AlChess/releases/latest)** et téléchargez le paquet correspondant à votre système.
 
 **Windows 10 / 11**
+
+Deux méthodes d'installation sont disponibles :
+
+**Option A — Installeur `.exe` (recommandée, la plus simple)**
 1. Téléchargez `AlChess-vX.Y.Z-windows-x86_64.zip` depuis les [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
 2. Extrayez le ZIP (clic droit → « Extraire tout »)
-3. Double-cliquez sur **`1-Installer.bat`** — le script installe Python si nécessaire, prépare l'environnement, télécharge les moteurs et crée un raccourci **AlChess** sur le Bureau
-4. Lancez AlChess avec **`2-Lancer_AlChess.bat`** (ou le raccourci **AlChess** créé sur le Bureau) — l'interface s'ouvre dans votre navigateur
+3. Double-cliquez sur **`AlChess_Setup.exe`** et suivez l'assistant d'installation — il installe Python si nécessaire, prépare l'environnement, télécharge les moteurs et crée un raccourci **AlChess** sur le Bureau
+4. Lancez AlChess avec le raccourci **AlChess** créé sur le Bureau, ou avec **`2-Lancer_AlChess.bat`**
 
-> ℹ️ Ne fermez pas la fenêtre PowerShell pendant l'utilisation.
+**Option B — Script PowerShell (méthode historique)**
+1. Téléchargez `AlChess-vX.Y.Z-windows-x86_64.zip` depuis les [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
+2. Extrayez le ZIP (clic droit → « Extraire tout »)
+3. Double-cliquez sur **`1-Installer.bat`**
+4. Lancez AlChess avec **`2-Lancer_AlChess.bat`** (ou le raccourci **AlChess** créé sur le Bureau)
+
+> 💡 Utilisez l'option A si l'option B échoue avec une erreur de policy d'exécution PowerShell (fréquent sur les PC d'entreprise ou d'école). L'option B reste utile si vous préférez inspecter le script avant de l'exécuter.
+
+> ℹ️ Ne fermez pas la fenêtre du serveur pendant l'utilisation d'AlChess.
 
 **Linux (Ubuntu 22.04 / 24.04)**
 1. Téléchargez `AlChess-vX.Y.Z-linux-x86_64.zip` depuis les [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
@@ -109,12 +121,24 @@ A chess training application that connects a **Chessnut Air** physical chessboar
 No need to know Git or Python. Go to the **[Releases](https://github.com/AlainDelree/AlChess/releases/latest)** page and download the package for your system.
 
 **Windows 10 / 11**
+
+Two installation methods are available:
+
+**Option A — `.exe` installer (recommended, simplest)**
 1. Download `AlChess-vX.Y.Z-windows-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
 2. Extract the ZIP (right-click → "Extract All")
-3. Double-click **`1-Installer.bat`** — it installs Python if needed, sets up the environment, downloads the engines and creates an **AlChess** shortcut on the Desktop
-4. Launch AlChess with **`2-Lancer_AlChess.bat`** (or the **AlChess** shortcut created on the Desktop) — the interface opens in your browser
+3. Double-click **`AlChess_Setup.exe`** and follow the setup wizard — it installs Python if needed, sets up the environment, downloads the engines and creates an **AlChess** shortcut on the Desktop
+4. Launch AlChess with the **AlChess** shortcut on the Desktop, or with **`2-Lancer_AlChess.bat`**
 
-> ℹ️ Do not close the PowerShell window while using the app.
+**Option B — PowerShell script (legacy method)**
+1. Download `AlChess-vX.Y.Z-windows-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
+2. Extract the ZIP (right-click → "Extract All")
+3. Double-click **`1-Installer.bat`**
+4. Launch AlChess with **`2-Lancer_AlChess.bat`** (or the **AlChess** shortcut created on the Desktop)
+
+> 💡 Use option A if option B fails with a PowerShell execution policy error (common on corporate or school PCs). Option B remains useful if you'd rather inspect the script before running it.
+
+> ℹ️ Do not close the server window while using AlChess.
 
 **Linux (Ubuntu 22.04 / 24.04)**
 1. Download `AlChess-vX.Y.Z-linux-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
