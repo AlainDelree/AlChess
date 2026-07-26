@@ -242,4 +242,13 @@ echo "  gh release create v$VERSION \\"
 echo "     dist/$NAME-linux-x86_64.zip \\"
 echo "     dist/$NAME-windows-x86_64.zip \\"
 echo "     --title \"AlChess v$VERSION\" \\"
-echo "     --notes \"Première version téléchargeable. Voir le README pour l'installation.\""
+# ⚠️ Alain : PERSONNALISE ce texte --notes avec les changements notables de
+# CETTE version avant de publier — ne le copie-colle jamais tel quel d'une
+# release à l'autre. (Issue #76 : le texte "Première version téléchargeable"
+# était resté figé depuis v1.0.0 et affichait encore ça sur v1.1.0/v1.2.0,
+# rendant la description trompeuse.) Le texte ci-dessous n'est qu'un défaut
+# générique bilingue FR/EN, toujours vrai mais volontairement vague.
+echo "     --notes \"Voir le README pour les instructions d'installation (FR/EN).
+See the README for installation instructions (FR/EN).
+
+https://github.com/AlainDelree/AlChess#readme\""
