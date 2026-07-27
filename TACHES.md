@@ -47,6 +47,8 @@
 
 ### Session du 28 juillet
 
+Intégration de detect_chessnut.py dans l'installeur NSIS : section SecChessnut ajoutée après SecVenv, appel avec le Python du venv, message utilisateur selon le code de sortie. makensis : 0 erreur, 0 warning. (issue #82)
+
 - **Support Chessnut Go (idProduct `8501`) — non détecté par l'app** `[Linux]` (issue #78) — Alain utilise un Chessnut Go (modèle de voyage, ref CG100) : `lsusb` a révélé `2d80:8501`, même `idVendor` que tous les modèles Chessnut, `idProduct` inédit. Correctif identique à l'issue #77 (Air Plus) : `0x8501` ajouté à `PRODUCT_IDS` dans `hid_backend.py` (L.12), règle udev ajoutée dans `99-chessnutair.rules.example`, notes ajoutées dans `INSTALLATION_ALCHESS.md` aux côtés du Air (8003) et Air Plus (8202). `py_compile` OK sur `hid_backend.py`. **Test réel décisif à faire** avec l'échiquier branché. Backup pinné avant modif.
 
 Ajout de scripts/detect_chessnut.py — détection et enregistrement automatique des modèles Chessnut inconnus (idProduct), avec mise à jour de hid_backend.py et règle udev Linux. Appelé par l'installeur NSIS (Windows) et au premier démarrage. (issue #81)

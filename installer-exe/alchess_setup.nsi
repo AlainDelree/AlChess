@@ -1349,6 +1349,26 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             DetailPrint "================================================"
     SectionEnd
 
+    ; -- Section 3b : Detection automatique du modele Chessnut (issue #82) ---
+    ; Suite de #81 (scripts/detect_chessnut.py). Code de sortie :
+    ;   0 = echiquier deja connu ou aucun echiquier branche
+    ;   1 = nouveau modele detecte et enregistre automatiquement
+    ;   2 = erreur (script absent, echiquier illisible, etc.)
+    Section "Detection Chessnut" SecChessnut
+        DetailPrint "Detection du modele Chessnut branche..."
+        nsExec::ExecToLog '"$EXEDIR\${VENV_SUBDIR}\Scripts\python.exe" "$EXEDIR\scripts\detect_chessnut.py"'
+        Pop $R0
+        ${If} $R0 == 0
+            DetailPrint "Echiquier detecte et deja reconnu, ou aucun echiquier branche."
+            DetailPrint "Si votre echiquier n'est pas branche, branchez-le avant de lancer AlChess."
+        ${ElseIf} $R0 == 1
+            DetailPrint "Nouveau modele Chessnut detecte et enregistre automatiquement."
+            MessageBox MB_OK "Un nouveau modele d'echiquier Chessnut a ete detecte et enregistre.$\r$\nAlChess le reconnaitra au prochain lancement."
+        ${Else}
+            DetailPrint "Avertissement : detection Chessnut non disponible (echiquier peut-etre absent)."
+        ${EndIf}
+    SectionEnd
+
     ; -- Phase 4 : portage de Install-Stockfish (cascade CPU) ----------------
     ; Equivalent de Install-Stockfish dans install_alchess.ps1 (issue #49).
     ;
