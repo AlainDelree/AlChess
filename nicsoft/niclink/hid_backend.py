@@ -9,7 +9,7 @@ import threading
 import time
 
 VENDOR_ID   = 0x2d80
-PRODUCT_IDS = [0x8001, 0x8002, 0x8003]
+PRODUCT_IDS = [0x8001, 0x8002, 0x8003, 0x8202]  # 8003=Chessnut Air, 8202=Chessnut Air Plus
 USAGE_PAGE  = 0xFF00
 WRITE_INTERVAL = 0.2  # secondes — identique au C++ (200ms)
 

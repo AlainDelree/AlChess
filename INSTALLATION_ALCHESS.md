@@ -68,6 +68,10 @@ sudo udevadm control --reload-rules
 > ⚠️ **Important** : débrancher et rebrancher le Chessnut **après** avoir appliqué
 > les règles pour qu'elles prennent effet.
 
+> ℹ️ **Chessnut Air Plus** : même `idVendor` (`2d80`) mais `idProduct` différent
+> (`8202` au lieu de `8003`). Vérifier avec `lsusb` et adapter la valeur
+> `idProduct` dans la commande ci-dessus en conséquence.
+
 > ⚠️ **Note sur hidraw** : sur certaines machines, le device `hidraw` du Chessnut
 > peut ne pas être couvert par la règle au premier branchement. Vérifier avec :
 > ```bash
@@ -103,6 +107,10 @@ ls -la /dev/hidraw*                    # doit montrer un hidraw avec crw-rw-rw-
 
 > ℹ️ Le quirk `0x40` force le kernel à traiter le Chessnut comme un device HID
 > complet, contournant le problème de binding automatique.
+
+> ℹ️ **Chessnut Air Plus** : remplacer `0x2d80:0x8003:0x40` par
+> `0x2d80:0x8202:0x40` dans la commande ci-dessus (idProduct `8202` au lieu
+> de `8003`).
 
 ---
 
@@ -390,12 +398,14 @@ cp _niclink.cpython-312-x86_64-linux-gnu.so ~/NicLink/nicsoft/niclink/
 cd ~/NicLink
 
 # 5. Règle udev Chessnut Air
+# (idProduct 8003 = Chessnut Air ; 8202 = Chessnut Air Plus — adapter selon lsusb)
 echo 'ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2d80", ATTR{idProduct}=="8003", MODE="0666", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
 KERNEL=="hidraw*", ATTRS{idVendor}=="2d80", ATTRS{idProduct}=="8003", MODE="0666"' | sudo tee /etc/udev/rules.d/99-chessnut.rules
 sudo udevadm control --reload-rules
 # → débrancher/rebrancher le Chessnut
 
 # 6. Quirk usbhid (si Chessnut absent de /sys/bus/hid/devices/)
+# (remplacer 0x8003 par 0x8202 pour un Chessnut Air Plus)
 echo 'options usbhid quirks=0x2d80:0x8003:0x40' | sudo tee /etc/modprobe.d/chessnut.conf
 sudo update-initramfs -u
 # → redémarrer le PC
