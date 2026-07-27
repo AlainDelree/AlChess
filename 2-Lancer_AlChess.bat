@@ -60,7 +60,10 @@ echo   (fermer cette fenetre arrete le serveur)
 echo   Journal : "%~dp0alchess_log.txt"
 echo(
 
-"%~dp0venv\Scripts\python.exe" -m nicsoft.web > "%~dp0alchess_log.txt" 2>&1
+rem Detection automatique du modele Chessnut (silencieux si echiquier absent, issue #83)
+"%~dp0venv\Scripts\python.exe" "%~dp0scripts\detect_chessnut.py" > "%~dp0alchess_log.txt" 2>&1
+
+"%~dp0venv\Scripts\python.exe" -m nicsoft.web >> "%~dp0alchess_log.txt" 2>&1
 
 echo(
 echo   AlChess s'est arrete. En cas de probleme, consultez le journal :

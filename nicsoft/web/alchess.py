@@ -4,11 +4,12 @@ nicsoft/web/__main__.py — Point d'entrée principal NicLink.
 import os
 import time
 import sys
+import subprocess
 import threading
 import webbrowser
 import socket
 import logging
-from nicsoft.config import DATA_DIR, LOGS_DIR
+from nicsoft.config import APP_DIR, DATA_DIR, LOGS_DIR
 from nicsoft.platform_utils import stop_modem_manager, start_modem_manager
 from nicsoft.web.server import start_server, set_app_state, get_menu_action, send_event, set_virtual_board
 from nicsoft.web import server as web_server
@@ -93,6 +94,26 @@ def _find_free_port(start=5000):
     return start  # fallback
 
 
+def _run_detect_chessnut():
+    """Best-effort, non bloquant : toute erreur est journalisée et ignorée."""
+    logger = logging.getLogger("niclink")
+    detect_script = APP_DIR / "scripts" / "detect_chessnut.py"
+    if not detect_script.exists():
+        return
+    try:
+        result = subprocess.run(
+            [sys.executable, str(detect_script)], capture_output=True, text=True, timeout=15
+        )
+        if result.returncode == 1:
+            logger.info("Nouveau modèle Chessnut enregistré. Relancez l'application.")
+        elif result.returncode == 0:
+            logger.info("Aucun échiquier Chessnut reconnu branché au démarrage.")
+        else:
+            logger.info(f"detect_chessnut.py — code retour {result.returncode} : {result.stderr.strip()}")
+    except Exception as e:
+        logger.info(f"detect_chessnut.py — appel best-effort échoué : {e}")
+
+
 def _check_board_at_startup():
     if not _board_check_lock.acquire(blocking=False):
         return  # une vérification est déjà en cours
@@ -117,11 +138,13 @@ def _check_board_at_startup():
                 return  # succès
             except SystemExit as e:
                 if "board connection error" not in str(e):
+                    _run_detect_chessnut()
                     send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
                     return
                 # board pas encore prêt — réessayer
             except Exception:
                 pass  # réessayer
+        _run_detect_chessnut()
         send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
     finally:
         _board_check_lock.release()
