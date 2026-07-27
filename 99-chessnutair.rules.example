@@ -7,5 +7,9 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="2d80", ATTRS{idProduct}=="8003", GROUP="whee
 # Chessnut Air Plus
 SUBSYSTEM=="usb", ATTRS{idVendor}=="2d80", ATTRS{idProduct}=="8202", GROUP="wheel", MODE="0660"
 
+# Chessnut Go (CG100, idProduct 8501)
+SUBSYSTEM=="usb", ATTRS{idVendor}=="2d80", ATTRS{idProduct}=="8501", GROUP="plugdev", TAG+="uaccess"
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="2d80", ATTRS{idProduct}=="8501", GROUP="plugdev", TAG+="uaccess"
+
 # set the permissions for device files
 KERNEL=="hidraw*", GROUP="wheel", MODE="0660"
