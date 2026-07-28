@@ -446,6 +446,7 @@ try {
     $shortcut = $wsh.CreateShortcut($lnkPath)
     $shortcut.TargetPath       = "$scriptDir\2-Lancer_AlChess.bat"
     $shortcut.WorkingDirectory = $scriptDir
+    $shortcut.IconLocation     = "$scriptDir\niclink_icon.ico, 0"
     $shortcut.Description       = "Launch AlChess"
     $shortcut.Save()
     Write-Host "Desktop shortcut 'AlChess' created." -ForegroundColor Green
