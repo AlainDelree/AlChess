@@ -4,6 +4,55 @@ Basé sur l'installation réelle du 13 avril 2026 sur ThinkPad X1 Carbon Gen 13.
 Mis à jour le 30 avril 2026 — launcher GTK, port automatique.
 Mis à jour le 1 mai 2026 — quirk usbhid Chessnut, recompilation driver .so.
 Mis à jour le 3 mai 2026 — GitHub, renommage AlChess.
+Mis à jour le 28 juillet 2026 — limitation Smart App Control Windows 11 (issue #85).
+
+---
+
+## ⚠️ Windows 11 — Smart App Control
+
+> Ce guide porte principalement sur l'installation Ubuntu. Cette section
+> documente une limitation spécifique à **Windows 11**, pour les
+> utilisateurs installant AlChess via `AlChess_Setup.exe` ou
+> `install_alchess.ps1` (voir le README, section Windows).
+
+Sur Windows 11 avec **Smart App Control** (Contrôle intelligent des
+applications, SAC) activé, le double-clic sur `2-Lancer_AlChess.bat` ou sur
+le raccourci bureau est bloqué après l'installation, avec le message :
+
+> « Contrôle intelligent des applications a bloqué un fichier potentiellement
+> dangereux »
+
+**Pourquoi ça bloque** : SAC est un mécanisme de Windows 11 qui n'autorise
+l'exécution que des applications ayant une réputation établie via le cloud
+Microsoft (télémétrie, volume d'installations, signature numérique). AlChess
+est un logiciel open source distribué directement en ZIP/exécutable, sans
+**certificat de signature de code** (~100 €/an) — il n'a donc aucune
+réputation cloud et est traité par défaut comme potentiellement dangereux,
+qu'il le soit ou non.
+
+**Différence avec SmartScreen** : SmartScreen (l'avertissement « Windows a
+protégé votre ordinateur », plus ancien et plus connu) propose un bouton
+« Informations complémentaires » → « Exécuter quand même » qui permet de
+passer outre au cas par cas. **Smart App Control ne propose pas cette
+option** — c'est un blocage sans contournement possible au niveau de
+l'application elle-même. Sans certificat de signature de code, il est
+impossible de faire disparaître ce blocage par une modification du code
+d'AlChess.
+
+**Premier lancement — cas particulier** : le bouton « Lancer AlChess » à la
+fin de l'assistant d'installation NSIS (`AlChess_Setup.exe`) fonctionne
+**même avec SAC activé**, car il s'exécute dans le contexte (et hérite de la
+confiance) du processus installeur déjà lancé par l'utilisateur — SAC ne le
+bloque pas. C'est uniquement le **lancement ultérieur**, depuis le raccourci
+bureau ou `2-Lancer_AlChess.bat`, qui déclenche le blocage.
+
+**Contournements :**
+- **Option A** : lancer AlChess depuis le bouton « Lancer AlChess » à la fin
+  de l'installation (fonctionne toujours, y compris avec SAC activé)
+- **Option B** : désactiver Smart App Control dans Paramètres →
+  Confidentialité et sécurité → Sécurité Windows → Contrôle des applications
+  et du navigateur → Contrôle intelligent des applications → Désactivé
+- **Option C** : utiliser Windows 10, ou Windows 11 avec SAC déjà désactivé
 
 ---
 

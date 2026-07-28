@@ -20,6 +20,18 @@ Pas besoin de connaître Git ou Python. Rendez-vous sur la page **[Releases](htt
 
 **Windows 10 / 11**
 
+> ⚠️ **Windows 11 — Contrôle intelligent des applications (Smart App Control)**
+> Si Windows bloque le lancement avec "Contrôle intelligent des applications a
+> bloqué un fichier potentiellement dangereux" :
+> - **Option A** : lancer AlChess depuis le bouton "Lancer AlChess" à la fin
+>   de l'installation (fonctionne toujours)
+> - **Option B** : désactiver Smart App Control dans Paramètres → Confidentialité
+>   et sécurité → Sécurité Windows → Contrôle des applications et du navigateur
+>   → Contrôle intelligent des applications → Désactivé
+> - **Option C** : utiliser Windows 10, ou Windows 11 avec SAC déjà désactivé
+> AlChess n'est pas signé numériquement (certificat de signature de code) —
+> c'est la cause de ce blocage.
+
 Deux méthodes d'installation sont disponibles :
 
 **Option A — Installeur `.exe` (recommandée, la plus simple)**
@@ -121,6 +133,16 @@ A chess training application that connects a **Chessnut Air** physical chessboar
 No need to know Git or Python. Go to the **[Releases](https://github.com/AlainDelree/AlChess/releases/latest)** page and download the package for your system.
 
 **Windows 10 / 11**
+
+> ⚠️ **Windows 11 — Smart App Control**
+> If Windows blocks the launch with "Smart App Control has blocked a potentially
+> dangerous file":
+> - **Option A**: launch AlChess from the "Launch AlChess" button at the end
+>   of the installation (always works)
+> - **Option B**: disable Smart App Control in Settings → Privacy & Security
+>   → Windows Security → App & browser control → Smart App Control → Off
+> - **Option C**: use Windows 10, or Windows 11 with SAC already disabled
+> AlChess is not digitally signed — this is the cause of the block.
 
 Two installation methods are available:
 
