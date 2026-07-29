@@ -41,6 +41,14 @@
 ;                              fin. Le code des 6 phases est desormais COMPLET.
 ;                              => VALIDATION VM WINDOWS RESTE A FAIRE (aucune
 ;                                 phase n'a jamais tourne sur un vrai Windows).
+;  Phase 7 (#88) : Section "Synchronisation Git" (SecGit), executee en tete du
+;                  SectionGroup. Detecte/installe git, puis git pull (depot
+;                  deja clone) ou git clone (dossier vide) sur $EXEDIR — voir
+;                  fonctions EnsureGitInstalled / SyncGitRepo. ADAPTATION : la
+;                  demande #88 visait $INSTDIR et un remplacement de ZIP ; ce
+;                  fichier n'a ni l'un ni l'autre (architecture $EXEDIR
+;                  co-localise, cf. phase 1 ci-dessus), donc le clone ne peut
+;                  aboutir que sur un dossier vide — non teste sur Windows.
 ;
 ;  --- AVERTISSEMENT PHASE 3 --------------------------------------------------
 ;  Cette section SecPython a ete validee uniquement par COMPILATION (makensis
@@ -1129,11 +1137,160 @@ Function TryStockfishVariant
 FunctionEnd
 
 ; ============================================================================
+;  FONCTIONS UTILITAIRES POUR GIT (issue #88 — auto-update via git pull)
+; ============================================================================
+;  Contexte : le lanceur 2-Lancer_AlChess.bat fait desormais un "git pull"
+;  silencieux a chaque demarrage (issue #88) pour que les mises a jour
+;  d'AlChess arrivent sans telechargement manuel. Pour que ce pull fonctionne,
+;  $EXEDIR doit etre un vrai depot git — ces fonctions detectent/installent
+;  git, puis transforment $EXEDIR en depot (clone si absent, pull sinon).
+;
+;  ADAPTATION A L'ARCHITECTURE REELLE (ecart assume avec la demande #88) :
+;  la demande #88 parle de $INSTDIR et de remplacer "l'extraction ZIP" de
+;  l'app par un git clone. Ce .nsi n'a PAS d'InstallDir ni d'extraction ZIP
+;  de l'app (voir architecture en tete de fichier, issue #52) : il se
+;  co-localise sur $EXEDIR, dossier DEJA rempli par l'app (ZIP de release
+;  extrait manuellement par l'utilisateur avant de lancer AlChess_Setup.exe).
+;  SyncGitRepo utilise donc $EXEDIR partout ou la demande disait $INSTDIR, et
+;  NE FAIT PAS Abort si le clone echoue parce que $EXEDIR est deja rempli
+;  (cas actuel normal) : le code deja present reste utilise tel quel, sans
+;  auto-update tant que $EXEDIR n'est pas un vrai clone git. Un vrai clone
+;  "premiere installation" necessitera un futur chantier de packaging
+;  (bootstrapper minimal livre seul, sans le ZIP de l'app) — voir issue #88.
+; ---------------------------------------------------------------------------
+
+; ---------------------------------------------------------------------------
+;  EnsureGitInstalled
+;  Teste "git --version" ; si absent, installe via winget (meme pattern que
+;  InstallPython312NSIS, phase 3bis, issue #60). Abort avec message clair si
+;  git reste indisponible apres tentative winget.
+; ---------------------------------------------------------------------------
+Function EnsureGitInstalled
+    DetailPrint "================================================"
+    DetailPrint "Verification de Git"
+    DetailPrint "================================================"
+
+    nsExec::ExecToStack 'cmd /c git --version'
+    Pop $R0
+    Pop $R1
+    IntCmp $R0 0 git_present git_absent git_absent
+
+    git_present:
+        DetailPrint "  Git detecte : $R1"
+        Return
+
+    git_absent:
+        DetailPrint "  Git non trouve. Tentative d'installation via winget..."
+        nsExec::ExecToStack 'cmd /c winget --version'
+        Pop $R0
+        Pop $R1
+        IntCmp $R0 0 winget_available winget_unavailable winget_unavailable
+
+        winget_unavailable:
+            DetailPrint "================================================"
+            DetailPrint "ECHEC : ni Git ni winget ne sont disponibles."
+            DetailPrint "================================================"
+            MessageBox MB_OK|MB_ICONSTOP "Git n'est pas installe et winget n'est pas disponible pour l'installer automatiquement.$\r$\n$\r$\nInstallez Git manuellement depuis :$\r$\nhttps://git-scm.com/download/win$\r$\n$\r$\npuis relancez cet installeur."
+            Abort
+
+        winget_available:
+            DetailPrint "  Installation de Git via winget (le telechargement peut prendre un moment)..."
+            nsExec::ExecToLog 'cmd /c winget install --id Git.Git -e --silent --accept-source-agreements --accept-package-agreements'
+            Pop $R0
+            IntCmp $R0 0 winget_git_ok winget_git_fail winget_git_fail
+
+        winget_git_fail:
+            DetailPrint "================================================"
+            DetailPrint "ECHEC : l'installation de Git via winget a echoue (code $R0)."
+            DetailPrint "================================================"
+            MessageBox MB_OK|MB_ICONSTOP "L'installation de Git via winget a echoue (code $R0).$\r$\n$\r$\nInstallez Git manuellement depuis :$\r$\nhttps://git-scm.com/download/win$\r$\n$\r$\npuis relancez cet installeur."
+            Abort
+
+        winget_git_ok:
+            ; PATH pas forcement rafraichi dans ce process (meme remarque que
+            ; pour Python, phase 3bis) : re-tester directement.
+            nsExec::ExecToStack 'cmd /c git --version'
+            Pop $R0
+            Pop $R1
+            IntCmp $R0 0 git_now_ok git_still_missing git_still_missing
+
+        git_still_missing:
+            DetailPrint "================================================"
+            DetailPrint "Git installe mais pas encore detecte dans ce process."
+            DetailPrint "================================================"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Git a ete installe mais n'est pas encore detecte par l'installeur.$\r$\n$\r$\nRedemarrez votre PC puis relancez cet installeur."
+            Abort
+
+        git_now_ok:
+            DetailPrint "  Git installe et detecte : $R1"
+            Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  SyncGitRepo
+;  Transforme $EXEDIR en depot git a jour : "git pull --ff-only" si $EXEDIR
+;  est deja un depot (dossier .git present), sinon tente un "git clone".
+;  Le clone n'aboutit que si $EXEDIR est vide (dossier "co-localise" actuel,
+;  deja rempli par le ZIP de release) : dans ce cas on logue et on continue
+;  SANS Abort (voir note d'adaptation en tete de section) — l'app deja
+;  presente reste utilisee telle quelle, seule la mise a jour auto est
+;  indisponible tant que $EXEDIR n'est pas un vrai clone git.
+; ---------------------------------------------------------------------------
+Function SyncGitRepo
+    DetailPrint "================================================"
+    DetailPrint "Synchronisation du code AlChess (Git)"
+    DetailPrint "================================================"
+
+    IfFileExists "$EXEDIR\.git\*.*" repo_present repo_absent
+
+    repo_present:
+        DetailPrint "  Depot git existant detecte — mise a jour (git pull --ff-only)..."
+        nsExec::ExecToLog 'cmd /c git -C "$EXEDIR" pull --ff-only origin master'
+        Pop $R0
+        IntCmp $R0 0 pull_ok pull_fail pull_fail
+
+        pull_fail:
+            DetailPrint "  AVERTISSEMENT : git pull a echoue (code $R0) — version locale conservee."
+            Return
+
+        pull_ok:
+            DetailPrint "  Code AlChess a jour."
+            Return
+
+    repo_absent:
+        DetailPrint "  Aucun depot git dans $EXEDIR — tentative de clonage..."
+        nsExec::ExecToLog 'cmd /c git clone --branch master https://github.com/AlainDelree/AlChess.git "$EXEDIR"'
+        Pop $R0
+        IntCmp $R0 0 clone_ok clone_fail clone_fail
+
+        clone_fail:
+            ; Cas normal actuel : $EXEDIR deja rempli par le ZIP de release
+            ; (git refuse de cloner dans un dossier non vide). Non bloquant :
+            ; l'app deja presente reste utilisee, simplement sans auto-update
+            ; tant qu'elle n'a pas ete (re)installee via un vrai clone.
+            DetailPrint "  Clonage impossible (code $R0) — dossier probablement deja rempli."
+            DetailPrint "  L'application deja presente est conservee (pas de mise a jour automatique)."
+            Return
+
+        clone_ok:
+            DetailPrint "  Code AlChess clone avec succes."
+            Return
+FunctionEnd
+
+; ============================================================================
 ;  SECTIONS DE CONFIGURATION
 ;  Toutes co-localisees sur $EXEDIR. Remplies progressivement (phases 3-5).
 ; ============================================================================
 
 SectionGroup "Configuration AlChess" SecGroupConfig
+
+    ; -- Phase Git (issue #88) : depot git + auto-update ----------------------
+    ; DOIT s'executer avant SecPython/SecVenv : requirements.txt (utilise par
+    ; SecVenv) doit venir du code deja synchronise ici.
+    Section "Synchronisation Git" SecGit
+        Call EnsureGitInstalled
+        Call SyncGitRepo
+    SectionEnd
 
     ; -- Phase 3 : portage de Get-Python312 / Install-Python312 --------------
     Section "Verification Python" SecPython

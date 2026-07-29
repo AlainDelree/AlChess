@@ -1,4 +1,20 @@
 @echo off
+rem --- Verification des mises a jour (issue #88) ---
+echo Verification des mises a jour AlChess...
+where git >nul 2>&1
+if %errorlevel% equ 0 (
+    cd /d "%~dp0"
+    git pull --ff-only origin master >nul 2>&1
+    if %errorlevel% equ 0 (
+        echo Mise a jour OK.
+    ) else (
+        echo Mise a jour impossible ^(hors ligne ou conflit local^) - version locale conservee.
+    )
+) else (
+    echo Git non trouve - verification des mises a jour ignoree.
+)
+rem --- Fin verification ---
+
 rem ============================================================================
 rem  2-Lancer_AlChess.bat  --  Lanceur AlChess, 100%% batch pur (issue #70)
 rem ----------------------------------------------------------------------------
