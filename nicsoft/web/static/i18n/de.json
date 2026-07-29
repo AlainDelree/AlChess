@@ -401,6 +401,8 @@
 
   "analyse.titre":             "Partieanalyse",
   "analyse.importer_pgn":      "Eine PGN-Datei importieren",
+  "analyse.btn.coller_pgn":    "📋 PGN einfügen",
+  "analyse.btn.charger_pgn_colle": "✅ Laden",
 
   "config.joueur1":            "Spieler 1",
   "config.joueur2":            "Spieler 2",
@@ -420,6 +422,7 @@
   "exercices.cliquer_jouer_virtuel": "Auf Ihre Figuren klicken zum Spielen.",
 
   "error.pgn_non_reconnu":     "Ungültiges oder nicht erkanntes PGN.",
+  "error.pgn_vide":            "Der PGN-Bereich ist leer.",
   "error.board.deconnecte":    "Brett getrennt oder ausgeschaltet. Programm neu starten.",
 
   "game.pause_info":           "{player} spielt {color}",

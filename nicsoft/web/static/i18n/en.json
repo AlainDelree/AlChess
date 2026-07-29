@@ -401,6 +401,8 @@
 
   "analyse.titre":             "Game analysis",
   "analyse.importer_pgn":      "Import a PGN file",
+  "analyse.btn.coller_pgn":    "📋 Paste PGN",
+  "analyse.btn.charger_pgn_colle": "✅ Load",
 
   "config.joueur1":            "Player 1",
   "config.joueur2":            "Player 2",
@@ -420,6 +422,7 @@
   "exercices.cliquer_jouer_virtuel": "Click on your pieces to play.",
 
   "error.pgn_non_reconnu":     "Invalid or unrecognised PGN.",
+  "error.pgn_vide":            "PGN area is empty.",
   "error.board.deconnecte":    "Board disconnected or off. Restart the program.",
 
   "game.pause_info":           "{player} plays {color}",

@@ -401,6 +401,8 @@
 
   "analyse.titre":             "Analyse de partie",
   "analyse.importer_pgn":      "Importez un fichier PGN",
+  "analyse.btn.coller_pgn":    "📋 Coller PGN",
+  "analyse.btn.charger_pgn_colle": "✅ Charger",
 
   "config.joueur1":            "Joueur 1",
   "config.joueur2":            "Joueur 2",
@@ -420,6 +422,7 @@
   "exercices.cliquer_jouer_virtuel": "Cliquez sur vos pièces pour jouer.",
 
   "error.pgn_non_reconnu":     "PGN invalide ou non reconnu.",
+  "error.pgn_vide":            "La zone PGN est vide.",
   "error.board.deconnecte":    "Échiquier déconnecté ou éteint. Relancez le programme.",
 
   "game.pause_info":           "{player} joue les {color}",

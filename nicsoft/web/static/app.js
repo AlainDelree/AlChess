@@ -2213,6 +2213,20 @@ function loadPgnFile(event) {
   reader.readAsText(file);
 }
 
+function toggleCollerPgn() {
+  const zone = document.getElementById('coller-pgn-zone');
+  zone.style.display = zone.style.display === 'none' ? 'block' : 'none';
+}
+
+function chargerPgnColle() {
+  const pgn = document.getElementById('coller-pgn-input').value.trim();
+  if (!pgn) { alert(t('error.pgn_vide') || 'Zone PGN vide.'); return; }
+  // Masquer la zone après chargement
+  document.getElementById('coller-pgn-zone').style.display = 'none';
+  document.getElementById('coller-pgn-input').value = '';
+  parsePgn(pgn);
+}
+
 function parsePgn(pgn) {
   try {
     const chess = new Chess();

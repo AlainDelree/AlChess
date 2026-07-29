@@ -45,6 +45,11 @@
 
 ## ✅ Bugs résolus récemment
 
+### Session du 29 juillet
+
+Menu Analyse — bouton 📋 Coller PGN : zone textarea pour coller un PGN
+directement sans fichier intermédiaire, appelle parsePgn() existant. (issue #86)
+
 ### Session du 28 juillet
 
 Documentation Smart App Control Windows 11 ajoutée dans README.md et
