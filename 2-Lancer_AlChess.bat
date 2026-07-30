@@ -1,18 +1,55 @@
 @echo off
-rem --- Verification des mises a jour (issue #88) ---
+rem --- Verification des mises a jour : dernier tag de release (issue #90, suite #89) ---
+rem  Auparavant "git pull --ff-only origin master" (issue #88) : tirait CHAQUE
+rem  commit de master. Pour la securite, on ne tire desormais que les versions
+rem  explicitement taguees (ex: v1.3.0) : fetch des tags, puis checkout du plus
+rem  recent (tri "version:refname", donc le premier resultat = le plus recent).
+rem  Structure en goto (pas de parenthesage imbrique) pour eviter le piege des
+rem  variables lues/ecrites dans le meme bloc () sans "setlocal enabledelayedexpansion".
 echo Verification des mises a jour AlChess...
 where git >nul 2>&1
-if %errorlevel% equ 0 (
-    cd /d "%~dp0"
-    git pull --ff-only origin master >nul 2>&1
-    if %errorlevel% equ 0 (
-        echo Mise a jour OK.
-    ) else (
-        echo Mise a jour impossible ^(hors ligne ou conflit local^) - version locale conservee.
-    )
-) else (
-    echo Git non trouve - verification des mises a jour ignoree.
+if not %errorlevel% equ 0 goto :maj_no_git
+
+cd /d "%~dp0"
+git fetch --tags origin >nul 2>&1
+if not %errorlevel% equ 0 goto :maj_fetch_fail
+
+set "LATEST_TAG="
+for /f "delims=" %%T in ('git tag --sort=-version:refname 2^>nul') do (
+    set "LATEST_TAG=%%T"
+    goto :maj_got_tag
 )
+goto :maj_no_tag
+
+:maj_got_tag
+set "CURRENT_TAG="
+for /f "delims=" %%C in ('git describe --tags --exact-match 2^>nul') do set "CURRENT_TAG=%%C"
+if "%CURRENT_TAG%"=="%LATEST_TAG%" goto :maj_already_latest
+
+git checkout "%LATEST_TAG%" >nul 2>&1
+if %errorlevel% equ 0 (
+    echo Mise a jour OK ^(version %LATEST_TAG%^).
+) else (
+    echo Mise a jour impossible ^(checkout %LATEST_TAG% echoue^) - version locale conservee.
+)
+goto :maj_fin
+
+:maj_already_latest
+echo Deja a jour ^(version %LATEST_TAG%^).
+goto :maj_fin
+
+:maj_no_tag
+echo Aucun tag de version trouve - version locale conservee.
+goto :maj_fin
+
+:maj_fetch_fail
+echo Mise a jour impossible ^(hors ligne ou depot local^) - version locale conservee.
+goto :maj_fin
+
+:maj_no_git
+echo Git non trouve - verification des mises a jour ignoree.
+
+:maj_fin
 rem --- Fin verification ---
 
 rem ============================================================================
