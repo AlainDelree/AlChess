@@ -1,4 +1,8 @@
 @echo off
+if exist "%~dp0no-update.txt" (
+    echo Mises a jour automatiques desactivees.
+    goto :fin_update
+)
 rem --- Verification des mises a jour : dernier tag de release (issue #90, suite #89) ---
 rem  Auparavant "git pull --ff-only origin master" (issue #88) : tirait CHAQUE
 rem  commit de master. Pour la securite, on ne tire desormais que les versions
@@ -50,6 +54,7 @@ goto :maj_fin
 echo Git non trouve - verification des mises a jour ignoree.
 
 :maj_fin
+:fin_update
 rem --- Fin verification ---
 
 rem ============================================================================

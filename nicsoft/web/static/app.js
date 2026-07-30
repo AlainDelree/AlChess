@@ -36,6 +36,19 @@ function debugMark(e) {
     .catch(() => {});
 }
 
+// ── MISES À JOUR AUTOMATIQUES (issue #91) ─────────────────
+function toggleAutoUpdate() {
+  fetch("/toggle-autoupdate", { method: "POST" })
+    .then(r => r.json())
+    .then(data => {
+      const chk = document.getElementById("chk-autoupdate");
+      const warning = document.getElementById("autoupdate-warning");
+      if (chk) chk.checked = data.active;
+      if (warning) warning.style.display = data.active ? "none" : "block";
+    })
+    .catch(() => {});
+}
+
 // ── MODE TEST ALÉATOIRE ───────────────────────────────────
 const _testMode = (window._NICLINK_TEST || "") === "random";
 

@@ -12,12 +12,16 @@ import os
 import pathlib
 import queue
 import threading
-from nicsoft.config import DATA_DIR, GAMES_DIR, LOGS_DIR
+from nicsoft.config import APP_DIR, DATA_DIR, GAMES_DIR, LOGS_DIR
 from flask import Flask, render_template, send_file, abort
 from flask_socketio import SocketIO, emit
 
 logger = logging.getLogger("niclink.server")
 LOG_FILE = LOGS_DIR / "niclink.log"
+
+# Fichier sentinelle : sa presence desactive la verification des mises a
+# jour automatiques faite par 2-Lancer_AlChess.bat au demarrage (issue #91).
+NO_UPDATE_FILE = APP_DIR / "no-update.txt"
 
 # Mode debug — activé via variable d'environnement NICLINK_LOG=DEBUG
 DEBUG_MODE = os.environ.get("NICLINK_LOG", "").upper() == "DEBUG"
@@ -103,7 +107,7 @@ def _get_rodent_available() -> bool:
 
 @app.route("/")
 def index():
-    return render_template("index.html", test_mode=TEST_MODE)
+    return render_template("index.html", test_mode=TEST_MODE, autoupdate_active=not NO_UPDATE_FILE.exists())
 
 @app.route("/logs")
 def get_logs():
@@ -133,6 +137,22 @@ def debug_mode_status():
     """Retourne si le mode debug est actif — utilisé par le JS au démarrage."""
     from flask import jsonify
     return jsonify({"debug": DEBUG_MODE})
+
+@app.route("/toggle-autoupdate", methods=["POST"])
+def toggle_autoupdate():
+    """Active/désactive les mises à jour automatiques du launcher (issue #91).
+
+    Bascule via la présence de NO_UPDATE_FILE à la racine du projet,
+    lu par 2-Lancer_AlChess.bat au démarrage.
+    """
+    from flask import jsonify
+    if NO_UPDATE_FILE.exists():
+        NO_UPDATE_FILE.unlink()
+        active = True
+    else:
+        NO_UPDATE_FILE.write_text("Presence de ce fichier = mises a jour automatiques desactivees.\n", encoding="utf-8")
+        active = False
+    return jsonify({"active": active})
 
 TEST_CONFIG_DIR = LOGS_DIR / "Test config"
 

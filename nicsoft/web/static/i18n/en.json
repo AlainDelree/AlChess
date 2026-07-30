@@ -47,6 +47,8 @@
   "menu.desc.exercices":       "Train your openings with a Grandmaster book. Play your moves on the physical board — the book responds and guides you through the theory.",
   "menu.desc.retrans":         "Transcribe a game played on paper. Enter moves on the virtual board and export the PGN.",
   "menu.desc.outils":          "Import your PGN lines, convert SAN → UCI and manage the openings catalogue.",
+  "menu.autoupdate.label":     "Automatic updates",
+  "menu.autoupdate.warning":   "Automatic updates are disabled. You will not receive security fixes or new features.",
 
   "config.titre.pedagogique":  "Training Mode",
   "config.titre.humain":       "Human vs Human",

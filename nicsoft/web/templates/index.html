@@ -122,6 +122,16 @@
 
 
   <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;" data-i18n="menu.btn.quitter">✕ Quitter</button>
+
+  <div style="margin-top:12px; font-size:0.8rem; color:#3a5a7a; text-align:center;">
+    <label style="cursor:pointer;">
+      <input type="checkbox" id="chk-autoupdate" {% if autoupdate_active %}checked{% endif %} onchange="toggleAutoUpdate()">
+      <span data-i18n="menu.autoupdate.label">Mises à jour automatiques</span>
+    </label>
+    <div id="autoupdate-warning" style="display:{% if autoupdate_active %}none{% else %}block{% endif %}; color:#c0392b; font-size:0.75rem; margin-top:4px; max-width:420px; margin-left:auto; margin-right:auto;" data-i18n="menu.autoupdate.warning">
+      Les mises à jour automatiques sont désactivées. Vous ne recevrez pas les correctifs de sécurité ni les nouvelles fonctionnalités.
+    </div>
+  </div>
 </div>
 
 <!-- ── Écran config ── -->

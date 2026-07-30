@@ -47,6 +47,8 @@
   "menu.desc.exercices":       "Eröffnungen mit einem Großmeister-Buch trainieren. Züge auf dem Brett spielen — das Buch antwortet und führt durch die Theorie.",
   "menu.desc.retrans":         "Eine auf Papier gespielte Partie mitschreiben. Züge auf dem virtuellen Brett eingeben und das PGN exportieren.",
   "menu.desc.outils":          "PGN-Linien importieren, SAN → UCI konvertieren und den Eröffnungskatalog verwalten.",
+  "menu.autoupdate.label":     "Automatische Updates",
+  "menu.autoupdate.warning":   "Automatische Updates sind deaktiviert. Sie erhalten weder Sicherheitskorrekturen noch neue Funktionen.",
 
   "config.titre.pedagogique":  "Trainingsmodus",
   "config.titre.humain":       "Mensch gegen Mensch",

@@ -47,6 +47,8 @@
   "menu.desc.exercices":       "Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.",
   "menu.desc.retrans":         "Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.",
   "menu.desc.outils":          "Importez vos lignes PGN, convertissez SAN → UCI et gérez le catalogue d'ouvertures.",
+  "menu.autoupdate.label":     "Mises à jour automatiques",
+  "menu.autoupdate.warning":   "Les mises à jour automatiques sont désactivées. Vous ne recevrez pas les correctifs de sécurité ni les nouvelles fonctionnalités.",
 
   "config.titre.pedagogique":  "Mode Pédagogique",
   "config.titre.humain":       "Humain vs Humain",
