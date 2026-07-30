@@ -233,6 +233,14 @@ python -m nicsoft.web
 
 Full guide: [`INSTALLATION/`](INSTALLATION/).
 
+### Automatic updates
+
+On startup, AlChess checks whether a newer version is available on GitHub (latest published release tag) and updates itself automatically if so. This mechanism is **transparent**: it requires no action on your part, but does need an **internet connection** at launch.
+
+You can disable this check via the dedicated checkbox in the main menu. A warning is then displayed to remind you that you will no longer receive automatic updates.
+
+For advanced users who prefer to manage updates themselves (for example in a controlled environment), disabling the check simply creates a `no-update.txt` file at the root of the installation. Its presence is enough to turn off the automatic check; it can also be created or deleted manually.
+
 ### Contributing
 
 Contributions are welcome! Open an **Issue** to report a bug or suggest a feature, or a **Pull Request** to submit code.
