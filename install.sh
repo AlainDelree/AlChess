@@ -99,17 +99,20 @@ do
     fi
 done
 
-# ── 4. Règles udev (Chessnut Air) ────────────────────────────────────────────
-step "Règles udev (Chessnut Air)"
+# ── 4. Règles udev (Chessnut — tous modèles) ─────────────────────────────────
+step "Règles udev (Chessnut — tous modèles)"
 
 UDEV_FILE="/etc/udev/rules.d/99-chessnut.rules"
-if [[ -f "$UDEV_FILE" ]]; then
-    ok "Règles udev déjà en place"
+if [[ -f "$UDEV_FILE" ]] && grep -q "autosuspend" "$UDEV_FILE" && grep -q "2d80" "$UDEV_FILE" && ! grep -q "idProduct" "$UDEV_FILE"; then
+    ok "Règles udev déjà en place (vendor-wide)"
 else
-    if ask_yn "Installer les règles udev ? (sudo requis)"; then
+    if [[ -f "$UDEV_FILE" ]]; then
+        warn "Règles udev existantes obsolètes (filtrées par modèle) — mise à jour recommandée"
+    fi
+    if ask_yn "Installer/mettre à jour les règles udev ? (sudo requis)"; then
         sudo tee "$UDEV_FILE" > /dev/null << 'EOF'
-ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2d80", ATTR{idProduct}=="8003", MODE="0666", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
-KERNEL=="hidraw*", ATTRS{idVendor}=="2d80", ATTRS{idProduct}=="8003", MODE="0666"
+ACTION=="add", SUBSYSTEM=="usb", ATTRS{idVendor}=="2d80", MODE="0666", ATTR{power/control}="on", ATTR{power/autosuspend}="-1"
+KERNEL=="hidraw*", ATTRS{idVendor}=="2d80", MODE="0666"
 EOF
         sudo udevadm control --reload-rules
         ok "Règles udev installées"

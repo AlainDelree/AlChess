@@ -5,13 +5,25 @@ set_all_leds, lights_out, set_led, beep, gameover_lights.
 """
 
 import hid
+import logging
 import threading
 import time
+
+logger = logging.getLogger(__name__)
 
 VENDOR_ID   = 0x2d80
 PRODUCT_IDS = [0x8001, 0x8002, 0x8003, 0x8202, 0x8501]  # 8003=Air, 8202=Air Plus, 8501=Chessnut Go
 USAGE_PAGE  = 0xFF00
 WRITE_INTERVAL = 0.2  # secondes — identique au C++ (200ms)
+
+# Mapping PID → nom lisible (pour les logs de diagnostic)
+_PRODUCT_NAMES = {
+    0x8001: "Chessnut (8001)",
+    0x8002: "Chessnut (8002)",
+    0x8003: "Chessnut Air",
+    0x8202: "Chessnut Air Plus",
+    0x8501: "Chessnut Go",
+}
 
 # Mapping pièces — identique à ChessLink::toFen dans EasyLink.cpp
 _PIECES = ['0', 'q', 'k', 'b', 'p', 'n', 'R', 'P', 'r', 'B', 'N', 'Q', 'K']
@@ -21,19 +33,20 @@ _current_fen: str = ""
 _led_status: list[int] = [0] * 8  # pattern LED courant en ordre USB (index 0 = rangée 8)
 _write_lock = threading.Lock()
 _last_write: float = 0.0
+_connected_product_id: int | None = None
 
 
-def _list_paths() -> list[bytes]:
-    """Retourne les paths HID des Chessnut Air détectés."""
+def _list_paths() -> list[tuple[bytes, int]]:
+    """Retourne les (path, product_id) HID des Chessnut Air détectés."""
     paths = []
     for info in hid.enumerate(VENDOR_ID, 0):
         if info['product_id'] in PRODUCT_IDS and info.get('usage_page') == USAGE_PAGE:
-            paths.append(info['path'])
+            paths.append((info['path'], info['product_id']))
     if not paths:
         # Fallback sans filtre usage_page (Linux hidraw ne l'expose pas toujours)
         for info in hid.enumerate(VENDOR_ID, 0):
             if info['product_id'] in PRODUCT_IDS:
-                paths.append(info['path'])
+                paths.append((info['path'], info['product_id']))
     return paths
 
 
@@ -59,12 +72,17 @@ def connect() -> None:
     donc c'était un no-op (b_write vérifie connectStatus). On ne l'envoie pas ici
     pour éviter un bip parasite causé par la commande de switch de mode.
     """
-    global _dev, _current_fen
+    global _dev, _current_fen, _connected_product_id
     paths = _list_paths()
     if not paths:
         raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
+    path, product_id = paths[0]
     _dev = hid.device()
-    _dev.open_path(paths[0])
+    _dev.open_path(path)
+
+    _connected_product_id = product_id
+    name = _PRODUCT_NAMES.get(product_id, "modèle inconnu")
+    logger.info("Chessnut connecté : PID=0x%04x (%s)", product_id, name)
 
     time.sleep(2)  # attente initialisation hardware (identique C++)
     _write(bytes([0x0b, 0x04, 0x02, 0x58, 0x00, 0xc8]))  # beep (600Hz, 200ms)
@@ -119,7 +137,12 @@ def _decode_fen(data: bytes) -> str:
     Fonctionne sur Linux (report ID 0x01) et Windows (0x01 ou 0x2a).
     """
     if len(data) < 34:  # besoin de 2 octets header + 32 octets FEN (idx max = 33)
+        logger.debug(
+            "_decode_fen: paquet trop court (%d octets, 34 requis) — premiers octets : %s",
+            len(data), data[:8].hex(),
+        )
         return ""
+    i = j = idx = None
     try:
         fen = ""
         empty = 0
@@ -143,7 +166,11 @@ def _decode_fen(data: bytes) -> str:
                 fen += "/"
             empty = 0
         return fen
-    except Exception:
+    except Exception as e:
+        value = data[idx] if idx is not None and idx < len(data) else "?"
+        logger.debug(
+            "_decode_fen: exception à i=%s j=%s data[idx]=%s : %s", i, j, value, e,
+        )
         return ""
 
 
