@@ -237,18 +237,11 @@ function _launchVirtual(mode) {
 
 function toggleVirtualMode(enabled) {
   _virtualMode = enabled;
-  const sub = document.querySelector(".menu-subtitle");
   const link = document.getElementById("btn-reconnect");
   if (enabled) {
-    if (sub) { sub.textContent = t("menu.sous_titre_virtuel"); }
     if (link) { link.style.display = "none"; }
   } else {
     if (link) { link.style.display = _boardOk ? "none" : ""; }
-    if (_boardOk) {
-      if (sub) { sub.textContent = t("menu.sous_titre_connecte"); }
-    } else {
-      if (sub) { sub.textContent = t("menu.verification_echiquier"); }
-    }
   }
   // Le badge échiquier ne dépend plus de _virtualMode (2 états : connecté / non détecté).
 }
@@ -259,8 +252,9 @@ function _syncVirtualCheckboxes() {
 }
 
 // Lance le mode d'une carte (Pédagogique/Labo/Exercices) — virtuel si la case est cochée
-function _menuCardLaunch(mode, cardEl) {
-  const chk = cardEl.querySelector(".menu-card-chk");
+function _menuCardLaunch(mode, headEl) {
+  const card = headEl.closest(".menu-card");
+  const chk = card ? card.querySelector(".menu-card-chk") : null;
   if (chk && chk.checked) {
     _launchVirtual(mode);
   } else {
@@ -268,7 +262,7 @@ function _menuCardLaunch(mode, cardEl) {
   }
 }
 
-// Met à jour le header (fond + filigrane + pill) et le statut HH selon l'état de l'échiquier
+// Met à jour le header (fond + filigrane + pill) et le filigrane du menu selon l'état de l'échiquier
 function _applyBoardBadge() {
   const header = document.getElementById("app-header");
   const pill   = document.getElementById("board-status-pill");
@@ -280,11 +274,8 @@ function _applyBoardBadge() {
     pill.classList.toggle("pill-disconnected", !_boardOk);
     text.textContent = t(_boardOk ? "status.board.connecte" : "status.board.sans_echiquier");
   }
-  const hhLabel = document.getElementById("hh-status-label");
-  if (hhLabel) {
-    hhLabel.classList.toggle("hh-ready", _boardOk);
-    hhLabel.textContent = t(_boardOk ? "menu.hh.pret" : "menu.hh.requiert_echiquier");
-  }
+  const menuDeco = document.getElementById("menu-grid-deco");
+  if (menuDeco) menuDeco.classList.toggle("deco-connected", _boardOk);
 }
 
 
@@ -892,15 +883,8 @@ socket.on("app_state", (data) => {
     // Quitter le mode virtuel au retour au menu (badge échiquier repasse en mode physique)
     if (_virtualMode) {
       _virtualMode = false;
-      const sub = document.querySelector(".menu-subtitle");
       const link = document.getElementById("btn-reconnect");
       if (link) link.style.display = _boardOk ? "none" : "";
-      if (_boardOk) {
-        if (sub) { sub.textContent = t("menu.sous_titre_connecte"); }
-      } else {
-        if (sub) { sub.textContent = t("menu.verification_echiquier"); }
-      }
-      _syncVirtualCheckboxes();
     }
     // Vider les champs de config HH
     const wName = document.getElementById("cfg-white-name");
@@ -1284,18 +1268,6 @@ function _refreshDynamicLabels() {
   // Lien reconnect (texte — visibilité gérée par board_ok/board_error)
   const reconnectLink = document.getElementById("btn-reconnect");
   if (reconnectLink) reconnectLink.textContent = t("menu.btn.reconnect_label");
-
-  // Sous-titre menu (plus de message d'erreur rouge — le header communique l'état)
-  const sub = document.querySelector(".menu-subtitle");
-  if (sub) {
-    if (_virtualMode) {
-      sub.textContent = t("menu.sous_titre_virtuel");
-    } else if (_boardOk) {
-      sub.textContent = t("menu.sous_titre_connecte");
-    } else {
-      sub.textContent = t("menu.verification_echiquier");
-    }
-  }
 
   // Titre bouton flip
   const flipBtn = document.getElementById("btn-flip");

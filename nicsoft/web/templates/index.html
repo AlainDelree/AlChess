@@ -47,19 +47,19 @@
 <!-- ── Écran menu ── -->
 <div id="screen-menu">
   <div class="menu-title"><span style="font-size:1.3em; line-height:1;">♜</span> AlChess</div>
-  <div class="menu-subtitle" data-i18n="menu.verification_echiquier">Vérification de l'échiquier…</div>
 
   <div class="menu-grid">
+    <div class="menu-grid-deco" id="menu-grid-deco" aria-hidden="true"></div>
 
     <!-- ── Colonne GAUCHE : Jouer ── -->
     <div class="menu-col menu-col-jouer">
       <div class="menu-col-title" data-i18n="menu.col.jouer">Jouer</div>
 
       <div class="menu-btn-wrap">
-        <div class="menu-card menu-card-primary" onclick="_menuCardLaunch('pedagogique', this)">
-          <div class="menu-card-head">♟ <span data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</span></div>
+        <div class="menu-card menu-card-primary">
+          <div class="menu-card-head" onclick="_menuCardLaunch('pedagogique', this)">♟ <span data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</span></div>
           <div class="menu-card-sep"></div>
-          <div class="menu-card-foot" onclick="event.stopPropagation()">
+          <div class="menu-card-foot">
             <label class="menu-card-chk-label">
               <input type="checkbox" class="menu-card-chk" checked>
               <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
@@ -71,15 +71,14 @@
 
       <div class="menu-btn-wrap">
         <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})" data-i18n="menu.btn.humain">⚔️ Humain vs Humain</button>
-        <div class="menu-hh-status" id="hh-status-label" data-i18n="menu.hh.requiert_echiquier">Échiquier requis</div>
         <div class="menu-btn-desc" id="desc-humain" data-i18n="menu.desc.humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
       </div>
 
       <div class="menu-btn-wrap">
-        <div class="menu-card menu-card-secondary" onclick="_menuCardLaunch('labo', this)">
-          <div class="menu-card-head">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></div>
+        <div class="menu-card menu-card-secondary">
+          <div class="menu-card-head" onclick="_menuCardLaunch('labo', this)">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></div>
           <div class="menu-card-sep"></div>
-          <div class="menu-card-foot" onclick="event.stopPropagation()">
+          <div class="menu-card-foot">
             <label class="menu-card-chk-label">
               <input type="checkbox" class="menu-card-chk" checked>
               <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
@@ -90,10 +89,10 @@
       </div>
 
       <div class="menu-btn-wrap">
-        <div class="menu-card menu-card-secondary" onclick="_menuCardLaunch('exercices', this)">
-          <div class="menu-card-head">♟ <span data-i18n="menu.btn.exercices">📚 Exercices</span></div>
+        <div class="menu-card menu-card-secondary">
+          <div class="menu-card-head" onclick="_menuCardLaunch('exercices', this)">♟ <span data-i18n="menu.btn.exercices">📚 Exercices</span></div>
           <div class="menu-card-sep"></div>
-          <div class="menu-card-foot" onclick="event.stopPropagation()">
+          <div class="menu-card-foot">
             <label class="menu-card-chk-label">
               <input type="checkbox" class="menu-card-chk" checked>
               <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
@@ -110,14 +109,12 @@
       <div class="menu-col-title" data-i18n="menu.col.outils">Outils</div>
 
       <div class="menu-btn-wrap">
-        <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})" data-i18n="menu.btn.analyse">📊 Analyse de partie</button>
-        <div class="menu-static-label" data-i18n="menu.mode_virtuel_label">Mode virtuel</div>
+        <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})" data-i18n="menu.btn.analyse">🖥 📊 Analyse de partie</button>
         <div class="menu-btn-desc" id="desc-analyse" data-i18n="menu.desc.analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
       </div>
 
       <div class="menu-btn-wrap">
-        <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})" data-i18n="menu.btn.retranscrire">✏️ Retranscrire</button>
-        <div class="menu-static-label" data-i18n="menu.mode_virtuel_label">Mode virtuel</div>
+        <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})" data-i18n="menu.btn.retranscrire">🖥 ✏️ Retranscrire</button>
         <div class="menu-btn-desc" id="desc-retrans" data-i18n="menu.desc.retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
       </div>
 
@@ -130,7 +127,7 @@
 
   </div><!-- fin menu-grid -->
 
-  <a href="#" id="btn-reconnect" class="menu-reconnect-link" onclick="sendAction({type:'reconnect_board'}); return false;" data-i18n="menu.btn.reconnect_label">⟳ Reconnecter l'échiquier</a>
+  <button id="btn-reconnect" class="menu-btn menu-btn-reconnect" onclick="sendAction({type:'reconnect_board'})" data-i18n="menu.btn.reconnect_label">⟳ Reconnecter l'échiquier</button>
 
 
   <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;" data-i18n="menu.btn.quitter">✕ Quitter</button>

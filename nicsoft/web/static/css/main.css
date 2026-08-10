@@ -48,14 +48,13 @@
       border-bottom: 2px solid #a0b8d0;
       transition: background 0.3s;
     }
-    header.header-connected { background: #E1F5EE; }
+    header.header-connected { background: #E1F5EE; border-bottom: 3px solid #0F6E56; }
 
     header h1 {
       font-size: 1.4rem;
       color: #e94560;
       letter-spacing: 1px;
     }
-    header.header-connected #header-icon { color: #0F6E56; }
 
     /* Filigrane décoratif — grille d'échiquier 5×4 en coin droit */
     .board-deco {
@@ -170,10 +169,6 @@
       letter-spacing: 3px;
       margin-bottom: 8px;
     }
-    .menu-subtitle {
-      color: #1a2a3a;
-      margin-bottom: 20px;
-    }
     .menu-btn {
       width: 300px;
       padding: 14px 20px;
@@ -225,28 +220,13 @@
     .menu-card-primary   .menu-card-sep { background: rgba(255,255,255,0.25); }
     .menu-card-secondary { background: #c2d4e8; color: #1a2a3a; }
 
-    /* Label statique "Mode virtuel" (Analyse, Retranscription) + statut HH */
-    .menu-static-label, .menu-hh-status {
-      font-size: 0.78rem;
-      font-weight: 500;
-      color: #6a7a8a;
-      text-align: center;
-      margin-top: 6px;
-    }
-    .menu-hh-status.hh-ready { color: #0F6E56; font-weight: 600; }
-
-    /* Lien discret de reconnexion manuelle (remplace l'ancien bouton) */
-    .menu-reconnect-link {
+    /* Bouton de reconnexion manuelle — visible uniquement si échiquier non détecté */
+    .menu-btn-reconnect {
       display: none;
+      background: #e94560;
+      color: white;
       margin-top: 8px;
-      font-size: 0.8rem;
-      color: #3a5a7a;
-      text-decoration: underline;
-      cursor: pointer;
-      opacity: 0.75;
-      transition: opacity 0.2s;
     }
-    .menu-reconnect-link:hover { opacity: 1; }
 
     .menu-btn-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 0;
@@ -294,12 +274,35 @@
 
     /* ── Menu 2 colonnes (Jouer / Outils) ── */
     .menu-grid {
+      position: relative;
       display: grid;
       grid-template-columns: repeat(2, auto);
       justify-content: center;
       align-items: start;
       column-gap: 48px;
       row-gap: 20px;
+    }
+
+    /* Filigrane décoratif — grille d'échiquier en damier, à gauche de la colonne Jouer.
+       Change de couleur selon l'état de l'échiquier (voir _applyBoardBadge en JS). */
+    .menu-grid-deco {
+      position: absolute;
+      top: 0;
+      left: -110px;
+      width: 90px;
+      height: 100%;
+      background-image:
+        linear-gradient(45deg, #8a97a6 25%, transparent 25%, transparent 75%, #8a97a6 75%),
+        linear-gradient(45deg, #8a97a6 25%, transparent 25%, transparent 75%, #8a97a6 75%);
+      background-size: 26px 26px;
+      background-position: 0 0, 13px 13px;
+      opacity: 0.12;
+      pointer-events: none;
+    }
+    .menu-grid-deco.deco-connected {
+      background-image:
+        linear-gradient(45deg, #0F6E56 25%, transparent 25%, transparent 75%, #0F6E56 75%),
+        linear-gradient(45deg, #0F6E56 25%, transparent 25%, transparent 75%, #0F6E56 75%);
     }
     .menu-col {
       display: flex;
@@ -332,6 +335,7 @@
     @media (max-width: 700px) {
       .menu-grid { grid-template-columns: 1fr; row-gap: 10px; }
       .menu-col-outils .menu-col-title { margin-top: 10px; }
+      .menu-grid-deco { display: none; }
     }
 
     /* ── Écran config ── */
@@ -732,6 +736,7 @@
     .res-medium #panel                 { width: 320px; }
 
     /* ── res-small : < 1100px ── */
+    .res-small .menu-grid-deco         { display: none; }
     .res-small .menu-btn               { width: 240px; font-size: 0.85rem; }
     .res-small .menu-btn-wrap          { width: 240px; margin-bottom: 4px; }
     .res-small .menu-card               { width: 240px; }
