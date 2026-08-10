@@ -23,11 +23,14 @@
 - **Pédagogique — boucle infinie de double-bip si pièce mal jouée puis corrigée manuellement** `[Linux]`
 - **Numéros de lignes échiquier mal alignés (rendu police Windows)** `[Windows]`
 
+### Bugs résolus récemment
+- **Icônes 🖥 résiduelles sur Analyse/Retranscrire + déconnexion plateau en session non détectée** `[Linux]` — issue #102, commit `fcb51e1`. `hid_backend.get_fen()` avalait les `OSError` de lecture USB sans jamais le signaler ; ajout de `is_connected()`/`_connected` côté backend, comptage des échecs consécutifs dans `_fen_reader_loop` (driver.py), callback `_board_lost_cb` câblé sur `board_error` dans `board_adapter.create_board()`, et `reconnect_board` intercepté dans `server.py::on_action` pour fonctionner aussi bien au menu qu'en cours de partie.
+
 ---
 
 ## 💡 Fonctionnalités à venir
 
-- **Chantier « l'UI reflète l'état réel du système »** `[Les deux]` — reste : déconnexion échiquier en cours de session mal gérée (modes physiques pas grisés).
+- **Chantier « l'UI reflète l'état réel du système »** `[Les deux]` — détection de la déconnexion en cours de session faite (issue #102) ; reste : griser les boutons `data-needs-board` sur réception de `board_error` en cours de partie (aujourd'hui seul `board_ok` les réactive).
 - **Tutoriels utilisateur** `[Les deux]` — autres aides in-app à ajouter au fil des besoins.
 - **Nettoyer le dossier Rodent dans le packaging** — trier par OS (`mac/`, `sources/`, `books/` volumineux inutiles au paquet final).
 - **Réduire la taille des ZIP** (~210/215 Mo) — élagage `books/`/`exe/`/`docs/` de Rodent à valider avec Alain.
