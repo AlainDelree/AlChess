@@ -288,7 +288,7 @@
   "toast.erreur_reseau":       "Erreur réseau",
   "toast.corbeille":           "🗂️ Classeur : {n} partie(s)",
   "toast.board_lost":          "Échiquier déconnecté en cours de partie.",
-  "toast.board_not_found":     "Échiquier non détecté au démarrage.",
+  "toast.board_not_found":     "Connexion échiquier perdue.",
   "toast.position_timeout":    "Position initiale non atteinte (timeout).",
   "toast.engine_error":        "Moteur d'échecs indisponible.",
 

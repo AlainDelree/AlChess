@@ -288,7 +288,7 @@
   "toast.erreur_reseau":       "Netzwerkfehler",
   "toast.corbeille":           "🗂️ Ordner: {n} Partie(n)",
   "toast.board_lost":          "Brett während der Partie getrennt.",
-  "toast.board_not_found":     "Brett beim Start nicht erkannt.",
+  "toast.board_not_found":     "Verbindung zum Brett verloren.",
   "toast.position_timeout":    "Startposition nicht erreicht (Zeitüberschreitung).",
   "toast.engine_error":        "Schach-Engine nicht verfügbar.",
 
