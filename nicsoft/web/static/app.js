@@ -273,7 +273,7 @@ function _applyBoardBadge() {
   const btnConnecter       = document.getElementById("btn-connecter");
   if (schemaConnected)    schemaConnected.style.display    = _boardOk ? "block" : "none";
   if (schemaDisconnected) schemaDisconnected.style.display = _boardOk ? "none"  : "block";
-  if (btnConnecter)       btnConnecter.style.display       = _boardOk ? "none"  : "";
+  if (btnConnecter)       btnConnecter.style.display       = _boardOk ? "none"  : "block";
 
   // Déplace le wrapper HH selon l'état de l'échiquier : en bas de la colonne
   // Jouer (après Exercices) si non connecté, à sa place d'origine (avant Labo) sinon.
