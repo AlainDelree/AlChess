@@ -31,6 +31,7 @@
   "menu.btn.retranscrire":     "🖥 ✏️ Mitschreiben",
   "menu.btn.outils":           "🛠️ Übungs-Tools",
   "menu.btn.reconnect":        "🔌 Brett neu verbinden",
+  "menu.btn.connecter":        "⟳ Verbinden",
   "menu.btn.debloquer":        "⟳ Schaltflächen entsperren",
   "menu.btn.quitter":          "✕ Beenden",
   "menu.btn.virtuel":          "Virtuell",

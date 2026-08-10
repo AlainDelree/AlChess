@@ -237,12 +237,6 @@ function _launchVirtual(mode) {
 
 function toggleVirtualMode(enabled) {
   _virtualMode = enabled;
-  const link = document.getElementById("btn-reconnect");
-  if (enabled) {
-    if (link) { link.style.display = "none"; }
-  } else {
-    if (link) { link.style.display = _boardOk ? "none" : ""; }
-  }
   // Le badge échiquier ne dépend plus de _virtualMode (2 états : connecté / non détecté).
 }
 
@@ -274,8 +268,22 @@ function _applyBoardBadge() {
     pill.classList.toggle("pill-disconnected", !_boardOk);
     text.textContent = t(_boardOk ? "status.board.connecte" : "status.board.sans_echiquier");
   }
-  const menuDeco = document.getElementById("menu-grid-deco");
-  if (menuDeco) menuDeco.classList.toggle("deco-connected", _boardOk);
+  const schemaConnected    = document.getElementById("schema-connected");
+  const schemaDisconnected = document.getElementById("schema-disconnected");
+  const btnConnecter       = document.getElementById("btn-connecter");
+  if (schemaConnected)    schemaConnected.style.display    = _boardOk ? "block" : "none";
+  if (schemaDisconnected) schemaDisconnected.style.display = _boardOk ? "none"  : "block";
+  if (btnConnecter)       btnConnecter.style.display       = _boardOk ? "none"  : "";
+
+  // Déplace le wrapper HH selon l'état de l'échiquier : en bas de la colonne
+  // Jouer (après Exercices) si non connecté, à sa place d'origine (avant Labo) sinon.
+  const colJouer = document.querySelector(".menu-col-jouer");
+  const wrapHH   = document.getElementById("wrap-hh");
+  const wrapLabo = document.getElementById("wrap-labo");
+  if (colJouer && wrapHH && wrapLabo) {
+    if (_boardOk) colJouer.insertBefore(wrapHH, wrapLabo);
+    else          colJouer.appendChild(wrapHH);
+  }
 }
 
 
@@ -688,9 +696,6 @@ socket.on("board_error", (data) => {
   _boardOk    = false;
   _boardError = true;
   _syncVirtualCheckboxes();
-  // Lien de reconnexion visible uniquement hors mode virtuel — le texte est géré par _refreshDynamicLabels
-  const _errLink = document.getElementById("btn-reconnect");
-  if (_errLink && !_virtualMode) { _errLink.style.display = ""; }
   // Appel direct si locale déjà chargée, puis via promise pour garantir le bon locale
   _refreshDynamicLabels();
   _applyBoardBadge();
@@ -706,8 +711,6 @@ socket.on("board_ok", () => {
       if (_virtualMode && btn.hasAttribute("data-physical-only")) return;
       btn.disabled = false;
     });
-  const _okLink = document.getElementById("btn-reconnect");
-  if (_okLink) { _okLink.style.display = "none"; }
   _refreshDynamicLabels();
   _applyBoardBadge();
   (window.i18nReady || Promise.resolve()).then(() => { _refreshDynamicLabels(); _applyBoardBadge(); });
@@ -756,6 +759,8 @@ socket.on("app_state", (data) => {
   // Si game_over avec skip=true (back_menu), on ignore complètement
   if (data.state === "game_over" && data.skip) return;
   document.getElementById("screen-menu").style.display                  = data.state === "menu"                  ? "flex" : "none";
+  const schemaConnexion = document.getElementById("schema-connexion");
+  if (schemaConnexion) schemaConnexion.style.display = data.state === "menu" ? "flex" : "none";
   document.getElementById("screen-config").style.display                = data.state === "config"                ? "flex" : "none";
   const cfgHH = document.getElementById("screen-config-humain");
   if (cfgHH) cfgHH.style.display = data.state === "config_humain" ? "flex" : "none";
@@ -883,8 +888,6 @@ socket.on("app_state", (data) => {
     // Quitter le mode virtuel au retour au menu (badge échiquier repasse en mode physique)
     if (_virtualMode) {
       _virtualMode = false;
-      const link = document.getElementById("btn-reconnect");
-      if (link) link.style.display = _boardOk ? "none" : "";
     }
     // Vider les champs de config HH
     const wName = document.getElementById("cfg-white-name");
@@ -905,17 +908,6 @@ socket.on("app_state", (data) => {
       document.querySelectorAll("[data-needs-board]")
         .forEach(btn => { btn.disabled = false; });
     }
-    // Filet de sécurité : si les boutons sont encore grisés après 1.5s
-    // afficher le lien de reconnexion en mode "débloquer"
-    setTimeout(() => {
-      const needsBoard = document.querySelectorAll("[data-needs-board]");
-      const stillBlocked = Array.from(needsBoard).some(b => b.disabled);
-      const link = document.getElementById("btn-reconnect");
-      if (stillBlocked && _boardOk && link) {
-        link.textContent = t("menu.btn.debloquer");
-        link.style.display = "";
-      }
-    }, 1500);
   }
 });
 
@@ -1264,10 +1256,6 @@ function _refreshDynamicLabels() {
       if (maiaKeys[opt.value]) opt.textContent = `Maia ${opt.value} — ${t(maiaKeys[opt.value])}`;
     });
   }
-
-  // Lien reconnect (texte — visibilité gérée par board_ok/board_error)
-  const reconnectLink = document.getElementById("btn-reconnect");
-  if (reconnectLink) reconnectLink.textContent = t("menu.btn.reconnect_label");
 
   // Titre bouton flip
   const flipBtn = document.getElementById("btn-flip");

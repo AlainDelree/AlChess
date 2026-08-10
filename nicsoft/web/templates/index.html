@@ -44,12 +44,93 @@
   <a id="btn-test-save" href="#" title="Sauvegarder la config test courante" onclick="saveTestConfig(event)" style="display:none; font-size:0.75rem; color:#2196F3; text-decoration:none; opacity:0.5; transition:opacity 0.2s; margin-left:8px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'">🎲 save</a>
 </header>
 
+<!-- ── Schéma connexion ordinateur-échiquier ── -->
+<div class="schema-connexion" id="schema-connexion">
+  <svg viewBox="0 0 682 200" width="100%" height="100%" aria-hidden="true">
+    <!-- ═══ État connecté ═══ -->
+    <g id="schema-connected">
+      <!-- Ordinateur -->
+      <rect x="60" y="40" width="88" height="62" rx="4" fill="#d7f3ea" stroke="#0F6E56" stroke-width="2"/>
+      <rect x="68" y="48" width="72" height="46" rx="2" fill="#eafaf3"/>
+      <rect x="96" y="102" width="16" height="10" fill="#0F6E56"/>
+      <rect x="80" y="112" width="48" height="6" rx="2" fill="#0F6E56"/>
+
+      <!-- Câble connecté -->
+      <path d="M 148 80 C 260 40, 420 40, 532 80" fill="none" stroke="#0F6E56" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="148" cy="80" r="5" fill="#0F6E56"/>
+      <circle cx="532" cy="80" r="5" fill="#0F6E56"/>
+      <circle cx="310" cy="55" r="3" fill="#0F6E56"/>
+      <circle cx="340" cy="49" r="3" fill="#0F6E56"/>
+      <circle cx="370" cy="55" r="3" fill="#0F6E56"/>
+
+      <!-- Échiquier -->
+      <g>
+        <rect x="532" y="50" width="90" height="90" fill="#f0f0f0"/>
+        <rect x="532"    y="50"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="577"    y="50"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="554.5"  y="72.5"  width="22.5" height="22.5" fill="#333"/>
+        <rect x="599.5"  y="72.5"  width="22.5" height="22.5" fill="#333"/>
+        <rect x="532"    y="95"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="577"    y="95"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="554.5"  y="117.5" width="22.5" height="22.5" fill="#333"/>
+        <rect x="599.5"  y="117.5" width="22.5" height="22.5" fill="#333"/>
+        <rect x="532" y="50" width="90" height="90" fill="none" stroke="#0F6E56" stroke-width="2"/>
+        <text x="543"  y="70"  font-size="20" text-anchor="middle">♔</text>
+        <text x="588"  y="70"  font-size="20" text-anchor="middle">♜</text>
+        <text x="566"  y="93"  font-size="20" text-anchor="middle">♙</text>
+        <text x="611"  y="115" font-size="20" text-anchor="middle">♛</text>
+        <text x="543"  y="138" font-size="20" text-anchor="middle">♟</text>
+      </g>
+    </g>
+
+    <!-- ═══ État déconnecté ═══ -->
+    <g id="schema-disconnected">
+      <!-- Ordinateur -->
+      <rect x="60" y="40" width="88" height="62" rx="4" fill="#fbe0df" stroke="#E24B4A" stroke-width="2"/>
+      <rect x="68" y="48" width="72" height="46" rx="2" fill="#fdf0ef"/>
+      <rect x="96" y="102" width="16" height="10" fill="#E24B4A"/>
+      <rect x="80" y="112" width="48" height="6" rx="2" fill="#E24B4A"/>
+
+      <!-- Câble déconnecté (coupé) -->
+      <path d="M 148 80 C 200 55, 250 55, 285 80" fill="none" stroke="#E24B4A" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="148" cy="80" r="5" fill="#E24B4A"/>
+      <path d="M 285 80 L 300 68" fill="none" stroke="#E24B4A" stroke-width="3" stroke-linecap="round"/>
+      <path d="M 285 80 L 300 92" fill="none" stroke="#E24B4A" stroke-width="3" stroke-linecap="round"/>
+
+      <!-- Croix -->
+      <g transform="translate(340,80)">
+        <line x1="-14" y1="-14" x2="14" y2="14" stroke="#E24B4A" stroke-width="5" stroke-linecap="round"/>
+        <line x1="-14" y1="14" x2="14" y2="-14" stroke="#E24B4A" stroke-width="5" stroke-linecap="round"/>
+      </g>
+
+      <!-- Échiquier grisé -->
+      <g opacity="0.3">
+        <rect x="532" y="50" width="90" height="90" fill="#f0f0f0"/>
+        <rect x="532"    y="50"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="577"    y="50"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="554.5"  y="72.5"  width="22.5" height="22.5" fill="#333"/>
+        <rect x="599.5"  y="72.5"  width="22.5" height="22.5" fill="#333"/>
+        <rect x="532"    y="95"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="577"    y="95"    width="22.5" height="22.5" fill="#333"/>
+        <rect x="554.5"  y="117.5" width="22.5" height="22.5" fill="#333"/>
+        <rect x="599.5"  y="117.5" width="22.5" height="22.5" fill="#333"/>
+        <rect x="532" y="50" width="90" height="90" fill="none" stroke="#8a97a6" stroke-width="2"/>
+        <text x="543"  y="70"  font-size="20" text-anchor="middle">♔</text>
+        <text x="588"  y="70"  font-size="20" text-anchor="middle">♜</text>
+        <text x="566"  y="93"  font-size="20" text-anchor="middle">♙</text>
+        <text x="611"  y="115" font-size="20" text-anchor="middle">♛</text>
+        <text x="543"  y="138" font-size="20" text-anchor="middle">♟</text>
+      </g>
+    </g>
+  </svg>
+  <button class="btn-connecter" id="btn-connecter" onclick="sendAction({type:'reconnect_board'})" data-i18n="menu.btn.connecter">⟳ Connecter</button>
+</div>
+
 <!-- ── Écran menu ── -->
 <div id="screen-menu">
   <div class="menu-title"><span style="font-size:1.3em; line-height:1;">♜</span> AlChess</div>
 
   <div class="menu-grid">
-    <div class="menu-grid-deco" id="menu-grid-deco" aria-hidden="true"></div>
 
     <!-- ── Colonne GAUCHE : Jouer ── -->
     <div class="menu-col menu-col-jouer">
@@ -69,12 +150,12 @@
         <div class="menu-btn-desc" id="desc-pedagogique" data-i18n="menu.desc.pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
       </div>
 
-      <div class="menu-btn-wrap">
+      <div class="menu-btn-wrap" id="wrap-hh">
         <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})" data-i18n="menu.btn.humain">⚔️ Humain vs Humain</button>
         <div class="menu-btn-desc" id="desc-humain" data-i18n="menu.desc.humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
       </div>
 
-      <div class="menu-btn-wrap">
+      <div class="menu-btn-wrap" id="wrap-labo">
         <div class="menu-card menu-card-secondary">
           <div class="menu-card-head" onclick="_menuCardLaunch('labo', this)">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></div>
           <div class="menu-card-sep"></div>
@@ -88,7 +169,7 @@
         <div class="menu-btn-desc" id="desc-labo" data-i18n="menu.desc.labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
       </div>
 
-      <div class="menu-btn-wrap">
+      <div class="menu-btn-wrap" id="wrap-exercices">
         <div class="menu-card menu-card-secondary">
           <div class="menu-card-head" onclick="_menuCardLaunch('exercices', this)">♟ <span data-i18n="menu.btn.exercices">📚 Exercices</span></div>
           <div class="menu-card-sep"></div>
@@ -126,9 +207,6 @@
     </div><!-- fin colonne Outils -->
 
   </div><!-- fin menu-grid -->
-
-  <button id="btn-reconnect" class="menu-btn menu-btn-reconnect" onclick="sendAction({type:'reconnect_board'})" data-i18n="menu.btn.reconnect_label">⟳ Reconnecter l'échiquier</button>
-
 
   <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;" data-i18n="menu.btn.quitter">✕ Quitter</button>
 

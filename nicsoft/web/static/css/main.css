@@ -162,6 +162,40 @@
       overflow: hidden;
     }
 
+    /* ── Schéma connexion ordinateur-échiquier (écran menu) ── */
+    .schema-connexion {
+      position: relative;
+      display: none;
+      justify-content: center;
+      width: 100%;
+      margin: 4px 0;
+    }
+    .schema-connexion svg {
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+    }
+    #schema-connected  { display: none; }
+    #schema-disconnected { display: block; }
+    .btn-connecter {
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-connecter:hover  { opacity: 0.85; transform: translateX(-50%) scale(1.02); }
+    .btn-connecter:active { transform: translateX(-50%) scale(0.98); }
+
     /* ── Écran menu ── */
     .menu-title {
       font-size: 2.5rem;
@@ -220,14 +254,6 @@
     .menu-card-primary   .menu-card-sep { background: rgba(255,255,255,0.25); }
     .menu-card-secondary { background: #c2d4e8; color: #1a2a3a; }
 
-    /* Bouton de reconnexion manuelle — visible uniquement si échiquier non détecté */
-    .menu-btn-reconnect {
-      display: none;
-      background: #e94560;
-      color: white;
-      margin-top: 8px;
-    }
-
     .menu-btn-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 0;
       width: 300px;
@@ -283,27 +309,6 @@
       row-gap: 20px;
     }
 
-    /* Filigrane décoratif — grille d'échiquier en damier, à gauche de la colonne Jouer.
-       Change de couleur selon l'état de l'échiquier (voir _applyBoardBadge en JS). */
-    .menu-grid-deco {
-      position: absolute;
-      top: 0;
-      left: -110px;
-      width: 90px;
-      height: 100%;
-      background-image:
-        linear-gradient(45deg, #8a97a6 25%, transparent 25%, transparent 75%, #8a97a6 75%),
-        linear-gradient(45deg, #8a97a6 25%, transparent 25%, transparent 75%, #8a97a6 75%);
-      background-size: 26px 26px;
-      background-position: 0 0, 13px 13px;
-      opacity: 0.12;
-      pointer-events: none;
-    }
-    .menu-grid-deco.deco-connected {
-      background-image:
-        linear-gradient(45deg, #0F6E56 25%, transparent 25%, transparent 75%, #0F6E56 75%),
-        linear-gradient(45deg, #0F6E56 25%, transparent 25%, transparent 75%, #0F6E56 75%);
-    }
     .menu-col {
       display: flex;
       flex-direction: column;
@@ -335,7 +340,6 @@
     @media (max-width: 700px) {
       .menu-grid { grid-template-columns: 1fr; row-gap: 10px; }
       .menu-col-outils .menu-col-title { margin-top: 10px; }
-      .menu-grid-deco { display: none; }
     }
 
     /* ── Écran config ── */
@@ -736,7 +740,6 @@
     .res-medium #panel                 { width: 320px; }
 
     /* ── res-small : < 1100px ── */
-    .res-small .menu-grid-deco         { display: none; }
     .res-small .menu-btn               { width: 240px; font-size: 0.85rem; }
     .res-small .menu-btn-wrap          { width: 240px; margin-bottom: 4px; }
     .res-small .menu-card               { width: 240px; }
