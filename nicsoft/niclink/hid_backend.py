@@ -119,6 +119,27 @@ def is_connected() -> bool:
     return _connected
 
 
+def check_physically_present() -> bool:
+    """Vérifie si un Chessnut est encore visible dans le sous-système USB.
+
+    Contrairement à get_fen(), qui sur Linux ne détecte pas un débranchement
+    (le read() timeout silencieusement au lieu de lever une OSError), cette
+    fonction interroge directement hid.enumerate() pour confirmer la présence
+    physique du périphérique.
+    """
+    global _connected
+    if not _connected or _dev is None:
+        return False
+    try:
+        for info in hid.enumerate(VENDOR_ID, 0):
+            if info['product_id'] in PRODUCT_IDS:
+                return True
+        _connected = False
+        return False
+    except Exception:
+        return False
+
+
 def get_fen() -> str:
     """Lit la position courante depuis l'échiquier USB.
 

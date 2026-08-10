@@ -165,8 +165,7 @@ def _board_menu_watcher():
             _already_notified = False
             continue
         try:
-            hid_backend.get_fen()  # tente une lecture USB réelle → met _connected=False si déconnecté
-            if not hid_backend.is_connected():
+            if not hid_backend.check_physically_present():
                 if web_server._board_status == "ok" and not _already_notified:
                     send_event("board_error", {
                         "message": "Échiquier déconnecté — vérifiez l'USB et reconnectez le plateau.",
