@@ -253,6 +253,38 @@ def on_disconnect():
     _disconnect_timer.start()
 
 
+def _reconnect_board() -> None:
+    """
+    Tente une reconnexion USB au plateau physique, appelée en arrière-plan
+    depuis on_action (action "reconnect_board" — bouton "Connecter").
+
+    Si une partie/session a une instance NicLinkManager physique active
+    (game_manager._nl_inst_ref), on la réutilise : reconnexion + redémarrage
+    de son thread fen_reader, pour reprendre exactement là où elle en était.
+    Sinon (menu, aucune session), simple vérification de connexion comme
+    au démarrage. Émet board_ok en cas de succès, board_error sinon.
+    """
+    try:
+        from nicsoft.core.game_manager import get_nl_inst_ref
+        nl_inst = get_nl_inst_ref()
+        if nl_inst is not None and hasattr(nl_inst, "nl_interface"):
+            nl_inst.connect()
+            nl_inst._start_fen_reader()
+        else:
+            from nicsoft.core.board_adapter import create_board
+            nl = create_board(virtual=False, logger_name="NicLink_reconnect")
+            try:
+                nl._fen_reader_stop.set()
+            except Exception:
+                pass
+        send_event("board_ok", {})
+    except Exception as e:
+        logger.info(f"[WEB] Reconnexion échiquier échouée : {e}")
+        send_event("board_error", {
+            "message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau.",
+        })
+
+
 @socketio.on("action")
 def on_action(data):
     """Reçoit une action du navigateur et la route selon l état."""
@@ -271,6 +303,11 @@ def on_action(data):
     if atype == "exercice_back" and _app_state == "exercice_running":
         set_app_state("exercices")
         action_queue.put(data)  # arrêter le thread exercice proprement
+        return
+    # Reconnexion échiquier — traitée directement, quel que soit l état
+    # (menu, ou en cours de session si le plateau a été débranché).
+    if atype == "reconnect_board":
+        threading.Thread(target=_reconnect_board, daemon=True).start()
         return
     if _app_state in ("playing", "connecting", "game_over", "paused", "labo", "exercice_running", "retrans_playing"):
         action_queue.put(data)

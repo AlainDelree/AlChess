@@ -18,5 +18,13 @@ def create_board(virtual: bool = False, logger_name: str = "NicLink"):
         return VirtualBoard()
 
     from nicsoft.niclink import NicLinkManager
+    from nicsoft.web.server import send_event
     _logger = logging.getLogger(logger_name)
-    return NicLinkManager(refresh_delay=0.1, logger=_logger, thread_sleep_delay=0.1)
+    manager = NicLinkManager(refresh_delay=0.1, logger=_logger, thread_sleep_delay=0.1)
+    # Notifie le navigateur si le plateau est perdu en cours de session
+    # (5 lectures USB en échec consécutives — voir NicLinkManager._fen_reader_loop).
+    manager._board_lost_cb = lambda: send_event(
+        "board_error",
+        {"message": "Échiquier déconnecté — vérifiez l'USB et reconnectez le plateau."},
+    )
+    return manager

@@ -34,6 +34,7 @@ _led_status: list[int] = [0] * 8  # pattern LED courant en ordre USB (index 0 = 
 _write_lock = threading.Lock()
 _last_write: float = 0.0
 _connected_product_id: int | None = None
+_connected: bool = False  # True entre un connect() réussi et une erreur de lecture/un disconnect()
 
 
 def _list_paths() -> list[tuple[bytes, int]]:
@@ -72,7 +73,7 @@ def connect() -> None:
     donc c'était un no-op (b_write vérifie connectStatus). On ne l'envoie pas ici
     pour éviter un bip parasite causé par la commande de switch de mode.
     """
-    global _dev, _current_fen, _connected_product_id
+    global _dev, _current_fen, _connected_product_id, _connected
     paths = _list_paths()
     if not paths:
         raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
@@ -81,6 +82,7 @@ def connect() -> None:
     _dev.open_path(path)
 
     _connected_product_id = product_id
+    _connected = True
     name = _PRODUCT_NAMES.get(product_id, "modèle inconnu")
     logger.info("Chessnut connecté : PID=0x%04x (%s)", product_id, name)
 
@@ -101,7 +103,7 @@ def connect() -> None:
 
 def disconnect() -> None:
     """Repasse en upload mode et ferme la connexion HID."""
-    global _dev
+    global _dev, _connected
     if _dev is not None:
         try:
             _write(bytes([0x21, 0x01, 0x01]))  # upload mode avant fermeture
@@ -109,6 +111,12 @@ def disconnect() -> None:
         except Exception:
             pass
         _dev = None
+    _connected = False
+
+
+def is_connected() -> bool:
+    """True si le plateau est actuellement considéré connecté (HID ouvert et lisible)."""
+    return _connected
 
 
 def get_fen() -> str:
@@ -116,11 +124,20 @@ def get_fen() -> str:
 
     En mode realtime, le Chessnut Air envoie continuellement sa position.
     Retourne le dernier FEN valide reçu (ou "" si aucune donnée).
+    Si la lecture USB échoue (plateau débranché en cours de session),
+    réinitialise l'état de connexion sans lever d'exception.
     """
-    global _current_fen
+    global _current_fen, _dev, _connected
     if _dev is None:
         return ""
-    buf = _dev.read(256, timeout_ms=50)
+    try:
+        buf = _dev.read(256, timeout_ms=50)
+    except (OSError, IOError) as e:
+        logger.warning("get_fen: erreur de lecture USB (plateau déconnecté ?) : %s", e)
+        _dev = None
+        _current_fen = ""
+        _connected = False
+        return ""
     if buf and len(buf) > 1:
         fen = _decode_fen(bytes(buf))
         if fen:

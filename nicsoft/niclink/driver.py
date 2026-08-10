@@ -121,6 +121,10 @@ class NicLinkManager(threading.Thread):
 
         self._fen_reader_thread = None
 
+        # Callback appelé quand le plateau est jugé déconnecté en cours de
+        # session (5 échecs consécutifs de get_fen()) — voir _fen_reader_loop.
+        self._board_lost_cb: "callable | None" = None
+
         try:
             self.connect()
         except RuntimeError:
@@ -249,15 +253,26 @@ and turned on?"
             self._fen_reader_thread.join(timeout=2.0)
             self._fen_reader_thread = None
 
+    # Nombre d'échecs consécutifs de lecture avant de considérer le plateau perdu.
+    BOARD_LOST_THRESHOLD = 5
+
     def _fen_reader_loop(self) -> None:
         """
         Boucle principale du thread de lecture USB.
         Seul endroit où nl_interface.get_fen() est appelé pendant une partie.
         Met à jour self.current_fen après chaque lecture réussie.
+
+        Si le backend expose is_connected(), compte les échecs consécutifs
+        (plateau débranché en cours de session) et, après
+        BOARD_LOST_THRESHOLD échecs, appelle _board_lost_cb() puis arrête
+        le thread — get_fen() ne sera plus jamais rappelé sans reconnexion
+        explicite (voir reconnect_board côté serveur).
         """
         from nicsoft.utils.timing import tlog
         _slow_count = 0
         _lock_wait_count = 0
+        _consecutive_failures = 0
+        is_connected = getattr(self.nl_interface, "is_connected", None)
         while not self._fen_reader_stop.is_set():
             try:
                 _t_lock = time.time()
@@ -274,6 +289,22 @@ and turned on?"
                         tlog("[DRIVER] get_fen lent: %.3fs (total slow: %d)", _elapsed, _slow_count)
                     if fen is not None:
                         self.current_fen = fen
+
+                if is_connected is not None and not is_connected():
+                    _consecutive_failures += 1
+                    if _consecutive_failures >= self.BOARD_LOST_THRESHOLD:
+                        self.logger.warning(
+                            "fen_reader: plateau déconnecté (%d échecs consécutifs) — arrêt du thread",
+                            _consecutive_failures,
+                        )
+                        if self._board_lost_cb is not None:
+                            try:
+                                self._board_lost_cb()
+                            except Exception:
+                                self.logger.debug("_board_lost_cb a levé une exception", exc_info=True)
+                        return
+                else:
+                    _consecutive_failures = 0
             except Exception:
                 pass
             time.sleep(FEN_READER_DELAY)

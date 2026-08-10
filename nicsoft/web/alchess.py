@@ -232,8 +232,6 @@ def main():
                 gm.launch_retranscription(action)
             elif atype == "back_menu":
                 set_app_state("menu")
-            elif atype == "reconnect_board":
-                threading.Thread(target=_check_board_at_startup, daemon=True).start()
             elif atype == "quit":
                 print("\nAu revoir !")
                 nl = gm.get_nl_inst_ref()
