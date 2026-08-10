@@ -287,6 +287,10 @@
   "toast.sauvegarde":          "Game saved",
   "toast.erreur_reseau":       "Network error",
   "toast.corbeille":           "🗂️ Folder: {n} game(s)",
+  "toast.board_lost":          "Board disconnected during the game.",
+  "toast.board_not_found":     "Board not detected at startup.",
+  "toast.position_timeout":    "Initial position not reached (timeout).",
+  "toast.engine_error":        "Chess engine unavailable.",
 
   "error.board.non_detecte":   "Board not detected — check USB and power on the board.",
   "error.board.simple":        "Board not detected.",

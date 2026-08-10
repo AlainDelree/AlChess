@@ -25,6 +25,23 @@ def _validated_engine_path(cfg: dict, key: str = "engine_path", default: str = "
         return p
     return default
 
+
+# ── Toasts d'erreur au retour menu ───────────────────────────────────────────────
+_TOAST_MESSAGES = {
+    "toast.board_not_found":  "Échiquier non détecté au démarrage.",
+    "toast.position_timeout": "Position initiale non atteinte (timeout).",
+    "toast.engine_error":     "Moteur d'échecs indisponible.",
+}
+
+
+def _menu_toast_data(toast_key: str) -> dict:
+    """Construit le payload set_app_state("menu", ...) pour un retour menu forcé par une erreur."""
+    return {
+        "toast_message_key": toast_key,
+        "toast_message":     _TOAST_MESSAGES.get(toast_key, "Une erreur est survenue."),
+        "toast_type":        "warning",
+    }
+
 # ── État global ────────────────────────────────────────────────────────────────
 _nl_inst_ref      = None   # échiquier courant (pour éteindre LEDs au quit)
 _virtual_mode     = False  # True si mode sans échiquier physique
@@ -139,7 +156,7 @@ def launch_pedagogique(config):
 
     web_server._app_state = "connecting"
     set_app_state("connecting")
-    _error = [False]
+    _error = {"occurred": False, "toast_key": None}
     t = threading.Thread(
         target=_run_pedagogique,
         args=(player, playing_white, level, pause, analyse, bip,
@@ -149,10 +166,10 @@ def launch_pedagogique(config):
     )
     t.start()
     t.join()
-    if _error[0]:
+    if _error["occurred"]:
         time.sleep(3.0)
         web_server._app_state = "menu"
-        set_app_state("menu")
+        set_app_state("menu", _menu_toast_data(_error["toast_key"] or "toast.engine_error"))
     elif web_server._app_state != "game_over":
         web_server._app_state = "menu"
         set_app_state("menu")
@@ -232,11 +249,22 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
     except SystemExit as e:
         if "board connection error" in str(e):
             logger.error("Erreur : échiquier non détecté.")
-            if _error: _error[0] = True
+            if _error is not None:
+                _error["occurred"]  = True
+                _error["toast_key"] = "toast.board_not_found"
             send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+    except ConnectionError as e:
+        logger.error(f"Erreur de connexion échiquier (pédagogique) : {e}")
+        if _error is not None:
+            _error["occurred"]  = True
+            _error["toast_key"] = "toast.position_timeout" if "Timeout" in str(e) else "toast.board_not_found"
+        send_event("board_error", {"message": str(e)})
     except Exception as e:
         logger.error(f"Erreur inattendue mode pédagogique : {e}")
         import traceback; traceback.print_exc()
+        if _error is not None:
+            _error["occurred"]  = True
+            _error["toast_key"] = "toast.engine_error"
         send_event("popup", {"message": f"Erreur : {e}"})
     finally:
         set_virtual_board(None)
@@ -257,20 +285,25 @@ def launch_humain(config):
     game_type = config.get("game_type", "Serious")
     web_server._app_state = "connecting"
     set_app_state("connecting")
-    _error = [False]
+    _error = {"occurred": False, "toast_key": None}
     t = threading.Thread(target=_run_humain, args=(white, black, game_type, _error),
                          kwargs={"virtual": _virtual_mode}, daemon=True)
     t.start()
     t.join()
-    if _error[0]:
+    if _error["occurred"]:
         time.sleep(3.0)
         web_server._app_state = "menu"
-        set_app_state("menu")
+        set_app_state("menu", _menu_toast_data(_error["toast_key"] or "toast.board_not_found"))
     elif web_server._app_state == "game_over":
         pass
     else:
         web_server._app_state = "menu"
         set_app_state("menu")
+    if web_server._app_state == "menu" and not _virtual_mode:
+        # Re-vérifier l'état réel du plateau au retour menu depuis HH
+        # (déconnexion silencieuse pendant la partie non détectée jusqu'ici).
+        from nicsoft.web.alchess import _check_board_at_startup
+        threading.Thread(target=_check_board_at_startup, daemon=True).start()
 
 
 def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
@@ -307,12 +340,25 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
         if game.game_over and web_server._app_state != "game_over":
             web_server._app_state = "game_over"
 
-    except SystemExit:
-        pass
+    except SystemExit as e:
+        if "board connection error" in str(e):
+            logger.error("Erreur mode humain : échiquier non détecté.")
+            if _error is not None:
+                _error["occurred"]  = True
+                _error["toast_key"] = "toast.board_not_found"
+            send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+    except ConnectionError as e:
+        logger.error(f"Erreur de connexion échiquier (humain) : {e}")
+        if _error is not None:
+            _error["occurred"]  = True
+            _error["toast_key"] = "toast.position_timeout" if "Timeout" in str(e) else "toast.board_not_found"
+        send_event("board_error", {"message": str(e)})
     except Exception as e:
         logger.error(f"Erreur mode humain : {e}")
         import traceback; traceback.print_exc()
-        if _error: _error[0] = True
+        if _error is not None:
+            _error["occurred"]  = True
+            _error["toast_key"] = "toast.board_not_found"
         send_event("board_error", {"message": "Échiquier non détecté."})
     finally:
         set_virtual_board(None)
@@ -909,7 +955,7 @@ def launch_labo_libre(config):
 
     web_server._app_state = "connecting"
     set_app_state("connecting")
-    _error = [False]
+    _error = {"occurred": False, "toast_key": None}
     t = threading.Thread(
         target=_run_labo_libre,
         args=(player, playing_white, start_fen, pause, analyse, bip,
@@ -918,10 +964,10 @@ def launch_labo_libre(config):
     )
     t.start()
     t.join()
-    if _error[0]:
+    if _error["occurred"]:
         time.sleep(3.0)
         web_server._app_state = "menu"
-        set_app_state("menu")
+        set_app_state("menu", _menu_toast_data(_error["toast_key"] or "toast.engine_error"))
     elif web_server._app_state != "game_over":
         web_server._app_state = "menu"
         set_app_state("menu")
@@ -981,12 +1027,25 @@ def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active
         logger.info(f"Labo : {player_name} — {engine_label} depuis {fen_short[:30]}...")
         session.start()
 
-    except SystemExit:
-        pass
+    except SystemExit as e:
+        if "board connection error" in str(e):
+            logger.error("[LABO] Erreur : échiquier non détecté.")
+            if _error is not None:
+                _error["occurred"]  = True
+                _error["toast_key"] = "toast.board_not_found"
+            send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+    except ConnectionError as e:
+        logger.error(f"[LABO] Erreur de connexion échiquier : {e}")
+        if _error is not None:
+            _error["occurred"]  = True
+            _error["toast_key"] = "toast.position_timeout" if "Timeout" in str(e) else "toast.board_not_found"
+        send_event("board_error", {"message": str(e)})
     except Exception as e:
         logger.error(f"Erreur labo : {e}")
         import traceback; traceback.print_exc()
-        if _error: _error[0] = True
+        if _error is not None:
+            _error["occurred"]  = True
+            _error["toast_key"] = "toast.engine_error"
         send_event("board_error", {"message": "Échiquier non détecté."})
     finally:
         if nl_inst:

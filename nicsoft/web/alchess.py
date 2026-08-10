@@ -150,6 +150,28 @@ def _check_board_at_startup():
         _board_check_lock.release()
 
 
+def _board_menu_watcher():
+    """
+    Surveille la connexion physique du plateau tant que l'app est au menu.
+    Ne fait rien en cours de partie (surveillance déjà assurée par
+    _fen_reader_loop côté driver.py) — couvre uniquement la déconnexion
+    détectée alors que l'utilisateur est resté sur l'écran menu.
+    """
+    from nicsoft.niclink import hid_backend
+    while True:
+        time.sleep(3.0)
+        if web_server._app_state != "menu":
+            continue
+        try:
+            if not hid_backend.is_connected() and web_server._board_status == "ok":
+                send_event("board_error", {
+                    "message": "Échiquier déconnecté — vérifiez l'USB et reconnectez le plateau.",
+                    "message_key": "error.board.deconnecte",
+                })
+        except Exception:
+            pass
+
+
 def main():
     _setup_logging()
     _stop_modem_manager()
@@ -161,6 +183,7 @@ def main():
     time.sleep(1.5)  # laisser la page charger avant d'envoyer app_state
     set_app_state("menu")
     threading.Thread(target=_check_board_at_startup, daemon=True).start()
+    threading.Thread(target=_board_menu_watcher, daemon=True).start()
     _retrans_save = DATA_DIR / "retranscription_en_cours.json"
     if _retrans_save.exists():
         import json as _json

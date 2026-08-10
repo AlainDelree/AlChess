@@ -287,6 +287,10 @@
   "toast.sauvegarde":          "Partie gespeichert",
   "toast.erreur_reseau":       "Netzwerkfehler",
   "toast.corbeille":           "🗂️ Ordner: {n} Partie(n)",
+  "toast.board_lost":          "Brett während der Partie getrennt.",
+  "toast.board_not_found":     "Brett beim Start nicht erkannt.",
+  "toast.position_timeout":    "Startposition nicht erreicht (Zeitüberschreitung).",
+  "toast.engine_error":        "Schach-Engine nicht verfügbar.",
 
   "error.board.non_detecte":   "Brett nicht erkannt — USB prüfen und Brett einschalten.",
   "error.board.simple":        "Brett nicht erkannt.",

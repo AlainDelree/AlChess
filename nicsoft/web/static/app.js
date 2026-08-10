@@ -908,6 +908,11 @@ socket.on("app_state", (data) => {
       document.querySelectorAll("[data-needs-board]")
         .forEach(btn => { btn.disabled = false; });
     }
+    // Retour menu forcé par une erreur (plateau perdu, moteur KO, timeout...) → toast explicatif
+    if (data.toast_message_key || data.toast_message) {
+      const msg = data.toast_message_key ? t(data.toast_message_key) : data.toast_message;
+      afficherToast(msg, data.toast_type || "warning");
+    }
   }
 });
 

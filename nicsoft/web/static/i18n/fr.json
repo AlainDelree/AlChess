@@ -287,6 +287,10 @@
   "toast.sauvegarde":          "Partie sauvegardée",
   "toast.erreur_reseau":       "Erreur réseau",
   "toast.corbeille":           "🗂️ Classeur : {n} partie(s)",
+  "toast.board_lost":          "Échiquier déconnecté en cours de partie.",
+  "toast.board_not_found":     "Échiquier non détecté au démarrage.",
+  "toast.position_timeout":    "Position initiale non atteinte (timeout).",
+  "toast.engine_error":        "Moteur d'échecs indisponible.",
 
   "error.board.non_detecte":   "Échiquier non détecté — vérifiez l'USB et allumez le plateau.",
   "error.board.simple":        "Échiquier non détecté.",

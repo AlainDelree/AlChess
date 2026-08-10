@@ -25,12 +25,13 @@
 
 ### Bugs résolus récemment
 - **Icônes 🖥 résiduelles sur Analyse/Retranscrire + déconnexion plateau en session non détectée** `[Linux]` — issue #102, commit `fcb51e1`. `hid_backend.get_fen()` avalait les `OSError` de lecture USB sans jamais le signaler ; ajout de `is_connected()`/`_connected` côté backend, comptage des échecs consécutifs dans `_fen_reader_loop` (driver.py), callback `_board_lost_cb` câblé sur `board_error` dans `board_adapter.create_board()`, et `reconnect_board` intercepté dans `server.py::on_action` pour fonctionner aussi bien au menu qu'en cours de partie.
+- **Déconnexion plateau non détectée au menu + retours menu forcés silencieux** `[Linux]` — issue #103. Thread daemon `_board_menu_watcher` (alchess.py) qui poll `hid_backend.is_connected()` toutes les 3s tant que `_app_state == "menu"` ; retour menu depuis HH re-déclenche `_check_board_at_startup()`. Toasts d'erreur (`toast_message_key`/`toast_message`/`toast_type` dans `set_app_state("menu", ...)`) ajoutés dans `game_manager.py` pour `launch_pedagogique`/`launch_humain`/`launch_labo_libre` (échiquier non détecté, timeout position, moteur KO, exception non catégorisée) ; affichage côté `app.js` (handler `app_state`) déjà en place. **Non traité** : la perte du plateau en cours de partie active (`_board_lost_cb`) n'entraîne toujours pas de retour menu forcé — le thread `_fen_reader_loop` s'arrête et notifie `board_error`, mais les boucles de jeu (human.py/pedagogique.py) ne consomment pas ce signal pour interrompre `game.start()`. Corriger proprement nécessiterait un flag d'abandon consulté par la boucle de jeu ; risque de régression trop élevé pour être fait sans test matériel dans cette session.
 
 ---
 
 ## 💡 Fonctionnalités à venir
 
-- **Chantier « l'UI reflète l'état réel du système »** `[Les deux]` — détection de la déconnexion en cours de session faite (issue #102) ; reste : griser les boutons `data-needs-board` sur réception de `board_error` en cours de partie (aujourd'hui seul `board_ok` les réactive).
+- **Chantier « l'UI reflète l'état réel du système »** `[Les deux]` — détection de la déconnexion en cours de session faite (issue #102), et au menu (issue #103) ; reste : (1) griser les boutons `data-needs-board` sur réception de `board_error` en cours de partie (aujourd'hui seul `board_ok` les réactive) ; (2) forcer un retour menu (avec toast `toast.board_lost`, clé déjà en place) quand le plateau est perdu **pendant une partie active**, ce qui suppose de faire consulter un flag d'abandon par les boucles de jeu `human.py`/`pedagogique.py`.
 - **Tutoriels utilisateur** `[Les deux]` — autres aides in-app à ajouter au fil des besoins.
 - **Nettoyer le dossier Rodent dans le packaging** — trier par OS (`mac/`, `sources/`, `books/` volumineux inutiles au paquet final).
 - **Réduire la taille des ZIP** (~210/215 Mo) — élagage `books/`/`exe/`/`docs/` de Rodent à valider avec Alain.
