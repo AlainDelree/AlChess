@@ -34,6 +34,9 @@
   "menu.btn.debloquer":        "⟳ Débloquer les boutons",
   "menu.btn.quitter":          "✕ Quitter",
   "menu.btn.virtuel":          "Virtuel",
+  "menu.mode_virtuel_label":   "Mode virtuel",
+  "menu.hh.requiert_echiquier": "Échiquier requis",
+  "menu.hh.pret":              "Prêt",
   "menu.col.jouer":            "Jouer",
   "menu.col.outils":           "Outils",
   "menu.virtual_mode":         "Mode sans échiquier",
@@ -389,6 +392,7 @@
   "status.deconnecte":         "Application déconnectée",
   "status.board.connecte":     "Échiquier connecté",
   "status.board.non_detecte":  "Échiquier non détecté — mode virtuel disponible",
+  "status.board.sans_echiquier": "Sans échiquier",
 
   "game.undo_remettez_pieces":  "Remettez les pièces à leur place, puis rejouez.",
   "game.undo_remettez_piece":   "Remettez la pièce à sa position initiale, puis rejouez.",

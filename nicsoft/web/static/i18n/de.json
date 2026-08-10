@@ -34,6 +34,9 @@
   "menu.btn.debloquer":        "⟳ Schaltflächen entsperren",
   "menu.btn.quitter":          "✕ Beenden",
   "menu.btn.virtuel":          "Virtuell",
+  "menu.mode_virtuel_label":   "Virtueller Modus",
+  "menu.hh.requiert_echiquier": "Brett erforderlich",
+  "menu.hh.pret":              "Bereit",
   "menu.col.jouer":            "Spielen",
   "menu.col.outils":           "Werkzeuge",
   "menu.virtual_mode":         "Brettloser Modus",
@@ -389,6 +392,7 @@
   "status.deconnecte":         "Anwendung getrennt",
   "status.board.connecte":     "Schachbrett verbunden",
   "status.board.non_detecte":  "Schachbrett nicht erkannt — Virtueller Modus verfügbar",
+  "status.board.sans_echiquier": "Kein Brett",
 
   "game.undo_remettez_pieces":  "Figuren zurückstellen, dann weiterspielen.",
   "game.undo_remettez_piece":   "Figur zurückstellen, dann weiterspielen.",

@@ -23,12 +23,15 @@
 </head>
 <body>
 
-<header>
-  <h1><span style="font-size:1.4em; line-height:1;">♜</span> AlChess</h1>
+<header id="app-header" class="header-disconnected">
+  <div class="board-deco" aria-hidden="true"></div>
+  <h1><span id="header-icon" style="font-size:1.4em; line-height:1;">♜</span> AlChess</h1>
   <div id="status-dot"></div>
   <span id="status-text">Connexion...</span>
-  <div id="board-status-dot"></div>
-  <span id="board-status-text"></span>
+  <div id="board-status-pill" class="status-pill pill-disconnected">
+    <span class="status-pill-dot"></span>
+    <span id="board-status-text"></span>
+  </div>
   <select id="lang-selector" onchange="i18n.load(this.value).then(_refreshDynamicLabels)"
     style="margin-left:auto; font-size:0.75rem; color:#3a5a7a; background:transparent; border:none; cursor:pointer; opacity:0.6; transition:opacity 0.2s;"
     onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
@@ -53,42 +56,49 @@
       <div class="menu-col-title" data-i18n="menu.col.jouer">Jouer</div>
 
       <div class="menu-btn-wrap">
-        <div class="menu-split-wrap">
-          <button class="menu-split-main menu-split-primary" data-needs-board disabled
-                  onclick="sendAction({type:'mode', value:'pedagogique'})">♟ <span data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</span></button>
-          <button class="menu-split-virt menu-split-primary-virt"
-                  onclick="_launchVirtual('pedagogique')">
-            <span class="split-icon">🖥</span><span class="split-label" data-i18n="menu.btn.virtuel">Virtuel</span>
-          </button>
+        <div class="menu-card menu-card-primary" onclick="_menuCardLaunch('pedagogique', this)">
+          <div class="menu-card-head">♟ <span data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</span></div>
+          <div class="menu-card-sep"></div>
+          <div class="menu-card-foot" onclick="event.stopPropagation()">
+            <label class="menu-card-chk-label">
+              <input type="checkbox" class="menu-card-chk" checked>
+              <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
+            </label>
+          </div>
         </div>
         <div class="menu-btn-desc" id="desc-pedagogique" data-i18n="menu.desc.pedagogique">Jouez contre un moteur d'échecs. Chaque coup est analysé en direct — erreurs, imprécisions et coups brillants sont signalés. La partie complète est disponible à la fin.</div>
       </div>
 
       <div class="menu-btn-wrap">
         <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})" data-i18n="menu.btn.humain">⚔️ Humain vs Humain</button>
+        <div class="menu-hh-status" id="hh-status-label" data-i18n="menu.hh.requiert_echiquier">Échiquier requis</div>
         <div class="menu-btn-desc" id="desc-humain" data-i18n="menu.desc.humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
       </div>
 
       <div class="menu-btn-wrap">
-        <div class="menu-split-wrap">
-          <button class="menu-split-main menu-split-secondary" data-needs-board disabled
-                  onclick="sendAction({type:'mode', value:'labo'})">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></button>
-          <button class="menu-split-virt menu-split-secondary-virt"
-                  onclick="_launchVirtual('labo')">
-            <span class="split-icon">🖥</span><span class="split-label" data-i18n="menu.btn.virtuel">Virtuel</span>
-          </button>
+        <div class="menu-card menu-card-secondary" onclick="_menuCardLaunch('labo', this)">
+          <div class="menu-card-head">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></div>
+          <div class="menu-card-sep"></div>
+          <div class="menu-card-foot" onclick="event.stopPropagation()">
+            <label class="menu-card-chk-label">
+              <input type="checkbox" class="menu-card-chk" checked>
+              <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
+            </label>
+          </div>
         </div>
         <div class="menu-btn-desc" id="desc-labo" data-i18n="menu.desc.labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
       </div>
 
       <div class="menu-btn-wrap">
-        <div class="menu-split-wrap">
-          <button class="menu-split-main menu-split-secondary" data-needs-board disabled
-                  onclick="sendAction({type:'mode', value:'exercices'})">♟ <span data-i18n="menu.btn.exercices">📚 Exercices</span></button>
-          <button class="menu-split-virt menu-split-secondary-virt"
-                  onclick="_launchVirtual('exercices')">
-            <span class="split-icon">🖥</span><span class="split-label" data-i18n="menu.btn.virtuel">Virtuel</span>
-          </button>
+        <div class="menu-card menu-card-secondary" onclick="_menuCardLaunch('exercices', this)">
+          <div class="menu-card-head">♟ <span data-i18n="menu.btn.exercices">📚 Exercices</span></div>
+          <div class="menu-card-sep"></div>
+          <div class="menu-card-foot" onclick="event.stopPropagation()">
+            <label class="menu-card-chk-label">
+              <input type="checkbox" class="menu-card-chk" checked>
+              <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
+            </label>
+          </div>
         </div>
         <div class="menu-btn-desc" id="desc-exercices" data-i18n="menu.desc.exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
       </div>
@@ -101,11 +111,13 @@
 
       <div class="menu-btn-wrap">
         <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})" data-i18n="menu.btn.analyse">📊 Analyse de partie</button>
+        <div class="menu-static-label" data-i18n="menu.mode_virtuel_label">Mode virtuel</div>
         <div class="menu-btn-desc" id="desc-analyse" data-i18n="menu.desc.analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
       </div>
 
       <div class="menu-btn-wrap">
         <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})" data-i18n="menu.btn.retranscrire">✏️ Retranscrire</button>
+        <div class="menu-static-label" data-i18n="menu.mode_virtuel_label">Mode virtuel</div>
         <div class="menu-btn-desc" id="desc-retrans" data-i18n="menu.desc.retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
       </div>
 
@@ -118,7 +130,7 @@
 
   </div><!-- fin menu-grid -->
 
-  <button class="menu-btn menu-btn-secondary" id="btn-reconnect" onclick="sendAction({type:'reconnect_board'})" style="font-size:0.85rem; opacity:0.5; cursor:default;" disabled>✓ Échiquier connecté</button>
+  <a href="#" id="btn-reconnect" class="menu-reconnect-link" onclick="sendAction({type:'reconnect_board'}); return false;" data-i18n="menu.btn.reconnect_label">⟳ Reconnecter l'échiquier</a>
 
 
   <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;" data-i18n="menu.btn.quitter">✕ Quitter</button>
