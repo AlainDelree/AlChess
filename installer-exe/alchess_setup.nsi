@@ -1914,7 +1914,7 @@ Section "Raccourci bureau" SecShortcut
     ; ne remonte pas une erreur laissee par une instruction anterieure.
     ClearErrors
     CreateShortcut "$DESKTOP\AlChess.lnk" "$EXEDIR\2-Lancer_AlChess.bat" \
-        "" "$EXEDIR\niclink_icon.ico" 0 SW_SHOWNORMAL "" "Launch AlChess"
+        "" "$EXEDIR\alchess.ico" 0 SW_SHOWNORMAL "" "Launch AlChess"
     IfErrors shortcut_failed shortcut_ok
 
     shortcut_failed:

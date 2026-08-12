@@ -5,7 +5,7 @@
 ## ⚡ Prioritaire
 
 - **Release v1.3.1 à packager** `[Linux/Windows]` — regrouper les correctifs depuis v1.3.0 (dont issue #96) : `./make_release.sh 1.3.1` + tag + `gh release create`.
-- **ACTION ALAIN — Validation VM NSIS** `[Windows]` — relancer `AlChess_Setup.exe` sur VM Windows et confirmer l'installation/lancement de bout en bout (issues #64–#67, #58).
+- **ACTION ALAIN — Valider nouveau raccourci Windows** `[Windows]` — relancer `AlChess_Setup.exe` sur VM Windows et vérifier que le raccourci bureau affiche bien l'icône roi noir.
 - **Tester une partie réelle Rodent sur Windows** `[Windows]` — sur portable physique (jeu + changement d'Elo + redémarrage).
 - **Tester vc_redist sur un Windows sans le runtime VC++** `[Windows]` — la VM actuelle a déjà le runtime, il faut un Windows propre.
 
