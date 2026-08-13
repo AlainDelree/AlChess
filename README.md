@@ -1,6 +1,6 @@
 # AlChess
 
-**🇫🇷 Français** | [🇬🇧 English below](#english)
+**🇬🇧 English** | [🇫🇷 Français](#français)
 
 [![Release](https://img.shields.io/github/v/release/AlainDelree/AlChess?label=version)](https://github.com/AlainDelree/AlChess/releases/latest)
 [![Licence](https://img.shields.io/github/license/AlainDelree/AlChess)](LICENSE)
@@ -10,6 +10,134 @@
 
 ---
 
+## 🇬🇧 English
+
+A chess training application that connects a **Chessnut Air** physical chessboard to a local web interface. Play against Stockfish or Maia, train your openings, analyze your games — on your real board. Most modes also work **without hardware**, thanks to the built-in virtual chessboard (only Human vs Human requires the physical board).
+
+### ⬇️ Download (recommended)
+
+No need to know Git or Python. Go to the **[Releases](https://github.com/AlainDelree/AlChess/releases/latest)** page and download the package for your system.
+
+**Windows 10 / 11**
+
+> ⚠️ **Windows 11 — Smart App Control**
+> If Windows blocks the launch with "Smart App Control has blocked a potentially
+> dangerous file":
+> - **Option A**: launch AlChess from the "Launch AlChess" button at the end
+>   of the installation (always works)
+> - **Option B**: disable Smart App Control in Settings → Privacy & Security
+>   → Windows Security → App & browser control → Smart App Control → Off
+> - **Option C**: use Windows 10, or Windows 11 with SAC already disabled
+> AlChess is not digitally signed — this is the cause of the block.
+
+Two installation methods are available:
+
+**Option A — `.exe` installer (recommended, simplest)**
+1. Download **`AlChess_Setup.exe`** directly from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
+2. Double-click **`AlChess_Setup.exe`**
+3. If Windows shows "Windows protected your PC" (SmartScreen):
+   click **More info** then **Run anyway**
+4. Follow the setup wizard — it installs Python if needed, clones AlChess
+   from GitHub, sets up the environment and creates an **AlChess** shortcut
+   on the Desktop
+5. Launch AlChess with the **AlChess** shortcut on the Desktop
+
+> ℹ️ The SmartScreen alert appears because AlChess is not digitally signed.
+> The program is open source and freely inspectable on
+> [GitHub](https://github.com/AlainDelree/AlChess).
+
+**Option B — PowerShell script (legacy method)**
+1. Download `AlChess-vX.Y.Z-windows-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
+2. Extract the ZIP (right-click → "Extract All")
+3. Double-click **`1-Installer.bat`**
+4. Launch AlChess with **`2-Lancer_AlChess.bat`** (or the **AlChess** shortcut created on the Desktop)
+
+> 💡 Use option A if option B fails with a PowerShell execution policy error (common on corporate or school PCs). Option B remains useful if you'd rather inspect the script before running it.
+
+> ℹ️ Do not close the server window while using AlChess.
+
+**Linux (Ubuntu 22.04 / 24.04)**
+1. Download `AlChess-vX.Y.Z-linux-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
+2. Extract it, then in a terminal:
+   ```bash
+   cd AlChess-vX.Y.Z-linux-x86_64
+   ./install.sh
+   ./start_alchess.sh
+   ```
+
+### Features
+
+- ♟️ **Training mode** — play against Stockfish or Maia, with per-move evaluation and feedback
+- 👥 **Human vs Human** — two players on the same physical board
+- 📖 **Opening exercises** — train on GM books or your own lines
+- 🔍 **Game analysis** — move-by-move navigation, mistake detection, import external PGN files (e.g. Chess.com)
+- 📝 **PGN retranscription** — replay and export your games
+- 🧪 **Lab mode** — virtual board without physical hardware
+- 🌐 **Multilingual interface** — French, English and German (🇫🇷 🇬🇧 🇩🇪)
+
+### Screenshots
+
+**Training mode** — pick the engine, Elo level and analysis options:
+
+![Training mode](docs/img/training.png)
+
+**Opening exercises** — practice a repertoire, guided by the book:
+
+![Opening exercises](docs/img/exercises.png)
+
+![Opening repertoire](docs/img/openings.png)
+
+### Chess engines
+
+Engines are set up **automatically by the installer**, with the binary matching your system.
+
+| Engine | Role |
+|--------|------|
+| Stockfish | Strong opponent, evaluation & feedback |
+| Maia (lc0) | Human-like opponent, by Elo level |
+| Rodent IV | Opponent with varied personalities |
+
+### Systems and hardware
+
+| System | Support |
+|--------|---------|
+| Ubuntu 22.04 / 24.04 (x86_64) | ✅ |
+| Windows 10 / 11 (x86_64) | ✅ |
+
+> ⚠️ The Chessnut Air+ has a different `idProduct` from the Chessnut Air — check with `lsusb | grep 2d80` (Linux) or Device Manager (Windows).
+
+### Install from source (developers)
+
+```bash
+git clone https://github.com/AlainDelree/AlChess.git ~/AlChess
+cd ~/AlChess
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python -m nicsoft.web
+```
+
+Full guide: [`INSTALLATION/`](INSTALLATION/).
+
+### Automatic updates
+
+On startup, AlChess checks whether a newer version is available on GitHub (latest published release tag) and updates itself automatically if so. This mechanism is **transparent**: it requires no action on your part, but does need an **internet connection** at launch.
+
+You can disable this check via the dedicated checkbox in the main menu. A warning is then displayed to remind you that you will no longer receive automatic updates.
+
+For advanced users who prefer to manage updates themselves (for example in a controlled environment), disabling the check simply creates a `no-update.txt` file at the root of the installation. Its presence is enough to turn off the automatic check; it can also be created or deleted manually.
+
+### Contributing
+
+Contributions are welcome! Open an **Issue** to report a bug or suggest a feature, or a **Pull Request** to submit code.
+
+### License
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
+
+---
+
+<a name="français"></a>
 ## 🇫🇷 Français
 
 Application d'entraînement aux échecs qui connecte un échiquier physique **Chessnut Air** à une interface web locale. Jouez contre Stockfish ou Maia, entraînez vos ouvertures, analysez vos parties — sur votre vrai échiquier. La plupart des modes fonctionnent aussi **sans matériel**, grâce à l'échiquier virtuel intégré (seul le mode Humain contre Humain requiert l'échiquier physique).
@@ -136,131 +264,3 @@ Les contributions sont les bienvenues ! Ouvrez une **Issue** pour signaler un bu
 ### Licence
 
 GNU General Public License v3.0 — voir [LICENSE](LICENSE).
-
----
-
-<a name="english"></a>
-## 🇬🇧 English
-
-A chess training application that connects a **Chessnut Air** physical chessboard to a local web interface. Play against Stockfish or Maia, train your openings, analyze your games — on your real board. Most modes also work **without hardware**, thanks to the built-in virtual chessboard (only Human vs Human requires the physical board).
-
-### ⬇️ Download (recommended)
-
-No need to know Git or Python. Go to the **[Releases](https://github.com/AlainDelree/AlChess/releases/latest)** page and download the package for your system.
-
-**Windows 10 / 11**
-
-> ⚠️ **Windows 11 — Smart App Control**
-> If Windows blocks the launch with "Smart App Control has blocked a potentially
-> dangerous file":
-> - **Option A**: launch AlChess from the "Launch AlChess" button at the end
->   of the installation (always works)
-> - **Option B**: disable Smart App Control in Settings → Privacy & Security
->   → Windows Security → App & browser control → Smart App Control → Off
-> - **Option C**: use Windows 10, or Windows 11 with SAC already disabled
-> AlChess is not digitally signed — this is the cause of the block.
-
-Two installation methods are available:
-
-**Option A — `.exe` installer (recommended, simplest)**
-1. Download **`AlChess_Setup.exe`** directly from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
-2. Double-click **`AlChess_Setup.exe`**
-3. If Windows shows "Windows protected your PC" (SmartScreen):
-   click **More info** then **Run anyway**
-4. Follow the setup wizard — it installs Python if needed, clones AlChess
-   from GitHub, sets up the environment and creates an **AlChess** shortcut
-   on the Desktop
-5. Launch AlChess with the **AlChess** shortcut on the Desktop
-
-> ℹ️ The SmartScreen alert appears because AlChess is not digitally signed.
-> The program is open source and freely inspectable on
-> [GitHub](https://github.com/AlainDelree/AlChess).
-
-**Option B — PowerShell script (legacy method)**
-1. Download `AlChess-vX.Y.Z-windows-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
-2. Extract the ZIP (right-click → "Extract All")
-3. Double-click **`1-Installer.bat`**
-4. Launch AlChess with **`2-Lancer_AlChess.bat`** (or the **AlChess** shortcut created on the Desktop)
-
-> 💡 Use option A if option B fails with a PowerShell execution policy error (common on corporate or school PCs). Option B remains useful if you'd rather inspect the script before running it.
-
-> ℹ️ Do not close the server window while using AlChess.
-
-**Linux (Ubuntu 22.04 / 24.04)**
-1. Download `AlChess-vX.Y.Z-linux-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
-2. Extract it, then in a terminal:
-   ```bash
-   cd AlChess-vX.Y.Z-linux-x86_64
-   ./install.sh
-   ./start_alchess.sh
-   ```
-
-### Features
-
-- ♟️ **Training mode** — play against Stockfish or Maia, with per-move evaluation and feedback
-- 👥 **Human vs Human** — two players on the same physical board
-- 📖 **Opening exercises** — train on GM books or your own lines
-- 🔍 **Game analysis** — move-by-move navigation, mistake detection, import external PGN files (e.g. Chess.com)
-- 📝 **PGN retranscription** — replay and export your games
-- 🧪 **Lab mode** — virtual board without physical hardware
-- 🌐 **Multilingual interface** — French, English and German (🇫🇷 🇬🇧 🇩🇪)
-
-### Screenshots
-
-**Training mode** — pick the engine, Elo level and analysis options:
-
-![Training mode](docs/img/training.png)
-
-**Opening exercises** — practice a repertoire, guided by the book:
-
-![Opening exercises](docs/img/exercises.png)
-
-![Opening repertoire](docs/img/openings.png)
-
-### Chess engines
-
-Engines are set up **automatically by the installer**, with the binary matching your system.
-
-| Engine | Role |
-|--------|------|
-| Stockfish | Strong opponent, evaluation & feedback |
-| Maia (lc0) | Human-like opponent, by Elo level |
-| Rodent IV | Opponent with varied personalities |
-
-### Systems and hardware
-
-| System | Support |
-|--------|---------|
-| Ubuntu 22.04 / 24.04 (x86_64) | ✅ |
-| Windows 10 / 11 (x86_64) | ✅ |
-
-> ⚠️ The Chessnut Air+ has a different `idProduct` from the Chessnut Air — check with `lsusb | grep 2d80` (Linux) or Device Manager (Windows).
-
-### Install from source (developers)
-
-```bash
-git clone https://github.com/AlainDelree/AlChess.git ~/AlChess
-cd ~/AlChess
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python -m nicsoft.web
-```
-
-Full guide: [`INSTALLATION/`](INSTALLATION/).
-
-### Automatic updates
-
-On startup, AlChess checks whether a newer version is available on GitHub (latest published release tag) and updates itself automatically if so. This mechanism is **transparent**: it requires no action on your part, but does need an **internet connection** at launch.
-
-You can disable this check via the dedicated checkbox in the main menu. A warning is then displayed to remind you that you will no longer receive automatic updates.
-
-For advanced users who prefer to manage updates themselves (for example in a controlled environment), disabling the check simply creates a `no-update.txt` file at the root of the installation. Its presence is enough to turn off the automatic check; it can also be created or deleted manually.
-
-### Contributing
-
-Contributions are welcome! Open an **Issue** to report a bug or suggest a feature, or a **Pull Request** to submit code.
-
-### License
-
-GNU General Public License v3.0 — see [LICENSE](LICENSE).
