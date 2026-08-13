@@ -1432,6 +1432,7 @@ SectionGroup "Configuration AlChess" SecGroupConfig
     ; DOIT s'executer avant SecPython/SecVenv : requirements.txt (utilise par
     ; SecVenv) doit venir du code deja synchronise ici.
     Section "Synchronisation Git" SecGit
+        CreateDirectory "$INSTDIR"
         Call EnsureGitInstalled
         Call SyncGitRepo
     SectionEnd
