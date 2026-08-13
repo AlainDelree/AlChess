@@ -1315,12 +1315,17 @@ Function SyncGitRepo
     DetailPrint "Synchronisation du code AlChess (Git)"
     DetailPrint "================================================"
 
+    nsExec::ExecToLog 'cmd /c where git >> "$INSTDIR\alchess_install_debug.log" 2>&1'
+    Pop $R0
+
     IfFileExists "$INSTDIR\.git\*.*" repo_present repo_absent
 
     repo_present:
         DetailPrint "  Depot git existant detecte — recherche du dernier tag de release..."
         nsExec::ExecToLog 'cmd /c git -C "$INSTDIR" fetch --tags origin'
         Pop $R0
+        StrCpy $LogMsg "SyncGitRepo git fetch : $R0"
+        Call LogCheckpoint
         IntCmp $R0 0 present_fetch_ok present_fetch_fail present_fetch_fail
 
         present_fetch_fail:
@@ -1329,11 +1334,15 @@ Function SyncGitRepo
 
         present_fetch_ok:
             Call GetLatestTag
+            StrCpy $LogMsg "SyncGitRepo GetLatestTag result : $LatestTag"
+            Call LogCheckpoint
             StrCmp $LatestTag "" present_no_tag 0
 
             DetailPrint "  Dernier tag de release : $LatestTag — checkout..."
             nsExec::ExecToLog 'cmd /c git -C "$INSTDIR" checkout "$LatestTag"'
             Pop $R0
+            StrCpy $LogMsg "SyncGitRepo git checkout : $R0"
+            Call LogCheckpoint
             IntCmp $R0 0 present_checkout_ok present_checkout_fail present_checkout_fail
 
         present_checkout_fail:
@@ -1355,6 +1364,8 @@ Function SyncGitRepo
 
         nsExec::ExecToLog 'cmd /c git -C "$INSTDIR" init'
         Pop $R0
+        StrCpy $LogMsg "SyncGitRepo git init : $R0"
+        Call LogCheckpoint
         IntCmp $R0 0 sync_init_ok sync_init_fail sync_init_fail
 
         sync_init_fail:
@@ -1364,6 +1375,8 @@ Function SyncGitRepo
         sync_init_ok:
             nsExec::ExecToLog 'cmd /c git -C "$INSTDIR" remote add origin https://github.com/AlainDelree/AlChess.git'
             Pop $R0
+            StrCpy $LogMsg "SyncGitRepo git remote add : $R0"
+            Call LogCheckpoint
             IntCmp $R0 0 sync_remote_ok sync_remote_fail sync_remote_fail
 
         sync_remote_fail:
@@ -1373,6 +1386,8 @@ Function SyncGitRepo
         sync_remote_ok:
             nsExec::ExecToLog 'cmd /c git -C "$INSTDIR" fetch --depth=1 --tags origin'
             Pop $R0
+            StrCpy $LogMsg "SyncGitRepo git fetch : $R0"
+            Call LogCheckpoint
             IntCmp $R0 0 sync_fetch_ok sync_fetch_fail sync_fetch_fail
 
         sync_fetch_fail:
@@ -1381,11 +1396,15 @@ Function SyncGitRepo
 
         sync_fetch_ok:
             Call GetLatestTag
+            StrCpy $LogMsg "SyncGitRepo GetLatestTag result : $LatestTag"
+            Call LogCheckpoint
             StrCmp $LatestTag "" sync_no_tag 0
 
             DetailPrint "  Dernier tag de release : $LatestTag — checkout..."
             nsExec::ExecToLog 'cmd /c git -C "$INSTDIR" checkout "$LatestTag"'
             Pop $R0
+            StrCpy $LogMsg "SyncGitRepo git checkout : $R0"
+            Call LogCheckpoint
             IntCmp $R0 0 sync_checkout_ok sync_checkout_fail sync_checkout_fail
 
         sync_checkout_fail:
