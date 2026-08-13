@@ -1934,6 +1934,11 @@ Section "Raccourci bureau" SecShortcut
     DetailPrint "Creation du raccourci bureau"
     DetailPrint "================================================"
 
+    ; Definir le repertoire de travail (Start in) du raccourci : sans cela,
+    ; le champ "Demarrer dans" du .lnk reste vide et le .bat ne retrouve pas
+    ; ses chemins relatifs.
+    SetOutPath "$INSTDIR"
+
     ; Reinitialiser le flag d'erreur avant CreateShortcut pour que IfErrors
     ; ne remonte pas une erreur laissee par une instruction anterieure.
     ClearErrors
