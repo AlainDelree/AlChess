@@ -4,9 +4,7 @@
 
 ## ⚡ Prioritaire
 
-- **README — documenter SmartScreen** `[Windows]` — ajouter section "Premier lancement Windows" : cliquer "More info" puis "Run anyway" sur l'alerte SmartScreen au premier lancement de `AlChess_Setup.exe`.
 - **Tester une partie réelle Rodent sur Windows** `[Windows]` — sur portable physique (jeu + changement d'Elo + redémarrage).
-- **Tester vc_redist sur un Windows sans le runtime VC++** `[Windows]` — la VM actuelle a déjà le runtime, il faut un Windows propre.
 
 ---
 
@@ -23,6 +21,7 @@
 - **Numéros de lignes échiquier mal alignés (rendu police Windows)** `[Windows]`
 
 ### Bugs résolus récemment
+- **vc_redist auto-installed by NSIS on clean Windows (no MSVCP140.dll)** — validé sur VM, 13 août 2026.
 - **Installeur standalone Linux** `[Linux]` — issue #126. `bootstrap_linux.sh` à la racine du dépôt : clone/mise à jour AlChess dans `~/.local/share/AlChess` (dernier tag), création du venv + install des dépendances, règle udev Chessnut (`99-chessnutair-alchess.rules`, sudo si dispo), raccourci `~/Desktop/AlChess.desktop`. Ajouté à la liste blanche `INCLUDE` de `make_release.sh` (exclu du paquet Windows, comme `install.sh`/`start_alchess.sh`). Équivalent Linux de `AlChess_Setup.exe`.
 - **Rodent IV indisponible sur installation NSIS standalone (Windows) — `find_rodent()` ignorait `engines/rodent-iv-win/`** — corrigé issue #122.
 - **`_board_menu_watcher` — `get_fen()` ne détecte pas un débranchement sur Linux** `[Linux]` — issue #110, commit `bc87bc5`. Le fix #108 appelait `hid_backend.get_fen()` pour forcer une lecture USB, mais sur Linux `_dev.read()` ne lève pas d'`OSError` au débranchement — il retourne `[]` après le timeout, donc `_connected` ne passait jamais à `False`. Ajout de `hid_backend.check_physically_present()`, qui interroge directement `hid.enumerate()` pour confirmer la présence du périphérique dans le sous-système USB (sans dépendre d'une lecture FEN) ; remplace l'appel `get_fen()` + `is_connected()` dans le watcher.
