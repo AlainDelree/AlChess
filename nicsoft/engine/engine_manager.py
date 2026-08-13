@@ -526,9 +526,9 @@ def rodent_available() -> bool:
 
     Ne se contente pas de vérifier la présence du binaire : le lance réellement
     et exige que le handshake UCI aboutisse (`uci` + `isready`, effectués par
-    `popen_uci`) ET que les options attendues soient exposées (`Personality`,
-    `UCI_Elo`) — garantie qu'il s'agit bien de Rodent IV et non d'un binaire
-    corrompu ou incompatible. À appeler côté UI/menu avant d'offrir le moteur.
+    `popen_uci`) ET que l'option attendue soit exposée (`UCI_Elo`) — garantie
+    qu'il s'agit bien de Rodent IV et non d'un binaire corrompu ou
+    incompatible. À appeler côté UI/menu avant d'offrir le moteur.
     """
     path = find_rodent()
     if not path:
@@ -536,7 +536,7 @@ def rodent_available() -> bool:
     engine = None
     try:
         engine = chess.engine.SimpleEngine.popen_uci(path)
-        return "Personality" in engine.options and "UCI_Elo" in engine.options
+        return "UCI_Elo" in engine.options
     except Exception as e:
         logger.warning(f"Rodent IV présent mais ne répond pas au handshake UCI : {e}")
         return False
