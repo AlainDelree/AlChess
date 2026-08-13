@@ -1942,8 +1942,8 @@ Section "Raccourci bureau" SecShortcut
     ; Reinitialiser le flag d'erreur avant CreateShortcut pour que IfErrors
     ; ne remonte pas une erreur laissee par une instruction anterieure.
     ClearErrors
-    CreateShortcut "$DESKTOP\AlChess.lnk" "$INSTDIR\2-Lancer_AlChess.bat" \
-        "" "$INSTDIR\alchess.ico" 0 SW_SHOWNORMAL "" "Launch AlChess"
+    CreateShortcut "$DESKTOP\AlChess.lnk" "wscript.exe" \
+        '"$INSTDIR\start_silent.vbs"' "$INSTDIR\alchess.ico" 0 SW_SHOWNORMAL "" "Launch AlChess"
     IfErrors shortcut_failed shortcut_ok
 
     shortcut_failed:

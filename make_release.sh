@@ -57,6 +57,7 @@ INCLUDE=(
   bootstrap_linux.sh
   1-Installer.bat
   2-Lancer_AlChess.bat
+  start_silent.vbs
   install_alchess.ps1
   start_alchess.ps1
   99-chessnutair.rules.example
