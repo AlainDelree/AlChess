@@ -5,7 +5,7 @@
 ## ⚡ Prioritaire
 
 - **Release v1.3.1 à packager** `[Linux/Windows]` — regrouper les correctifs depuis v1.3.0 (dont issue #96) : `./make_release.sh 1.3.1` + tag + `gh release create`.
-- **ACTION ALAIN — Valider installeur standalone** `[Windows]` — lancer `AlChess_Setup.exe` depuis un dossier quelconque, vérifier que l'app s'installe dans `%LOCALAPPDATA%\AlChess` et que le raccourci bureau fonctionne avec l'icône roi noir.
+- **ACTION ALAIN — Valider installeur standalone** `[Windows]` — lancer `AlChess_Setup.exe` seul (sans ZIP), vérifier clone GitHub dans `%LOCALAPPDATA%\AlChess` et raccourci bureau fonctionnel.
 - **Tester une partie réelle Rodent sur Windows** `[Windows]` — sur portable physique (jeu + changement d'Elo + redémarrage).
 - **Tester vc_redist sur un Windows sans le runtime VC++** `[Windows]` — la VM actuelle a déjà le runtime, il faut un Windows propre.
 

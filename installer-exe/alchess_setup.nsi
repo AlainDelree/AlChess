@@ -1349,10 +1349,8 @@ Function SyncGitRepo
             Return
 
     repo_absent:
-        ; $EXEDIR est deja rempli par le ZIP de release : "git clone" ne peut
-        ; jamais y aboutir (git refuse un dossier non vide). On convertit donc
-        ; le dossier existant en depot git : init + remote add + fetch (shallow,
-        ; tags inclus) + checkout du dernier tag de release (issue #90, suite #89).
+        ; $INSTDIR est vide a la premiere installation : git init + remote add +
+        ; fetch --depth=1 --tags + checkout du dernier tag = equivalent d'un clone.
         DetailPrint "  Aucun depot git dans $INSTDIR — conversion en depot (init+fetch+checkout tag)..."
 
         nsExec::ExecToLog 'cmd /c git -C "$INSTDIR" init'
@@ -1410,51 +1408,6 @@ FunctionEnd
 ; ============================================================================
 
 SectionGroup "Configuration AlChess" SecGroupConfig
-
-    ; -- Phase 8 (issue #113) : copie des fichiers vers le dossier fixe ------
-    ; DOIT s'executer EN PREMIER, avant toute autre section : tout le reste du
-    ; SectionGroup travaille sur $INSTDIR, qui doit donc deja contenir l'app
-    ; au moment ou SecGit demarre. Copie via robocopy (gere la fusion/reprise
-    ; mieux qu'un simple CopyFiles NSIS) depuis $EXEDIR (dossier de lancement
-    ; du .exe) vers $INSTDIR (%LOCALAPPDATA%\AlChess, toujours le meme).
-    ;
-    ; Garde-fou : si l'utilisateur a deja extrait le ZIP directement dans
-    ; %LOCALAPPDATA%\AlChess, $EXEDIR == $INSTDIR — la copie est alors inutile
-    ; (et robocopy sur une source == destination n'a de toute facon rien a
-    ; faire), donc on la saute explicitement.
-    ;
-    ; Codes de sortie robocopy : 0-7 = succes (0 = rien a copier, 1 = fichiers
-    ; copies, etc., cumulables en bitmask), 8+ = erreur reelle. On teste donc
-    ; $R0 <= 7, pas $R0 == 0.
-    Section "Copie des fichiers" SecCopyFiles
-        StrCmp "$EXEDIR" "$INSTDIR" copy_skip copy_start
-
-        copy_start:
-            DetailPrint "================================================"
-            DetailPrint "Copie d'AlChess vers $INSTDIR"
-            DetailPrint "================================================"
-            DetailPrint "  Source : $EXEDIR"
-            CreateDirectory "$INSTDIR"
-            nsExec::ExecToLog 'cmd /c robocopy "$EXEDIR" "$INSTDIR" /E /NFL /NDL /NJH /NJS /NC /NS /NP'
-            Pop $R0
-            IntCmp $R0 7 copy_ok copy_ok copy_fail
-
-            copy_fail:
-                DetailPrint "================================================"
-                DetailPrint "ECHEC : la copie vers $INSTDIR a echoue (code robocopy $R0)."
-                DetailPrint "================================================"
-                MessageBox MB_OK|MB_ICONSTOP "La copie des fichiers AlChess vers $INSTDIR a echoue (code robocopy $R0).$\r$\n$\r$\nVerifiez l'espace disque disponible et les droits d'ecriture sur %LOCALAPPDATA%, puis relancez cet installeur."
-                Abort
-
-            copy_ok:
-                DetailPrint "  Copie terminee avec succes."
-                Goto end_copy_files
-
-        copy_skip:
-            DetailPrint "Deja lance depuis $INSTDIR — copie sautee."
-
-        end_copy_files:
-    SectionEnd
 
     ; -- Phase Git (issue #88) : depot git + auto-update ----------------------
     ; DOIT s'executer avant SecPython/SecVenv : requirements.txt (utilise par
