@@ -566,26 +566,6 @@ function downloadRodent() {
   socket.emit("download_rodent", {});
 }
 
-socket.on("rodent_download_progress", (data) => {
-  const msg = `${t("engine.rodent.downloading")} (${data.index}/${data.total} ${data.file})`;
-  ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
-    const status = document.getElementById(id);
-    if (status) status.textContent = msg;
-  });
-});
-
-socket.on("rodent_download_result", (data) => {
-  const msg = data && data.ok ? t("engine.rodent.download_ok") : t("engine.rodent.download_error");
-  ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
-    const status = document.getElementById(id);
-    if (status) status.textContent = msg;
-  });
-  ["cfg-rodent-download-btn", "labo-rodent-download-btn"].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) btn.disabled = false;
-  });
-});
-
 // Vérifie si aucun moteur n'est disponible — grise le bouton Démarrer et affiche l'alerte.
 function _checkNoEngineAvailable() {
   const noEngine = !_stockfishAvailable && !_maiaAvailable && !_rodentAvailable;
@@ -5983,4 +5963,24 @@ socket.on("rodent_status", (data) => {
     if (_laboEngine === "rodent" && fallback)     laboSelectEngine(fallback);
   }
   _applyRodentAvailability();
+});
+
+socket.on("rodent_download_progress", (data) => {
+  const msg = `${t("engine.rodent.downloading")} (${data.index}/${data.total} ${data.file})`;
+  ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
+    const status = document.getElementById(id);
+    if (status) status.textContent = msg;
+  });
+});
+
+socket.on("rodent_download_result", (data) => {
+  const msg = data && data.ok ? t("engine.rodent.download_ok") : t("engine.rodent.download_error");
+  ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
+    const status = document.getElementById(id);
+    if (status) status.textContent = msg;
+  });
+  ["cfg-rodent-download-btn", "labo-rodent-download-btn"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = false;
+  });
 });
