@@ -4,8 +4,7 @@
 
 ## ⚡ Prioritaire
 
-- **ACTION ALAIN — Publier v1.3.1** `[Linux]` — `git push origin v1.3.1` puis `gh release create v1.3.1 dist/AlChess-v1.3.1-*.zip --title "AlChess v1.3.1" --notes "..."`.
-- **ACTION ALAIN — Valider installeur standalone** `[Windows]` — lancer `AlChess_Setup.exe` seul (sans ZIP), vérifier clone GitHub dans `%LOCALAPPDATA%\AlChess` et raccourci bureau fonctionnel.
+- **README — documenter SmartScreen** `[Windows]` — ajouter section "Premier lancement Windows" : cliquer "More info" puis "Run anyway" sur l'alerte SmartScreen au premier lancement de `AlChess_Setup.exe`.
 - **Tester une partie réelle Rodent sur Windows** `[Windows]` — sur portable physique (jeu + changement d'Elo + redémarrage).
 - **Tester vc_redist sur un Windows sans le runtime VC++** `[Windows]` — la VM actuelle a déjà le runtime, il faut un Windows propre.
 
