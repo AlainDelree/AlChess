@@ -549,7 +549,7 @@ def rodent_available() -> bool:
 
 
 # ── Rodent IV : personnalités et bornes ──────────────────────────────────────
-# Valeurs EXACTES de l'option UCI combo "Personality" du binaire Rodent IV 0.33
+# Valeurs EXACTES de l'option UCI combo "PersonalityFile" du binaire Rodent IV
 # (relevées via `uci`). Le sélecteur UI doit envoyer une de ces valeurs telles
 # quelles ; toute autre valeur est refusée par le moteur. "Bosboom.txt" porte
 # bien l'extension dans la déclaration UCI (quirk du binaire).
@@ -706,7 +706,7 @@ class RodentEngine(EngineManager):
 
     Spécificités (cf. investigation issue #12) :
       - L'ordre d'envoi des `setoption` est IMPÉRATIF :
-          Personality → UCI_LimitStrength → UCI_Elo  (Elo TOUJOURS en dernier).
+          PersonalityFile → UCI_LimitStrength → UCI_Elo  (Elo TOUJOURS en dernier).
         Chaque option est envoyée dans son propre `configure()` pour garantir
         l'ordre indépendamment de l'implémentation de python-chess. Si l'Elo
         n'est pas envoyé en dernier, le moteur retombe à pleine puissance.
@@ -738,7 +738,7 @@ class RodentEngine(EngineManager):
 
     def _apply_rodent_options(self, engine: chess.engine.SimpleEngine) -> None:
         """
-        Envoie les options dans l'ordre impératif Personality → LimitStrength → Elo.
+        Envoie les options dans l'ordre impératif PersonalityFile → LimitStrength → Elo.
         Un `configure()` distinct par option = un `setoption` distinct, ordre garanti.
 
         Note (vérifié via logs UCI, issue #13) : python-chess n'émet PAS un
@@ -746,11 +746,11 @@ class RodentEngine(EngineManager):
         par le moteur. Rodent IV déclare `UCI_LimitStrength` avec le défaut
         `true` → la ligne LimitStrength n'apparaît pas dans les logs (no-op),
         l'option étant déjà active. L'ordre réellement envoyé reste donc
-        Personality → UCI_Elo (Elo en dernier), ce qui satisfait la contrainte
+        PersonalityFile → UCI_Elo (Elo en dernier), ce qui satisfait la contrainte
         de l'issue #12. Robuste : si un build avait le défaut `false`,
         python-chess enverrait la ligne (valeur ≠ défaut).
         """
-        engine.configure({"Personality": self._personality})
+        engine.configure({"PersonalityFile": self._personality})
         engine.configure({"UCI_LimitStrength": True})
         engine.configure({"UCI_Elo": self._engine_elo})
 
@@ -777,7 +777,7 @@ class RodentEngine(EngineManager):
             raise
 
     def set_elo(self, elo: int) -> None:
-        """Change l'Elo à chaud en respectant l'ordre Personality → LimitStrength → Elo."""
+        """Change l'Elo à chaud en respectant l'ordre PersonalityFile → LimitStrength → Elo."""
         self._engine_elo  = max(RODENT_ELO_MIN, min(RODENT_ELO_MAX, elo))
         self._engine_name = f"Rodent {self._engine_elo}"
         with self._lock_play:
