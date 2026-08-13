@@ -35,10 +35,18 @@ Pas besoin de connaître Git ou Python. Rendez-vous sur la page **[Releases](htt
 Deux méthodes d'installation sont disponibles :
 
 **Option A — Installeur `.exe` (recommandée, la plus simple)**
-1. Téléchargez `AlChess-vX.Y.Z-windows-x86_64.zip` depuis les [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
-2. Extrayez le ZIP (clic droit → « Extraire tout »)
-3. Double-cliquez sur **`AlChess_Setup.exe`** et suivez l'assistant d'installation — il installe Python si nécessaire, prépare l'environnement, télécharge les moteurs et crée un raccourci **AlChess** sur le Bureau
-4. Lancez AlChess avec le raccourci **AlChess** créé sur le Bureau, ou avec **`2-Lancer_AlChess.bat`**
+1. Téléchargez **`AlChess_Setup.exe`** directement depuis les [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
+2. Double-cliquez sur **`AlChess_Setup.exe`**
+3. Si Windows affiche « Windows a protégé votre ordinateur » (SmartScreen) :
+   cliquez sur **Informations complémentaires** puis **Exécuter quand même**
+4. Suivez l'assistant — il installe Python si nécessaire, clone AlChess
+   depuis GitHub, prépare l'environnement et crée un raccourci **AlChess**
+   sur le Bureau
+5. Lancez AlChess avec le raccourci **AlChess** sur le Bureau
+
+> ℹ️ L'alerte SmartScreen apparaît car AlChess n'est pas signé
+> numériquement. Le programme est open source et inspecté librement
+> sur [GitHub](https://github.com/AlainDelree/AlChess).
 
 **Option B — Script PowerShell (méthode historique)**
 1. Téléchargez `AlChess-vX.Y.Z-windows-x86_64.zip` depuis les [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
@@ -89,7 +97,7 @@ Les moteurs sont mis en place **automatiquement par l'installeur**, avec le bina
 |--------|------|
 | Stockfish | Adversaire fort, évaluation pédagogique |
 | Maia (lc0) | Adversaire au jeu « humain », par niveau Elo |
-| Rodent IV | Adversaire à personnalités variées *(à venir sous Windows)* |
+| Rodent IV | Adversaire à personnalités variées |
 
 ### Systèmes et matériel
 
@@ -155,10 +163,18 @@ No need to know Git or Python. Go to the **[Releases](https://github.com/AlainDe
 Two installation methods are available:
 
 **Option A — `.exe` installer (recommended, simplest)**
-1. Download `AlChess-vX.Y.Z-windows-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
-2. Extract the ZIP (right-click → "Extract All")
-3. Double-click **`AlChess_Setup.exe`** and follow the setup wizard — it installs Python if needed, sets up the environment, downloads the engines and creates an **AlChess** shortcut on the Desktop
-4. Launch AlChess with the **AlChess** shortcut on the Desktop, or with **`2-Lancer_AlChess.bat`**
+1. Download **`AlChess_Setup.exe`** directly from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
+2. Double-click **`AlChess_Setup.exe`**
+3. If Windows shows "Windows protected your PC" (SmartScreen):
+   click **More info** then **Run anyway**
+4. Follow the setup wizard — it installs Python if needed, clones AlChess
+   from GitHub, sets up the environment and creates an **AlChess** shortcut
+   on the Desktop
+5. Launch AlChess with the **AlChess** shortcut on the Desktop
+
+> ℹ️ The SmartScreen alert appears because AlChess is not digitally signed.
+> The program is open source and freely inspectable on
+> [GitHub](https://github.com/AlainDelree/AlChess).
 
 **Option B — PowerShell script (legacy method)**
 1. Download `AlChess-vX.Y.Z-windows-x86_64.zip` from the [Releases](https://github.com/AlainDelree/AlChess/releases/latest)
@@ -209,7 +225,7 @@ Engines are set up **automatically by the installer**, with the binary matching 
 |--------|------|
 | Stockfish | Strong opponent, evaluation & feedback |
 | Maia (lc0) | Human-like opponent, by Elo level |
-| Rodent IV | Opponent with varied personalities *(Windows build coming)* |
+| Rodent IV | Opponent with varied personalities |
 
 ### Systems and hardware
 
