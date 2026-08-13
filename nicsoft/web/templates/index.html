@@ -261,8 +261,13 @@
                data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
           <div id="cfg-maia-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
                data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
-          <div id="cfg-rodent-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
-               data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</div>
+          <div id="cfg-rodent-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;">
+            <span data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</span>
+            <button id="cfg-rodent-download-btn" type="button" onclick="downloadRodent()"
+                    style="display:none; margin-left:8px; font-size:0.75rem; padding:2px 8px; cursor:pointer;"
+                    data-i18n="engine.rodent.download">Télécharger Rodent IV</button>
+            <span id="cfg-rodent-download-status" style="margin-left:6px; color:#3a5a7a;"></span>
+          </div>
           <div id="cfg-no-engine-alert" style="display:none; font-size:0.85rem; color:#c0392b; margin:8px 0; padding:8px; background:#ffe0e0; border-radius:4px; text-align:center;"
                data-i18n="engine.none.available">Aucun moteur d'échecs n'est disponible</div>
 
@@ -1069,8 +1074,13 @@
              data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
         <div id="labo-maia-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
              data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
-        <div id="labo-rodent-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
-             data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</div>
+        <div id="labo-rodent-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;">
+          <span data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</span>
+          <button id="labo-rodent-download-btn" type="button" onclick="downloadRodent()"
+                  style="display:none; margin-left:6px; font-size:0.7rem; padding:2px 6px; cursor:pointer;"
+                  data-i18n="engine.rodent.download">Télécharger Rodent IV</button>
+          <span id="labo-rodent-download-status" style="margin-left:4px; color:#3a5a7a;"></span>
+        </div>
         <div id="labo-cfg-sf">
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
             <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>

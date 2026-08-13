@@ -491,6 +491,9 @@ let _selectedEngine = "stockfish";
 let _stockfishAvailable = true;
 let _maiaAvailable = true;
 let _rodentAvailable = true;
+// true si le serveur tourne sous Windows — seul cas où le téléchargement
+// des binaires Rodent IV depuis GitHub est proposé (issue #131).
+let _rodentDownloadable = false;
 
 // Grise les boutons Stockfish (config péda + labo) et affiche le message
 // d'indisponibilité si absent. Ré-appelé au changement de langue.
@@ -533,19 +536,55 @@ function _applyMaiaAvailability() {
 // de langue via _refreshDynamicLabels() pour retraduire le tooltip.
 function _applyRodentAvailability() {
   const msg = t("engine.rodent.unavailable");
-  [["cfg-engine-rodent", "cfg-rodent-unavailable"],
-   ["labo-eng-rodent",   "labo-rodent-unavailable"]].forEach(([btnId, msgId]) => {
+  [["cfg-engine-rodent", "cfg-rodent-unavailable", "cfg-rodent-download-btn"],
+   ["labo-eng-rodent",   "labo-rodent-unavailable", "labo-rodent-download-btn"]].forEach(([btnId, msgId, dlBtnId]) => {
     const btn = document.getElementById(btnId);
     const box = document.getElementById(msgId);
+    const dlBtn = document.getElementById(dlBtnId);
     if (btn) {
       btn.classList.toggle("engine-unavailable", !_rodentAvailable);
       if (_rodentAvailable) btn.removeAttribute("title");
       else                  btn.setAttribute("title", msg);
     }
     if (box) box.style.display = _rodentAvailable ? "none" : "";
+    if (dlBtn) dlBtn.style.display = (_rodentDownloadable && !_rodentAvailable) ? "" : "none";
   });
   _checkNoEngineAvailable();
 }
+
+// Télécharge les binaires Rodent IV depuis GitHub (Windows uniquement, issue #131).
+// Déclenché par les boutons cfg-rodent-download-btn / labo-rodent-download-btn.
+function downloadRodent() {
+  ["cfg-rodent-download-btn", "labo-rodent-download-btn"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = true;
+  });
+  ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
+    const status = document.getElementById(id);
+    if (status) status.textContent = t("engine.rodent.downloading");
+  });
+  socket.emit("download_rodent", {});
+}
+
+socket.on("rodent_download_progress", (data) => {
+  const msg = `${t("engine.rodent.downloading")} (${data.index}/${data.total} ${data.file})`;
+  ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
+    const status = document.getElementById(id);
+    if (status) status.textContent = msg;
+  });
+});
+
+socket.on("rodent_download_result", (data) => {
+  const msg = data && data.ok ? t("engine.rodent.download_ok") : t("engine.rodent.download_error");
+  ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
+    const status = document.getElementById(id);
+    if (status) status.textContent = msg;
+  });
+  ["cfg-rodent-download-btn", "labo-rodent-download-btn"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = false;
+  });
+});
 
 // Vérifie si aucun moteur n'est disponible — grise le bouton Démarrer et affiche l'alerte.
 function _checkNoEngineAvailable() {
@@ -5936,6 +5975,7 @@ socket.on("maia_status", (data) => {
 // Disponibilité de Rodent IV (handshake UCI côté serveur) → grisage de l'UI
 socket.on("rodent_status", (data) => {
   _rodentAvailable = data && data.available !== false;
+  _rodentDownloadable = !!(data && data.downloadable);
   // Si Rodent était sélectionné alors qu'il est indisponible, repli sur premier disponible
   if (!_rodentAvailable) {
     const fallback = _firstAvailableEngine(false);

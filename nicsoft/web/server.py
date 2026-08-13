@@ -11,8 +11,9 @@ import logging
 import os
 import pathlib
 import queue
+import sys
 import threading
-from nicsoft.config import APP_DIR, DATA_DIR, GAMES_DIR, LOGS_DIR
+from nicsoft.config import APP_DIR, DATA_DIR, ENGINES_DIR, GAMES_DIR, LOGS_DIR
 from flask import Flask, render_template, send_file, abort
 from flask_socketio import SocketIO, emit
 
@@ -101,6 +102,46 @@ def _get_rodent_available() -> bool:
             logger.warning(f"[WEB] Vérification disponibilité Rodent échouée : {e}")
             _rodent_available_cache = False
     return _rodent_available_cache
+
+
+# URL des binaires Rodent IV Windows sur GitHub — utilisée par download_rodent
+# quand SyncGitRepo n'a pas récupéré ces fichiers (installation NSIS standalone).
+_RODENT_WIN_BASE_URL = "https://raw.githubusercontent.com/AlainDelree/AlChess/master/engines/rodent-iv-win/"
+_RODENT_WIN_FILES = ["rodent-iv-x64.exe", "msvcr120.dll", "msvcp120.dll"]
+
+
+@socketio.on("download_rodent")
+def on_download_rodent(_data):
+    """Télécharge les binaires Rodent IV Windows depuis GitHub (issue #131).
+
+    SyncGitRepo ne récupère pas les binaires sur une installation NSIS
+    standalone ; ce handler les télécharge directement depuis la branche
+    master du dépôt public, dans ENGINES_DIR/rodent-iv-win/.
+    """
+    if sys.platform != "win32":
+        emit("rodent_download_result", {"ok": False, "error": "Téléchargement disponible uniquement sous Windows"})
+        return
+
+    def run():
+        import urllib.request
+        global _rodent_available_cache
+        dest_dir = ENGINES_DIR / "rodent-iv-win"
+        try:
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            total = len(_RODENT_WIN_FILES)
+            for index, filename in enumerate(_RODENT_WIN_FILES, start=1):
+                socketio.emit("rodent_download_progress", {
+                    "file": filename, "index": index, "total": total,
+                })
+                urllib.request.urlretrieve(_RODENT_WIN_BASE_URL + filename, str(dest_dir / filename))
+            _rodent_available_cache = None
+            socketio.emit("rodent_download_result", {"ok": True})
+            socketio.emit("rodent_status", {"available": _get_rodent_available(), "downloadable": True})
+        except Exception as e:
+            logger.error(f"[WEB] Téléchargement Rodent IV échoué : {e}")
+            socketio.emit("rodent_download_result", {"ok": False, "error": str(e)})
+
+    threading.Thread(target=run, daemon=True).start()
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -213,7 +254,7 @@ def on_connect():
     # Disponibilité des moteurs → l'UI grise ceux qui ne sont pas disponibles
     emit("stockfish_status", {"available": _get_stockfish_available()})
     emit("maia_status", {"available": _get_maia_available()})
-    emit("rodent_status", {"available": _get_rodent_available()})
+    emit("rodent_status", {"available": _get_rodent_available(), "downloadable": sys.platform == "win32"})
     # Renvoyer le statut échiquier au navigateur qui arrive/rafraîchit
     if _board_status == "ok":
         emit("board_ok", {})
