@@ -932,7 +932,11 @@ socket.on("undo_move", (data) => {
   hideFeedback();
   if (data.message || data.message_key) {
     const turnInfo = document.getElementById("turn-info");
-    if (turnInfo) { turnInfo.textContent = data.message_key ? t(data.message_key) : data.message; turnInfo.className = "warning"; }
+    if (turnInfo) {
+      const msg = data.message_key ? t(data.message_key) : data.message;
+      turnInfo.textContent = (typeof msg === "string" && msg && msg !== "[object Object]") ? msg : "";
+      turnInfo.className = "warning";
+    }
   }
   // Resynchroniser chess.js avec la position après undo (full_fen inclut le tour et le roque)
   if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
@@ -1392,7 +1396,8 @@ function _i18nMsg(data, field = "message", keyField = "message_key") {
     if (vars.piece_key) vars.piece = t(vars.piece_key);
     return t(data[keyField], vars);
   }
-  return data[field] || "";
+  const val = data[field];
+  return (typeof val === "string" && val && val !== "[object Object]") ? val : "";
 }
 
 function afficherToast(message, type) {
