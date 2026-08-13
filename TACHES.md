@@ -42,7 +42,7 @@
 - **Réduire la taille des ZIP** (~210/215 Mo) — élagage `books/`/`exe/`/`docs/` de Rodent à valider avec Alain.
 - **i18n — corrections résiduelles au fil des tests DE** (edge cases, `eco_import.py`).
 - **Améliorer la visibilité moteurs de recherche** `[Les deux]` — image de prévisualisation sociale, communautés (r/chess, forums Chessnut).
-
+- **Permettre de choisir une couleur par défaut dans partie pédagogique**  Je sais que Jess préfère jouer les noirs mais actuellement les blancs sont sélectionnés par défaut.  On peut changer ca via une checkbox "Faire de ce choix ma couleur par défaut"
 ---
 
 ## 🧪 Tests automatisés
