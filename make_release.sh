@@ -54,6 +54,7 @@ INCLUDE=(
   LICENSE
   install.sh
   start_alchess.sh
+  bootstrap_linux.sh
   1-Installer.bat
   2-Lancer_AlChess.bat
   install_alchess.ps1
@@ -164,7 +165,7 @@ build_windows() {
     echo "  ⚠️  ATTENTION : installer-exe/AlChess_Setup.exe introuvable"
     echo "  Compiler d'abord avec : makensis installer-exe/alchess_setup.nsi"
   fi
-  rm -f "$out/install.sh" "$out/start_alchess.sh" "$out/99-chessnutair.rules.example"
+  rm -f "$out/install.sh" "$out/start_alchess.sh" "$out/bootstrap_linux.sh" "$out/99-chessnutair.rules.example"
   rm -f "$out/engines/maia/lc0" "$out/engines/rodent-iv/rodentIV"
   ( cd "$DIST" && zip -qr "$NAME-windows-x86_64.zip" "$NAME-windows-x86_64" )
   rm -rf "$out"
