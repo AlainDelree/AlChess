@@ -486,9 +486,17 @@ MAIA_LEVELS = {
 def find_rodent() -> str | None:
     """Cherche l'exécutable Rodent IV selon la plateforme."""
     import sys
-    exe = "rodentIV.exe" if sys.platform == "win32" else "rodentIV"
-    path = ENGINES_DIR / "rodent-iv" / exe
-    return str(path) if path.exists() else None
+    if sys.platform == "win32":
+        # Chemin 1 : installation ZIP (make_release.sh renomme le binaire)
+        path = ENGINES_DIR / "rodent-iv" / "rodentIV.exe"
+        if path.exists():
+            return str(path)
+        # Chemin 2 : installation SyncGitRepo (binaire dans rodent-iv-win/)
+        path = ENGINES_DIR / "rodent-iv-win" / "rodent-iv-x64.exe"
+        return str(path) if path.exists() else None
+    else:
+        path = ENGINES_DIR / "rodent-iv" / "rodentIV"
+        return str(path) if path.exists() else None
 
 
 def stockfish_available() -> bool:
