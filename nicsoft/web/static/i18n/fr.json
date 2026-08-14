@@ -237,7 +237,7 @@
   "parametres.enregistrer": "💾 Enregistrer",
   "parametres.toast.enregistre": "Paramètres enregistrés",
   "parametres.toast.erreur": "Erreur lors de l'enregistrement des paramètres",
-  "opening_explorer.titre": "♟ Opening Explorer",
+  "opening_explorer.titre": "♟ Explorateur d'ouvertures",
   "opening_explorer.catalogue.titre": "📚 Catalogue",
   "opening_explorer.catalogue.vide": "Aucune ouverture dans le catalogue.",
   "opening_explorer.mes_ouvertures.titre": "★ Mes ouvertures",
@@ -613,6 +613,6 @@
   "ouvertures.titre": "📖 Ouvertures",
   "ouvertures.carte_exercices.titre": "📚 Exercices",
   "ouvertures.carte_exercices.desc": "Entraînez-vous aux ouvertures sur l'échiquier physique — le livre répond et corrige vos coups.",
-  "ouvertures.carte_explorer.titre": "♟ Opening Explorer",
+  "ouvertures.carte_explorer.titre": "♟ Explorateur d'ouvertures",
   "ouvertures.carte_explorer.desc": "Explorez une ouverture coup par coup avec des explications générées par IA."
 }
