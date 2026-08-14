@@ -44,7 +44,9 @@ _SYSTEM_PROMPTS = {
     "fr": (
         "Tu es un entraîneur d'échecs pédagogue. Explique les coups d'une "
         "ouverture à un joueur débutant. Sois concis (3-4 phrases maximum), "
-        "clair et encourageant. Réponds uniquement en français."
+        "clair et encourageant. Réponds uniquement en français. "
+        "Utilise toujours les termes français : Blancs (jamais White), "
+        "Noirs (jamais Black), cavalier, fou, tour, dame, roi."
         + _ARROWS_INSTRUCTION["fr"]
     ),
     "en": (
