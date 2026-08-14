@@ -247,7 +247,7 @@ function _syncVirtualCheckboxes() {
 
 // Lance le mode d'une carte (Pédagogique/Labo/Exercices) — virtuel si la case est cochée
 function _menuCardLaunch(mode, headEl) {
-  const card = headEl.closest(".menu-card");
+  const card = headEl.closest(".menu-card, .outil-card");
   const chk = card ? card.querySelector(".menu-card-chk") : null;
   if (chk && chk.checked) {
     _launchVirtual(mode);
@@ -785,6 +785,10 @@ socket.on("app_state", (data) => {
   if (cfgHH) cfgHH.style.display = data.state === "config_humain" ? "flex" : "none";
   document.getElementById("screen-retranscription").style.display          = data.state === "retranscription"      ? "flex" : "none";
   document.getElementById("screen-retrans-game").style.display             = data.state === "retrans_playing"      ? "grid" : "none";
+
+  // Ouvertures (écran intermédiaire)
+  const ouverturesEl = document.getElementById("screen-ouvertures");
+  if (ouverturesEl) ouverturesEl.style.display = data.state === "ouvertures" ? "flex" : "none";
 
   const laboEl = document.getElementById("screen-labo");
   if (laboEl) laboEl.style.display = data.state === "labo" ? "grid" : "none";
@@ -6038,8 +6042,10 @@ socket.on("config_saved", (data) => {
 
 // ── Opening Explorer ─────────────────────────────────────────────────────────
 
-let _explAtStart   = true;
-let _explEndOfLine = false;
+let _explAtStart     = true;
+let _explEndOfLine   = false;
+let _explFlipped     = false;  // true = noirs en bas
+let _explFlippedBuilt = null;
 
 socket.on("app_state", (data) => {
   const selEl  = document.getElementById("screen-opening-explorer-select");
@@ -6117,13 +6123,19 @@ function explLoad(sourceType, openingId) {
 
 function explNext() {
   if (_explEndOfLine) return;
-  socket.emit("explorer_next", {});
+  socket.emit("explorer_next", { language: i18n.locale() });
 }
 
 function explPrev() {
   if (_explAtStart) return;
-  socket.emit("explorer_prev", {});
+  socket.emit("explorer_prev", { language: i18n.locale() });
 }
+
+socket.on("explorer_explanation", (data) => {
+  const el = document.getElementById("explorer-explanation");
+  if (!el) return;
+  el.textContent = (data && data.text) ? data.text : "";
+});
 
 socket.on("explorer_state", (data) => {
   if (!data) return;
@@ -6147,6 +6159,12 @@ socket.on("explorer_state", (data) => {
       : t("opening_explorer.position_initiale");
   }
 
+  _explFlipped = data.camp === "black";
+  const topEl    = document.getElementById("expl-player-top");
+  const bottomEl = document.getElementById("expl-player-bottom");
+  if (topEl)    topEl.textContent    = _explFlipped ? t("config.blancs") : t("config.noirs");
+  if (bottomEl) bottomEl.textContent = _explFlipped ? t("config.noirs")  : t("config.blancs");
+
   const [from, to] = uciToCoords(data.last_move_uci);
   explRenderBoard(data.fen, from, to);
 
@@ -6159,21 +6177,29 @@ socket.on("explorer_state", (data) => {
 });
 
 // Échiquier Opening Explorer — lecture seule, coups joués par les deux sources.
+// Orientation selon _explFlipped (camp_suggere === "black" → Noirs en bas).
 function explBuildBoard() {
   const board = document.getElementById("expl-board");
-  if (!board || board.children.length) return;
+  if (!board) return;
+  if (board.children.length && _explFlippedBuilt === _explFlipped) return;
+  _explFlippedBuilt = _explFlipped;
+  board.innerHTML = "";
   const rankCoord = document.getElementById("expl-coord-rank");
   if (rankCoord) {
     rankCoord.innerHTML = "";
-    [7,6,5,4,3,2,1,0].forEach(r => { const s = document.createElement("span"); s.textContent = r + 1; rankCoord.appendChild(s); });
+    const ranks = _explFlipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
+    ranks.forEach(r => { const s = document.createElement("span"); s.textContent = r + 1; rankCoord.appendChild(s); });
   }
   const fileCoord = document.getElementById("expl-coord-file");
   if (fileCoord) {
     fileCoord.innerHTML = "";
-    "abcdefgh".split("").forEach(f => { const s = document.createElement("span"); s.textContent = f; fileCoord.appendChild(s); });
+    const files = _explFlipped ? "hgfedcba".split("") : "abcdefgh".split("");
+    files.forEach(f => { const s = document.createElement("span"); s.textContent = f; fileCoord.appendChild(s); });
   }
-  for (let rank = 7; rank >= 0; rank--) {
-    for (let file = 0; file < 8; file++) {
+  const rankOrder = _explFlipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
+  const fileOrder = _explFlipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+  for (const rank of rankOrder) {
+    for (const file of fileOrder) {
       const sq = document.createElement("div");
       sq.className = `square ${(rank + file) % 2 === 1 ? "light" : "dark"}`;
       sq.id = `expl-sq-${file}-${rank}`;

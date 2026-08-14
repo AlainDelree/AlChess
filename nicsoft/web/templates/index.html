@@ -155,18 +155,9 @@
         <div class="menu-btn-desc" id="desc-labo" data-i18n="menu.desc.labo">Explorez librement n'importe quelle position. Placez les pièces sur l'échiquier physique et laissez le moteur suggérer les meilleurs coups pour les deux camps.</div>
       </div>
 
-      <div class="menu-btn-wrap" id="wrap-exercices">
-        <div class="menu-card menu-card-secondary">
-          <div class="menu-card-head" onclick="_menuCardLaunch('exercices', this)">♟ <span data-i18n="menu.btn.exercices">📚 Exercices</span></div>
-          <div class="menu-card-sep"></div>
-          <div class="menu-card-foot">
-            <label class="menu-card-chk-label">
-              <input type="checkbox" class="menu-card-chk" checked>
-              <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
-            </label>
-          </div>
-        </div>
-        <div class="menu-btn-desc" id="desc-exercices" data-i18n="menu.desc.exercices">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.</div>
+      <div class="menu-btn-wrap" id="wrap-ouvertures">
+        <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'ouvertures'})" data-i18n="menu.btn.ouvertures">📖 Ouvertures</button>
+        <div class="menu-btn-desc" id="desc-ouvertures" data-i18n="menu.desc.ouvertures">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres ou explorez-les coup par coup avec des explications générées par IA.</div>
       </div>
 
     </div><!-- fin colonne Jouer -->
@@ -193,11 +184,6 @@
       <div class="menu-btn-wrap">
         <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'parametres'})" data-i18n="menu.btn.parametres">⚙ Paramètres</button>
         <div class="menu-btn-desc" id="desc-parametres" data-i18n="menu.desc.parametres">Configurez l'accès LLM (clé API) et la synthèse vocale (TTS).</div>
-      </div>
-
-      <div class="menu-btn-wrap">
-        <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'opening_explorer'})" data-i18n="menu.btn.opening_explorer">♟ Opening Explorer</button>
-        <div class="menu-btn-desc" id="desc-opening-explorer" data-i18n="menu.desc.opening_explorer">Parcourez une ouverture coup par coup — catalogue théorique ou vos lignes personnelles.</div>
       </div>
 
     </div><!-- fin colonne Outils -->
@@ -1585,6 +1571,40 @@
 
 </div>
 
+
+<!-- ── Écran intermédiaire "Ouvertures" ── -->
+<div id="screen-ouvertures" style="display:none; flex-direction:column; align-items:center; padding:40px 20px; gap:24px; overflow-y:auto; width:100%;">
+
+  <div style="width:100%; max-width:760px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <h2 style="margin:0; color:#1a2a3a; font-size:1.4rem;" data-i18n="ouvertures.titre">📖 Ouvertures</h2>
+    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+  </div>
+
+  <div style="width:100%; max-width:760px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
+
+    <!-- Carte Exercices -->
+    <div class="outil-card outil-card-clickable" style="flex:1 1 280px; max-width:360px;" onclick="_menuCardLaunch('exercices', this)">
+      <div class="outil-card-header">
+        <span class="outil-title" data-i18n="ouvertures.carte_exercices.titre">📚 Exercices</span>
+      </div>
+      <p class="outil-desc" data-i18n="ouvertures.carte_exercices.desc">Entraînez-vous aux ouvertures sur l'échiquier physique — le livre répond et corrige vos coups.</p>
+      <label class="menu-card-chk-label" style="color:#1a2a3a;" onclick="event.stopPropagation()">
+        <input type="checkbox" class="menu-card-chk" checked>
+        <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
+      </label>
+    </div>
+
+    <!-- Carte Opening Explorer -->
+    <div class="outil-card outil-card-clickable" style="flex:1 1 280px; max-width:360px;" onclick="sendAction({type:'mode', value:'opening_explorer'})">
+      <div class="outil-card-header">
+        <span class="outil-title" data-i18n="ouvertures.carte_explorer.titre">♟ Opening Explorer</span>
+      </div>
+      <p class="outil-desc" data-i18n="ouvertures.carte_explorer.desc">Explorez une ouverture coup par coup avec des explications générées par IA.</p>
+    </div>
+
+  </div>
+
+</div>
 
 <!-- ── Écran Opening Explorer — sélecteur ── -->
 <div id="screen-opening-explorer-select" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%;">

@@ -240,6 +240,8 @@ def main():
             elif atype == "mode" and action.get("value") == "exercices":
                 gm.set_virtual_mode(action.get("virtual", False))
                 gm.launch_exercices()
+            elif atype == "mode" and action.get("value") == "ouvertures":
+                set_app_state("ouvertures")
             elif atype == "mode" and action.get("value") == "outils_exercices":
                 set_app_state("outils_exercices")
             elif atype == "mode" and action.get("value") == "parametres":

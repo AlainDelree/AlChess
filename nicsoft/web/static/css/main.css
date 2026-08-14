@@ -13,18 +13,20 @@
     .res-small  { --bd-max: 460px; --bd-vw-offset:  24px; }
 
     /* Overrides par écran (panneaux différents = offset différent) */
-    #screen-retrans-game     { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 460px; }
-    #screen-exercice-running { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 660px; --bd-vh-offset: 220px; }
-    #screen-labo             { --bd-min: 280px; --bd-max: 500px; --bd-vw-offset: 740px; --bd-vh-offset: 190px; }
+    #screen-retrans-game            { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 460px; }
+    #screen-exercice-running        { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 660px; --bd-vh-offset: 220px; }
+    #screen-labo                    { --bd-min: 280px; --bd-max: 500px; --bd-vw-offset: 740px; --bd-vh-offset: 190px; }
+    #screen-opening-explorer-play   { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 660px; --bd-vh-offset: 220px; }
 
     /* Taille calculée — héritée par tous les descendants */
     #screen-game, .screen-board-layout,
-    #screen-retrans-game, #screen-exercice-running, #screen-labo {
+    #screen-retrans-game, #screen-exercice-running, #screen-labo, #screen-opening-explorer-play {
       --bd-size: clamp(var(--bd-min), calc(100vh - var(--bd-vh-offset)), min(calc(100vw - var(--bd-vw-offset)), var(--bd-max)));
     }
     /* res-small : colonne unique, contrainte vh inutile (défilement naturel) */
     .res-small #screen-game, .res-small .screen-board-layout,
-    .res-small #screen-labo, .res-small #screen-exercice-running {
+    .res-small #screen-labo, .res-small #screen-exercice-running,
+    .res-small #screen-opening-explorer-play {
       --bd-size: min(calc(100vw - var(--bd-vw-offset)), var(--bd-max));
     }
 
@@ -742,7 +744,8 @@
     .res-medium .screen-board-layout,
     .res-medium #screen-game,
     .res-medium #screen-exercice-running,
-    .res-medium #screen-labo           { grid-template-columns: 180px minmax(0,1fr) 320px !important; gap: 14px !important; padding: 12px 14px !important; }
+    .res-medium #screen-labo,
+    .res-medium #screen-opening-explorer-play { grid-template-columns: 180px minmax(0,1fr) 320px !important; gap: 14px !important; padding: 12px 14px !important; }
     .res-medium #left-panel            { width: 180px; }
     .res-medium #panel                 { width: 320px; }
 
@@ -763,7 +766,8 @@
     .res-small .screen-board-layout,
     .res-small #screen-game,
     .res-small #screen-exercice-running,
-    .res-small #screen-labo            { grid-template-columns: 1fr !important; padding: 10px !important; }
+    .res-small #screen-labo,
+    .res-small #screen-opening-explorer-play { grid-template-columns: 1fr !important; padding: 10px !important; }
     .res-small #left-panel             { width: 100%; }
     .res-small #panel                  { width: 100%; }
 
@@ -785,6 +789,9 @@
 /* ── Outils Exercices ── */
 .outil-card { background:#fff; border:1px solid #a0b8d0; border-radius:10px; padding:18px 20px; }
 .outil-card.outil-disabled { opacity:0.5; }
+.outil-card-clickable { cursor:pointer; transition:opacity 0.18s, transform 0.1s; }
+.outil-card-clickable:hover  { opacity:0.9; transform:scale(1.01); }
+.outil-card-clickable:active { transform:scale(0.99); }
 .outil-card-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
 .outil-num { background:#e94560; color:#fff; border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; flex-shrink:0; }
 .outil-title { font-weight:700; font-size:1.05rem; color:#1a2a3a; }

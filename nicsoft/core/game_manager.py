@@ -1128,7 +1128,7 @@ def explorer_load(source_type: str, opening_id: str, variant_index=None) -> dict
     _explorer_nl_inst = nl_inst
 
     session = ExplorerSession(nl_inst)
-    state = session.load(source)
+    state = session.load(source, line_id=f"{source_type}_{opening_id}")
     _explorer_session = session
 
     state["end_of_line"] = not session.has_more()

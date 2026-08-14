@@ -14,7 +14,7 @@ import queue
 import sys
 import threading
 from nicsoft.config import APP_DIR, DATA_DIR, ENGINES_DIR, GAMES_DIR, LOGS_DIR
-from flask import Flask, render_template, send_file, abort
+from flask import Flask, render_template, send_file, abort, request
 from flask_socketio import SocketIO, emit
 
 logger = logging.getLogger("niclink.server")
@@ -635,6 +635,28 @@ def on_explorer_get_list(_data):
     emit("explorer_list", explorer_get_list())
 
 
+def _emit_explorer_explanation(sid, state, language):
+    """Génère l'explication LLM du coup en arrière-plan et l'émet au client concerné."""
+    from nicsoft.modes.opening_explorer.llm_explainer import get_explanation
+    from nicsoft.core.config_manager import load_config
+
+    if not state or state.get("error") or not state.get("move_san"):
+        return
+    expl = get_explanation(
+        line_id=state.get("line_id", ""),
+        move_index=state.get("move_index", 0),
+        fen=state.get("fen", ""),
+        move_san=state.get("move_san", ""),
+        opening_name=state.get("opening_name", ""),
+        camp=state.get("camp", "white"),
+        alternatives=state.get("alternatives", []),
+        language=language,
+        config=load_config(),
+    )
+    if expl:
+        socketio.emit("explorer_explanation", {"text": expl}, to=sid)
+
+
 @socketio.on("explorer_load")
 def on_explorer_load(data):
     """Charge une ouverture (catalogue ou ligne perso) — connexion échiquier en arrière-plan."""
@@ -646,20 +668,29 @@ def on_explorer_load(data):
         from nicsoft.core.game_manager import explorer_load
         state = explorer_load(source_type, opening_id, variant_index)
         socketio.emit("explorer_state", state)
+        socketio.emit("explorer_explanation", {"text": ""})
 
     threading.Thread(target=run, daemon=True).start()
 
 
 @socketio.on("explorer_next")
-def on_explorer_next(_data):
+def on_explorer_next(data):
     from nicsoft.core.game_manager import explorer_next
-    emit("explorer_state", explorer_next())
+    state = explorer_next()
+    emit("explorer_state", state)
+    language = (data or {}).get("language", "fr")
+    sid = request.sid
+    threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
 
 
 @socketio.on("explorer_prev")
-def on_explorer_prev(_data):
+def on_explorer_prev(data):
     from nicsoft.core.game_manager import explorer_prev
-    emit("explorer_state", explorer_prev())
+    state = explorer_prev()
+    emit("explorer_state", state)
+    language = (data or {}).get("language", "fr")
+    sid = request.sid
+    threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
 
 
 @socketio.on("explorer_back")

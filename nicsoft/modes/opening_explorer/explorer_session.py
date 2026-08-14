@@ -24,13 +24,15 @@ class ExplorerSession:
         self.nl_inst = nl_inst
         self.board   = chess.Board()
         self.source  = None
+        self.line_id = ""
         # Coups joués après les init_moves — (chess.Move, san) — pile pour prev_move().
         # Les init_moves eux-mêmes ne sont jamais dépilés (position plancher de la navigation).
         self._history: list = []
 
-    def load(self, source) -> dict:
+    def load(self, source, line_id: str = "") -> dict:
         """Charge une source, rejoue ses init_moves (sans pause), émet l'état initial."""
         self.source   = source
+        self.line_id  = line_id
         self.board    = chess.Board()
         self._history = []
         for uci in getattr(source, "init_moves", []):
@@ -93,6 +95,7 @@ class ExplorerSession:
             "opening_name":   getattr(self.source, "nom", "") if self.source else "",
             "camp":           getattr(self.source, "camp_suggere", "white") if self.source else "white",
             "alternatives":   alternatives,
+            "line_id":        self.line_id,
         }
 
     # ── Plateau Chessnut (physique ou virtuel) ─────────────────────────────────
