@@ -8,6 +8,7 @@ réseau répétés sur une même ligne/coup/langue.
 import json
 import logging
 import os
+import re
 import urllib.error
 import urllib.request
 
@@ -17,23 +18,89 @@ logger = logging.getLogger("niclink.opening_explorer.llm")
 
 CACHE_FILE = DATA_DIR / "explorer_cache.json"
 
+_ARROWS_INSTRUCTION = {
+    "fr": (
+        " À la fin de ta réponse, ajoute obligatoirement une ligne exactement "
+        "de cette forme : [FLECHES: e2-e4, d7-d5] listant en notation "
+        "algébrique les cases de départ et d'arrivée des coups que tu "
+        "mentionnes (2 à 4 flèches maximum). Cette ligne sera retirée avant "
+        "affichage."
+    ),
+    "en": (
+        " At the end of your response, always add a line exactly like this: "
+        "[ARROWS: e2-e4, d7-d5] listing the start and end squares of the "
+        "moves you mention (2 to 4 arrows maximum). This line will be "
+        "removed before display."
+    ),
+    "de": (
+        " Füge am Ende deiner Antwort unbedingt eine Zeile genau in dieser "
+        "Form hinzu: [PFEILE: e2-e4, d7-d5] mit den Start- und Zielfeldern "
+        "der von dir erwähnten Züge (maximal 2 bis 4 Pfeile). Diese Zeile "
+        "wird vor der Anzeige entfernt."
+    ),
+}
+
 _SYSTEM_PROMPTS = {
     "fr": (
         "Tu es un entraîneur d'échecs pédagogue. Explique les coups d'une "
         "ouverture à un joueur débutant. Sois concis (3-4 phrases maximum), "
         "clair et encourageant. Réponds uniquement en français."
+        + _ARROWS_INSTRUCTION["fr"]
     ),
     "en": (
         "You are a friendly chess coach. Explain opening moves to a "
         "beginner player. Be concise (3-4 sentences maximum), clear and "
         "encouraging. Answer only in English."
+        + _ARROWS_INSTRUCTION["en"]
     ),
     "de": (
         "Du bist ein pädagogischer Schachtrainer. Erkläre die Züge einer "
         "Eröffnung einem Anfänger. Sei prägnant (maximal 3-4 Sätze), klar "
         "und ermutigend. Antworte ausschließlich auf Deutsch."
+        + _ARROWS_INSTRUCTION["de"]
     ),
 }
+
+_ARROW_LINE_RE = re.compile(r'\[(?:FLECHES|ARROWS|PFEILE):\s*([^\]]+)\]')
+_SQUARE_RE = re.compile(r'^[a-h][1-8]$')
+
+
+def extract_arrows(text):
+    """Retire du texte la ligne [FLECHES: e2-e4, d7-d5] (ou ARROWS/PFEILE selon
+    la langue) ajoutée par le LLM et retourne les flèches qu'elle décrit.
+
+    Retourne (texte_nettoye, flèches) où flèches est une liste de tuples
+    (case_depart, case_arrivee), au maximum 4, avec cases invalides ou
+    identiques ignorées. Si aucune ligne ne correspond, retourne le texte
+    tel quel et une liste vide.
+    """
+    text = text or ""
+    lines = text.splitlines()
+    match = None
+    line_index = None
+    for i in range(len(lines) - 1, -1, -1):
+        m = _ARROW_LINE_RE.search(lines[i])
+        if m:
+            match = m
+            line_index = i
+            break
+    if match is None:
+        return text.strip(), []
+
+    arrows = []
+    for pair in match.group(1).split(","):
+        pair = pair.strip()
+        if "-" not in pair:
+            continue
+        start, end = pair.split("-", 1)
+        start, end = start.strip().lower(), end.strip().lower()
+        if _SQUARE_RE.match(start) and _SQUARE_RE.match(end) and start != end:
+            arrows.append((start, end))
+    arrows = arrows[:4]
+
+    clean_lines = lines[:line_index] + lines[line_index + 1:]
+    clean_text = "\n".join(clean_lines).strip()
+    return clean_text, arrows
 
 _CHAT_SUFFIX = {
     "fr": " Tu réponds aussi aux questions libres de l'utilisateur sur la position.",
@@ -119,18 +186,21 @@ def _call_openai(prompt_sys: str, prompt_user: str, api_key: str, model: str) ->
 
 
 def get_explanation(line_id, move_index, fen, move_san, opening_name, camp,
-                     alternatives, language, config) -> str:
-    """Retourne une explication pédagogique du coup, via cache ou appel LLM.
-    Retourne "" silencieusement en cas d'absence de clé API ou d'erreur réseau.
+                     alternatives, language, config):
+    """Retourne (explication, flèches) pédagogique du coup, via cache ou appel LLM.
+    Retourne ("", []) silencieusement en cas d'absence de clé API ou d'erreur réseau.
     """
     api_key = (config or {}).get("llm_api_key", "")
     if not api_key:
-        return ""
+        return "", []
 
     cache_key = f"{line_id}_{move_index}_{language}"
     cache = _load_cache()
     if cache_key in cache:
-        return cache[cache_key]
+        cached = cache[cache_key]
+        if isinstance(cached, dict):
+            return cached.get("text", ""), [tuple(a) for a in cached.get("arrows", [])]
+        return cached, []  # entrées de cache créées avant l'ajout des flèches
 
     provider = (config or {}).get("llm_provider", "claude")
     model    = (config or {}).get("llm_model", "")
@@ -144,13 +214,13 @@ def get_explanation(line_id, move_index, fen, move_san, opening_name, camp,
             explanation = _call_claude(prompt_sys, prompt_user, api_key, model)
     except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError, TimeoutError) as e:
         logger.warning(f"[LLM_EXPLAINER] Appel {provider} échoué : {e}")
-        return ""
+        return "", []
 
-    explanation = (explanation or "").strip()
+    explanation, arrows = extract_arrows((explanation or "").strip())
     if explanation:
-        cache[cache_key] = explanation
+        cache[cache_key] = {"text": explanation, "arrows": [list(a) for a in arrows]}
         _save_cache(cache)
-    return explanation
+    return explanation, arrows
 
 
 def _build_chat_prompt(question, state) -> str:
@@ -164,14 +234,14 @@ def _build_chat_prompt(question, state) -> str:
     )
 
 
-def get_chat_response(question, state, language, config) -> str:
+def get_chat_response(question, state, language, config):
     """Répond à une question libre de l'utilisateur sur la position courante.
-    Pas de cache (questions contextuelles et libres).
-    Retourne "" silencieusement en cas d'absence de clé API ou d'erreur réseau.
+    Retourne (réponse, flèches). Pas de cache (questions contextuelles et libres).
+    Retourne ("", []) silencieusement en cas d'absence de clé API ou d'erreur réseau.
     """
     api_key = (config or {}).get("llm_api_key", "")
     if not api_key or not question:
-        return ""
+        return "", []
 
     provider = (config or {}).get("llm_provider", "claude")
     model    = (config or {}).get("llm_model", "")
@@ -186,6 +256,6 @@ def get_chat_response(question, state, language, config) -> str:
             response = _call_claude(prompt_sys, prompt_user, api_key, model)
     except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError, TimeoutError) as e:
         logger.warning(f"[LLM_EXPLAINER] Appel chat {provider} échoué : {e}")
-        return ""
+        return "", []
 
-    return (response or "").strip()
+    return extract_arrows((response or "").strip())
