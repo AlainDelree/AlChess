@@ -639,6 +639,7 @@ def _emit_explorer_explanation(sid, state, language):
     """Génère l'explication LLM du coup en arrière-plan et l'émet au client concerné."""
     from nicsoft.modes.opening_explorer.llm_explainer import get_explanation
     from nicsoft.core.config_manager import load_config
+    from nicsoft.modes.opening_explorer.tts_engine import speak
 
     if not state or state.get("error") or not state.get("move_san"):
         return
@@ -656,17 +657,24 @@ def _emit_explorer_explanation(sid, state, language):
     )
     if expl:
         socketio.emit("explorer_explanation", {"text": expl, "arrows": [list(a) for a in arrows]}, to=sid)
+        tts_ok = speak(expl, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
+        if cfg.get("tts_enabled") and not tts_ok:
+            socketio.emit("explorer_tts_fallback", {"text": expl}, to=sid)
 
 
 def _emit_explorer_chat_response(sid, question, state, language):
     """Génère la réponse du LLM à une question libre en arrière-plan et l'émet au client."""
     from nicsoft.modes.opening_explorer.llm_explainer import get_chat_response
     from nicsoft.core.config_manager import load_config
+    from nicsoft.modes.opening_explorer.tts_engine import speak
 
     cfg = load_config()
     response, arrows = get_chat_response(question, state, language, cfg)
     if response:
         socketio.emit("explorer_chat_response", {"text": response, "arrows": [list(a) for a in arrows]}, to=sid)
+        tts_ok = speak(response, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
+        if cfg.get("tts_enabled") and not tts_ok:
+            socketio.emit("explorer_tts_fallback", {"text": response}, to=sid)
 
 
 @socketio.on("explorer_load")

@@ -1,8 +1,11 @@
 """
 nicsoft/modes/opening_explorer/tts_engine.py — NicLink
-Synthèse vocale des explications Opening Explorer via edge-tts (voix
-neuronales Microsoft, internet requis), avec fallback automatique sur
-espeak-ng en subprocess direct si edge-tts échoue (pas d'internet, etc.).
+Synthèse vocale des explications Opening Explorer, hybride :
+si internet est disponible, edge-tts (voix neuronales Microsoft) parle
+côté serveur ; sinon speak() ne fait rien et retourne False, laissant
+le navigateur relayer via Web Speech API (voix système, meilleure
+qu'espeak-ng sur Windows/Mac). espeak-ng reste disponible en dernier
+recours mais n'est plus appelé automatiquement par speak().
 pyttsx3 abandonné : le GC détruisait l'engine pendant le callback espeak,
 provoquant des ReferenceError après un ou deux mots.
 """
@@ -22,6 +25,24 @@ VOICE_MAP_EDGE = {
     "de": "de-DE-KatjaNeural",
 }
 VOICE_MAP_ESPEAK = {"fr": "fr", "en": "en", "de": "de"}
+
+
+def check_internet() -> bool:
+    """Test rapide (2s max) de connectivité, pour décider edge-tts vs Web Speech API."""
+    try:
+        import urllib.request
+        urllib.request.urlopen("https://api.edge-tts.com", timeout=2)
+        return True
+    except Exception:
+        pass
+    # Fallback : ping un DNS public
+    try:
+        import socket
+        socket.setdefaulttimeout(2)
+        socket.socket().connect(("8.8.8.8", 53))
+        return True
+    except Exception:
+        return False
 
 
 def _speak_edge(text: str, rate: int, language: str) -> bool:
@@ -67,14 +88,16 @@ def _speak_espeak(text: str, rate: int, language: str) -> None:
         logger.warning(f"[TTS] espeak-ng échoué : {e}")
 
 
-def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr") -> None:
-    """Prononce `text` à voix haute si `enabled`, dans la langue `language`.
-    Essaie d'abord edge-tts (voix neuronale, internet requis) puis bascule
-    automatiquement sur espeak-ng si edge-tts échoue. Bloquant — à appeler
-    depuis un thread daemon, jamais depuis le thread principal.
-    Erreur silencieuse (ni edge-tts ni espeak-ng disponibles, etc.).
+def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr") -> bool:
+    """Prononce `text` à voix haute côté serveur si `enabled` et si internet
+    est disponible (edge-tts, voix neuronale). Bloquant — à appeler depuis un
+    thread daemon, jamais depuis le thread principal.
+    Retourne True si edge-tts a parlé, False sinon (pas d'internet ou échec
+    edge-tts) — dans ce cas l'appelant doit basculer sur le Web Speech API
+    côté navigateur (pas d'espeak-ng comme fallback serveur).
     """
     if not enabled or not text:
-        return
-    if not _speak_edge(text, rate, language):
-        _speak_espeak(text, rate, language)
+        return False
+    if not check_internet():
+        return False
+    return _speak_edge(text, rate, language)

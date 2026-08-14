@@ -6280,7 +6280,6 @@ socket.on("explorer_explanation", (data) => {
   if (el) el.innerHTML = markdownToHtml(data && data.text);
   explClearArrows();
   if (data && data.arrows) explDrawArrows(data.arrows);
-  explSpeak(data && data.text);
 });
 
 socket.on("explorer_chat_response", (data) => {
@@ -6293,7 +6292,10 @@ socket.on("explorer_chat_response", (data) => {
   history.scrollTop = history.scrollHeight;
   explClearArrows();
   if (data.arrows) explDrawArrows(data.arrows);
-  explSpeak(data.text);
+});
+
+socket.on("explorer_tts_fallback", (data) => {
+  if (data && data.text) explSpeak(data.text);
 });
 
 function explRenderMovesTable(data) {
