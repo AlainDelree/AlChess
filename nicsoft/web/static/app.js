@@ -6153,6 +6153,7 @@ function explRenderMesLignes(groupes) {
 }
 
 function explLoad(sourceType, openingId) {
+  window.speechSynthesis.cancel();
   const history = document.getElementById("explorer-chat-history");
   if (history) history.innerHTML = "";
   const movesTable = document.getElementById("explorer-moves-table");
@@ -6236,6 +6237,30 @@ function explDrawArrows(arrows) {
   }
 }
 
+function stripMarkdownForTts(text) {
+  if (!text) return "";
+  return text
+    .replace(/#{1,6}\s*/g, "")       // titres #
+    .replace(/\*\*(.+?)\*\*/g, "$1") // gras **
+    .replace(/__(.+?)__/g, "$1")     // gras __
+    .replace(/\*(.+?)\*/g, "$1")     // italique *
+    .replace(/_(.+?)_/g, "$1")       // italique _
+    .replace(/\n+/g, " ")            // sauts de ligne → espace
+    .trim();
+}
+
+function explSpeak(text) {
+  if (!_explTtsEnabled) return;
+  const clean = stripMarkdownForTts(text);
+  if (!clean) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(clean);
+  utterance.lang = i18n.locale() === "fr" ? "fr-FR"
+                 : i18n.locale() === "de" ? "de-DE" : "en-GB";
+  utterance.rate = 1.0;
+  window.speechSynthesis.speak(utterance);
+}
+
 function markdownToHtml(text) {
   if (!text) return "";
   let h = text
@@ -6255,6 +6280,7 @@ socket.on("explorer_explanation", (data) => {
   if (el) el.innerHTML = markdownToHtml(data && data.text);
   explClearArrows();
   if (data && data.arrows) explDrawArrows(data.arrows);
+  explSpeak(data && data.text);
 });
 
 socket.on("explorer_chat_response", (data) => {
@@ -6267,6 +6293,7 @@ socket.on("explorer_chat_response", (data) => {
   history.scrollTop = history.scrollHeight;
   explClearArrows();
   if (data.arrows) explDrawArrows(data.arrows);
+  explSpeak(data.text);
 });
 
 function explRenderMovesTable(data) {
@@ -6320,6 +6347,7 @@ function explRenderMovesTable(data) {
 
 socket.on("explorer_state", (data) => {
   if (!data) return;
+  window.speechSynthesis.cancel();
   if (data.error) {
     afficherToast(t("opening_explorer.erreur_chargement"), "warning");
     return;
