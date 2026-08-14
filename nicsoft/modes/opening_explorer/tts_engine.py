@@ -27,6 +27,18 @@ VOICE_MAP_EDGE = {
 VOICE_MAP_ESPEAK = {"fr": "fr", "en": "en", "de": "de"}
 
 
+def strip_markdown(text: str) -> str:
+    """Retire les marqueurs Markdown (titres, gras, italique) avant lecture TTS."""
+    import re
+    text = re.sub(r'#{1,6}\s*', '', text)
+    text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+    text = re.sub(r'__(.+?)__', r'\1', text)
+    text = re.sub(r'\*(.+?)\*', r'\1', text)
+    text = re.sub(r'_(.+?)_', r'\1', text)
+    text = re.sub(r'\n+', ' ', text)
+    return text.strip()
+
+
 def check_internet() -> bool:
     """Test rapide (2s max) de connectivité, pour décider edge-tts vs Web Speech API."""
     try:
@@ -96,6 +108,7 @@ def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr
     edge-tts) — dans ce cas l'appelant doit basculer sur le Web Speech API
     côté navigateur (pas d'espeak-ng comme fallback serveur).
     """
+    text = strip_markdown(text)
     if not enabled or not text:
         return False
     if not check_internet():
