@@ -644,7 +644,7 @@ def _emit_explorer_explanation(sid, state, language):
     if not state or state.get("error") or not state.get("move_san"):
         return
     cfg = load_config()
-    expl = get_explanation(
+    expl, arrows = get_explanation(
         line_id=state.get("line_id", ""),
         move_index=state.get("move_index", 0),
         fen=state.get("fen", ""),
@@ -656,7 +656,7 @@ def _emit_explorer_explanation(sid, state, language):
         config=cfg,
     )
     if expl:
-        socketio.emit("explorer_explanation", {"text": expl}, to=sid)
+        socketio.emit("explorer_explanation", {"text": expl, "arrows": [list(a) for a in arrows]}, to=sid)
         speak(expl, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
 
 
@@ -667,9 +667,9 @@ def _emit_explorer_chat_response(sid, question, state, language):
     from nicsoft.modes.opening_explorer.tts_engine import speak
 
     cfg = load_config()
-    response = get_chat_response(question, state, language, cfg)
+    response, arrows = get_chat_response(question, state, language, cfg)
     if response:
-        socketio.emit("explorer_chat_response", {"text": response}, to=sid)
+        socketio.emit("explorer_chat_response", {"text": response, "arrows": [list(a) for a in arrows]}, to=sid)
         speak(response, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
 
 
@@ -684,7 +684,7 @@ def on_explorer_load(data):
         from nicsoft.core.game_manager import explorer_load
         state = explorer_load(source_type, opening_id, variant_index)
         socketio.emit("explorer_state", state)
-        socketio.emit("explorer_explanation", {"text": ""})
+        socketio.emit("explorer_explanation", {"text": "", "arrows": []})
 
     threading.Thread(target=run, daemon=True).start()
 
@@ -737,7 +737,7 @@ def on_explorer_chat(data):
     from nicsoft.core.game_manager import explorer_get_state
     state = explorer_get_state()
     if not state:
-        emit("explorer_chat_response", {"text": ""})
+        emit("explorer_chat_response", {"text": "", "arrows": []})
         return
     threading.Thread(
         target=_emit_explorer_chat_response,

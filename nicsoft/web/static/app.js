@@ -6157,6 +6157,7 @@ function explLoad(sourceType, openingId) {
   if (history) history.innerHTML = "";
   const movesTable = document.getElementById("explorer-moves-table");
   if (movesTable) movesTable.innerHTML = "";
+  explClearArrows();
   socket.emit("explorer_load", { source_type: sourceType, opening_id: openingId });
 }
 
@@ -6191,10 +6192,55 @@ function explPrev() {
   socket.emit("explorer_prev", { language: i18n.locale() });
 }
 
+// Flèches SVG illustrant les coups mentionnés par le LLM (issue #148).
+function explClearArrows() {
+  const svg = document.getElementById("expl-arrows");
+  if (!svg) return;
+  const defs = svg.querySelector("defs");
+  svg.innerHTML = "";
+  if (defs) svg.appendChild(defs);
+}
+
+function explSquareCenter(square, size) {
+  const file = square.charCodeAt(0) - 97; // 'a' → 0
+  const rank = parseInt(square[1], 10) - 1; // '1' → 0
+  const col = _explFlipped ? (7 - file) : file;
+  const row = _explFlipped ? rank : (7 - rank);
+  return { x: (col + 0.5) * size, y: (row + 0.5) * size };
+}
+
+function explDrawArrows(arrows) {
+  explClearArrows();
+  const svg = document.getElementById("expl-arrows");
+  const board = document.getElementById("expl-board");
+  if (!svg || !board || !arrows || !arrows.length) return;
+  const size = board.getBoundingClientRect().width / 8;
+  if (!size) return;
+  const strokeWidth = size * 0.08;
+  for (const pair of arrows) {
+    if (!pair || pair.length < 2) continue;
+    const [from, to] = pair;
+    if (!from || !to || from === to) continue;
+    const p1 = explSquareCenter(from, size);
+    const p2 = explSquareCenter(to, size);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    line.setAttribute("x1", p1.x);
+    line.setAttribute("y1", p1.y);
+    line.setAttribute("x2", p2.x);
+    line.setAttribute("y2", p2.y);
+    line.setAttribute("stroke", "rgba(232,69,96,0.75)");
+    line.setAttribute("stroke-width", strokeWidth);
+    line.setAttribute("stroke-linecap", "round");
+    line.setAttribute("marker-end", "url(#expl-arrowhead)");
+    svg.appendChild(line);
+  }
+}
+
 socket.on("explorer_explanation", (data) => {
   const el = document.getElementById("explorer-explanation");
-  if (!el) return;
-  el.textContent = (data && data.text) ? data.text : "";
+  if (el) el.textContent = (data && data.text) ? data.text : "";
+  explClearArrows();
+  if (data && data.arrows) explDrawArrows(data.arrows);
 });
 
 socket.on("explorer_chat_response", (data) => {
@@ -6205,6 +6251,8 @@ socket.on("explorer_chat_response", (data) => {
   r.textContent = data.text;
   history.appendChild(r);
   history.scrollTop = history.scrollHeight;
+  explClearArrows();
+  if (data.arrows) explDrawArrows(data.arrows);
 });
 
 function explRenderMovesTable(data) {
@@ -6287,6 +6335,7 @@ socket.on("explorer_state", (data) => {
   const [from, to] = uciToCoords(data.last_move_uci);
   explRenderBoard(data.fen, from, to);
   explRenderMovesTable(data);
+  explClearArrows();
 
   _explAtStart   = !!data.at_start;
   _explEndOfLine = !!data.end_of_line;
