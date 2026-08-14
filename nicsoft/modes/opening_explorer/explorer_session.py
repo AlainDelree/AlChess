@@ -75,14 +75,11 @@ class ExplorerSession:
         return self.get_state()
 
     def choose_move(self, uci: str) -> dict:
-        """Applique un coup spécifique (UCI) au lieu du coup principal.
-        Utilisé quand l'utilisateur clique sur une alternative du tableau.
-        Le coup doit être légal sur le board courant. Retourne get_state()
-        après application, ou get_state() inchangé si le coup est illégal."""
-        # Revenir à la position depuis laquelle les alternatives sont calculées
-        if self._history:
-            self._history.pop()
-            self.board.pop()
+        """Applique un coup spécifique (UCI) choisi dans le tableau des coups
+        suivants. Joue en avant depuis la position courante (ne remplace pas
+        le dernier coup joué). Le coup doit être légal sur le board courant.
+        Retourne get_state() après application, ou get_state() inchangé si
+        le coup est illégal."""
         try:
             move = chess.Move.from_uci(uci)
         except Exception:
@@ -121,30 +118,24 @@ class ExplorerSession:
             last_move_uci = None
             move_san      = None
         # Les alternatives représentent les coups candidats DEPUIS la position
-        # avant le dernier coup joué (pour expliquer ce choix) — pas depuis la
-        # position courante. On rejoue donc sur un board temporaire dépilé.
+        # courante (que jouer ensuite), pas depuis la position avant le
+        # dernier coup joué. Si la source n'a rien à proposer (fin de ligne
+        # connue), le tableau reste vide — aucun fallback à 100%.
         alternatives = []
         if self.source is not None:
             try:
-                alt_board = self.board.copy()
-                if self._history:
-                    alt_board.pop()
-                for alt in self.source.get_alternatives(alt_board):
+                for alt in self.source.get_alternatives(self.board):
                     try:
-                        san = san_ep(alt_board, chess.Move.from_uci(alt["uci"]))
+                        san = san_ep(self.board, chess.Move.from_uci(alt["uci"]))
                     except Exception:
                         san = alt["uci"]
                     alternatives.append({"uci": alt["uci"], "san": san, "weight": alt.get("weight", 0)})
             except Exception:
                 alternatives = []
-        if not alternatives and last_move_uci is not None:
-            # Source sans alternatives (ex. PGNLineSource) : le coup joué
-            # reste la seule entrée du tableau, à 100%.
-            alternatives = [{"uci": last_move_uci, "san": move_san, "weight": 1}]
         return {
             "fen":            self.board.fen(),
             "last_move_uci":  last_move_uci,
-            "main_move_uci":  last_move_uci,
+            "main_move_uci":  None,
             "move_index":     len(self._history),
             "move_san":       move_san,
             "opening_name":   getattr(self.source, "nom", "") if self.source else "",

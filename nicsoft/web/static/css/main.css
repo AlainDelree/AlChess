@@ -16,7 +16,7 @@
     #screen-retrans-game            { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 460px; }
     #screen-exercice-running        { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 660px; --bd-vh-offset: 220px; }
     #screen-labo                    { --bd-min: 280px; --bd-max: 500px; --bd-vw-offset: 740px; --bd-vh-offset: 190px; }
-    #screen-opening-explorer-play   { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 660px; --bd-vh-offset: 220px; }
+    #screen-opening-explorer-play   { --bd-min: 280px; --bd-max: 460px; --bd-vw-offset: 680px; --bd-vh-offset: 220px; }
 
     /* Taille calculée — héritée par tous les descendants */
     #screen-game, .screen-board-layout,
@@ -744,8 +744,8 @@
     .res-medium .screen-board-layout,
     .res-medium #screen-game,
     .res-medium #screen-exercice-running,
-    .res-medium #screen-labo,
-    .res-medium #screen-opening-explorer-play { grid-template-columns: 180px minmax(0,1fr) 320px !important; gap: 14px !important; padding: 12px 14px !important; }
+    .res-medium #screen-labo { grid-template-columns: 180px minmax(0,1fr) 320px !important; gap: 14px !important; padding: 12px 14px !important; }
+    .res-medium #screen-opening-explorer-play { grid-template-columns: 320px minmax(0,1fr) 200px !important; gap: 14px !important; padding: 12px 14px !important; }
     .res-medium #left-panel            { width: 180px; }
     .res-medium #panel                 { width: 320px; }
 
@@ -770,6 +770,9 @@
     .res-small #screen-opening-explorer-play { grid-template-columns: 1fr !important; padding: 10px !important; }
     .res-small #left-panel             { width: 100%; }
     .res-small #panel                  { width: 100%; }
+
+.expl-move-row { cursor: pointer; transition: opacity 0.15s; }
+.expl-move-row:hover { opacity: 0.8; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 #modal-overlay { display: none; }

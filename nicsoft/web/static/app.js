@@ -6018,6 +6018,9 @@ socket.on("config_data", (data) => {
 
   _explHasApiKey = !!(data.llm_api_key && data.llm_api_key.trim());
   explUpdateChatAvailability();
+
+  _explTtsEnabled = !!data.tts_enabled;
+  explUpdateTtsToggle();
 });
 
 function parametresSave() {
@@ -6203,26 +6206,22 @@ function explRenderMovesTable(data) {
 
   const total = alternatives.reduce((sum, a) => sum + (a.weight || 0), 0) || 1;
   const sorted = [...alternatives].sort((a, b) => (b.weight || 0) - (a.weight || 0));
-  const mainUci = data.main_move_uci || data.last_move_uci || null;
 
   const table = document.createElement("div");
   table.style.cssText = "display:flex; flex-direction:column; gap:6px; margin-top:8px;";
   for (const alt of sorted.slice(0, 6)) {
     const pct = Math.round(((alt.weight || 0) / total) * 100);
-    const isMain = mainUci !== null && alt.uci === mainUci;
 
     const row = document.createElement("div");
+    row.className = "expl-move-row";
     row.style.cssText = "display:flex; align-items:center; gap:8px; font-size:0.82rem;";
-    if (!isMain) {
-      row.style.cursor = "pointer";
-      row.title = alt.san || alt.uci;
-      row.addEventListener("click", () => {
-        socket.emit("explorer_choose_move", { uci: alt.uci, language: i18n.locale() });
-      });
-    }
+    row.title = alt.san || alt.uci;
+    row.addEventListener("click", () => {
+      socket.emit("explorer_choose_move", { uci: alt.uci, language: i18n.locale() });
+    });
 
     const sanEl = document.createElement("div");
-    sanEl.style.cssText = `width:52px; flex-shrink:0; color:#1a2a3a; ${isMain ? "font-weight:700;" : ""}`;
+    sanEl.style.cssText = "width:52px; flex-shrink:0; color:#1a2a3a;";
     sanEl.textContent = alt.san || alt.uci;
     row.appendChild(sanEl);
 

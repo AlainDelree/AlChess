@@ -657,7 +657,7 @@ def _emit_explorer_explanation(sid, state, language):
     )
     if expl:
         socketio.emit("explorer_explanation", {"text": expl}, to=sid)
-        speak(expl, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False))
+        speak(expl, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
 
 
 def _emit_explorer_chat_response(sid, question, state, language):
@@ -670,7 +670,7 @@ def _emit_explorer_chat_response(sid, question, state, language):
     response = get_chat_response(question, state, language, cfg)
     if response:
         socketio.emit("explorer_chat_response", {"text": response}, to=sid)
-        speak(response, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False))
+        speak(response, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
 
 
 @socketio.on("explorer_load")
