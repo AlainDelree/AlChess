@@ -59,14 +59,14 @@ if ! command -v espeak-ng &>/dev/null; then
     fi
 fi
 
-# 4b. aplay / alsa-utils (lecture audio des voix neuronales edge-tts)
-if ! command -v aplay &>/dev/null; then
-    echo "Installation d'alsa-utils (lecture audio)..."
+# 4b. mpg123 (lecture MP3 des voix neuronales edge-tts)
+if ! command -v mpg123 &>/dev/null; then
+    echo "Installation de mpg123 (lecture audio)..."
     if sudo -n true 2>/dev/null; then
-        sudo apt-get install -y alsa-utils
+        sudo apt-get install -y mpg123
     else
-        echo "AVERTISSEMENT : droits sudo requis pour installer alsa-utils."
-        echo "Exécutez manuellement : sudo apt-get install alsa-utils"
+        echo "AVERTISSEMENT : droits sudo requis pour installer mpg123."
+        echo "Exécutez manuellement : sudo apt-get install mpg123"
     fi
 fi
 

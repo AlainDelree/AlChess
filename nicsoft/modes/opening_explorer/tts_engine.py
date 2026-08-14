@@ -40,7 +40,7 @@ def _speak_edge(text: str, rate: int, language: str) -> bool:
             try:
                 communicate = edge_tts.Communicate(text, voice, rate=rate_pct)
                 await communicate.save(tmp)
-                subprocess.run(["aplay", tmp], check=False, timeout=60)
+                subprocess.run(["mpg123", "-q", tmp], check=False, timeout=60)
             finally:
                 try:
                     os.unlink(tmp)
