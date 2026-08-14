@@ -48,7 +48,7 @@ echo "Installation des dépendances..."
 "$INSTALL_DIR/venv/bin/pip" install --upgrade pip --quiet
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt" --quiet
 
-# 4. espeak-ng (moteur TTS système requis par pyttsx3 pour la synthèse vocale)
+# 4. espeak-ng (fallback TTS hors ligne pour Opening Explorer)
 if ! command -v espeak-ng &>/dev/null; then
     echo "Installation d'espeak-ng (synthèse vocale)..."
     if sudo -n true 2>/dev/null; then
@@ -56,6 +56,17 @@ if ! command -v espeak-ng &>/dev/null; then
     else
         echo "AVERTISSEMENT : droits sudo requis pour installer espeak-ng."
         echo "Exécutez manuellement : sudo apt-get install espeak-ng"
+    fi
+fi
+
+# 4b. aplay / alsa-utils (lecture audio des voix neuronales edge-tts)
+if ! command -v aplay &>/dev/null; then
+    echo "Installation d'alsa-utils (lecture audio)..."
+    if sudo -n true 2>/dev/null; then
+        sudo apt-get install -y alsa-utils
+    else
+        echo "AVERTISSEMENT : droits sudo requis pour installer alsa-utils."
+        echo "Exécutez manuellement : sudo apt-get install alsa-utils"
     fi
 fi
 
