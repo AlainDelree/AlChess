@@ -6213,6 +6213,13 @@ function explRenderMovesTable(data) {
 
     const row = document.createElement("div");
     row.style.cssText = "display:flex; align-items:center; gap:8px; font-size:0.82rem;";
+    if (!isMain) {
+      row.style.cursor = "pointer";
+      row.title = alt.san || alt.uci;
+      row.addEventListener("click", () => {
+        socket.emit("explorer_choose_move", { uci: alt.uci, language: i18n.locale() });
+      });
+    }
 
     const sanEl = document.createElement("div");
     sanEl.style.cssText = `width:52px; flex-shrink:0; color:#1a2a3a; ${isMain ? "font-weight:700;" : ""}`;

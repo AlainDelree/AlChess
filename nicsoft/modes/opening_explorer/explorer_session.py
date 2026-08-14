@@ -74,6 +74,23 @@ class ExplorerSession:
         self._update_board_display()
         return self.get_state()
 
+    def choose_move(self, uci: str) -> dict:
+        """Applique un coup spécifique (UCI) au lieu du coup principal.
+        Utilisé quand l'utilisateur clique sur une alternative du tableau.
+        Le coup doit être légal sur le board courant. Retourne get_state()
+        après application, ou get_state() inchangé si le coup est illégal."""
+        try:
+            move = chess.Move.from_uci(uci)
+        except Exception:
+            return self.get_state()
+        if move not in self.board.legal_moves:
+            return self.get_state()
+        san = san_ep(self.board, move)
+        self.board.push(move)
+        self._history.append((move, san))
+        self._update_board_display()
+        return self.get_state()
+
     def prev_move(self) -> dict:
         """Dépile le dernier coup joué. No-op si déjà à la position de départ."""
         if self.is_at_start():

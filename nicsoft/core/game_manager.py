@@ -1154,6 +1154,15 @@ def explorer_prev() -> dict:
     return state
 
 
+def explorer_choose_move(uci: str) -> dict:
+    if _explorer_session is None:
+        return {}
+    state = _explorer_session.choose_move(uci)
+    state["end_of_line"] = not _explorer_session.has_more()
+    state["at_start"]    = _explorer_session.is_at_start()
+    return state
+
+
 def explorer_get_state() -> dict:
     """Retourne l'état courant de la session Opening Explorer active, ou None."""
     if _explorer_session is None:

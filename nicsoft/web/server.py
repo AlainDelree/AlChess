@@ -709,6 +709,23 @@ def on_explorer_prev(data):
     threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
 
 
+@socketio.on("explorer_choose_move")
+def on_explorer_choose_move(data):
+    uci = (data or {}).get("uci", "")
+    if not uci:
+        return
+    from nicsoft.core.game_manager import explorer_choose_move
+    state = explorer_choose_move(uci)
+    emit("explorer_state", state)
+    language = (data or {}).get("language", "fr")
+    sid = request.sid
+    threading.Thread(
+        target=_emit_explorer_explanation,
+        args=(sid, state, language),
+        daemon=True
+    ).start()
+
+
 @socketio.on("explorer_chat")
 def on_explorer_chat(data):
     """Question libre de l'utilisateur sur la position courante — réponse LLM en arrière-plan."""
