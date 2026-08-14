@@ -817,3 +817,16 @@
   transition:background 0.15s;
 }
 .aide-panier-icone:hover { background:#e94560; }
+
+/* ── Opening Explorer — rendu Markdown explications LLM ── */
+#explorer-explanation p, #explorer-chat-history p {
+  margin: 0 0 6px 0;
+}
+#explorer-explanation h3, #explorer-explanation h4,
+#explorer-chat-history h3, #explorer-chat-history h4 {
+  font-size: 0.85rem; font-weight: 700;
+  margin: 6px 0 3px 0; color: #1a2a3a;
+}
+#explorer-explanation strong, #explorer-chat-history strong {
+  color: #1a2a3a; font-weight: 700;
+}

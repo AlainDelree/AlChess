@@ -6236,9 +6236,23 @@ function explDrawArrows(arrows) {
   }
 }
 
+function markdownToHtml(text) {
+  if (!text) return "";
+  let h = text
+    .replace(/^### (.+)$/gm, "<h4>$1</h4>")
+    .replace(/^## (.+)$/gm, "<h3>$1</h3>")
+    .replace(/^# (.+)$/gm, "<h3>$1</h3>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/__(.+?)__/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/\n\n+/g, "</p><p>")
+    .replace(/\n/g, "<br>");
+  return "<p>" + h + "</p>";
+}
+
 socket.on("explorer_explanation", (data) => {
   const el = document.getElementById("explorer-explanation");
-  if (el) el.textContent = (data && data.text) ? data.text : "";
+  if (el) el.innerHTML = markdownToHtml(data && data.text);
   explClearArrows();
   if (data && data.arrows) explDrawArrows(data.arrows);
 });
@@ -6248,7 +6262,7 @@ socket.on("explorer_chat_response", (data) => {
   if (!history || !data || !data.text) return;
   const r = document.createElement("div");
   r.style.cssText = "background:#f4f7fb; border-radius:6px; padding:4px 8px; align-self:flex-start; max-width:85%;";
-  r.textContent = data.text;
+  r.innerHTML = markdownToHtml(data.text);
   history.appendChild(r);
   history.scrollTop = history.scrollHeight;
   explClearArrows();
