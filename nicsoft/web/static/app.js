@@ -6053,6 +6053,7 @@ let _explEndOfLine   = false;
 let _explFlipped     = false;  // true = noirs en bas
 let _explFlippedBuilt = null;
 let _explHasApiKey   = false;
+let _explTtsEnabled  = false;
 
 function explUpdateChatAvailability() {
   const input   = document.getElementById("explorer-chat-input");
@@ -6065,6 +6066,19 @@ function explUpdateChatAvailability() {
     input.placeholder = t(input.dataset.i18nPlaceholder);
   }
   if (sendBtn) sendBtn.disabled = !_explHasApiKey;
+}
+
+function explUpdateTtsToggle() {
+  const btn = document.getElementById("expl-tts-toggle");
+  if (!btn) return;
+  btn.textContent = _explTtsEnabled ? "🔊" : "🔇";
+  btn.title = t(_explTtsEnabled ? "opening_explorer.tts.on" : "opening_explorer.tts.off");
+}
+
+function explToggleTts() {
+  _explTtsEnabled = !_explTtsEnabled;
+  explUpdateTtsToggle();
+  socket.emit("config_save", { tts_enabled: _explTtsEnabled });
 }
 
 socket.on("app_state", (data) => {

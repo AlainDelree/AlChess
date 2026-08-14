@@ -254,6 +254,8 @@
   "opening_explorer.chat.placeholder": "Stellen Sie eine Frage...",
   "opening_explorer.chat.envoyer": "Senden",
   "opening_explorer.chat.no_api": "Konfigurieren Sie einen API-Schlüssel in den Einstellungen",
+  "opening_explorer.tts.on": "🔊 Sprache aktiviert",
+  "opening_explorer.tts.off": "🔇 Sprache deaktiviert",
   "outils.titre": "🛠️ Übungs-Tools",
   "outils.import_pgn.titre": "📥 Meine PGN-Linien importieren",
   "outils.import_pgn.desc": "Eine oder mehrere .pgn-Dateien in Ihre persönlichen Übungen importieren (<em>mes_lignes.json</em>).",
