@@ -335,6 +335,9 @@ def on_action(data):
     if atype == "back_menu":
         prev_state = _app_state  # sauvegarder AVANT de changer
         set_app_state("menu")
+        if prev_state == "opening_explorer":
+            from nicsoft.core.game_manager import explorer_cleanup
+            explorer_cleanup()
         # Mettre dans action_queue seulement si un thread actif écoute
         if prev_state in ("playing", "connecting", "game_over", "paused", "labo",
                           "exercice_running", "retrans_playing"):
@@ -621,6 +624,49 @@ def on_config_save(data):
         emit("config_saved", {"ok": True})
     except Exception as e:
         emit("config_saved", {"ok": False, "error": str(e)})
+
+
+# ── Opening Explorer ──────────────────────────────────────────────────────────
+
+@socketio.on("explorer_get_list")
+def on_explorer_get_list(_data):
+    """Retourne catalogue Polyglot + mes_lignes groupées pour le sélecteur."""
+    from nicsoft.core.game_manager import explorer_get_list
+    emit("explorer_list", explorer_get_list())
+
+
+@socketio.on("explorer_load")
+def on_explorer_load(data):
+    """Charge une ouverture (catalogue ou ligne perso) — connexion échiquier en arrière-plan."""
+    source_type   = data.get("source_type", "polyglot")
+    opening_id    = data.get("opening_id", "")
+    variant_index = data.get("variant_index")
+
+    def run():
+        from nicsoft.core.game_manager import explorer_load
+        state = explorer_load(source_type, opening_id, variant_index)
+        socketio.emit("explorer_state", state)
+
+    threading.Thread(target=run, daemon=True).start()
+
+
+@socketio.on("explorer_next")
+def on_explorer_next(_data):
+    from nicsoft.core.game_manager import explorer_next
+    emit("explorer_state", explorer_next())
+
+
+@socketio.on("explorer_prev")
+def on_explorer_prev(_data):
+    from nicsoft.core.game_manager import explorer_prev
+    emit("explorer_state", explorer_prev())
+
+
+@socketio.on("explorer_back")
+def on_explorer_back(_data):
+    """Referme la connexion échiquier de l'Opening Explorer (retour sélecteur ou menu)."""
+    from nicsoft.core.game_manager import explorer_cleanup
+    explorer_cleanup()
 
 
 # ── Thread de dispatch des événements ────────────────────────────────────────

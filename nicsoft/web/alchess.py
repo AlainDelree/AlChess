@@ -244,6 +244,8 @@ def main():
                 set_app_state("outils_exercices")
             elif atype == "mode" and action.get("value") == "parametres":
                 set_app_state("parametres")
+            elif atype == "mode" and action.get("value") == "opening_explorer":
+                set_app_state("opening_explorer")
             elif atype == "start_exercice":
                 gm.start_exercice(action)
             elif atype == "start_drill":
