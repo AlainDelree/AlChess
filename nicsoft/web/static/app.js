@@ -6035,3 +6035,166 @@ socket.on("config_saved", (data) => {
     afficherToast(t("parametres.toast.erreur"), "warning");
   }
 });
+
+// ── Opening Explorer ─────────────────────────────────────────────────────────
+
+let _explAtStart   = true;
+let _explEndOfLine = false;
+
+socket.on("app_state", (data) => {
+  const selEl  = document.getElementById("screen-opening-explorer-select");
+  const playEl = document.getElementById("screen-opening-explorer-play");
+  if (selEl)  selEl.style.display  = "none";
+  if (playEl) playEl.style.display = "none";
+  if (data.state === "opening_explorer") {
+    explShowSelect();
+  }
+});
+
+function explShowSelect() {
+  const selEl  = document.getElementById("screen-opening-explorer-select");
+  const playEl = document.getElementById("screen-opening-explorer-play");
+  if (playEl) playEl.style.display = "none";
+  if (selEl)  selEl.style.display  = "flex";
+  socket.emit("explorer_get_list", {});
+}
+
+function explBackToSelect() {
+  socket.emit("explorer_back", {});
+  explShowSelect();
+}
+
+socket.on("explorer_list", (data) => {
+  explRenderCatalogue((data && data.catalogue) || []);
+  explRenderMesLignes((data && data.mes_lignes) || []);
+});
+
+function explRenderCatalogue(catalogue) {
+  const list = document.getElementById("expl-catalogue-list");
+  const vide = document.getElementById("expl-catalogue-vide");
+  if (!list) return;
+  list.innerHTML = "";
+  if (vide) vide.style.display = catalogue.length ? "none" : "block";
+  for (const o of catalogue) {
+    const row = document.createElement("div");
+    row.style.cssText = "padding:8px 12px; background:#f4f7fb; border:1px solid #a0b8d0; border-radius:6px; cursor:pointer; font-size:0.88rem; color:#1a2a3a;";
+    row.textContent = o.eco ? `${o.nom}  (${o.eco})` : o.nom;
+    row.onclick = () => explLoad("polyglot", o.id);
+    list.appendChild(row);
+  }
+}
+
+function explRenderMesLignes(groupes) {
+  const list = document.getElementById("expl-mes-lignes-list");
+  const vide = document.getElementById("expl-mes-lignes-vide");
+  if (!list) return;
+  list.innerHTML = "";
+  if (vide) vide.style.display = groupes.length ? "none" : "block";
+  for (const g of groupes) {
+    const section = document.createElement("div");
+    section.style.cssText = "border-left:3px solid #e94560; padding-left:10px;";
+    const title = document.createElement("div");
+    title.style.cssText = "font-weight:700; color:#1a2a3a; font-size:0.88rem; margin-bottom:4px;";
+    title.textContent = g.groupe;
+    section.appendChild(title);
+    const variantesWrap = document.createElement("div");
+    variantesWrap.style.cssText = "display:flex; flex-wrap:wrap; gap:6px;";
+    for (const v of (g.variantes || [])) {
+      const item = document.createElement("div");
+      item.style.cssText = "padding:6px 10px; background:#f4f7fb; border:1px solid #a0b8d0; border-radius:6px; cursor:pointer; font-size:0.82rem; color:#1a2a3a;";
+      item.textContent = v.nom;
+      item.onclick = () => explLoad("pgn", v.id);
+      variantesWrap.appendChild(item);
+    }
+    section.appendChild(variantesWrap);
+    list.appendChild(section);
+  }
+}
+
+function explLoad(sourceType, openingId) {
+  socket.emit("explorer_load", { source_type: sourceType, opening_id: openingId });
+}
+
+function explNext() {
+  if (_explEndOfLine) return;
+  socket.emit("explorer_next", {});
+}
+
+function explPrev() {
+  if (_explAtStart) return;
+  socket.emit("explorer_prev", {});
+}
+
+socket.on("explorer_state", (data) => {
+  if (!data) return;
+  if (data.error) {
+    afficherToast(t("opening_explorer.erreur_chargement"), "warning");
+    return;
+  }
+
+  const selEl  = document.getElementById("screen-opening-explorer-select");
+  const playEl = document.getElementById("screen-opening-explorer-play");
+  if (selEl)  selEl.style.display  = "none";
+  if (playEl) playEl.style.display = "grid";
+
+  const nomEl = document.getElementById("expl-nom");
+  if (nomEl) nomEl.textContent = data.opening_name || "";
+
+  const coupEl = document.getElementById("expl-coup-courant");
+  if (coupEl) {
+    coupEl.textContent = data.move_index > 0
+      ? t("opening_explorer.coup_n", { n: data.move_index, san: data.move_san || "" })
+      : t("opening_explorer.position_initiale");
+  }
+
+  const [from, to] = uciToCoords(data.last_move_uci);
+  explRenderBoard(data.fen, from, to);
+
+  _explAtStart   = !!data.at_start;
+  _explEndOfLine = !!data.end_of_line;
+  const prevBtn = document.getElementById("expl-btn-prev");
+  const nextBtn = document.getElementById("expl-btn-next");
+  if (prevBtn) prevBtn.disabled = _explAtStart;
+  if (nextBtn) nextBtn.disabled = _explEndOfLine;
+});
+
+// Échiquier Opening Explorer — lecture seule, coups joués par les deux sources.
+function explBuildBoard() {
+  const board = document.getElementById("expl-board");
+  if (!board || board.children.length) return;
+  const rankCoord = document.getElementById("expl-coord-rank");
+  if (rankCoord) {
+    rankCoord.innerHTML = "";
+    [7,6,5,4,3,2,1,0].forEach(r => { const s = document.createElement("span"); s.textContent = r + 1; rankCoord.appendChild(s); });
+  }
+  const fileCoord = document.getElementById("expl-coord-file");
+  if (fileCoord) {
+    fileCoord.innerHTML = "";
+    "abcdefgh".split("").forEach(f => { const s = document.createElement("span"); s.textContent = f; fileCoord.appendChild(s); });
+  }
+  for (let rank = 7; rank >= 0; rank--) {
+    for (let file = 0; file < 8; file++) {
+      const sq = document.createElement("div");
+      sq.className = `square ${(rank + file) % 2 === 1 ? "light" : "dark"}`;
+      sq.id = `expl-sq-${file}-${rank}`;
+      board.appendChild(sq);
+    }
+  }
+}
+
+function explRenderBoard(fen, from, to) {
+  explBuildBoard();
+  const grid = fenToBoard(fen);
+  for (let rank = 7; rank >= 0; rank--) {
+    for (let file = 0; file < 8; file++) {
+      const id = `${file}-${rank}`;
+      const sq = document.getElementById(`expl-sq-${id}`);
+      if (!sq) continue;
+      const piece = grid[id];
+      sq.innerHTML = piece ? (PIECES[piece] || piece) : "";
+      sq.className = `square ${(rank + file) % 2 === 1 ? "light" : "dark"}`;
+      if (from && id === from) sq.classList.add("last-move-from");
+      if (to   && id === to)   sq.classList.add("last-move-to");
+    }
+  }
+}

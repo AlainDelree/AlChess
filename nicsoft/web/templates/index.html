@@ -1586,6 +1586,80 @@
 </div>
 
 
+<!-- ── Écran Opening Explorer — sélecteur ── -->
+<div id="screen-opening-explorer-select" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%;">
+
+  <div style="width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <h2 style="margin:0; color:#1a2a3a; font-size:1.4rem;" data-i18n="opening_explorer.titre">♟ Opening Explorer</h2>
+    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+  </div>
+
+  <!-- Catalogue -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-title" data-i18n="opening_explorer.catalogue.titre">📚 Catalogue</span>
+    </div>
+    <div id="expl-catalogue-list" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;"></div>
+    <div id="expl-catalogue-vide" style="display:none; color:#888; font-size:0.85rem;" data-i18n="opening_explorer.catalogue.vide">Aucune ouverture dans le catalogue.</div>
+  </div>
+
+  <!-- Mes ouvertures -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-title" data-i18n="opening_explorer.mes_ouvertures.titre">★ Mes ouvertures</span>
+    </div>
+    <div id="expl-mes-lignes-list" style="display:flex; flex-direction:column; gap:10px; margin-top:10px;"></div>
+    <div id="expl-mes-lignes-vide" style="display:none; color:#888; font-size:0.85rem;" data-i18n="opening_explorer.mes_ouvertures.vide">Aucune ligne personnelle importée. Utilisez Outils Exercices pour en ajouter.</div>
+  </div>
+
+</div>
+
+<!-- ── Écran Opening Explorer — lecteur ── -->
+<div id="screen-opening-explorer-play" style="display:none; flex:1; grid-template-columns:220px minmax(0,1fr) 380px; gap:20px; padding:16px 20px; width:100%; max-width:100vw; align-items:start; overflow:hidden;">
+
+  <!-- Colonne gauche : info -->
+  <div style="display:flex; flex-direction:column; gap:8px;">
+    <div class="card" style="padding:12px 14px;">
+      <h2 id="expl-nom" style="color:#e94560; font-size:0.85rem; margin-bottom:8px;"></h2>
+      <div id="expl-coup-courant" style="font-size:0.9rem; font-weight:600; color:#1a2a3a;">—</div>
+    </div>
+  </div>
+
+  <!-- Colonne centre : échiquier -->
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; max-height:calc(100vh - 60px); overflow:hidden;">
+    <div id="expl-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden;">
+      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="expl-player-top" style="color:#445; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
+      <div style="display:flex; align-items:stretch;">
+        <div class="coord-rank" id="expl-coord-rank"></div>
+        <div id="expl-board" style="display:grid; grid-template-columns:repeat(8,1fr);"></div>
+      </div>
+      <div class="coord-file" id="expl-coord-file" style="width:100%;"></div>
+      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="expl-player-bottom" style="color:#1a2a3a; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button id="expl-btn-prev" class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-top:0;" onclick="explPrev()" data-i18n="opening_explorer.btn.precedent">← Précédent</button>
+      <button id="expl-btn-next" class="btn btn-continuer" style="margin-top:0;" onclick="explNext()" data-i18n="opening_explorer.btn.suivant">Suivant →</button>
+    </div>
+  </div>
+
+  <!-- Colonne droite : explication + actions -->
+  <div style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:calc(100vh - 60px);">
+
+    <div class="card" style="padding:14px 16px;">
+      <h2 data-i18n="opening_explorer.h2.explication">EXPLICATION</h2>
+      <div id="explorer-explanation" style="font-size:0.85rem; color:#3a5a7a; line-height:1.5;"></div>
+    </div>
+
+    <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
+      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="explBackToSelect()" data-i18n="opening_explorer.btn.autre">↩ Choisir une autre ouverture</button>
+      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+    </div>
+
+  </div>
+</div>
+
+
 <!-- ── Écran connexion échiquier ── -->
 <div id="screen-connecting" style="display:none; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:20px;">
   <div style="font-size:2rem;">♜</div>

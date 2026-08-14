@@ -1075,12 +1075,19 @@ def explorer_get_list() -> dict:
 
     groupes: dict = {}
     for l in get_mes_lignes():
-        groupes.setdefault(l.get("nom", ""), []).append({
-            "id":           l.get("id", ""),
-            "nom":          l.get("nom", ""),
-            "camp_suggere": l.get("camp_suggere", "white"),
-        })
-    mes_lignes = [{"groupe": nom, "variantes": variantes} for nom, variantes in groupes.items()]
+        groupes.setdefault(l.get("nom", ""), []).append(l)
+
+    mes_lignes = []
+    for nom, lignes in groupes.items():
+        variantes = [
+            {
+                "id":           l.get("id", ""),
+                "nom":          f"{nom} {i}" if len(lignes) > 1 else nom,
+                "camp_suggere": l.get("camp_suggere", "white"),
+            }
+            for i, l in enumerate(lignes, start=1)
+        ]
+        mes_lignes.append({"groupe": nom, "variantes": variantes})
 
     return {"catalogue": catalogue, "mes_lignes": mes_lignes}
 

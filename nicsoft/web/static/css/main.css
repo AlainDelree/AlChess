@@ -460,14 +460,14 @@
       color: #1a2a3a;
     }
 
-    #board, #rv-board, #board-pos-init, #retrans-board, #ex-board, #labo-board {
+    #board, #rv-board, #board-pos-init, #retrans-board, #ex-board, #labo-board, #expl-board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       overflow: hidden;
       width: var(--bd-size);
       height: var(--bd-size);
     }
-    #ex-coord-rank, #labo-coord-rank { height: auto; align-self: stretch; }
+    #ex-coord-rank, #labo-coord-rank, #expl-coord-rank { height: auto; align-self: stretch; }
 
     .square {
       display: flex;
