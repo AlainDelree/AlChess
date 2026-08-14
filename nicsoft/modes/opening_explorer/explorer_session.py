@@ -25,41 +25,57 @@ class ExplorerSession:
         self.board   = chess.Board()
         self.source  = None
         self.line_id = ""
-        # Coups joués après les init_moves — (chess.Move, san) — pile pour prev_move().
-        # Les init_moves eux-mêmes ne sont jamais dépilés (position plancher de la navigation).
+        # Tous les coups joués depuis la position de départ réelle —
+        # (chess.Move, san) — pile pour prev_move(). Inclut les init_moves,
+        # qui sont donc entièrement navigables (aucun plancher).
         self._history: list = []
+        # Init_moves pré-calculés à load() sous forme (chess.Move, san),
+        # appliqués un par un par next_move() comme le reste de la ligne.
+        self._init_moves_list: list = []
 
     def load(self, source, line_id: str = "") -> dict:
-        """Charge une source, rejoue ses init_moves (sans pause), émet l'état initial."""
+        """Charge une source : le board reste en position de départ, les
+        init_moves sont pré-calculés (SAN inclus) mais appliqués coup par
+        coup via next_move(), pour rester navigables comme le reste de la
+        ligne."""
         self.source   = source
         self.line_id  = line_id
         self.board    = chess.Board()
         self._history = []
+        self._init_moves_list = []
+        scratch = chess.Board()
         for uci in getattr(source, "init_moves", []):
             try:
                 move = chess.Move.from_uci(uci)
             except Exception:
                 continue
-            if move in self.board.legal_moves:
-                self.board.push(move)
+            if move not in scratch.legal_moves:
+                break
+            san = san_ep(scratch, move)
+            scratch.push(move)
+            self._init_moves_list.append((move, san))
         self._update_board_display()
         return self.get_state()
 
     def next_move(self) -> dict:
-        """Applique le prochain coup de la source. No-op si la ligne est terminée."""
+        """Applique le prochain coup — d'abord les init_moves pré-stockés,
+        puis les coups de la source. No-op si la ligne est terminée."""
         if not self.has_more():
             return self.get_state()
-        move = self.source.get_main_move(self.board)
-        if move is None:
-            return self.get_state()
-        san = san_ep(self.board, move)
+        if len(self._history) < len(self._init_moves_list):
+            move, san = self._init_moves_list[len(self._history)]
+        else:
+            move = self.source.get_main_move(self.board)
+            if move is None:
+                return self.get_state()
+            san = san_ep(self.board, move)
         self.board.push(move)
         self._history.append((move, san))
         self._update_board_display()
         return self.get_state()
 
     def prev_move(self) -> dict:
-        """Dépile le dernier coup joué. No-op si déjà à la position post-init."""
+        """Dépile le dernier coup joué. No-op si déjà à la position de départ."""
         if self.is_at_start():
             return self.get_state()
         self._history.pop()
@@ -71,6 +87,8 @@ class ExplorerSession:
         return len(self._history) == 0
 
     def has_more(self) -> bool:
+        if len(self._history) < len(self._init_moves_list):
+            return True
         return self.source is not None and self.source.has_more(self.board)
 
     def get_state(self) -> dict:

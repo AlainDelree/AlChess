@@ -252,6 +252,7 @@
   "opening_explorer.erreur_chargement": "Impossible de charger cette ouverture.",
   "opening_explorer.chat.placeholder": "Posez une question...",
   "opening_explorer.chat.envoyer": "Envoyer",
+  "opening_explorer.chat.no_api": "Configurez une clé API dans Paramètres pour activer le chat",
   "outils.titre": "🛠️ Outils Exercices",
   "outils.import_pgn.titre": "📥 Importer mes lignes PGN",
   "outils.import_pgn.desc": "Sélectionnez un ou plusieurs fichiers .pgn pour les importer dans vos exercices personnels (<em>mes_lignes.json</em>).",

@@ -6015,6 +6015,9 @@ socket.on("config_data", (data) => {
   if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
   if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
   if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;
+
+  _explHasApiKey = !!(data.llm_api_key && data.llm_api_key.trim());
+  explUpdateChatAvailability();
 });
 
 function parametresSave() {
@@ -6046,6 +6049,20 @@ let _explAtStart     = true;
 let _explEndOfLine   = false;
 let _explFlipped     = false;  // true = noirs en bas
 let _explFlippedBuilt = null;
+let _explHasApiKey   = false;
+
+function explUpdateChatAvailability() {
+  const input   = document.getElementById("explorer-chat-input");
+  const sendBtn = document.getElementById("explorer-chat-send-btn");
+  if (input) {
+    input.disabled = !_explHasApiKey;
+    input.dataset.i18nPlaceholder = _explHasApiKey
+      ? "opening_explorer.chat.placeholder"
+      : "opening_explorer.chat.no_api";
+    input.placeholder = t(input.dataset.i18nPlaceholder);
+  }
+  if (sendBtn) sendBtn.disabled = !_explHasApiKey;
+}
 
 socket.on("app_state", (data) => {
   const selEl  = document.getElementById("screen-opening-explorer-select");
@@ -6054,6 +6071,7 @@ socket.on("app_state", (data) => {
   if (playEl) playEl.style.display = "none";
   if (data.state === "opening_explorer") {
     explShowSelect();
+    socket.emit("config_get", {});
   }
 });
 
@@ -6207,6 +6225,8 @@ socket.on("explorer_state", (data) => {
   const nextBtn = document.getElementById("expl-btn-next");
   if (prevBtn) prevBtn.disabled = _explAtStart;
   if (nextBtn) nextBtn.disabled = _explEndOfLine;
+
+  explUpdateChatAvailability();
 });
 
 // Échiquier Opening Explorer — lecture seule, coups joués par les deux sources.

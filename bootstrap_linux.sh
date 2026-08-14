@@ -48,7 +48,18 @@ echo "Installation des dépendances..."
 "$INSTALL_DIR/venv/bin/pip" install --upgrade pip --quiet
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt" --quiet
 
-# 4. Règles udev Chessnut (optionnel — demande sudo)
+# 4. espeak-ng (moteur TTS système requis par pyttsx3 pour la synthèse vocale)
+if ! command -v espeak-ng &>/dev/null; then
+    echo "Installation d'espeak-ng (synthèse vocale)..."
+    if sudo -n true 2>/dev/null; then
+        sudo apt-get install -y espeak-ng
+    else
+        echo "AVERTISSEMENT : droits sudo requis pour installer espeak-ng."
+        echo "Exécutez manuellement : sudo apt-get install espeak-ng"
+    fi
+fi
+
+# 5. Règles udev Chessnut (optionnel — demande sudo)
 UDEV_RULE='SUBSYSTEM=="usb", ATTRS{idVendor}=="2d80", MODE="0666", GROUP="plugdev", TAG+="uaccess"'
 UDEV_FILE="/etc/udev/rules.d/99-chessnut-alchess.rules"
 
@@ -65,7 +76,7 @@ else
     echo "  sudo udevadm control --reload-rules && sudo udevadm trigger"
 fi
 
-# 5. Créer le lanceur .desktop sur le bureau
+# 6. Créer le lanceur .desktop sur le bureau
 mkdir -p "$HOME/Desktop"
 cat > "$DESKTOP_FILE" << DESK
 [Desktop Entry]
