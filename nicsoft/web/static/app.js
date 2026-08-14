@@ -799,6 +799,10 @@ socket.on("app_state", (data) => {
   const outilsEl = document.getElementById("screen-outils-exercices");
   if (outilsEl) outilsEl.style.display = data.state === "outils_exercices" ? "flex" : "none";
 
+  // Paramètres
+  const parametresEl = document.getElementById("screen-parametres");
+  if (parametresEl) parametresEl.style.display = data.state === "parametres" ? "flex" : "none";
+
   if (data.state === "exercices") {
     _exLaunching = false;  // reset au retour sur l'écran de sélection
     if (data.ouvertures) {
@@ -5983,4 +5987,51 @@ socket.on("rodent_download_result", (data) => {
     const btn = document.getElementById(id);
     if (btn) btn.disabled = false;
   });
+});
+
+// ── Panneau Paramètres (LLM + TTS) ───────────────────────────────────────────
+
+socket.on("app_state", (data) => {
+  if (data.state === "parametres") {
+    socket.emit("config_get", {});
+  }
+});
+
+socket.on("config_data", (data) => {
+  if (!data) return;
+  const provider = document.getElementById("param-llm-provider");
+  const apiKey   = document.getElementById("param-llm-api-key");
+  const model    = document.getElementById("param-llm-model");
+  const ttsOn    = document.getElementById("param-tts-enabled");
+  const ttsRate  = document.getElementById("param-tts-rate");
+  const ttsRateVal = document.getElementById("param-tts-rate-val");
+  if (provider) provider.value = data.llm_provider || "claude";
+  if (apiKey)   apiKey.value   = data.llm_api_key || "";
+  if (model)    model.value    = data.llm_model || "";
+  if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
+  if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
+  if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;
+});
+
+function parametresSave() {
+  const provider = document.getElementById("param-llm-provider");
+  const apiKey   = document.getElementById("param-llm-api-key");
+  const model    = document.getElementById("param-llm-model");
+  const ttsOn    = document.getElementById("param-tts-enabled");
+  const ttsRate  = document.getElementById("param-tts-rate");
+  socket.emit("config_save", {
+    llm_provider: provider ? provider.value : "claude",
+    llm_api_key:  apiKey ? apiKey.value : "",
+    llm_model:    model ? model.value : "",
+    tts_enabled:  ttsOn ? ttsOn.checked : false,
+    tts_rate:     ttsRate ? parseInt(ttsRate.value, 10) : 150,
+  });
+}
+
+socket.on("config_saved", (data) => {
+  if (data && data.ok) {
+    afficherToast(t("parametres.toast.enregistre"), "success");
+  } else {
+    afficherToast(t("parametres.toast.erreur"), "warning");
+  }
 });

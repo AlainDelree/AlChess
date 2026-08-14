@@ -30,6 +30,7 @@
   "menu.btn.exercices":        "📚 Übungen",
   "menu.btn.retranscrire":     "✏️ Mitschreiben",
   "menu.btn.outils":           "🛠️ Übungs-Tools",
+  "menu.btn.parametres":       "⚙ Einstellungen",
   "menu.btn.reconnect":        "🔌 Brett neu verbinden",
   "menu.btn.connecter":        "⟳ Verbinden",
   "menu.btn.debloquer":        "⟳ Schaltflächen entsperren",
@@ -51,6 +52,7 @@
   "menu.desc.exercices":       "Eröffnungen mit einem Großmeister-Buch trainieren. Züge auf dem Brett spielen — das Buch antwortet und führt durch die Theorie.",
   "menu.desc.retrans":         "Eine auf Papier gespielte Partie mitschreiben. Züge auf dem virtuellen Brett eingeben und das PGN exportieren.",
   "menu.desc.outils":          "PGN-Linien importieren, SAN → UCI konvertieren und den Eröffnungskatalog verwalten.",
+  "menu.desc.parametres":      "LLM-Zugang (API-Schlüssel) und Sprachausgabe (TTS) konfigurieren.",
   "menu.autoupdate.label":     "Automatische Updates",
   "menu.autoupdate.warning":   "Automatische Updates sind deaktiviert. Sie erhalten weder Sicherheitskorrekturen noch neue Funktionen.",
 
@@ -241,6 +243,22 @@
 
   "modal.blancs_abandonnent":  "⚐ Weiß gibt auf",
   "modal.noirs_abandonnent":   "⚐ Schwarz gibt auf",
+
+  "parametres.titre":                 "⚙ Einstellungen",
+  "parametres.llm.titre":             "🤖 LLM-Assistent",
+  "parametres.llm.desc":              "API-Schlüssel, der lokal für Funktionen verwendet wird, die auf einem Sprachmodell basieren.",
+  "parametres.llm.provider":          "Anbieter",
+  "parametres.llm.provider_claude":   "Claude (Anthropic)",
+  "parametres.llm.provider_openai":   "OpenAI",
+  "parametres.llm.api_key":           "API-Schlüssel",
+  "parametres.llm.model":             "Modell (optional)",
+  "parametres.llm.model_placeholder": "claude-sonnet-4-6",
+  "parametres.tts.titre":             "🔊 Sprachausgabe",
+  "parametres.tts.activer":           "Sprachausgabe aktivieren",
+  "parametres.tts.debit":             "Geschwindigkeit (Wörter pro Minute)",
+  "parametres.enregistrer":           "💾 Speichern",
+  "parametres.toast.enregistre":      "Einstellungen gespeichert",
+  "parametres.toast.erreur":          "Fehler beim Speichern der Einstellungen",
 
   "outils.titre":              "🛠️ Übungs-Tools",
   "outils.import_pgn.titre":   "📥 Meine PGN-Linien importieren",

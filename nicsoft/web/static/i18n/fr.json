@@ -30,6 +30,7 @@
   "menu.btn.exercices":        "📚 Exercices",
   "menu.btn.retranscrire":     "✏️ Retranscrire",
   "menu.btn.outils":           "🛠️ Outils Exercices",
+  "menu.btn.parametres":       "⚙ Paramètres",
   "menu.btn.reconnect":        "🔌 Reconnecter l'échiquier",
   "menu.btn.connecter":        "⟳ Connecter",
   "menu.btn.debloquer":        "⟳ Débloquer les boutons",
@@ -51,6 +52,7 @@
   "menu.desc.exercices":       "Entraînez-vous aux ouvertures avec un livre de Grands Maîtres. Jouez vos coups sur l'échiquier physique — le livre répond et vous guide dans la théorie.",
   "menu.desc.retrans":         "Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.",
   "menu.desc.outils":          "Importez vos lignes PGN, convertissez SAN → UCI et gérez le catalogue d'ouvertures.",
+  "menu.desc.parametres":      "Configurez l'accès LLM (clé API) et la synthèse vocale (TTS).",
   "menu.autoupdate.label":     "Mises à jour automatiques",
   "menu.autoupdate.warning":   "Les mises à jour automatiques sont désactivées. Vous ne recevrez pas les correctifs de sécurité ni les nouvelles fonctionnalités.",
 
@@ -241,6 +243,22 @@
 
   "modal.blancs_abandonnent":  "⚐ Blancs abandonnent",
   "modal.noirs_abandonnent":   "⚐ Noirs abandonnent",
+
+  "parametres.titre":                 "⚙ Paramètres",
+  "parametres.llm.titre":             "🤖 Assistant LLM",
+  "parametres.llm.desc":              "Clé API utilisée en local pour les fonctionnalités s'appuyant sur un modèle de langage.",
+  "parametres.llm.provider":          "Fournisseur",
+  "parametres.llm.provider_claude":   "Claude (Anthropic)",
+  "parametres.llm.provider_openai":   "OpenAI",
+  "parametres.llm.api_key":           "Clé API",
+  "parametres.llm.model":             "Modèle (optionnel)",
+  "parametres.llm.model_placeholder": "claude-sonnet-4-6",
+  "parametres.tts.titre":             "🔊 Synthèse vocale",
+  "parametres.tts.activer":           "Activer la synthèse vocale",
+  "parametres.tts.debit":             "Débit (mots par minute)",
+  "parametres.enregistrer":           "💾 Enregistrer",
+  "parametres.toast.enregistre":      "Paramètres enregistrés",
+  "parametres.toast.erreur":          "Erreur lors de l'enregistrement des paramètres",
 
   "outils.titre":              "🛠️ Outils Exercices",
   "outils.import_pgn.titre":   "📥 Importer mes lignes PGN",

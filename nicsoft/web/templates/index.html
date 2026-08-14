@@ -190,6 +190,11 @@
         <div class="menu-btn-desc" id="desc-outils" data-i18n="menu.desc.outils">Importez vos lignes PGN, convertissez SAN&nbsp;→&nbsp;UCI et gérez le catalogue d'ouvertures.</div>
       </div>
 
+      <div class="menu-btn-wrap">
+        <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'parametres'})" data-i18n="menu.btn.parametres">⚙ Paramètres</button>
+        <div class="menu-btn-desc" id="desc-parametres" data-i18n="menu.desc.parametres">Configurez l'accès LLM (clé API) et la synthèse vocale (TTS).</div>
+      </div>
+
     </div><!-- fin colonne Outils -->
 
   </div><!-- fin menu-grid -->
@@ -1510,6 +1515,67 @@
     </div>
 
     <div id="wiki-result" style="display:none; margin-top:12px;"></div>
+  </div>
+
+</div>
+
+
+<!-- ── Écran Paramètres ── -->
+<div id="screen-parametres" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%;">
+
+  <div style="width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <h2 style="margin:0; color:#1a2a3a; font-size:1.4rem;" data-i18n="parametres.titre">⚙ Paramètres</h2>
+    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+  </div>
+
+  <!-- Assistant LLM -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-title" data-i18n="parametres.llm.titre">🤖 Assistant LLM</span>
+    </div>
+    <p class="outil-desc" data-i18n="parametres.llm.desc">Clé API utilisée en local pour les fonctionnalités s'appuyant sur un modèle de langage.</p>
+
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div class="add-field">
+        <label class="add-label" for="param-llm-provider" data-i18n="parametres.llm.provider">Fournisseur</label>
+        <select id="param-llm-provider" class="add-input">
+          <option value="claude" data-i18n="parametres.llm.provider_claude">Claude (Anthropic)</option>
+          <option value="openai" data-i18n="parametres.llm.provider_openai">OpenAI</option>
+        </select>
+      </div>
+
+      <div class="add-field">
+        <label class="add-label" for="param-llm-api-key" data-i18n="parametres.llm.api_key">Clé API</label>
+        <input type="password" id="param-llm-api-key" class="add-input" autocomplete="off">
+      </div>
+
+      <div class="add-field">
+        <label class="add-label" for="param-llm-model" data-i18n="parametres.llm.model">Modèle (optionnel)</label>
+        <input type="text" id="param-llm-model" class="add-input" placeholder="claude-sonnet-4-6" data-i18n-placeholder="parametres.llm.model_placeholder">
+      </div>
+    </div>
+  </div>
+
+  <!-- Synthèse vocale (TTS) -->
+  <div class="outil-card" style="width:100%; max-width:860px;">
+    <div class="outil-card-header">
+      <span class="outil-title" data-i18n="parametres.tts.titre">🔊 Synthèse vocale</span>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+      <input type="checkbox" id="param-tts-enabled" style="width:16px; height:16px; cursor:pointer; accent-color:#e94560;">
+      <label for="param-tts-enabled" data-i18n="parametres.tts.activer">Activer la synthèse vocale</label>
+    </div>
+
+    <label class="add-label" for="param-tts-rate" data-i18n="parametres.tts.debit">Débit (mots par minute)</label>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <input type="range" id="param-tts-rate" min="80" max="300" value="150" step="10" style="width:200px; accent-color:#e94560;" oninput="document.getElementById('param-tts-rate-val').textContent = this.value">
+      <span id="param-tts-rate-val">150</span>
+    </div>
+  </div>
+
+  <div style="width:100%; max-width:860px; display:flex; gap:10px;">
+    <button class="btn btn-continuer" onclick="parametresSave()" data-i18n="parametres.enregistrer">💾 Enregistrer</button>
   </div>
 
 </div>

@@ -30,6 +30,7 @@
   "menu.btn.exercices":        "📚 Exercises",
   "menu.btn.retranscrire":     "✏️ Transcribe",
   "menu.btn.outils":           "🛠️ Exercise Tools",
+  "menu.btn.parametres":       "⚙ Settings",
   "menu.btn.reconnect":        "🔌 Reconnect board",
   "menu.btn.connecter":        "⟳ Connect",
   "menu.btn.debloquer":        "⟳ Unlock buttons",
@@ -51,6 +52,7 @@
   "menu.desc.exercices":       "Train your openings with a Grandmaster book. Play your moves on the physical board — the book responds and guides you through the theory.",
   "menu.desc.retrans":         "Transcribe a game played on paper. Enter moves on the virtual board and export the PGN.",
   "menu.desc.outils":          "Import your PGN lines, convert SAN → UCI and manage the openings catalogue.",
+  "menu.desc.parametres":      "Configure LLM access (API key) and text-to-speech (TTS).",
   "menu.autoupdate.label":     "Automatic updates",
   "menu.autoupdate.warning":   "Automatic updates are disabled. You will not receive security fixes or new features.",
 
@@ -241,6 +243,22 @@
 
   "modal.blancs_abandonnent":  "⚐ White resigns",
   "modal.noirs_abandonnent":   "⚐ Black resigns",
+
+  "parametres.titre":                 "⚙ Settings",
+  "parametres.llm.titre":             "🤖 LLM assistant",
+  "parametres.llm.desc":              "API key used locally for features relying on a language model.",
+  "parametres.llm.provider":          "Provider",
+  "parametres.llm.provider_claude":   "Claude (Anthropic)",
+  "parametres.llm.provider_openai":   "OpenAI",
+  "parametres.llm.api_key":           "API key",
+  "parametres.llm.model":             "Model (optional)",
+  "parametres.llm.model_placeholder": "claude-sonnet-4-6",
+  "parametres.tts.titre":             "🔊 Text-to-speech",
+  "parametres.tts.activer":           "Enable text-to-speech",
+  "parametres.tts.debit":             "Rate (words per minute)",
+  "parametres.enregistrer":           "💾 Save",
+  "parametres.toast.enregistre":      "Settings saved",
+  "parametres.toast.erreur":          "Error while saving settings",
 
   "outils.titre":              "🛠️ Exercise Tools",
   "outils.import_pgn.titre":   "📥 Import my PGN lines",

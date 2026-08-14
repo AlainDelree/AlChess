@@ -603,6 +603,26 @@ def on_basket_load(data):
         emit("basket_load_result", {"pgn": "", "label": ""})
 
 
+# ── Paramètres (config.json centralisé) ──────────────────────────────────────
+
+@socketio.on("config_get")
+def on_config_get(_data):
+    """Retourne la config courante (y compris champs LLM/TTS)."""
+    from nicsoft.core.config_manager import load_config
+    emit("config_data", load_config())
+
+
+@socketio.on("config_save")
+def on_config_save(data):
+    """Fusionne et sauvegarde la config reçue du navigateur."""
+    from nicsoft.core.config_manager import save_config
+    try:
+        save_config(data or {})
+        emit("config_saved", {"ok": True})
+    except Exception as e:
+        emit("config_saved", {"ok": False, "error": str(e)})
+
+
 # ── Thread de dispatch des événements ────────────────────────────────────────
 
 def _dispatch_loop():
