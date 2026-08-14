@@ -35,6 +35,12 @@ _SYSTEM_PROMPTS = {
     ),
 }
 
+_CHAT_SUFFIX = {
+    "fr": " Tu réponds aussi aux questions libres de l'utilisateur sur la position.",
+    "en": " You also answer the user's free-form questions about the position.",
+    "de": " Du beantwortest auch die freien Fragen des Benutzers zur Stellung.",
+}
+
 
 def _load_cache() -> dict:
     if CACHE_FILE.exists():
@@ -145,3 +151,41 @@ def get_explanation(line_id, move_index, fen, move_san, opening_name, camp,
         cache[cache_key] = explanation
         _save_cache(cache)
     return explanation
+
+
+def _build_chat_prompt(question, state) -> str:
+    state = state or {}
+    return (
+        f"Ouverture : {state.get('opening_name', '')}. "
+        f"Position actuelle (FEN) : {state.get('fen', '')}.\n"
+        f"Dernier coup joué : {state.get('move_san', '')} "
+        f"(coup {state.get('move_index', 0)}).\n"
+        f"Question de l'élève : {question}"
+    )
+
+
+def get_chat_response(question, state, language, config) -> str:
+    """Répond à une question libre de l'utilisateur sur la position courante.
+    Pas de cache (questions contextuelles et libres).
+    Retourne "" silencieusement en cas d'absence de clé API ou d'erreur réseau.
+    """
+    api_key = (config or {}).get("llm_api_key", "")
+    if not api_key or not question:
+        return ""
+
+    provider = (config or {}).get("llm_provider", "claude")
+    model    = (config or {}).get("llm_model", "")
+    prompt_sys  = _SYSTEM_PROMPTS.get(language, _SYSTEM_PROMPTS["fr"])
+    prompt_sys += _CHAT_SUFFIX.get(language, _CHAT_SUFFIX["fr"])
+    prompt_user = _build_chat_prompt(question, state)
+
+    try:
+        if provider == "openai":
+            response = _call_openai(prompt_sys, prompt_user, api_key, model)
+        else:
+            response = _call_claude(prompt_sys, prompt_user, api_key, model)
+    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError, TimeoutError) as e:
+        logger.warning(f"[LLM_EXPLAINER] Appel chat {provider} échoué : {e}")
+        return ""
+
+    return (response or "").strip()

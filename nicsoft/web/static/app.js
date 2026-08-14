@@ -6118,8 +6118,31 @@ function explRenderMesLignes(groupes) {
 }
 
 function explLoad(sourceType, openingId) {
+  const history = document.getElementById("explorer-chat-history");
+  if (history) history.innerHTML = "";
   socket.emit("explorer_load", { source_type: sourceType, opening_id: openingId });
 }
+
+function explChatSend() {
+  const input = document.getElementById("explorer-chat-input");
+  if (!input || !input.value.trim()) return;
+  const question = input.value.trim();
+  input.value = "";
+  const history = document.getElementById("explorer-chat-history");
+  if (history) {
+    const q = document.createElement("div");
+    q.style.cssText = "background:#e8f0f8; border-radius:6px; padding:4px 8px; align-self:flex-end; max-width:85%;";
+    q.textContent = question;
+    history.appendChild(q);
+    history.scrollTop = history.scrollHeight;
+  }
+  socket.emit("explorer_chat", { question, language: i18n.locale() });
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = document.getElementById("explorer-chat-input");
+  if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") explChatSend(); });
+});
 
 function explNext() {
   if (_explEndOfLine) return;
@@ -6135,6 +6158,16 @@ socket.on("explorer_explanation", (data) => {
   const el = document.getElementById("explorer-explanation");
   if (!el) return;
   el.textContent = (data && data.text) ? data.text : "";
+});
+
+socket.on("explorer_chat_response", (data) => {
+  const history = document.getElementById("explorer-chat-history");
+  if (!history || !data || !data.text) return;
+  const r = document.createElement("div");
+  r.style.cssText = "background:#f4f7fb; border-radius:6px; padding:4px 8px; align-self:flex-start; max-width:85%;";
+  r.textContent = data.text;
+  history.appendChild(r);
+  history.scrollTop = history.scrollHeight;
 });
 
 socket.on("explorer_state", (data) => {

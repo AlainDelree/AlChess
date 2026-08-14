@@ -1154,6 +1154,13 @@ def explorer_prev() -> dict:
     return state
 
 
+def explorer_get_state() -> dict:
+    """Retourne l'état courant de la session Opening Explorer active, ou None."""
+    if _explorer_session is None:
+        return None
+    return _explorer_session.get_state()
+
+
 def explorer_cleanup() -> None:
     """Referme la connexion échiquier de l'Opening Explorer (retour sélecteur/menu)."""
     global _explorer_nl_inst, _explorer_session

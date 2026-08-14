@@ -250,6 +250,8 @@
   "opening_explorer.position_initiale": "Ausgangsstellung",
   "opening_explorer.coup_n": "Zug {n} — {san}",
   "opening_explorer.erreur_chargement": "Diese Eröffnung konnte nicht geladen werden.",
+  "opening_explorer.chat.placeholder": "Stellen Sie eine Frage...",
+  "opening_explorer.chat.envoyer": "Senden",
   "outils.titre": "🛠️ Übungs-Tools",
   "outils.import_pgn.titre": "📥 Meine PGN-Linien importieren",
   "outils.import_pgn.desc": "Eine oder mehrere .pgn-Dateien in Ihre persönlichen Übungen importieren (<em>mes_lignes.json</em>).",

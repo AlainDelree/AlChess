@@ -250,6 +250,8 @@
   "opening_explorer.position_initiale": "Starting position",
   "opening_explorer.coup_n": "Move {n} — {san}",
   "opening_explorer.erreur_chargement": "Unable to load this opening.",
+  "opening_explorer.chat.placeholder": "Ask a question...",
+  "opening_explorer.chat.envoyer": "Send",
   "outils.titre": "🛠️ Exercise Tools",
   "outils.import_pgn.titre": "📥 Import my PGN lines",
   "outils.import_pgn.desc": "Select one or more .pgn files to import into your personal exercises (<em>mes_lignes.json</em>).",

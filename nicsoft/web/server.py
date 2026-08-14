@@ -639,9 +639,11 @@ def _emit_explorer_explanation(sid, state, language):
     """Génère l'explication LLM du coup en arrière-plan et l'émet au client concerné."""
     from nicsoft.modes.opening_explorer.llm_explainer import get_explanation
     from nicsoft.core.config_manager import load_config
+    from nicsoft.modes.opening_explorer.tts_engine import speak
 
     if not state or state.get("error") or not state.get("move_san"):
         return
+    cfg = load_config()
     expl = get_explanation(
         line_id=state.get("line_id", ""),
         move_index=state.get("move_index", 0),
@@ -651,10 +653,24 @@ def _emit_explorer_explanation(sid, state, language):
         camp=state.get("camp", "white"),
         alternatives=state.get("alternatives", []),
         language=language,
-        config=load_config(),
+        config=cfg,
     )
     if expl:
         socketio.emit("explorer_explanation", {"text": expl}, to=sid)
+        speak(expl, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False))
+
+
+def _emit_explorer_chat_response(sid, question, state, language):
+    """Génère la réponse du LLM à une question libre en arrière-plan et l'émet au client."""
+    from nicsoft.modes.opening_explorer.llm_explainer import get_chat_response
+    from nicsoft.core.config_manager import load_config
+    from nicsoft.modes.opening_explorer.tts_engine import speak
+
+    cfg = load_config()
+    response = get_chat_response(question, state, language, cfg)
+    if response:
+        socketio.emit("explorer_chat_response", {"text": response}, to=sid)
+        speak(response, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False))
 
 
 @socketio.on("explorer_load")
@@ -691,6 +707,26 @@ def on_explorer_prev(data):
     language = (data or {}).get("language", "fr")
     sid = request.sid
     threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
+
+
+@socketio.on("explorer_chat")
+def on_explorer_chat(data):
+    """Question libre de l'utilisateur sur la position courante — réponse LLM en arrière-plan."""
+    question = (data or {}).get("question", "").strip()
+    language = (data or {}).get("language", "fr")
+    sid = request.sid
+    if not question:
+        return
+    from nicsoft.core.game_manager import explorer_get_state
+    state = explorer_get_state()
+    if not state:
+        emit("explorer_chat_response", {"text": ""})
+        return
+    threading.Thread(
+        target=_emit_explorer_chat_response,
+        args=(sid, question, state, language),
+        daemon=True
+    ).start()
 
 
 @socketio.on("explorer_back")
