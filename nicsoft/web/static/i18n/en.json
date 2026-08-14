@@ -246,6 +246,7 @@
   "opening_explorer.btn.suivant": "Next →",
   "opening_explorer.btn.autre": "↩ Choose another opening",
   "opening_explorer.h2.explication": "EXPLANATION",
+  "opening_explorer.moves.titre": "Book moves",
   "opening_explorer.explication.a_venir": "The move explanation will be available here soon.",
   "opening_explorer.position_initiale": "Starting position",
   "opening_explorer.coup_n": "Move {n} — {san}",

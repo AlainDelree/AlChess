@@ -99,15 +99,31 @@ class ExplorerSession:
         else:
             last_move_uci = None
             move_san      = None
+        # Les alternatives représentent les coups candidats DEPUIS la position
+        # avant le dernier coup joué (pour expliquer ce choix) — pas depuis la
+        # position courante. On rejoue donc sur un board temporaire dépilé.
         alternatives = []
         if self.source is not None:
             try:
-                alternatives = self.source.get_alternatives(self.board)
+                alt_board = self.board.copy()
+                if self._history:
+                    alt_board.pop()
+                for alt in self.source.get_alternatives(alt_board):
+                    try:
+                        san = san_ep(alt_board, chess.Move.from_uci(alt["uci"]))
+                    except Exception:
+                        san = alt["uci"]
+                    alternatives.append({"uci": alt["uci"], "san": san, "weight": alt.get("weight", 0)})
             except Exception:
                 alternatives = []
+        if not alternatives and last_move_uci is not None:
+            # Source sans alternatives (ex. PGNLineSource) : le coup joué
+            # reste la seule entrée du tableau, à 100%.
+            alternatives = [{"uci": last_move_uci, "san": move_san, "weight": 1}]
         return {
             "fen":            self.board.fen(),
             "last_move_uci":  last_move_uci,
+            "main_move_uci":  last_move_uci,
             "move_index":     len(self._history),
             "move_san":       move_san,
             "opening_name":   getattr(self.source, "nom", "") if self.source else "",

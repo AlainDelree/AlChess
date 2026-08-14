@@ -246,6 +246,7 @@
   "opening_explorer.btn.suivant": "Weiter →",
   "opening_explorer.btn.autre": "↩ Andere Eröffnung wählen",
   "opening_explorer.h2.explication": "ERKLÄRUNG",
+  "opening_explorer.moves.titre": "Buchzüge",
   "opening_explorer.explication.a_venir": "Die Zugerklärung wird hier bald verfügbar sein.",
   "opening_explorer.position_initiale": "Ausgangsstellung",
   "opening_explorer.coup_n": "Zug {n} — {san}",

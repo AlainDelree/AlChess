@@ -6138,6 +6138,8 @@ function explRenderMesLignes(groupes) {
 function explLoad(sourceType, openingId) {
   const history = document.getElementById("explorer-chat-history");
   if (history) history.innerHTML = "";
+  const movesTable = document.getElementById("explorer-moves-table");
+  if (movesTable) movesTable.innerHTML = "";
   socket.emit("explorer_load", { source_type: sourceType, opening_id: openingId });
 }
 
@@ -6188,6 +6190,52 @@ socket.on("explorer_chat_response", (data) => {
   history.scrollTop = history.scrollHeight;
 });
 
+function explRenderMovesTable(data) {
+  const wrap = document.getElementById("explorer-moves-table");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  const alternatives = (data && data.alternatives) || [];
+  if (!alternatives.length) return;
+
+  const title = document.createElement("h2");
+  title.textContent = t("opening_explorer.moves.titre");
+  wrap.appendChild(title);
+
+  const total = alternatives.reduce((sum, a) => sum + (a.weight || 0), 0) || 1;
+  const sorted = [...alternatives].sort((a, b) => (b.weight || 0) - (a.weight || 0));
+  const mainUci = data.main_move_uci || data.last_move_uci || null;
+
+  const table = document.createElement("div");
+  table.style.cssText = "display:flex; flex-direction:column; gap:6px; margin-top:8px;";
+  for (const alt of sorted.slice(0, 6)) {
+    const pct = Math.round(((alt.weight || 0) / total) * 100);
+    const isMain = mainUci !== null && alt.uci === mainUci;
+
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:center; gap:8px; font-size:0.82rem;";
+
+    const sanEl = document.createElement("div");
+    sanEl.style.cssText = `width:52px; flex-shrink:0; color:#1a2a3a; ${isMain ? "font-weight:700;" : ""}`;
+    sanEl.textContent = alt.san || alt.uci;
+    row.appendChild(sanEl);
+
+    const barWrap = document.createElement("div");
+    barWrap.style.cssText = "flex:1; background:#e8f0f8; border-radius:3px; height:6px; overflow:hidden;";
+    const bar = document.createElement("div");
+    bar.style.cssText = `background:#e94560; height:6px; border-radius:3px; width:${pct}%;`;
+    barWrap.appendChild(bar);
+    row.appendChild(barWrap);
+
+    const pctEl = document.createElement("div");
+    pctEl.style.cssText = "width:34px; flex-shrink:0; text-align:right; color:#3a5a7a;";
+    pctEl.textContent = `${pct}%`;
+    row.appendChild(pctEl);
+
+    table.appendChild(row);
+  }
+  wrap.appendChild(table);
+}
+
 socket.on("explorer_state", (data) => {
   if (!data) return;
   if (data.error) {
@@ -6218,6 +6266,7 @@ socket.on("explorer_state", (data) => {
 
   const [from, to] = uciToCoords(data.last_move_uci);
   explRenderBoard(data.fen, from, to);
+  explRenderMovesTable(data);
 
   _explAtStart   = !!data.at_start;
   _explEndOfLine = !!data.end_of_line;

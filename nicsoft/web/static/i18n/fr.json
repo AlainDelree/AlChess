@@ -246,6 +246,7 @@
   "opening_explorer.btn.suivant": "Suivant →",
   "opening_explorer.btn.autre": "↩ Choisir une autre ouverture",
   "opening_explorer.h2.explication": "EXPLICATION",
+  "opening_explorer.moves.titre": "Coups du livre",
   "opening_explorer.explication.a_venir": "L'explication du coup sera disponible ici prochainement.",
   "opening_explorer.position_initiale": "Position initiale",
   "opening_explorer.coup_n": "Coup {n} — {san}",
