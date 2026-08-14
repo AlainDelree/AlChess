@@ -79,6 +79,10 @@ class ExplorerSession:
         Utilisé quand l'utilisateur clique sur une alternative du tableau.
         Le coup doit être légal sur le board courant. Retourne get_state()
         après application, ou get_state() inchangé si le coup est illégal."""
+        # Revenir à la position depuis laquelle les alternatives sont calculées
+        if self._history:
+            self._history.pop()
+            self.board.pop()
         try:
             move = chess.Move.from_uci(uci)
         except Exception:
