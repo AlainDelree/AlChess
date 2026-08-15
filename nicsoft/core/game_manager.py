@@ -1117,16 +1117,6 @@ def explorer_load(source_type: str, opening_id: str, variant_index=None) -> dict
         source = PolyglotSource(ouverture, book_path)
 
     used_virtual = _virtual_mode
-    if not used_virtual:
-        try:
-            from nicsoft.niclink import hid_backend
-            board_present = hid_backend.is_board_connected()
-        except Exception:
-            board_present = True  # détection indisponible : on tente la connexion normale
-        if not board_present:
-            logger.info("[EXPLORER] Aucun échiquier USB détecté, accès direct en mode virtuel.")
-            used_virtual = True
-
     try:
         nl_inst = create_board(virtual=used_virtual, logger_name="NicLink_explorer")
     except (Exception, SystemExit) as e:
