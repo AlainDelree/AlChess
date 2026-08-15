@@ -1116,14 +1116,15 @@ def explorer_load(source_type: str, opening_id: str, variant_index=None) -> dict
         book_path = str(book_candidate if book_candidate and book_candidate.exists() else BOOK_DEFAULT)
         source = PolyglotSource(ouverture, book_path)
 
+    used_virtual = _virtual_mode
     try:
         nl_inst = create_board(virtual=_virtual_mode, logger_name="NicLink_explorer")
     except Exception as e:
-        logger.error(f"[EXPLORER] Échiquier non détecté : {e}")
-        send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
-        return {"error": "Échiquier non détecté."}
+        logger.info(f"[EXPLORER] Échiquier physique indisponible, bascule en mode virtuel : {e}")
+        nl_inst = create_board(virtual=True, logger_name="NicLink_explorer")
+        used_virtual = True
 
-    if _virtual_mode:
+    if used_virtual:
         set_virtual_board(nl_inst)
     _explorer_nl_inst = nl_inst
 
