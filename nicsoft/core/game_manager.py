@@ -1129,7 +1129,7 @@ def explorer_load(source_type: str, opening_id: str, variant_index=None) -> dict
 
     try:
         nl_inst = create_board(virtual=used_virtual, logger_name="NicLink_explorer")
-    except Exception as e:
+    except (Exception, SystemExit) as e:
         logger.info(f"[EXPLORER] Échiquier physique indisponible, bascule en mode virtuel : {e}")
         nl_inst = create_board(virtual=True, logger_name="NicLink_explorer")
         used_virtual = True
