@@ -20,6 +20,7 @@ import tempfile
 logger = logging.getLogger("niclink.opening_explorer.tts")
 
 _current_tts_process: "subprocess.Popen | None" = None
+_tts_generation: int = 0
 
 
 VOICE_MAP_EDGE = {
@@ -103,6 +104,7 @@ def check_internet() -> bool:
 
 def _speak_edge(text: str, rate: int, language: str) -> bool:
     """Essaie de parler via edge-tts. Retourne True si succès, False sinon."""
+    global _tts_generation
     try:
         import edge_tts
 
@@ -110,14 +112,17 @@ def _speak_edge(text: str, rate: int, language: str) -> bool:
         # rate edge-tts : "+0%" = 150 mots/min ≈ normal
         # on convertit le rate (mots/min) en pourcentage relatif
         rate_pct = f"+{int((rate - 150) / 1.5)}%" if rate != 150 else "+0%"
+        my_gen = _tts_generation
 
         async def _run():
+            global _current_tts_process
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
                 tmp = f.name
             try:
                 communicate = edge_tts.Communicate(text, voice, rate=rate_pct)
                 await communicate.save(tmp)
-                global _current_tts_process
+                if _tts_generation != my_gen:
+                    return  # stop_speaking() appelé pendant le download
                 proc = subprocess.Popen(["mpg123", "-q", tmp])
                 _current_tts_process = proc
                 proc.wait()
@@ -150,7 +155,8 @@ def _speak_espeak(text: str, rate: int, language: str) -> None:
 
 def stop_speaking() -> None:
     """Interrompt immédiatement la lecture mpg123 en cours, si active."""
-    global _current_tts_process
+    global _current_tts_process, _tts_generation
+    _tts_generation += 1
     proc = _current_tts_process
     if proc is not None and proc.poll() is None:
         proc.terminate()
