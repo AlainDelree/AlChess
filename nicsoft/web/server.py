@@ -14,6 +14,7 @@ import queue
 import sys
 import threading
 from nicsoft.config import APP_DIR, DATA_DIR, ENGINES_DIR, GAMES_DIR, LOGS_DIR
+from nicsoft.modes.opening_explorer.tts_engine import stop_speaking
 from flask import Flask, render_template, send_file, abort, request
 from flask_socketio import SocketIO, emit
 
@@ -680,6 +681,7 @@ def _emit_explorer_chat_response(sid, question, state, language):
 @socketio.on("explorer_load")
 def on_explorer_load(data):
     """Charge une ouverture (catalogue ou ligne perso) — connexion échiquier en arrière-plan."""
+    stop_speaking()
     source_type   = data.get("source_type", "polyglot")
     opening_id    = data.get("opening_id", "")
     variant_index = data.get("variant_index")
@@ -695,6 +697,7 @@ def on_explorer_load(data):
 
 @socketio.on("explorer_next")
 def on_explorer_next(data):
+    stop_speaking()
     from nicsoft.core.game_manager import explorer_next
     state = explorer_next()
     emit("explorer_state", state)
@@ -705,6 +708,7 @@ def on_explorer_next(data):
 
 @socketio.on("explorer_prev")
 def on_explorer_prev(data):
+    stop_speaking()
     from nicsoft.core.game_manager import explorer_prev
     state = explorer_prev()
     emit("explorer_state", state)
@@ -715,6 +719,7 @@ def on_explorer_prev(data):
 
 @socketio.on("explorer_choose_move")
 def on_explorer_choose_move(data):
+    stop_speaking()
     uci = (data or {}).get("uci", "")
     if not uci:
         return
@@ -755,6 +760,12 @@ def on_explorer_back(_data):
     """Referme la connexion échiquier de l'Opening Explorer (retour sélecteur ou menu)."""
     from nicsoft.core.game_manager import explorer_cleanup
     explorer_cleanup()
+
+
+@socketio.on("explorer_tts_stop")
+def on_explorer_tts_stop(_data):
+    """Arrête immédiatement la lecture TTS en cours (toggle 🔇 pendant lecture)."""
+    stop_speaking()
 
 
 # ── Thread de dispatch des événements ────────────────────────────────────────

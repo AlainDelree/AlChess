@@ -19,6 +19,8 @@ import tempfile
 
 logger = logging.getLogger("niclink.opening_explorer.tts")
 
+_current_tts_process: "subprocess.Popen | None" = None
+
 
 VOICE_MAP_EDGE = {
     "fr": "fr-FR-DeniseNeural",
@@ -115,7 +117,11 @@ def _speak_edge(text: str, rate: int, language: str) -> bool:
             try:
                 communicate = edge_tts.Communicate(text, voice, rate=rate_pct)
                 await communicate.save(tmp)
-                subprocess.run(["mpg123", "-q", tmp], check=False, timeout=60)
+                global _current_tts_process
+                proc = subprocess.Popen(["mpg123", "-q", tmp])
+                _current_tts_process = proc
+                proc.wait()
+                _current_tts_process = None
             finally:
                 try:
                     os.unlink(tmp)
@@ -140,6 +146,15 @@ def _speak_espeak(text: str, rate: int, language: str) -> None:
         )
     except Exception as e:
         logger.warning(f"[TTS] espeak-ng échoué : {e}")
+
+
+def stop_speaking() -> None:
+    """Interrompt immédiatement la lecture mpg123 en cours, si active."""
+    global _current_tts_process
+    proc = _current_tts_process
+    if proc is not None and proc.poll() is None:
+        proc.terminate()
+        _current_tts_process = None
 
 
 def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr") -> bool:

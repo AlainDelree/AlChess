@@ -6079,6 +6079,7 @@ function explToggleTts() {
   _explTtsEnabled = !_explTtsEnabled;
   explUpdateTtsToggle();
   socket.emit("config_save", { tts_enabled: _explTtsEnabled });
+  if (!_explTtsEnabled) socket.emit("explorer_tts_stop", {});
 }
 
 socket.on("app_state", (data) => {
