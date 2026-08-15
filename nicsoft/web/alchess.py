@@ -247,7 +247,8 @@ def main():
             elif atype == "mode" and action.get("value") == "parametres":
                 set_app_state("parametres")
             elif atype == "mode" and action.get("value") == "opening_explorer":
-                gm.set_virtual_mode(action.get("virtual", False))
+                virtual = action.get("virtual", False) or (web_server._board_status != "ok")
+                gm.set_virtual_mode(virtual)
                 set_app_state("opening_explorer")
             elif atype == "start_exercice":
                 gm.start_exercice(action)
