@@ -51,6 +51,18 @@ def _list_paths() -> list[tuple[bytes, int]]:
     return paths
 
 
+def is_board_connected() -> bool:
+    """Détection rapide (sans ouvrir le périphérique) d'un Chessnut Air branché en USB.
+
+    S'appuie sur hid.enumerate(), qui répond quasi instantanément — contrairement
+    à connect() qui ouvre le device et attend 2s d'initialisation hardware.
+    """
+    try:
+        return bool(_list_paths())
+    except Exception:
+        return False
+
+
 def _write(data: bytes) -> None:
     """Écriture HID avec délai minimum entre deux écritures (idem C++ WRITE_INTERVAL)."""
     global _last_write

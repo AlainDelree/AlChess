@@ -56,8 +56,8 @@ def san_to_spoken_fr(san: str) -> str:
     takes = 'x' in san_clean
     san_clean = san_clean.replace('x', '')
     piece = ''
-    if san_clean and san_clean[0].upper() in PIECES_FR:
-        piece = PIECES_FR[san_clean[0].upper()]
+    if san_clean and san_clean[0] in PIECES_FR:
+        piece = PIECES_FR[san_clean[0]]
         san_clean = san_clean[1:]
     dest = san_clean[-2:] if len(san_clean) >= 2 else san_clean
     if piece:
