@@ -703,7 +703,8 @@ def on_explorer_next(data):
     emit("explorer_state", state)
     language = (data or {}).get("language", "fr")
     sid = request.sid
-    threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
+    if not state.get("is_init_move"):
+        threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
 
 
 @socketio.on("explorer_prev")
