@@ -1117,6 +1117,11 @@ def explorer_load(source_type: str, opening_id: str, variant_index=None) -> dict
         source = PolyglotSource(ouverture, book_path)
 
     used_virtual = _virtual_mode
+    if not used_virtual:
+        from nicsoft.web import server as web_server
+        if getattr(web_server, "_board_status", None) == "error":
+            logger.info("[EXPLORER] Plateau en erreur au démarrage, accès direct en mode virtuel.")
+            used_virtual = True
     try:
         nl_inst = create_board(virtual=used_virtual, logger_name="NicLink_explorer")
     except (Exception, SystemExit) as e:
