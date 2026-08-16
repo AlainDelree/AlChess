@@ -142,7 +142,6 @@ class ExplorerSession:
             "camp":           getattr(self.source, "camp_suggere", "white") if self.source else "white",
             "alternatives":   alternatives,
             "line_id":        self.line_id,
-            "is_init_move":   0 < len(self._history) <= len(self._init_moves_list),
         }
 
     # ── Plateau Chessnut (physique ou virtuel) ─────────────────────────────────
