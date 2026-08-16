@@ -135,16 +135,23 @@ def _save_cache(cache: dict) -> None:
 
 
 def _build_user_prompt(fen, move_san, opening_name, alternatives) -> str:
+    import chess as _chess
+    try:
+        board = _chess.Board(fen)
+        player = "Noirs" if board.turn == _chess.WHITE else "Blancs"
+    except Exception:
+        player = "le joueur"
     if alternatives:
         alt_text = ", ".join(a.get("san", a.get("uci", "")) for a in alternatives[:3])
-        alt_line = f"Réponses probables de l'adversaire depuis cette position : {alt_text}.\n"
+        alt_line = f"Réponses probables de l'adversaire : {alt_text}.\n"
     else:
         alt_line = ""
     return (
-        f"Ouverture : {opening_name}. Le coup vient d'être joué : {move_san}.\n"
+        f"Ouverture : {opening_name}. Les {player} viennent de jouer : {move_san}.\n"
         f"Position FEN : {fen}.\n"
         f"{alt_line}"
-        f"Explique pourquoi ce coup est joué ici."
+        f"Explique en 2-3 phrases pourquoi les {player} ont joué {move_san} ici. "
+        f"Parle uniquement de ce coup. Ne mentionne pas les coups futurs de l'adversaire."
     )
 
 
