@@ -6299,6 +6299,16 @@ socket.on("explorer_tts_fallback", (data) => {
   if (data && data.text) explSpeak(data.text);
 });
 
+function explSetNavDisabled(disabled) {
+  const prev = document.getElementById("expl-btn-prev");
+  const next = document.getElementById("expl-btn-next");
+  if (prev) { prev.disabled = disabled; prev.style.opacity = disabled ? "0.4" : "1"; }
+  if (next) { next.disabled = disabled; next.style.opacity = disabled ? "0.4" : "1"; }
+}
+
+socket.on("explorer_tts_start", () => { explSetNavDisabled(true); });
+socket.on("explorer_tts_end",   () => { explSetNavDisabled(false); });
+
 function explRenderMovesTable(data) {
   const wrap = document.getElementById("explorer-moves-table");
   if (!wrap) return;
@@ -6351,6 +6361,7 @@ function explRenderMovesTable(data) {
 socket.on("explorer_state", (data) => {
   if (!data) return;
   window.speechSynthesis.cancel();
+  explSetNavDisabled(false);
   if (data.error) {
     afficherToast(t("opening_explorer.erreur_chargement"), "warning");
     return;
