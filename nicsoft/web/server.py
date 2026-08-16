@@ -65,6 +65,10 @@ _stockfish_available_cache: bool | None = None
 _maia_available_cache: bool | None = None
 _rodent_available_cache: bool | None = None
 
+# Explorer : compteur incrémenté à chaque navigation, pour que les threads
+# d'explication LLM obsolètes (clics rapides) abandonnent sans parler.
+_explanation_request_id: int = 0
+
 
 def _get_stockfish_available() -> bool:
     """Retourne (et mémorise) si Stockfish est présent."""
@@ -636,8 +640,12 @@ def on_explorer_get_list(_data):
     emit("explorer_list", explorer_get_list())
 
 
-def _emit_explorer_explanation(sid, state, language):
-    """Génère l'explication LLM du coup en arrière-plan et l'émet au client concerné."""
+def _emit_explorer_explanation(sid, state, language, request_id=0):
+    """Génère l'explication LLM du coup en arrière-plan et l'émet au client concerné.
+
+    request_id : abandonne silencieusement si une navigation plus récente a eu lieu
+    entre-temps (clics rapides Suivant/Précédent → threads LLM concurrents).
+    """
     from nicsoft.modes.opening_explorer.llm_explainer import get_explanation
     from nicsoft.core.config_manager import load_config
     from nicsoft.modes.opening_explorer.tts_engine import speak
@@ -657,8 +665,12 @@ def _emit_explorer_explanation(sid, state, language):
         config=cfg,
     )
     if expl:
+        if request_id != _explanation_request_id:
+            return  # navigation plus récente, on abandonne
         socketio.emit("explorer_explanation", {"text": expl, "arrows": [list(a) for a in arrows]}, to=sid)
         if cfg.get("tts_enabled", False):
+            if request_id != _explanation_request_id:
+                return
             socketio.emit("explorer_tts_start", {}, to=sid)
             def on_playing():
                 socketio.emit("explorer_tts_playing", {}, to=sid)
@@ -691,10 +703,12 @@ def _emit_explorer_chat_response(sid, question, state, language):
 @socketio.on("explorer_load")
 def on_explorer_load(data):
     """Charge une ouverture (catalogue ou ligne perso) — connexion échiquier en arrière-plan."""
+    global _explanation_request_id
     stop_speaking()
     source_type   = data.get("source_type", "polyglot")
     opening_id    = data.get("opening_id", "")
     variant_index = data.get("variant_index")
+    _explanation_request_id += 1  # invalide toute explication LLM encore en vol
 
     def run():
         from nicsoft.core.game_manager import explorer_load
@@ -707,28 +721,35 @@ def on_explorer_load(data):
 
 @socketio.on("explorer_next")
 def on_explorer_next(data):
+    global _explanation_request_id
     stop_speaking()
     from nicsoft.core.game_manager import explorer_next
     state = explorer_next()
     emit("explorer_state", state)
     language = (data or {}).get("language", "fr")
     sid = request.sid
-    threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
+    _explanation_request_id += 1
+    my_id = _explanation_request_id
+    threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language, my_id), daemon=True).start()
 
 
 @socketio.on("explorer_prev")
 def on_explorer_prev(data):
+    global _explanation_request_id
     stop_speaking()
     from nicsoft.core.game_manager import explorer_prev
     state = explorer_prev()
     emit("explorer_state", state)
     language = (data or {}).get("language", "fr")
     sid = request.sid
-    threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language), daemon=True).start()
+    _explanation_request_id += 1
+    my_id = _explanation_request_id
+    threading.Thread(target=_emit_explorer_explanation, args=(sid, state, language, my_id), daemon=True).start()
 
 
 @socketio.on("explorer_choose_move")
 def on_explorer_choose_move(data):
+    global _explanation_request_id
     stop_speaking()
     uci = (data or {}).get("uci", "")
     if not uci:
@@ -738,9 +759,11 @@ def on_explorer_choose_move(data):
     emit("explorer_state", state)
     language = (data or {}).get("language", "fr")
     sid = request.sid
+    _explanation_request_id += 1
+    my_id = _explanation_request_id
     threading.Thread(
         target=_emit_explorer_explanation,
-        args=(sid, state, language),
+        args=(sid, state, language, my_id),
         daemon=True
     ).start()
 
