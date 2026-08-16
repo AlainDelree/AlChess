@@ -136,13 +136,14 @@ def _save_cache(cache: dict) -> None:
 
 def _build_user_prompt(fen, move_san, opening_name, alternatives) -> str:
     if alternatives:
-        alt_text = ", ".join(a.get("uci", "") for a in alternatives[:2])
+        alt_text = ", ".join(a.get("san", a.get("uci", "")) for a in alternatives[:3])
+        alt_line = f"Réponses probables de l'adversaire depuis cette position : {alt_text}.\n"
     else:
-        alt_text = "aucune"
+        alt_line = ""
     return (
         f"Ouverture : {opening_name}. Le coup vient d'être joué : {move_san}.\n"
         f"Position FEN : {fen}.\n"
-        f"Alternatives connues : {alt_text}.\n"
+        f"{alt_line}"
         f"Explique pourquoi ce coup est joué ici."
     )
 
