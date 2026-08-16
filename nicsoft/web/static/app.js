@@ -6306,8 +6306,9 @@ function explSetNavDisabled(disabled) {
   if (next) { next.disabled = disabled; next.style.opacity = disabled ? "0.4" : "1"; }
 }
 
-socket.on("explorer_tts_start", () => { explSetNavDisabled(true); });
-socket.on("explorer_tts_end",   () => { explSetNavDisabled(false); });
+socket.on("explorer_tts_start",   () => { explSetNavDisabled(true); });
+socket.on("explorer_tts_playing", () => { explSetNavDisabled(false); });
+socket.on("explorer_tts_end",     () => { explSetNavDisabled(false); });
 
 function explRenderMovesTable(data) {
   const wrap = document.getElementById("explorer-moves-table");

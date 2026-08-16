@@ -660,11 +660,12 @@ def _emit_explorer_explanation(sid, state, language):
         socketio.emit("explorer_explanation", {"text": expl, "arrows": [list(a) for a in arrows]}, to=sid)
         if cfg.get("tts_enabled", False):
             socketio.emit("explorer_tts_start", {}, to=sid)
-        tts_ok = speak(expl, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
-        if cfg.get("tts_enabled", False):
+            def on_playing():
+                socketio.emit("explorer_tts_playing", {}, to=sid)
+            tts_ok = speak(expl, rate=cfg.get("tts_rate", 150), enabled=True, language=language, on_playback_start=on_playing)
             socketio.emit("explorer_tts_end", {}, to=sid)
-        if cfg.get("tts_enabled") and not tts_ok:
-            socketio.emit("explorer_tts_fallback", {"text": expl}, to=sid)
+            if not tts_ok:
+                socketio.emit("explorer_tts_fallback", {"text": expl}, to=sid)
 
 
 def _emit_explorer_chat_response(sid, question, state, language):
@@ -679,11 +680,12 @@ def _emit_explorer_chat_response(sid, question, state, language):
         socketio.emit("explorer_chat_response", {"text": response, "arrows": [list(a) for a in arrows]}, to=sid)
         if cfg.get("tts_enabled", False):
             socketio.emit("explorer_tts_start", {}, to=sid)
-        tts_ok = speak(response, rate=cfg.get("tts_rate", 150), enabled=cfg.get("tts_enabled", False), language=language)
-        if cfg.get("tts_enabled", False):
+            def on_playing():
+                socketio.emit("explorer_tts_playing", {}, to=sid)
+            tts_ok = speak(response, rate=cfg.get("tts_rate", 150), enabled=True, language=language, on_playback_start=on_playing)
             socketio.emit("explorer_tts_end", {}, to=sid)
-        if cfg.get("tts_enabled") and not tts_ok:
-            socketio.emit("explorer_tts_fallback", {"text": response}, to=sid)
+            if not tts_ok:
+                socketio.emit("explorer_tts_fallback", {"text": response}, to=sid)
 
 
 @socketio.on("explorer_load")

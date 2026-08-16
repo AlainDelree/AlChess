@@ -103,7 +103,7 @@ def check_internet() -> bool:
         return False
 
 
-def _speak_edge(text: str, rate: int, language: str) -> bool:
+def _speak_edge(text: str, rate: int, language: str, on_playback_start=None) -> bool:
     """Essaie de parler via edge-tts. Retourne True si succès, False sinon."""
     global _tts_generation
     try:
@@ -126,6 +126,8 @@ def _speak_edge(text: str, rate: int, language: str) -> bool:
                     return  # stop_speaking() appelé pendant le download
                 proc = subprocess.Popen(["mpg123", "-q", tmp])
                 _current_tts_process = proc
+                if on_playback_start:
+                    on_playback_start()
                 proc.wait()
                 _current_tts_process = None
             finally:
@@ -164,7 +166,7 @@ def stop_speaking() -> None:
         _current_tts_process = None
 
 
-def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr") -> bool:
+def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr", on_playback_start=None) -> bool:
     """Prononce `text` à voix haute côté serveur si `enabled` et si internet
     est disponible (edge-tts, voix neuronale). Bloquant — à appeler depuis un
     thread daemon, jamais depuis le thread principal.
@@ -179,4 +181,4 @@ def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr
         return False
     if not check_internet():
         return False
-    return _speak_edge(text, rate, language)
+    return _speak_edge(text, rate, language, on_playback_start=on_playback_start)
