@@ -674,7 +674,7 @@ def _emit_explorer_explanation(sid, state, language, my_gen=0):
             socketio.emit("explorer_tts_start", {}, to=sid)
             def on_playing():
                 socketio.emit("explorer_tts_playing", {}, to=sid)
-            tts_ok = speak(expl, rate=cfg.get("tts_rate", 150), enabled=True, language=language, on_playback_start=on_playing)
+            tts_ok = speak(expl, rate=cfg.get("tts_rate", 150), enabled=True, language=language, volume=cfg.get("tts_volume", 80), on_playback_start=on_playing)
             socketio.emit("explorer_tts_end", {}, to=sid)
             if not tts_ok:
                 socketio.emit("explorer_tts_fallback", {"text": expl}, to=sid)
@@ -694,7 +694,7 @@ def _emit_explorer_chat_response(sid, question, state, language):
             socketio.emit("explorer_tts_start", {}, to=sid)
             def on_playing():
                 socketio.emit("explorer_tts_playing", {}, to=sid)
-            tts_ok = speak(response, rate=cfg.get("tts_rate", 150), enabled=True, language=language, on_playback_start=on_playing)
+            tts_ok = speak(response, rate=cfg.get("tts_rate", 150), enabled=True, language=language, volume=cfg.get("tts_volume", 80), on_playback_start=on_playing)
             socketio.emit("explorer_tts_end", {}, to=sid)
             if not tts_ok:
                 socketio.emit("explorer_tts_fallback", {"text": response}, to=sid)

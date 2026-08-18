@@ -26,6 +26,7 @@ DEFAULT_CONFIG = {
     "llm_model": "",            # optionnel, laisser vide = modèle par défaut
     "tts_enabled": False,
     "tts_rate": 150,            # débit pyttsx3, mots par minute
+    "tts_volume": 80,           # volume mpg123, 0-100
 }
 
 

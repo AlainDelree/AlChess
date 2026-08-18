@@ -103,7 +103,7 @@ def check_internet() -> bool:
         return False
 
 
-def _speak_edge(text: str, rate: int, language: str, on_playback_start=None) -> bool:
+def _speak_edge(text: str, rate: int, language: str, volume: int = 80, on_playback_start=None) -> bool:
     """Essaie de parler via edge-tts. Retourne True si succès, False sinon."""
     global _tts_generation
     try:
@@ -113,6 +113,8 @@ def _speak_edge(text: str, rate: int, language: str, on_playback_start=None) -> 
         # rate edge-tts : "+0%" = 150 mots/min ≈ normal
         # on convertit le rate (mots/min) en pourcentage relatif
         rate_pct = f"+{int((rate - 150) / 1.5)}%" if rate != 150 else "+0%"
+        # mpg123 --scale : 0-32768, 32768 = 100%
+        scale = str(int(max(0, min(100, volume)) / 100 * 32768))
         my_gen = _tts_generation
 
         async def _run():
@@ -124,7 +126,7 @@ def _speak_edge(text: str, rate: int, language: str, on_playback_start=None) -> 
                 await communicate.save(tmp)
                 if _tts_generation != my_gen:
                     return  # stop_speaking() appelé pendant le download
-                proc = subprocess.Popen(["mpg123", "-q", tmp])
+                proc = subprocess.Popen(["mpg123", "-q", "--scale", scale, tmp])
                 _current_tts_process = proc
                 if on_playback_start:
                     on_playback_start()
@@ -166,7 +168,7 @@ def stop_speaking() -> None:
         _current_tts_process = None
 
 
-def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr", on_playback_start=None) -> bool:
+def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr", volume: int = 80, on_playback_start=None) -> bool:
     """Prononce `text` à voix haute côté serveur si `enabled` et si internet
     est disponible (edge-tts, voix neuronale). Bloquant — à appeler depuis un
     thread daemon, jamais depuis le thread principal.
@@ -181,4 +183,4 @@ def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr
         return False
     if not check_internet():
         return False
-    return _speak_edge(text, rate, language, on_playback_start=on_playback_start)
+    return _speak_edge(text, rate, language, volume=volume, on_playback_start=on_playback_start)

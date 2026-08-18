@@ -6021,6 +6021,9 @@ socket.on("config_data", (data) => {
 
   _explTtsEnabled = !!data.tts_enabled;
   explUpdateTtsToggle();
+
+  const explVolume = document.getElementById("expl-tts-volume");
+  if (explVolume) explVolume.value = data.tts_volume != null ? data.tts_volume : 80;
 });
 
 function parametresSave() {
@@ -6080,6 +6083,10 @@ function explToggleTts() {
   explUpdateTtsToggle();
   socket.emit("config_save", { tts_enabled: _explTtsEnabled });
   if (!_explTtsEnabled) socket.emit("explorer_tts_stop", {});
+}
+
+function explSetVolume(value) {
+  socket.emit("config_save", { tts_volume: parseInt(value, 10) });
 }
 
 socket.on("app_state", (data) => {

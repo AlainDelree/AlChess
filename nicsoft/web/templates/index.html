@@ -1685,7 +1685,10 @@
   <!-- Colonne droite : info + tableau des coups + navigation -->
   <div style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:calc(100vh - 60px);">
 
-    <button id="expl-tts-toggle" onclick="explToggleTts()" style="align-self:flex-start; background:none; border:1px solid #a0b8d0; border-radius:6px; padding:3px 10px; font-size:1rem; line-height:1.4; cursor:pointer;" title="">🔊</button>
+    <div style="display:flex; align-items:center; gap:8px; align-self:flex-start;">
+      <button id="expl-tts-toggle" onclick="explToggleTts()" style="background:none; border:1px solid #a0b8d0; border-radius:6px; padding:3px 10px; font-size:1rem; line-height:1.4; cursor:pointer;" title="">🔊</button>
+      <input type="range" id="expl-tts-volume" min="0" max="100" value="80" step="5" style="width:90px; accent-color:#e94560;" oninput="explSetVolume(this.value)" data-i18n-title="opening_explorer.tts.volume" title="Volume">
+    </div>
 
     <div class="card" style="padding:12px 14px;">
       <h2 id="expl-nom" style="color:#e94560; font-size:0.85rem; margin-bottom:8px;"></h2>
