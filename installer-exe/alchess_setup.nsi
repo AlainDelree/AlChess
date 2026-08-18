@@ -75,6 +75,12 @@ Unicode true
 !include "LogicLib.nsh"
 !include "WordFunc.nsh"
 !include "FileFunc.nsh"
+!include "StrFunc.nsh"
+
+; Declaration StrStr (issue #181) : recherche de sous-chaine, utilisee pour
+; detecter les suffixes de pre-release ("a", "b", "rc") dans une version
+; Python complete. Doit etre invoquee une fois hors de toute fonction.
+${StrStr}
 
 ; ---------------------------------------------------------------------------
 ;  Variables globales
@@ -82,6 +88,7 @@ Unicode true
 Var PythonExe        ; Chemin vers python.exe detecte, ou vide si rien trouve
 Var TempLine         ; Ligne temporaire pour lecture de fichier
 Var TempVersion      ; Version extraite (ex: "3.12")
+Var TempFullVersion  ; Version complete extraite (ex: "3.15.0rc1") — issue #181
 Var TempPath         ; Chemin extrait
 Var TempMajor        ; Partie majeure de la version (ex: 3)
 Var TempMinor        ; Partie mineure de la version (ex: 12)
@@ -450,6 +457,55 @@ Function ExtractVersionFromPythonOutput
 FunctionEnd
 
 ; ---------------------------------------------------------------------------
+;  ExtractFullVersionFromPythonOutput (issue #181)
+;  Extrait la version COMPLETE (ex: "3.15.0rc1") d'une sortie "Python X.Y.Z...".
+;  Contrairement a ExtractVersionFromPythonOutput ci-dessus (qui tronque
+;  volontairement a "X.Y" pour la comparaison au minimum requis), celle-ci
+;  garde tout le suffixe (a/b/rc) : necessaire pour detecter une pre-release,
+;  que le X.Y seul ne revele pas (ex. "3.15" >= 3.12 semble OK alors que
+;  "3.15.0rc1" ne l'est pas — pas de wheel precompile pour une RC).
+;  Entree : sortie dans $TempLine
+;  Sortie : version complete dans $TempFullVersion (ou vide si non trouvee)
+; ---------------------------------------------------------------------------
+Function ExtractFullVersionFromPythonOutput
+    StrCpy $TempFullVersion ""
+
+    StrCpy $R0 $TempLine
+    StrLen $R2 $R0
+
+    ${If} $R2 < 8
+        Return
+    ${EndIf}
+
+    StrCpy $R3 0
+    find_python_full_loop:
+        IntCmp $R3 $R2 not_found_py_full 0 not_found_py_full
+        StrCpy $R4 $R0 7 $R3  ; "Python "
+        StrCmp $R4 "Python " found_python_full 0
+        IntOp $R3 $R3 + 1
+        Goto find_python_full_loop
+
+    not_found_py_full:
+        Return
+
+    found_python_full:
+        IntOp $R5 $R3 + 7
+        StrCpy $R6 ""
+        extract_full_ver_loop:
+            StrCpy $R7 $R0 1 $R5
+            StrCmp $R7 "" full_ver_done 0
+            StrCmp $R7 " " full_ver_done 0
+            StrCmp $R7 "$\r" full_ver_done 0
+            StrCmp $R7 "$\n" full_ver_done 0
+            StrCpy $R6 "$R6$R7"
+            IntOp $R5 $R5 + 1
+            Goto extract_full_ver_loop
+        full_ver_done:
+            StrCpy $TempFullVersion $R6
+            Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
 ;  CompareVersionToMinimum
 ;  Compare $TempVersion (format "X.Y") au minimum requis (3.12).
 ;  Sortie : $VersionOK = 1 si >= 3.12, 0 sinon
@@ -524,6 +580,78 @@ Function CompareVersionToMinimum
         version_ok:
             StrCpy $VersionOK 1
             Return
+FunctionEnd
+
+; ---------------------------------------------------------------------------
+;  CheckPythonVersionWarning (issue #181, suite essai2)
+;  Avertit — SANS bloquer — si le Python detecte est une pre-release
+;  (alpha/beta/rc, ex. "3.15.0rc1") ou une version ancienne (< 3.10). Ces deux
+;  cas produisent des erreurs pip peu claires plutot qu'un message explicite
+;  (constate avec Python 3.15rc1 : hidapi ne compile pas faute de MSVC, car
+;  aucun wheel precompile n'existe pour une RC).
+;
+;  POURQUOI CE GARDE-FOU EST NECESSAIRE EN PLUS DE LA DETECTION EXISTANTE :
+;  TryPy0p / TryPythonInPath / TryScanStandardDirs (phase 3, #53/#54) et
+;  CompareVersionToMinimum ne comparent que "X.Y" au minimum requis
+;  (${MIN_PYTHON_MAJOR}.${MIN_PYTHON_MINOR} = 3.12). Une pre-release comme
+;  "3.15.0rc1" est tronquee a "3.15" par ExtractVersionFromPythonOutput, et
+;  3.15 >= 3.12 est accepte sans jamais regarder le suffixe "rc1" : c'est
+;  exactement le cas signale par l'issue. D'ou cette verification
+;  complementaire, basee sur ExtractFullVersionFromPythonOutput (qui garde le
+;  suffixe), appelee juste apres une detection reussie (SecPython, label
+;  found_python), AVANT la creation du venv (SecVenv).
+;
+;  Pas un blocage dur : MessageBox MB_OKCANCEL laisse l'utilisateur decider.
+;  IDCANCEL => Abort propre (annule l'installation, comme les autres echecs
+;  bloquants du fichier) ; IDOK => on poursuit normalement.
+;
+;  Entree : $PythonExe (deja detecte par une des 3 strategies)
+; ---------------------------------------------------------------------------
+Function CheckPythonVersionWarning
+    nsExec::ExecToStack '"$PythonExe" --version 2>&1'
+    Pop $R0        ; code de sortie
+    Pop $TempLine  ; sortie "Python X.Y.Z..."
+    IntCmp $R0 0 cpvw_check cpvw_done cpvw_done
+
+    cpvw_check:
+        Call ExtractFullVersionFromPythonOutput
+        StrCmp $TempFullVersion "" cpvw_done 0
+
+        Call ExtractVersionFromPythonOutput   ; renseigne $TempVersion = "X.Y"
+        StrCmp $TempVersion "" cpvw_done 0
+
+        ; -- Pre-release : sous-chaine "rc", "a" ou "b" dans la version complete --
+        ; Une version stable n'est composee que de chiffres et de points ; ces
+        ; lettres n'apparaissent que dans un suffixe de pre-release CPython
+        ; (ex. "3.13.0a1", "3.13.0b2", "3.13.0rc1"), la recherche de
+        ; sous-chaine brute suffit donc, sans regex.
+        ${StrStr} $R1 $TempFullVersion "rc"
+        StrCmp $R1 "" 0 cpvw_prerelease
+        ${StrStr} $R1 $TempFullVersion "a"
+        StrCmp $R1 "" 0 cpvw_prerelease
+        ${StrStr} $R1 $TempFullVersion "b"
+        StrCmp $R1 "" cpvw_check_old cpvw_prerelease
+
+    cpvw_check_old:
+        ; -- Version ancienne (< 3.10) : reutilise le decoupage major/minor de
+        ;    CompareVersionToMinimum (effet de bord sur $TempMajor/$TempMinor),
+        ;    mais avec NOTRE propre seuil (3.10), pas le sien (3.12). --
+        Call CompareVersionToMinimum
+        StrCmp $TempMajor "" cpvw_done 0
+        IntCmp $TempMajor 3 cpvw_check_minor_old cpvw_old cpvw_done
+        cpvw_check_minor_old:
+            IntCmp $TempMinor 10 cpvw_done cpvw_old cpvw_done
+        cpvw_old:
+            MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "Version de Python detectee : $TempFullVersion$\r$\n$\r$\nCette version est ancienne et peut provoquer des erreurs lors de l'installation des dependances (pip, compilation de paquets natifs).$\r$\n$\r$\nIl est recommande d'installer Python 3.12 ou 3.13 (version stable) depuis :$\r$\nhttps://www.python.org/downloads/$\r$\n$\r$\nContinuer quand meme avec $TempFullVersion ?" IDOK cpvw_done IDCANCEL cpvw_user_abort
+
+    cpvw_prerelease:
+        MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "Version de Python detectee : $TempFullVersion$\r$\n$\r$\nCeci est une version de pre-publication (alpha/beta/rc). Elle peut faire echouer l'installation des dependances : certains paquets (ex. hidapi) n'ont pas de version precompilee pour une pre-release et necessitent alors un compilateur (MSVC) absent du systeme.$\r$\n$\r$\nIl est recommande d'installer Python 3.12 ou 3.13 (version stable) depuis :$\r$\nhttps://www.python.org/downloads/$\r$\n$\r$\nContinuer quand meme avec $TempFullVersion ?" IDOK cpvw_done IDCANCEL cpvw_user_abort
+
+    cpvw_user_abort:
+        Abort
+
+    cpvw_done:
+        Return
 FunctionEnd
 
 ; ---------------------------------------------------------------------------
@@ -1466,6 +1594,15 @@ SectionGroup "Configuration AlChess" SecGroupConfig
             DetailPrint "Python detecte : $PythonExe"
             DetailPrint "================================================"
             DetailPrint "  venv cible : $INSTDIR\${VENV_SUBDIR}"
+
+            ; issue #181 (suite essai2) : avertissement non-bloquant si ce
+            ; Python deja present sur le systeme est une pre-release ou une
+            ; version ancienne (< 3.10) — cas que la detection ci-dessus ne
+            ; filtre pas correctement (voir commentaire de la fonction).
+            ; Non appele apres InstallPython312NSIS (winget) : cette voie
+            ; installe toujours une 3.12 stable, jamais concernee.
+            Call CheckPythonVersionWarning
+
             Goto end_python_section
 
         no_python:
