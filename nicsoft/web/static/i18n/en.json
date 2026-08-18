@@ -256,7 +256,7 @@
   "opening_explorer.chat.no_api": "Configure an API key in Settings to enable chat",
   "opening_explorer.tts.on": "🔊 Voice enabled",
   "opening_explorer.tts.off": "🔇 Voice disabled",
-  "opening_explorer.tts.volume": "Volume",
+  "opening_explorer.tts.volume": "Volume (applies to next speech)",
   "outils.titre": "🛠️ Exercise Tools",
   "outils.import_pgn.titre": "📥 Import my PGN lines",
   "outils.import_pgn.desc": "Select one or more .pgn files to import into your personal exercises (<em>mes_lignes.json</em>).",
