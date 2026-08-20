@@ -541,6 +541,7 @@ function _applyRodentAvailability() {
   const msg = t("engine.rodent.unavailable");
   const downloadHint = t("engine.rodent.download");
   const downloadState = _rodentDownloadable && !_rodentAvailable;
+  const tagline = downloadState ? t("engine.rodent.install") : t("config.tagline.rodent");
   [["cfg-engine-rodent", "cfg-rodent-unavailable", "cfg-rodent-icon"],
    ["labo-eng-rodent",   "labo-rodent-unavailable", "labo-rodent-icon"]].forEach(([btnId, msgId, iconId]) => {
     const btn = document.getElementById(btnId);
@@ -552,6 +553,8 @@ function _applyRodentAvailability() {
       if (_rodentAvailable)   btn.removeAttribute("title");
       else if (downloadState) btn.setAttribute("title", downloadHint);
       else                    btn.setAttribute("title", msg);
+      const taglineEl = btn.querySelector(".engine-tagline");
+      if (taglineEl) taglineEl.textContent = tagline;
     }
     if (icon) icon.textContent = downloadState ? "⬇" : "🐭";
     if (box) box.style.display = (!_rodentAvailable && !downloadState) ? "" : "none";

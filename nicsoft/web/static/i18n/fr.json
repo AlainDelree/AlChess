@@ -90,6 +90,7 @@
   "engine.maia.unavailable": "Maia (lc0 + poids) non installé sur ce système",
   "engine.rodent.unavailable": "Moteur Rodent indisponible sur ce système",
   "engine.rodent.download": "Télécharger Rodent IV",
+  "engine.rodent.install": "Installer",
   "engine.rodent.downloading": "Téléchargement…",
   "engine.rodent.download_ok": "Rodent IV téléchargé — prêt à l'emploi",
   "engine.rodent.download_error": "Échec du téléchargement — vérifiez votre connexion internet",
