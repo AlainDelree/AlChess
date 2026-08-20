@@ -226,6 +226,15 @@ let _gameFolders     = null;
 let _lastTurnInfo    = null;  // {type: "move"|"turn"|"echec", player, color, san?}
 let _analyseEmpty    = false; // true quand l'écran analyse est vide (titre + invite import PGN)
 
+// ── Bibliothèque PGN personnelle (écran Analyse de partie, issue #194) ──────
+let _pgnLibActiveTab          = "alchess"; // onglet actif : "alchess" | "library"
+let _pgnLibCollections        = [];
+let _pgnLibCollectionsLoaded  = false;
+let _pgnLibActiveCollectionId = ""; // conservée pour retrouver la dernière sélection au retour sur l'écran
+let _pgnLibGames              = [];
+let _pgnLibCreating           = false;
+let _pgnLibPrevIds            = new Set();
+
 
 // ── MODE VIRTUEL ──────────────────────────────────────────
 
@@ -935,6 +944,7 @@ socket.on("app_state", (data) => {
     _retransPlayerData = null;
     _gameSource = "externe";
     _viderAnalyse();
+    pgnLibSelectTab("alchess"); // l'écran Analyse rouvre toujours sur « Mes parties AlChess » par défaut
     _virtDeactivateBoard();
     _chessInstance = null;
     // Quitter le mode virtuel au retour au menu (badge échiquier repasse en mode physique)
@@ -1902,6 +1912,10 @@ function fermerModal() {
   if (sub) sub.textContent = "";
   const cancel = document.getElementById("modal-cancel");
   if (cancel) cancel.style.display = "";
+  const inputRow = document.getElementById("modal-input-row");
+  if (inputRow) inputRow.style.display = "none";
+  const input = document.getElementById("modal-input");
+  if (input) input.value = "";
 }
 
 // ── Aide contextuelle « classeur » ──────────────────────────────────────────
@@ -2338,6 +2352,199 @@ function parsePgn(pgn) {
     alert("Erreur lors du parsing PGN : " + e.message);
   }
 }
+
+// ── Bibliothèque PGN personnelle (écran Analyse de partie, issue #194) ──────
+
+function _pgnLibEsc(str) {
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+function pgnLibSelectTab(tab) {
+  _pgnLibActiveTab = tab;
+  const aBtn = document.getElementById("analyse-tab-alchess-btn");
+  const lBtn = document.getElementById("analyse-tab-library-btn");
+  const aContent = document.getElementById("analyse-tab-alchess-content");
+  const lContent = document.getElementById("analyse-tab-library-content");
+  if (aBtn) { aBtn.style.background = tab === "alchess" ? "#e94560" : "#c2d4e8"; aBtn.style.color = tab === "alchess" ? "white" : "#3a5a7a"; }
+  if (lBtn) { lBtn.style.background = tab === "library" ? "#e94560" : "#c2d4e8"; lBtn.style.color = tab === "library" ? "white" : "#3a5a7a"; }
+  if (aContent) aContent.style.display = tab === "alchess" ? "flex" : "none";
+  if (lContent) lContent.style.display = tab === "library" ? "flex" : "none";
+  if (tab === "library") {
+    if (!_pgnLibCollectionsLoaded) {
+      socket.emit("pgn_lib_list_collections", {});
+    } else {
+      pgnLibRenderCollectionsSelect();
+      pgnLibRenderGamesList();
+    }
+  }
+}
+
+function pgnLibRenderCollectionsSelect() {
+  const sel = document.getElementById("pgn-lib-collection-select");
+  if (!sel) return;
+  if (_pgnLibCollections.length === 0) {
+    sel.innerHTML = `<option value="">${t("pgn_lib.select.vide")}</option>`;
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = _pgnLibCollections.map(c =>
+    `<option value="${_pgnLibEsc(c.id)}" ${c.id === _pgnLibActiveCollectionId ? "selected" : ""}>${_pgnLibEsc(c.name)} (${c.game_count})</option>`
+  ).join("");
+}
+
+function pgnLibRenderGamesList() {
+  const list = document.getElementById("pgn-lib-games-list");
+  if (!list) return;
+  if (_pgnLibGames.length === 0) {
+    list.innerHTML = `<div class="pgn-lib-empty" style="color:#778; font-size:0.8rem; text-align:center; padding:12px 0;">${t("pgn_lib.liste_vide")}</div>`;
+    return;
+  }
+  list.innerHTML = _pgnLibGames.map(g => `
+    <div class="pgn-lib-game-row" onclick="pgnLibLoadGame(${g.index})"
+      onmouseover="this.style.background='#a0b8d0'" onmouseout="this.style.background='#c2d4e8'"
+      style="cursor:pointer; padding:6px 8px; border-radius:4px; background:#c2d4e8; font-size:0.78rem; color:#1a2a3a; line-height:1.4;">
+      <div style="font-weight:bold;">${_pgnLibEsc(g.white)} — ${_pgnLibEsc(g.black)}</div>
+      <div style="color:#3a5a7a;">${_pgnLibEsc(g.date)} · ${_pgnLibEsc(g.result)}${g.event ? " · " + _pgnLibEsc(g.event) : ""}</div>
+    </div>
+  `).join("");
+}
+
+function pgnLibSelectCollection(id) {
+  _pgnLibActiveCollectionId = id;
+  _pgnLibGames = [];
+  pgnLibRenderGamesList();
+  if (id) socket.emit("pgn_lib_list_games", { collection_id: id });
+}
+
+function pgnLibOpenCreateModal() {
+  document.getElementById("modal-title").textContent = t("pgn_lib.modal.creer_titre");
+  const sub = document.getElementById("modal-subtitle");
+  if (sub) sub.textContent = "";
+  const inputRow = document.getElementById("modal-input-row");
+  const input = document.getElementById("modal-input");
+  if (inputRow) inputRow.style.display = "block";
+  if (input) input.placeholder = t("pgn_lib.modal.creer_placeholder");
+  const btn = document.getElementById("modal-confirm");
+  btn.textContent = t("pgn_lib.modal.creer_confirmer");
+  btn.className = "btn btn-reprendre";
+  btn.onclick = () => {
+    const name = (input?.value || "").trim();
+    if (!name) return;
+    fermerModal();
+    _pgnLibCreating = true;
+    _pgnLibPrevIds = new Set(_pgnLibCollections.map(c => c.id));
+    socket.emit("pgn_lib_create_collection", { name });
+  };
+  const std  = document.getElementById("modal-btns-standard");
+  const coul = document.getElementById("modal-btns-couleur");
+  if (std)  std.style.display  = "flex";
+  if (coul) coul.style.display = "none";
+  document.getElementById("modal-overlay").classList.add("open");
+  setTimeout(() => input?.focus(), 50);
+}
+
+function pgnLibConfirmDelete() {
+  if (!_pgnLibActiveCollectionId) return;
+  const coll = _pgnLibCollections.find(c => c.id === _pgnLibActiveCollectionId);
+  const name = coll ? coll.name : "";
+  document.getElementById("modal-title").textContent = t("pgn_lib.modal.supprimer_titre", { nom: name });
+  const sub = document.getElementById("modal-subtitle");
+  if (sub) sub.textContent = t("pgn_lib.modal.supprimer_sous");
+  const btn = document.getElementById("modal-confirm");
+  btn.textContent = t("pgn_lib.modal.supprimer_confirmer");
+  btn.className = "btn btn-warning";
+  const collectionId = _pgnLibActiveCollectionId;
+  btn.onclick = () => {
+    fermerModal();
+    socket.emit("pgn_lib_delete_collection", { collection_id: collectionId });
+    _pgnLibActiveCollectionId = "";
+  };
+  const std  = document.getElementById("modal-btns-standard");
+  const coul = document.getElementById("modal-btns-couleur");
+  if (std)  std.style.display  = "flex";
+  if (coul) coul.style.display = "none";
+  document.getElementById("modal-overlay").classList.add("open");
+}
+
+function pgnLibImportFile(event) {
+  const file = event.target.files[0];
+  event.target.value = ""; // permet de réimporter le même fichier ensuite
+  if (!file) return;
+  if (!_pgnLibActiveCollectionId) {
+    afficherToast(t("pgn_lib.import_sans_collection"), "warning");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const btn = document.getElementById("pgn-lib-import-btn");
+    const spinner = document.getElementById("pgn-lib-import-spinner");
+    if (btn) btn.style.display = "none";
+    if (spinner) spinner.style.display = "flex";
+    socket.emit("pgn_lib_import_pgn", { collection_id: _pgnLibActiveCollectionId, content: e.target.result });
+  };
+  reader.readAsText(file);
+}
+
+function pgnLibLoadGame(index) {
+  if (!_pgnLibActiveCollectionId) return;
+  socket.emit("pgn_lib_load_game", { collection_id: _pgnLibActiveCollectionId, index });
+}
+
+socket.on("pgn_lib_collections", (data) => {
+  _pgnLibCollections = data.collections || [];
+  _pgnLibCollectionsLoaded = true;
+  if (_pgnLibCreating) {
+    const fresh = _pgnLibCollections.find(c => !_pgnLibPrevIds.has(c.id));
+    if (fresh) _pgnLibActiveCollectionId = fresh.id;
+    _pgnLibCreating = false;
+  }
+  // Retombe sur la première collection dispo si l'active a été supprimée / n'existe plus
+  if (_pgnLibActiveCollectionId && !_pgnLibCollections.some(c => c.id === _pgnLibActiveCollectionId)) {
+    _pgnLibActiveCollectionId = "";
+  }
+  if (!_pgnLibActiveCollectionId && _pgnLibCollections.length > 0) {
+    _pgnLibActiveCollectionId = _pgnLibCollections[0].id;
+  }
+  pgnLibRenderCollectionsSelect();
+  if (_pgnLibActiveCollectionId) {
+    socket.emit("pgn_lib_list_games", { collection_id: _pgnLibActiveCollectionId });
+  } else {
+    _pgnLibGames = [];
+    pgnLibRenderGamesList();
+  }
+});
+
+socket.on("pgn_lib_games", (data) => {
+  if (data.import_result) {
+    const btn = document.getElementById("pgn-lib-import-btn");
+    const spinner = document.getElementById("pgn-lib-import-spinner");
+    if (btn) btn.style.display = "";
+    if (spinner) spinner.style.display = "none";
+    const r = data.import_result;
+    afficherToast(r.ok ? t("pgn_lib.import_ok", { n: r.imported }) : t("pgn_lib.import_echec"), r.ok ? "success" : "warning");
+    // Rafraîchit le compteur de parties affiché dans le dropdown
+    socket.emit("pgn_lib_list_collections", {});
+  }
+  if (data.collection_id !== _pgnLibActiveCollectionId) return;
+  _pgnLibGames = data.games || [];
+  pgnLibRenderGamesList();
+});
+
+socket.on("pgn_lib_game_loaded", (data) => {
+  parsePgn(data.pgn);
+});
+
+socket.on("pgn_lib_error", (data) => {
+  const btn = document.getElementById("pgn-lib-import-btn");
+  const spinner = document.getElementById("pgn-lib-import-spinner");
+  if (btn) btn.style.display = "";
+  if (spinner) spinner.style.display = "none";
+  afficherToast(data.message || t("pgn_lib.erreur_generique"), "warning");
+});
+
 // ── Pause ──────────────────────────────────────────────────────────────────
 
 let _pauseReviewFens    = [];

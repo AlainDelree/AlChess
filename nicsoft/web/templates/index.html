@@ -751,24 +751,66 @@
       </div>
       <!-- Actions analyse + retour menu -->
       <div class="card" style="padding:14px 18px; display:flex; flex-direction:column; gap:8px;">
-        <input type="file" id="pgn-file-input" accept=".pgn" style="display:none" onchange="loadPgnFile(event)">
-        <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
-        <!-- Coller PGN directement -->
-        <button class="btn btn-best" style="margin-bottom:0;" onclick="toggleCollerPgn()" data-i18n="analyse.btn.coller_pgn">📋 Coller PGN</button>
-        <div id="coller-pgn-zone" style="display:none; margin-top:8px;">
-          <textarea id="coller-pgn-input" rows="8" style="width:100%; font-family:monospace; font-size:12px; resize:vertical;" placeholder="Collez ici le contenu PGN..."></textarea>
-          <button class="btn btn-reprendre" style="margin-top:4px; margin-bottom:0; width:100%;" onclick="chargerPgnColle()" data-i18n="analyse.btn.charger_pgn_colle">✅ Charger</button>
+        <!-- Toggle Mes parties AlChess / Bibliothèque PGN -->
+        <div style="display:flex; gap:0; border-radius:6px; overflow:hidden; border:1px solid #a0b8d0; margin-bottom:2px;">
+          <button id="analyse-tab-alchess-btn" onclick="pgnLibSelectTab('alchess')" data-i18n="analyse.tab.alchess"
+            style="flex:1; padding:8px 4px; font-size:0.78rem; font-weight:bold; cursor:pointer; border:none; background:#e94560; color:white; transition:opacity 0.15s;">
+            ♟ Mes parties AlChess
+          </button>
+          <button id="analyse-tab-library-btn" onclick="pgnLibSelectTab('library')" data-i18n="analyse.tab.library"
+            style="flex:1; padding:8px 4px; font-size:0.78rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#3a5a7a; transition:opacity 0.15s;">
+            📚 Bibliothèque PGN
+          </button>
         </div>
-        <!-- Classeur de session -->
-        <div id="basket-row-analyse" style="display:flex; gap:6px; align-items:stretch;">
-          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
-          <div id="basket-select-analyse" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-            <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
-            <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
-            <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
+
+        <!-- Onglet « Mes parties AlChess » (comportement existant, inchangé) -->
+        <div id="analyse-tab-alchess-content" style="display:flex; flex-direction:column; gap:8px;">
+          <input type="file" id="pgn-file-input" accept=".pgn" style="display:none" onchange="loadPgnFile(event)">
+          <button class="btn btn-best"      style="margin-bottom:0;" onclick="document.getElementById('pgn-file-input').click()" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
+          <!-- Coller PGN directement -->
+          <button class="btn btn-best" style="margin-bottom:0;" onclick="toggleCollerPgn()" data-i18n="analyse.btn.coller_pgn">📋 Coller PGN</button>
+          <div id="coller-pgn-zone" style="display:none; margin-top:8px;">
+            <textarea id="coller-pgn-input" rows="8" style="width:100%; font-family:monospace; font-size:12px; resize:vertical;" placeholder="Collez ici le contenu PGN..."></textarea>
+            <button class="btn btn-reprendre" style="margin-top:4px; margin-bottom:0; width:100%;" onclick="chargerPgnColle()" data-i18n="analyse.btn.charger_pgn_colle">✅ Charger</button>
           </div>
-          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToAnalyse()" data-i18n="common.charger">🗂️ Charger</button>
+          <!-- Classeur de session -->
+          <div id="basket-row-analyse" style="display:flex; gap:6px; align-items:stretch;">
+            <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
+            <div id="basket-select-analyse" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
+              <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
+              <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
+              <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
+            </div>
+            <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToAnalyse()" data-i18n="common.charger">🗂️ Charger</button>
+          </div>
         </div>
+
+        <!-- Onglet « Bibliothèque PGN » (nouveau, issue #194) -->
+        <div id="analyse-tab-library-content" style="display:none; flex-direction:column; gap:8px;">
+          <!-- Sélection collection + créer/supprimer -->
+          <div style="display:flex; gap:6px; align-items:stretch;">
+            <select id="pgn-lib-collection-select" onchange="pgnLibSelectCollection(this.value)"
+              style="flex:1; min-width:0; background:#a0b8d0; color:#1a2a3a; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; height:34px; box-sizing:border-box;">
+              <option value="" data-i18n="pgn_lib.select.vide">— Aucune collection —</option>
+            </select>
+            <button class="btn" style="margin-bottom:0; padding:0 10px; white-space:nowrap; height:34px; box-sizing:border-box; background:#2e7d32; color:white;" onclick="pgnLibOpenCreateModal()" data-i18n-title="pgn_lib.btn.creer_title" title="Créer une collection">＋</button>
+            <button class="btn btn-warning" style="margin-bottom:0; padding:0 10px; white-space:nowrap; height:34px; box-sizing:border-box;" onclick="pgnLibConfirmDelete()" data-i18n-title="pgn_lib.btn.supprimer_title" title="Supprimer la collection">🗑</button>
+          </div>
+
+          <!-- Import PGN dans la collection active -->
+          <input type="file" id="pgn-lib-file-input" accept=".pgn,text/plain" style="display:none" onchange="pgnLibImportFile(event)">
+          <button class="btn btn-best" id="pgn-lib-import-btn" style="margin-bottom:0;" onclick="document.getElementById('pgn-lib-file-input').click()" data-i18n="pgn_lib.btn.importer">📂 Importer PGN</button>
+          <div id="pgn-lib-import-spinner" style="display:none; align-items:center; gap:8px; color:#3a5a7a; font-size:0.8rem;">
+            <div style="width:14px; height:14px; border:2px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+            <span data-i18n="pgn_lib.import_en_cours">Import en cours…</span>
+          </div>
+
+          <!-- Liste des parties de la collection active -->
+          <div id="pgn-lib-games-list" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; border:1px solid #a0b8d0; border-radius:6px; padding:6px; background:#eef4fa;">
+            <div class="pgn-lib-empty" style="color:#778; font-size:0.8rem; text-align:center; padding:12px 0;" data-i18n="pgn_lib.liste_vide">Aucune partie dans cette collection.</div>
+          </div>
+        </div>
+
         <!-- Sélecteur nombre de coups séquence -->
         <div id="rv-seq-row" style="display:none; align-items:center; gap:8px;">
           <label data-i18n="game.label.sequence" style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;">Séquence :</label>
@@ -1717,6 +1759,10 @@
   <div style="background:#c2d4e8; border:1px solid #e94560; border-radius:10px; padding:28px 32px; min-width:300px; max-width:520px; text-align:center;">
     <div id="modal-title" style="font-size:1.1rem; color:#1a2a3a; margin-bottom:8px;"></div>
     <div id="modal-subtitle" style="font-size:0.78rem; color:#3a5a7a; margin-bottom:20px; white-space:pre-line; word-break:break-all;"></div>
+    <!-- Champ texte optionnel (ex. nom de collection bibliothèque PGN) -->
+    <div id="modal-input-row" style="display:none; margin-bottom:16px;">
+      <input type="text" id="modal-input" maxlength="60" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #a0b8d0; border-radius:4px; font-size:0.9rem; background:#eef4fa; color:#1a2a3a;">
+    </div>
     <!-- Boutons standard (confirmation simple) -->
     <div id="modal-btns-standard" style="display:flex; gap:12px; justify-content:center;">
       <button id="modal-confirm" class="btn" style="min-width:120px;"></button>
