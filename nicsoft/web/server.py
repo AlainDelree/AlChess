@@ -607,6 +607,79 @@ def on_basket_load(data):
         emit("basket_load_result", {"pgn": "", "label": ""})
 
 
+# ── Bibliothèque PGN personnelle ─────────────────────────────────────────────
+
+@socketio.on("pgn_lib_list_collections")
+def on_pgn_lib_list_collections(_data):
+    """Retourne la liste des collections de la bibliothèque PGN personnelle."""
+    from nicsoft.modes.pgn_library import library_manager
+    try:
+        emit("pgn_lib_collections", {"collections": library_manager.list_collections()})
+    except Exception as e:
+        emit("pgn_lib_error", {"message": str(e)})
+
+
+@socketio.on("pgn_lib_create_collection")
+def on_pgn_lib_create_collection(data):
+    """Crée une nouvelle collection."""
+    from nicsoft.modes.pgn_library import library_manager
+    try:
+        library_manager.create_collection(data.get("name", ""))
+        emit("pgn_lib_collections", {"collections": library_manager.list_collections()})
+    except Exception as e:
+        emit("pgn_lib_error", {"message": str(e)})
+
+
+@socketio.on("pgn_lib_delete_collection")
+def on_pgn_lib_delete_collection(data):
+    """Supprime une collection."""
+    from nicsoft.modes.pgn_library import library_manager
+    try:
+        library_manager.delete_collection(data.get("collection_id", ""))
+        emit("pgn_lib_collections", {"collections": library_manager.list_collections()})
+    except Exception as e:
+        emit("pgn_lib_error", {"message": str(e)})
+
+
+@socketio.on("pgn_lib_import_pgn")
+def on_pgn_lib_import_pgn(data):
+    """Importe un fichier PGN (une ou plusieurs parties) dans une collection."""
+    from nicsoft.modes.pgn_library import library_manager
+    try:
+        result = library_manager.import_pgn(data.get("collection_id", ""), data.get("content", ""))
+        emit("pgn_lib_games", {
+            "collection_id": data.get("collection_id", ""),
+            "games":          library_manager.list_games(data.get("collection_id", "")),
+            "import_result":  result,
+        })
+    except Exception as e:
+        emit("pgn_lib_error", {"message": str(e)})
+
+
+@socketio.on("pgn_lib_list_games")
+def on_pgn_lib_list_games(data):
+    """Retourne l'index des parties d'une collection."""
+    from nicsoft.modes.pgn_library import library_manager
+    try:
+        collection_id = data.get("collection_id", "")
+        emit("pgn_lib_games", {"collection_id": collection_id, "games": library_manager.list_games(collection_id)})
+    except Exception as e:
+        emit("pgn_lib_error", {"message": str(e)})
+
+
+@socketio.on("pgn_lib_load_game")
+def on_pgn_lib_load_game(data):
+    """Charge le PGN d'une seule partie d'une collection."""
+    from nicsoft.modes.pgn_library import library_manager
+    try:
+        collection_id = data.get("collection_id", "")
+        index = data.get("index", -1)
+        pgn = library_manager.load_game(collection_id, index)
+        emit("pgn_lib_game_loaded", {"collection_id": collection_id, "index": index, "pgn": pgn})
+    except Exception as e:
+        emit("pgn_lib_error", {"message": str(e)})
+
+
 # ── Paramètres (config.json centralisé) ──────────────────────────────────────
 
 @socketio.on("config_get")
