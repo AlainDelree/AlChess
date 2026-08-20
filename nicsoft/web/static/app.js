@@ -494,6 +494,9 @@ let _rodentAvailable = true;
 // true si le serveur tourne sous Windows — seul cas où le téléchargement
 // des binaires Rodent IV depuis GitHub est proposé (issue #131).
 let _rodentDownloadable = false;
+// true pendant un téléchargement Rodent IV en cours (issue #190) — évite un second
+// déclenchement si l'utilisateur reclique sur la carte pendant le téléchargement.
+let _rodentDownloadInProgress = false;
 
 // Grise les boutons Stockfish (config péda + labo) et affiche le message
 // d'indisponibilité si absent. Ré-appelé au changement de langue.
@@ -536,28 +539,47 @@ function _applyMaiaAvailability() {
 // de langue via _refreshDynamicLabels() pour retraduire le tooltip.
 function _applyRodentAvailability() {
   const msg = t("engine.rodent.unavailable");
-  [["cfg-engine-rodent", "cfg-rodent-unavailable", "cfg-rodent-download-btn"],
-   ["labo-eng-rodent",   "labo-rodent-unavailable", "labo-rodent-download-btn"]].forEach(([btnId, msgId, dlBtnId]) => {
+  const downloadHint = t("engine.rodent.download");
+  const downloadState = _rodentDownloadable && !_rodentAvailable;
+  [["cfg-engine-rodent", "cfg-rodent-unavailable", "cfg-rodent-icon"],
+   ["labo-eng-rodent",   "labo-rodent-unavailable", "labo-rodent-icon"]].forEach(([btnId, msgId, iconId]) => {
     const btn = document.getElementById(btnId);
     const box = document.getElementById(msgId);
-    const dlBtn = document.getElementById(dlBtnId);
+    const icon = document.getElementById(iconId);
     if (btn) {
-      btn.classList.toggle("engine-unavailable", !_rodentAvailable);
-      if (_rodentAvailable) btn.removeAttribute("title");
-      else                  btn.setAttribute("title", msg);
+      btn.classList.toggle("engine-unavailable", !_rodentAvailable && !downloadState);
+      btn.classList.toggle("engine-downloadable", downloadState);
+      if (_rodentAvailable)   btn.removeAttribute("title");
+      else if (downloadState) btn.setAttribute("title", downloadHint);
+      else                    btn.setAttribute("title", msg);
     }
-    if (box) box.style.display = _rodentAvailable ? "none" : "";
-    if (dlBtn) dlBtn.style.display = (_rodentDownloadable && !_rodentAvailable) ? "" : "none";
+    if (icon) icon.textContent = downloadState ? "⬇" : "🐭";
+    if (box) box.style.display = (!_rodentAvailable && !downloadState) ? "" : "none";
   });
   _checkNoEngineAvailable();
 }
 
+// Point d'entrée onclick des cartes Rodent (config péda + labo) : bascule entre
+// sélection normale du moteur et déclenchement du téléchargement selon l'état
+// courant (issue #190 — la carte elle-même devient le bouton de téléchargement).
+function rodentCardClick(context) {
+  if (_rodentDownloadable && !_rodentAvailable) {
+    downloadRodent();
+    return;
+  }
+  if (context === "labo") laboSelectEngine("rodent");
+  else                     selectEngine("rodent");
+}
+
 // Télécharge les binaires Rodent IV depuis GitHub (Windows uniquement, issue #131).
-// Déclenché par les boutons cfg-rodent-download-btn / labo-rodent-download-btn.
+// Déclenché par un clic sur la carte cfg-engine-rodent / labo-eng-rodent quand
+// Rodent est indisponible mais téléchargeable (issue #190).
 function downloadRodent() {
-  ["cfg-rodent-download-btn", "labo-rodent-download-btn"].forEach(id => {
+  if (_rodentDownloadInProgress) return;
+  _rodentDownloadInProgress = true;
+  ["cfg-engine-rodent", "labo-eng-rodent"].forEach(id => {
     const btn = document.getElementById(id);
-    if (btn) btn.disabled = true;
+    if (btn) btn.classList.add("engine-downloading");
   });
   ["cfg-rodent-download-status", "labo-rodent-download-status"].forEach(id => {
     const status = document.getElementById(id);
@@ -5987,9 +6009,10 @@ socket.on("rodent_download_result", (data) => {
     const status = document.getElementById(id);
     if (status) status.textContent = msg;
   });
-  ["cfg-rodent-download-btn", "labo-rodent-download-btn"].forEach(id => {
+  _rodentDownloadInProgress = false;
+  ["cfg-engine-rodent", "labo-eng-rodent"].forEach(id => {
     const btn = document.getElementById(id);
-    if (btn) btn.disabled = false;
+    if (btn) btn.classList.remove("engine-downloading");
   });
 });
 

@@ -410,6 +410,18 @@
       cursor: not-allowed;
       filter: grayscale(1);
     }
+    /* Rodent absent mais téléchargeable (Windows) : carte cliquable = bouton de téléchargement */
+    .color-btn.engine-downloadable {
+      border-color: #3a5a7a;
+      background: #dce8f5;
+      color: #1a2a3a;
+    }
+    .color-btn.engine-downloadable:hover { background: #c2d9ee; }
+    .color-btn.engine-downloading {
+      opacity: 0.6;
+      cursor: wait;
+      pointer-events: none;
+    }
 
     /* ── Colonne gauche (Historique) ── */
     #left-panel {

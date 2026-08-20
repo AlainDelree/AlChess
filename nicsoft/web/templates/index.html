@@ -251,7 +251,7 @@
           <div style="display:flex; gap:8px; margin-bottom:14px;">
             <button class="color-btn selected" id="cfg-engine-stockfish" onclick="selectEngine('stockfish')">⚡ Stockfish <span class="engine-tagline" data-i18n="config.tagline.stockfish">Best</span></button>
             <button class="color-btn"          id="cfg-engine-maia"      onclick="selectEngine('maia')">🧠 Maia Chess <span class="engine-tagline" data-i18n="config.tagline.maia">Human</span></button>
-            <button class="color-btn"          id="cfg-engine-rodent"    onclick="selectEngine('rodent')">🐭 Rodent <span class="engine-tagline" data-i18n="config.tagline.rodent">Weak</span></button>
+            <button class="color-btn"          id="cfg-engine-rodent"    onclick="rodentCardClick('cfg')"><span id="cfg-rodent-icon">🐭</span> Rodent <span class="engine-tagline" data-i18n="config.tagline.rodent">Weak</span></button>
           </div>
           <div id="cfg-stockfish-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
                data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
@@ -259,11 +259,8 @@
                data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
           <div id="cfg-rodent-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;">
             <span data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</span>
-            <button id="cfg-rodent-download-btn" type="button" onclick="downloadRodent()"
-                    style="display:none; margin-left:8px; font-size:0.75rem; padding:2px 8px; cursor:pointer;"
-                    data-i18n="engine.rodent.download">Télécharger Rodent IV</button>
-            <span id="cfg-rodent-download-status" style="margin-left:6px; color:#3a5a7a;"></span>
           </div>
+          <span id="cfg-rodent-download-status" style="display:block; margin:-8px 0 12px; font-size:0.78rem; color:#3a5a7a;"></span>
           <div id="cfg-no-engine-alert" style="display:none; font-size:0.85rem; color:#c0392b; margin:8px 0; padding:8px; background:#ffe0e0; border-radius:4px; text-align:center;"
                data-i18n="engine.none.available">Aucun moteur d'échecs n'est disponible</div>
 
@@ -1064,7 +1061,7 @@
         <div style="display:flex; gap:6px;">
           <button class="color-btn selected" id="labo-eng-sf"     onclick="laboSelectEngine('stockfish')">⚡ Stockfish</button>
           <button class="color-btn"          id="labo-eng-maia"   onclick="laboSelectEngine('maia')">🧠 Maia</button>
-          <button class="color-btn"          id="labo-eng-rodent" onclick="laboSelectEngine('rodent')">🐭 Rodent</button>
+          <button class="color-btn"          id="labo-eng-rodent" onclick="rodentCardClick('labo')"><span id="labo-rodent-icon">🐭</span> Rodent</button>
         </div>
         <div id="labo-stockfish-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
              data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
@@ -1072,11 +1069,8 @@
              data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
         <div id="labo-rodent-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;">
           <span data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</span>
-          <button id="labo-rodent-download-btn" type="button" onclick="downloadRodent()"
-                  style="display:none; margin-left:6px; font-size:0.7rem; padding:2px 6px; cursor:pointer;"
-                  data-i18n="engine.rodent.download">Télécharger Rodent IV</button>
-          <span id="labo-rodent-download-status" style="margin-left:4px; color:#3a5a7a;"></span>
         </div>
+        <span id="labo-rodent-download-status" style="display:block; font-size:0.72rem; color:#3a5a7a;"></span>
         <div id="labo-cfg-sf">
           <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
             <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>
