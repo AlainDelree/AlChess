@@ -2290,6 +2290,19 @@ function analyseLlmBuildContext() {
   return { fen, move: move.trim(), pgn: pgn.trim() };
 }
 
+function stripMarkdownForChat(text) {
+  if (!text) return "";
+  return text
+    .replace(/^#{1,6}\s*/gm, "")       // titres #
+    .replace(/\*\*(.+?)\*\*/g, "$1")   // gras **
+    .replace(/__(.+?)__/g, "$1")       // gras __
+    .replace(/\*(.+?)\*/g, "$1")       // italique *
+    .replace(/_(.+?)_/g, "$1")         // italique _
+    .replace(/^[ \t]*[-*+]\s+/gm, "")  // puces de liste
+    .replace(/\n{3,}/g, "\n\n")        // sauts de ligne multiples
+    .trim();
+}
+
 function _analyseLlmRenderBubble(role, text) {
   const history = document.getElementById("analyse-llm-history");
   if (!history) return;
@@ -2341,7 +2354,7 @@ function _analyseLlmDone() {
 }
 
 socket.on("analyse_llm_response", (data) => {
-  const text = (data && data.text) || "";
+  const text = stripMarkdownForChat((data && data.text) || "");
   if (text) {
     _analyseLlmHistory.push({ role: "assistant", content: text });
     _analyseLlmRenderBubble("assistant", text);
