@@ -634,5 +634,15 @@
   "ouvertures.carte_exercices.titre": "📚 Exercices",
   "ouvertures.carte_exercices.desc": "Entraînez-vous aux ouvertures sur l'échiquier physique — le livre répond et corrige vos coups.",
   "ouvertures.carte_explorer.titre": "♟ Explorateur d'ouvertures",
-  "ouvertures.carte_explorer.desc": "Explorez une ouverture coup par coup avec des explications générées par IA."
+  "ouvertures.carte_explorer.desc": "Explorez une ouverture coup par coup avec des explications générées par IA.",
+  "analyse_llm.toggle_title": "Assistant IA",
+  "analyse_llm.titre": "🤖 Assistant IA",
+  "analyse_llm.effacer": "Effacer",
+  "analyse_llm.fermer": "Fermer",
+  "analyse_llm.vide": "Posez une question sur la position affichée.",
+  "analyse_llm.reflexion": "L'IA réfléchit…",
+  "analyse_llm.placeholder": "Posez une question...",
+  "analyse_llm.envoyer": "Envoyer",
+  "analyse_llm.erreur_no_api": "Aucune clé API configurée (voir Paramètres).",
+  "analyse_llm.erreur": "L'assistant IA n'a pas pu répondre. Réessayez."
 }

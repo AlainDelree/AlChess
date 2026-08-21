@@ -866,6 +866,51 @@ def on_explorer_tts_stop(_data):
     stop_speaking()
 
 
+# ── Analyse de partie — panneau IA (drawer, conversation multi-tours, issue #196) ─
+
+# Compteur de génération — incrémenté à chaque nouveau message envoyé depuis le
+# drawer. Un thread en vol dont le compteur capturé ne correspond plus à la
+# valeur courante abandonne silencieusement sa réponse (nouveau message arrivé
+# entre-temps), même mécanisme que tts_engine._tts_generation pour l'Explorateur.
+_analyse_llm_request_id: int = 0
+
+
+def _emit_analyse_llm_response(sid, messages, context, language, my_id):
+    from nicsoft.modes.opening_explorer.llm_explainer import get_analyse_response
+    from nicsoft.core.config_manager import load_config
+
+    cfg = load_config()
+    response, error = get_analyse_response(messages, context, language, cfg)
+    if _analyse_llm_request_id != my_id:
+        return  # nouveau message envoyé entre-temps, réponse obsolète
+    if error:
+        socketio.emit("analyse_llm_error", {"error": error}, to=sid)
+    else:
+        socketio.emit("analyse_llm_response", {"text": response}, to=sid)
+
+
+@socketio.on("analyse_llm_ask")
+def on_analyse_llm_ask(data):
+    """Message envoyé depuis le drawer IA de l'écran Analyse de partie —
+    reçoit l'historique complet de la conversation + le contexte de la
+    position courante (fen/move/pgn), lance la génération LLM en arrière-plan."""
+    global _analyse_llm_request_id
+    data = data or {}
+    messages = data.get("messages") or []
+    context  = data.get("context") or {}
+    language = data.get("language", "fr")
+    if not messages:
+        return
+    _analyse_llm_request_id += 1
+    my_id = _analyse_llm_request_id
+    sid = request.sid
+    threading.Thread(
+        target=_emit_analyse_llm_response,
+        args=(sid, messages, context, language, my_id),
+        daemon=True,
+    ).start()
+
+
 # ── Thread de dispatch des événements ────────────────────────────────────────
 
 def _dispatch_loop():

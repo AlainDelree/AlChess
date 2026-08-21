@@ -881,8 +881,10 @@ socket.on("app_state", (data) => {
   if (isGame) _analyseEmpty = false;
   document.getElementById("screen-game").style.display = isGame ? "grid" : "none";
   document.getElementById("panel-playing").style.display  = data.state === "playing"                    ? "flex" : "none";
-  document.getElementById("panel-gameover").style.display = (data.state === "game_over" && !data.skip) ? "flex" : "none";
+  const isAnalyseReview = data.state === "game_over" && !data.skip;
+  document.getElementById("panel-gameover").style.display = isAnalyseReview ? "flex" : "none";
   document.getElementById("panel-pause").style.display    = data.state === "paused"                     ? "flex" : "none";
+  analyseLlmSetToggleVisible(isAnalyseReview);
   if (data.state === "config" && data.last_player) {
     document.getElementById("cfg-player").value = data.last_player;
   }
@@ -1285,6 +1287,7 @@ socket.on("position_initiale", (data) => {
   document.getElementById("screen-connecting").style.display = "none";
   document.getElementById("screen-game").style.display       = "none";
   document.getElementById("screen-pos-init").style.display   = "flex";
+  analyseLlmSetToggleVisible(false);
   if (data.fen) renderBoardPosInit(data.fen);
 });
 
@@ -2256,6 +2259,106 @@ function renderReview() {
   renderHistory(reviewIdx);
   _updateReviewBestMoveBtn();
 }
+
+// ── Analyse — panneau IA (drawer rétractable, conversation multi-tours, issue #196) ──
+
+let _analyseLlmHistory = [];   // [{role:'user'|'assistant', content:str}] — variable module, pas de persistance entre sessions
+let _analyseLlmOpen    = false;
+let _analyseLlmBusy    = false;
+
+function analyseLlmSetToggleVisible(visible) {
+  const btn = document.getElementById("analyse-llm-toggle");
+  if (btn) btn.style.display = visible ? "flex" : "none";
+  if (!visible && _analyseLlmOpen) analyseLlmToggle();  // referme le drawer si l'écran Analyse se quitte
+}
+
+function analyseLlmToggle() {
+  _analyseLlmOpen = !_analyseLlmOpen;
+  const drawer = document.getElementById("analyse-llm-drawer");
+  if (drawer) drawer.style.display = _analyseLlmOpen ? "flex" : "none";
+}
+
+function analyseLlmBuildContext() {
+  const fen  = reviewFens[reviewIdx] || "";
+  const move = (reviewIdx > 0 && reviewMoves[reviewIdx - 1]) ? (reviewMoves[reviewIdx - 1].san || "") : "";
+  let pgn = "";
+  for (let i = 0; i < reviewMoves.length; i++) {
+    const m = reviewMoves[i];
+    if (m.color === "white") pgn += `${Math.floor(i / 2) + 1}. `;
+    pgn += `${m.san} `;
+  }
+  return { fen, move: move.trim(), pgn: pgn.trim() };
+}
+
+function _analyseLlmRenderBubble(role, text) {
+  const history = document.getElementById("analyse-llm-history");
+  if (!history) return;
+  const empty = document.getElementById("analyse-llm-empty");
+  if (empty) empty.style.display = "none";
+  const bubble = document.createElement("div");
+  const isUser = role === "user";
+  bubble.style.cssText = `background:${isUser ? "#e8f0f8" : "#dcecdc"}; border-radius:8px; padding:8px 12px; align-self:${isUser ? "flex-end" : "flex-start"}; max-width:88%; font-size:0.85rem; color:#1a2a3a; white-space:pre-wrap;`;
+  bubble.textContent = text;
+  history.appendChild(bubble);
+  history.scrollTop = history.scrollHeight;
+}
+
+function analyseLlmClear() {
+  _analyseLlmHistory = [];
+  const history = document.getElementById("analyse-llm-history");
+  if (history) history.innerHTML = '<div id="analyse-llm-empty" style="color:#778; font-size:0.82rem; text-align:center; padding:20px 8px;" data-i18n="analyse_llm.vide">Posez une question sur la position affichée.</div>';
+  i18n.applyToDOM();
+}
+
+function analyseLlmSend() {
+  if (_analyseLlmBusy) return;
+  const input = document.getElementById("analyse-llm-input");
+  if (!input || !input.value.trim()) return;
+  const question = input.value.trim();
+  input.value = "";
+  _analyseLlmHistory.push({ role: "user", content: question });
+  _analyseLlmRenderBubble("user", question);
+
+  _analyseLlmBusy = true;
+  const sendBtn = document.getElementById("analyse-llm-send-btn");
+  if (sendBtn) sendBtn.disabled = true;
+  const spinner = document.getElementById("analyse-llm-spinner");
+  if (spinner) spinner.style.display = "flex";
+
+  socket.emit("analyse_llm_ask", {
+    messages: _analyseLlmHistory,
+    context: analyseLlmBuildContext(),
+    language: i18n.locale(),
+  });
+}
+
+function _analyseLlmDone() {
+  _analyseLlmBusy = false;
+  const sendBtn = document.getElementById("analyse-llm-send-btn");
+  if (sendBtn) sendBtn.disabled = false;
+  const spinner = document.getElementById("analyse-llm-spinner");
+  if (spinner) spinner.style.display = "none";
+}
+
+socket.on("analyse_llm_response", (data) => {
+  const text = (data && data.text) || "";
+  if (text) {
+    _analyseLlmHistory.push({ role: "assistant", content: text });
+    _analyseLlmRenderBubble("assistant", text);
+  }
+  _analyseLlmDone();
+});
+
+socket.on("analyse_llm_error", (data) => {
+  const key = (data && data.error === "no_api_key") ? "analyse_llm.erreur_no_api" : "analyse_llm.erreur";
+  afficherToast(t(key), "warning");
+  _analyseLlmDone();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const inp = document.getElementById("analyse-llm-input");
+  if (inp) inp.addEventListener("keydown", e => { if (e.key === "Enter") analyseLlmSend(); });
+});
 
 // ── Import PGN ────────────────────────────────────────────────────────────
 

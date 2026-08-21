@@ -634,5 +634,15 @@
   "ouvertures.carte_exercices.titre": "📚 Exercises",
   "ouvertures.carte_exercices.desc": "Practice openings on the physical board — the book responds and corrects your moves.",
   "ouvertures.carte_explorer.titre": "♟ Opening Explorer",
-  "ouvertures.carte_explorer.desc": "Explore an opening move by move with AI-generated explanations."
+  "ouvertures.carte_explorer.desc": "Explore an opening move by move with AI-generated explanations.",
+  "analyse_llm.toggle_title": "AI assistant",
+  "analyse_llm.titre": "🤖 AI assistant",
+  "analyse_llm.effacer": "Clear",
+  "analyse_llm.fermer": "Close",
+  "analyse_llm.vide": "Ask a question about the position shown.",
+  "analyse_llm.reflexion": "AI is thinking…",
+  "analyse_llm.placeholder": "Ask a question...",
+  "analyse_llm.envoyer": "Send",
+  "analyse_llm.erreur_no_api": "No API key configured (see Settings).",
+  "analyse_llm.erreur": "The AI assistant could not answer. Please try again."
 }

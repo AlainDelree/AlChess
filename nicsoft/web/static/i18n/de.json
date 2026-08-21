@@ -634,5 +634,15 @@
   "ouvertures.carte_exercices.titre": "📚 Übungen",
   "ouvertures.carte_exercices.desc": "Trainieren Sie Eröffnungen auf dem physischen Brett — das Buch antwortet und korrigiert Ihre Züge.",
   "ouvertures.carte_explorer.titre": "♟ Eröffnungs-Explorer",
-  "ouvertures.carte_explorer.desc": "Erkunden Sie eine Eröffnung Zug für Zug mit KI-generierten Erklärungen."
+  "ouvertures.carte_explorer.desc": "Erkunden Sie eine Eröffnung Zug für Zug mit KI-generierten Erklärungen.",
+  "analyse_llm.toggle_title": "KI-Assistent",
+  "analyse_llm.titre": "🤖 KI-Assistent",
+  "analyse_llm.effacer": "Löschen",
+  "analyse_llm.fermer": "Schließen",
+  "analyse_llm.vide": "Stellen Sie eine Frage zur angezeigten Stellung.",
+  "analyse_llm.reflexion": "Die KI denkt nach…",
+  "analyse_llm.placeholder": "Frage stellen...",
+  "analyse_llm.envoyer": "Senden",
+  "analyse_llm.erreur_no_api": "Kein API-Schlüssel konfiguriert (siehe Einstellungen).",
+  "analyse_llm.erreur": "Der KI-Assistent konnte nicht antworten. Bitte erneut versuchen."
 }

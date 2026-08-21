@@ -155,12 +155,16 @@ def _build_user_prompt(fen, move_san, opening_name, alternatives) -> str:
     )
 
 
-def _call_claude(prompt_sys: str, prompt_user: str, api_key: str, model: str) -> str:
+def _call_claude(prompt_sys: str, messages, api_key: str, model: str) -> str:
+    """messages : liste de {"role": "user"|"assistant", "content": str}, ou une
+    simple chaîne (raccourci équivalent à [{"role": "user", "content": messages}])."""
+    if isinstance(messages, str):
+        messages = [{"role": "user", "content": messages}]
     body = json.dumps({
         "model": model or "claude-haiku-4-5",
         "max_tokens": 300,
         "system": prompt_sys,
-        "messages": [{"role": "user", "content": prompt_user}],
+        "messages": messages,
     }).encode("utf-8")
     req = urllib.request.Request(
         "https://api.anthropic.com/v1/messages",
@@ -177,14 +181,15 @@ def _call_claude(prompt_sys: str, prompt_user: str, api_key: str, model: str) ->
     return data["content"][0]["text"]
 
 
-def _call_openai(prompt_sys: str, prompt_user: str, api_key: str, model: str) -> str:
+def _call_openai(prompt_sys: str, messages, api_key: str, model: str) -> str:
+    """messages : liste de {"role": "user"|"assistant", "content": str}, ou une
+    simple chaîne (raccourci équivalent à [{"role": "user", "content": messages}])."""
+    if isinstance(messages, str):
+        messages = [{"role": "user", "content": messages}]
     body = json.dumps({
         "model": model or "gpt-4o-mini",
         "max_tokens": 300,
-        "messages": [
-            {"role": "system", "content": prompt_sys},
-            {"role": "user", "content": prompt_user},
-        ],
+        "messages": [{"role": "system", "content": prompt_sys}] + messages,
     }).encode("utf-8")
     req = urllib.request.Request(
         "https://api.openai.com/v1/chat/completions",
@@ -274,3 +279,83 @@ def get_chat_response(question, state, language, config):
         return "", []
 
     return extract_arrows((response or "").strip())
+
+
+# ── Écran Analyse de partie — conversation multi-tours (issue #196) ─────────
+
+_ANALYSE_SYSTEM_PROMPTS = {
+    "fr": (
+        "Tu es un entraîneur d'échecs qui aide un joueur à analyser une "
+        "partie déjà jouée. Réponds aux questions en te basant sur la "
+        "position, le coup courant et le PGN fournis en contexte. Sois "
+        "direct et factuel, sans flatterie, sans émoji. Réponds uniquement "
+        "en français."
+    ),
+    "en": (
+        "You are a chess coach helping a player analyse a game they have "
+        "already played. Answer questions based on the position, the "
+        "current move and the PGN given as context. Be direct and "
+        "factual, without flattery, without emoji. Answer only in English."
+    ),
+    "de": (
+        "Du bist ein Schachtrainer, der einem Spieler hilft, eine bereits "
+        "gespielte Partie zu analysieren. Beantworte Fragen anhand der "
+        "Stellung, des aktuellen Zuges und des im Kontext angegebenen PGN. "
+        "Sei direkt und sachlich, ohne Schmeicheleien, ohne Emoji. "
+        "Antworte ausschließlich auf Deutsch."
+    ),
+}
+
+
+def _build_analyse_context_text(context) -> str:
+    context = context or {}
+    fen  = (context.get("fen") or "").strip()
+    move = (context.get("move") or "").strip()
+    pgn  = (context.get("pgn") or "").strip()
+    lines = []
+    if fen:
+        lines.append(f"Position actuelle (FEN) : {fen}")
+    if move:
+        lines.append(f"Coup actuel : {move}")
+    if pgn:
+        lines.append(f"PGN de la partie :\n{pgn}")
+    return "\n".join(lines)
+
+
+def get_analyse_response(messages, context, language, config):
+    """Répond à un tour de conversation multi-tours sur une position de
+    l'écran Analyse de partie. `messages` est l'historique complet
+    ([{"role": "user"|"assistant", "content": str}, ...]) ; `context`
+    contient fen/move/pgn de la position courante, injecté à chaque appel.
+    Retourne (réponse, erreur) — un seul des deux est non vide/non None.
+    Pas de cache (conversation libre, contexte changeant à chaque tour).
+    """
+    api_key = (config or {}).get("llm_api_key", "")
+    if not api_key:
+        return None, "no_api_key"
+
+    clean_messages = [
+        {"role": m.get("role"), "content": (m.get("content") or "").strip()}
+        for m in (messages or [])
+        if m.get("role") in ("user", "assistant") and (m.get("content") or "").strip()
+    ]
+    if not clean_messages:
+        return None, "empty"
+
+    provider = (config or {}).get("llm_provider", "claude")
+    model    = (config or {}).get("llm_model", "")
+    prompt_sys = _ANALYSE_SYSTEM_PROMPTS.get(language, _ANALYSE_SYSTEM_PROMPTS["fr"])
+    context_text = _build_analyse_context_text(context)
+    if context_text:
+        prompt_sys = f"{prompt_sys}\n\nContexte de la position en cours :\n{context_text}"
+
+    try:
+        if provider == "openai":
+            response = _call_openai(prompt_sys, clean_messages, api_key, model)
+        else:
+            response = _call_claude(prompt_sys, clean_messages, api_key, model)
+    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError, TimeoutError) as e:
+        logger.warning(f"[LLM_EXPLAINER] Appel analyse {provider} échoué : {e}")
+        return None, str(e)
+
+    return (response or "").strip(), None
