@@ -212,6 +212,31 @@
       letter-spacing: 3px;
       margin-bottom: 8px;
     }
+    .menu-title-icon { font-size: 1.3em; line-height: 1; }
+    .menu-grid-wrap { display: flex; align-items: flex-start; justify-content: center; }
+    .menu-btn-quitter {
+      background: #b8cce0;
+      color: #555;
+      border: 1px solid #333;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    .menu-autoupdate-wrap {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: #3a5a7a;
+      text-align: center;
+    }
+    .menu-autoupdate-label { cursor: pointer; }
+    .menu-autoupdate-warning {
+      color: #c0392b;
+      font-size: 0.75rem;
+      margin-top: 4px;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .menu-autoupdate-warning.hidden { display: none; }
     .menu-btn {
       width: 300px;
       padding: 14px 20px;

@@ -49,8 +49,9 @@ def at_outils(page):
     if not page.locator("#screen-menu").is_visible():
         page.evaluate("sendAction({type: 'back_menu'})")
         page.wait_for_selector("#screen-menu", state="visible", timeout=10000)
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    page.locator("button[onclick*=\"outils_exercices\"]").click()
+    # Ciblage par attribut data-mode, indépendant de la locale (issue #211, cf. #208 ;
+    # bouton du menu passé de onclick= à data-action/data-mode par l'issue #220)
+    page.locator("button[data-mode=\"outils_exercices\"]").click()
     page.wait_for_selector("#screen-outils-exercices", state="visible", timeout=8000)
     return page
 
@@ -59,8 +60,9 @@ def at_outils(page):
 
 def test_outils_exercices_accessible(at_menu):
     """Clic Outils Exercices → écran visible."""
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_menu.locator("button[onclick*=\"outils_exercices\"]").click()
+    # Ciblage par attribut data-mode, indépendant de la locale (issue #211, cf. #208 ;
+    # bouton du menu passé de onclick= à data-action/data-mode par l'issue #220)
+    at_menu.locator("button[data-mode=\"outils_exercices\"]").click()
     at_menu.wait_for_selector("#screen-outils-exercices", state="visible", timeout=8000)
     assert at_menu.locator("#screen-outils-exercices").is_visible()
 

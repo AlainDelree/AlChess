@@ -44,10 +44,35 @@ function toggleAutoUpdate() {
       const chk = document.getElementById("chk-autoupdate");
       const warning = document.getElementById("autoupdate-warning");
       if (chk) chk.checked = data.active;
-      if (warning) warning.style.display = data.active ? "none" : "block";
+      if (warning) warning.classList.toggle("hidden", data.active);
     })
     .catch(() => {});
 }
+
+// ── DÉLÉGATION D'ÉVÉNEMENTS data-action (issue #220) ───────
+// Remplace les attributs onclick= inline par un unique listener délégué sur
+// document. Un élément cliquable porte data-action="nom_action" (et au
+// besoin data-mode="..." ou d'autres data-* pour les paramètres) plutôt
+// qu'un onclick="...". Modèle à réutiliser tel quel pour les écrans suivants
+// (issue #220) : ajouter simplement un nouveau `case` ci-dessous.
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  switch (el.dataset.action) {
+    case "reconnect_board":
+      sendAction({ type: "reconnect_board" });
+      break;
+    case "menu_card_launch":
+      _menuCardLaunch(el.dataset.mode, el);
+      break;
+    case "send_mode":
+      sendAction({ type: "mode", value: el.dataset.mode });
+      break;
+    case "quit_modal":
+      ouvrirModal("quit", t("modal.quitter_alchess"), t("modal.quitter_btn"), "btn-warning");
+      break;
+  }
+});
 
 // ── MODE TEST ALÉATOIRE ───────────────────────────────────
 const _testMode = (window._NICLINK_TEST || "") === "random";

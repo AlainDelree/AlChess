@@ -110,12 +110,12 @@
         </g>
       </g>
     </svg>
-    <button class="btn-connecter" id="btn-connecter" onclick="sendAction({type:'reconnect_board'})" data-i18n="menu.btn.connecter">⟳ Connecter</button>
+    <button class="btn-connecter" id="btn-connecter" data-action="reconnect_board" data-i18n="menu.btn.connecter">⟳ Connecter</button>
   </div>
 
-  <div class="menu-title"><span style="font-size:1.3em; line-height:1;">♜</span> AlChess</div>
+  <div class="menu-title"><span class="menu-title-icon">♜</span> AlChess</div>
 
-  <div style="display:flex; align-items:flex-start; justify-content:center;">
+  <div class="menu-grid-wrap">
   <div class="menu-grid">
 
     <!-- ── Colonne GAUCHE : Jouer ── -->
@@ -124,7 +124,7 @@
 
       <div class="menu-btn-wrap">
         <div class="menu-card menu-card-primary">
-          <div class="menu-card-head" onclick="_menuCardLaunch('pedagogique', this)">♟ <span data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</span></div>
+          <div class="menu-card-head" data-action="menu_card_launch" data-mode="pedagogique">♟ <span data-i18n="menu.btn.pedagogique">🎓 Mode Pédagogique</span></div>
           <div class="menu-card-sep"></div>
           <div class="menu-card-foot">
             <label class="menu-card-chk-label">
@@ -137,13 +137,13 @@
       </div>
 
       <div class="menu-btn-wrap" id="wrap-hh">
-        <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled onclick="sendAction({type:'mode', value:'humain'})" data-i18n="menu.btn.humain">⚔️ Humain vs Humain</button>
+        <button class="menu-btn menu-btn-humain" data-needs-board data-physical-only disabled data-action="send_mode" data-mode="humain" data-i18n="menu.btn.humain">⚔️ Humain vs Humain</button>
         <div class="menu-btn-desc" id="desc-humain" data-i18n="menu.desc.humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
       </div>
 
       <div class="menu-btn-wrap" id="wrap-labo">
         <div class="menu-card menu-card-secondary">
-          <div class="menu-card-head" onclick="_menuCardLaunch('labo', this)">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></div>
+          <div class="menu-card-head" data-action="menu_card_launch" data-mode="labo">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></div>
           <div class="menu-card-sep"></div>
           <div class="menu-card-foot">
             <label class="menu-card-chk-label">
@@ -156,7 +156,7 @@
       </div>
 
       <div class="menu-btn-wrap" id="wrap-ouvertures">
-        <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'ouvertures'})" data-i18n="menu.btn.ouvertures">📖 Ouvertures</button>
+        <button class="menu-btn menu-btn-secondary" data-action="send_mode" data-mode="ouvertures" data-i18n="menu.btn.ouvertures">📖 Ouvertures</button>
         <div class="menu-btn-desc" id="desc-ouvertures" data-i18n="menu.desc.ouvertures">Entraînez-vous aux ouvertures avec un livre de Grands Maîtres ou explorez-les coup par coup avec des explications générées par IA.</div>
       </div>
 
@@ -167,22 +167,22 @@
       <div class="menu-col-title" data-i18n="menu.col.outils">Outils</div>
 
       <div class="menu-btn-wrap">
-        <button class="menu-btn menu-btn-analyse" onclick="sendAction({type:'mode', value:'analyse'})" data-i18n="menu.btn.analyse">🖥 📊 Analyse de partie</button>
+        <button class="menu-btn menu-btn-analyse" data-action="send_mode" data-mode="analyse" data-i18n="menu.btn.analyse">🖥 📊 Analyse de partie</button>
         <div class="menu-btn-desc" id="desc-analyse" data-i18n="menu.desc.analyse">Importez un fichier PGN (depuis Chess.com, Lichess…) et rejouez la partie coup par coup avec l'analyse du moteur.</div>
       </div>
 
       <div class="menu-btn-wrap">
-        <button class="menu-btn menu-btn-retrans" onclick="sendAction({type:'mode', value:'retranscription'})" data-i18n="menu.btn.retranscrire">🖥 ✏️ Retranscrire</button>
+        <button class="menu-btn menu-btn-retrans" data-action="send_mode" data-mode="retranscription" data-i18n="menu.btn.retranscrire">🖥 ✏️ Retranscrire</button>
         <div class="menu-btn-desc" id="desc-retrans" data-i18n="menu.desc.retrans">Retranscrivez une partie jouée sur papier. Saisissez les coups sur l'échiquier virtuel et exportez le PGN.</div>
       </div>
 
       <div class="menu-btn-wrap">
-        <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'outils_exercices'})" data-i18n="menu.btn.outils">🛠️ Outils Exercices</button>
+        <button class="menu-btn menu-btn-secondary" data-action="send_mode" data-mode="outils_exercices" data-i18n="menu.btn.outils">🛠️ Outils Exercices</button>
         <div class="menu-btn-desc" id="desc-outils" data-i18n="menu.desc.outils">Importez vos lignes PGN, convertissez SAN&nbsp;→&nbsp;UCI et gérez le catalogue d'ouvertures.</div>
       </div>
 
       <div class="menu-btn-wrap">
-        <button class="menu-btn menu-btn-secondary" onclick="sendAction({type:'mode', value:'parametres'})" data-i18n="menu.btn.parametres">⚙ Paramètres</button>
+        <button class="menu-btn menu-btn-secondary" data-action="send_mode" data-mode="parametres" data-i18n="menu.btn.parametres">⚙ Paramètres</button>
         <div class="menu-btn-desc" id="desc-parametres" data-i18n="menu.desc.parametres">Configurez l'accès LLM (clé API) et la synthèse vocale (TTS).</div>
       </div>
 
@@ -191,14 +191,14 @@
   </div><!-- fin menu-grid -->
   </div><!-- fin flex menu-grid -->
 
-  <button class="menu-btn" onclick="ouvrirModal('quit', t('modal.quitter_alchess'), t('modal.quitter_btn'), 'btn-warning')" style="background:#b8cce0; color:#555; border:1px solid #333; font-size:0.85rem; margin-top:8px;" data-i18n="menu.btn.quitter">✕ Quitter</button>
+  <button class="menu-btn menu-btn-quitter" data-action="quit_modal" data-i18n="menu.btn.quitter">✕ Quitter</button>
 
-  <div style="margin-top:12px; font-size:0.8rem; color:#3a5a7a; text-align:center;">
-    <label style="cursor:pointer;">
+  <div class="menu-autoupdate-wrap">
+    <label class="menu-autoupdate-label">
       <input type="checkbox" id="chk-autoupdate" {% if autoupdate_active %}checked{% endif %} onchange="toggleAutoUpdate()">
       <span data-i18n="menu.autoupdate.label">Mises à jour automatiques</span>
     </label>
-    <div id="autoupdate-warning" style="display:{% if autoupdate_active %}none{% else %}block{% endif %}; color:#c0392b; font-size:0.75rem; margin-top:4px; max-width:420px; margin-left:auto; margin-right:auto;" data-i18n="menu.autoupdate.warning">
+    <div id="autoupdate-warning" class="menu-autoupdate-warning{% if autoupdate_active %} hidden{% endif %}" data-i18n="menu.autoupdate.warning">
       Les mises à jour automatiques sont désactivées. Vous ne recevrez pas les correctifs de sécurité ni les nouvelles fonctionnalités.
     </div>
   </div>
