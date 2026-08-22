@@ -27,7 +27,7 @@ from nicsoft.engine.players import (
     normalize_player_name,
 )
 from nicsoft.engine.board_utils import wait_for_initial_position, san_ep
-from nicsoft.web.server import send_event, get_action, set_app_state, _game_state
+from nicsoft.web.server import send_event, get_action, set_app_state, set_history, get_history
 from nicsoft.niclink import NicLinkManager
 
 logger = logging.getLogger("NL play Human")
@@ -889,9 +889,10 @@ class GameWeb(threading.Thread):
     def _handle_pause(self):
         """Gère la pause interactive. Retourne changer_couleur (bool)."""
         self.nl_inst.turn_off_all_leds()
+        history, history_fen = get_history()
         set_app_state("paused", {
-            "history_fen":   _game_state.get("history_fen", []),
-            "history_moves": _game_state.get("history", []),
+            "history_fen":   history_fen,
+            "history_moves": history,
         })
 
         bm = self._get_best_move_quick()
@@ -1004,8 +1005,7 @@ class GameWeb(threading.Thread):
 
         set_app_state("playing")
         # Resynchroniser _game_state avec move_stack (source de vérité)
-        _game_state["history"]     = list(resume_moves)
-        _game_state["history_fen"] = list(resume_fens)
+        set_history(list(resume_moves), list(resume_fens))
         set_app_state("playing")
         send_event("resume", {"history_fen": resume_fens, "history_moves": resume_moves})
         return changer_couleur

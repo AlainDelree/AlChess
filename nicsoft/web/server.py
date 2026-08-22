@@ -87,9 +87,11 @@ _game_state: dict = {}
 # on_connect() lit plusieurs clés (fen/history/move/turn/feedback) qui
 # doivent rester cohérentes entre elles à un instant donné. Ce verrou
 # n'englobe jamais un emit()/put() — uniquement la mutation du dict.
-# Note : _game_state est aussi importé et muté directement (par référence,
-# hors verrou) par human.py, pedagogique.py et game_manager.py — hors
-# périmètre de cette issue, qui porte sur server.py.
+# Note : _game_state est aussi importé et lu directement (par référence,
+# hors verrou) par human.py et pedagogique.py pour des lectures multi-clés
+# (history + history_fen) — voir get_history() ci-dessous, qui protège ces
+# accès sous _game_state_lock. Les écritures directes (human.py,
+# game_manager.py) passent par set_history().
 _game_state_lock = threading.RLock()
 
 # État de l application : menu / config / playing / game_over
@@ -1097,6 +1099,31 @@ def send_event(event_type: str, data: dict) -> None:
         elif event_type == "game_over":
             _game_state.pop("feedback", None)
     event_queue.put({"type": event_type, "data": data})
+
+
+def set_history(history: list, history_fen: list) -> None:
+    """
+    API publique — remplace atomiquement _game_state["history"] et
+    _game_state["history_fen"]. À utiliser par tout module hors server.py
+    (human.py, game_manager.py) au lieu de muter _game_state directement,
+    pour ne pas s'entrelacer avec les séquences composées de send_event()
+    ou la lecture multi-clés de on_connect().
+    """
+    with _game_state_lock:
+        _game_state["history"] = history
+        _game_state["history_fen"] = history_fen
+
+
+def get_history() -> tuple:
+    """
+    API publique — lit atomiquement (history, history_fen) depuis
+    _game_state. À utiliser par tout module hors server.py au lieu de
+    lire _game_state["history"]/["history_fen"] séparément, pour éviter
+    d'observer les deux clés à des instants différents pendant qu'un
+    thread SocketIO les mute via send_event().
+    """
+    with _game_state_lock:
+        return _game_state.get("history", []), _game_state.get("history_fen", [])
 
 
 def get_action(timeout: float = 0.0):

@@ -318,8 +318,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
         if not virtual:
             _wait_initial_position_web(nl_inst)
         _nl_inst_ref = nl_inst
-        web_server._game_state["history"]     = []
-        web_server._game_state["history_fen"] = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]
+        web_server.set_history([], ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"])
 
         game = GameWeb(nl_inst, white_name=white_name, black_name=black_name,
                        default_game_type=game_type)

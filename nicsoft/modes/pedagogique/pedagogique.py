@@ -713,7 +713,7 @@ class Game(threading.Thread):
         Gère la pause interactive — manuelle ou automatique (après blunder/erreur).
         Retourne (changer_couleur: bool, reprendre: bool).
         """
-        from nicsoft.web.server import set_app_state, _game_state
+        from nicsoft.web.server import set_app_state, get_history
 
         auto = qualite is not None
         if DEBUG_MODE: print(f"\n  [PAUSE] Partie suspendue {'(auto: ' + qualite + ')' if auto else '(manuelle)'}.")
@@ -721,9 +721,10 @@ class Game(threading.Thread):
 
         bm = best_move or getattr(self, "_last_best_move", None)
 
+        history, history_fen = get_history()
         set_app_state("paused", {
-            "history_fen":   _game_state.get("history_fen", []),
-            "history_moves": _game_state.get("history", []),
+            "history_fen":   history_fen,
+            "history_moves": history,
         })
         send_event("pause", {
             "playing_white":   self.playing_white,
@@ -857,9 +858,10 @@ class Game(threading.Thread):
 
         # ── Utiliser _game_state["history"] comme source de vérité ──
         # (move_stack peut être vide si game_board reconstruit depuis FEN)
-        from nicsoft.web.server import _game_state
-        resume_moves = list(_game_state.get("history", []))
-        resume_fens  = list(_game_state.get("history_fen", ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]))
+        from nicsoft.web.server import get_history
+        _history, _history_fen = get_history()
+        resume_moves = list(_history)
+        resume_fens  = list(_history_fen) if _history_fen else ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]
 
         if changer_couleur:
             new_human_color = "black" if self.playing_white else "white"
