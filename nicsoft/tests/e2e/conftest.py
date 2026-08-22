@@ -82,12 +82,12 @@ def page(server_url):
         # L'overlay de démarrage disparaît 5s après la connexion SocketIO
         pg.wait_for_selector("#startup-overlay", state="hidden", timeout=15000)
 
-        # Activer le mode virtuel (côté JS — active immédiatement les boutons)
-        pg.check("#chk-virtual-mode")
-
-        # Vérifier que le bouton Pédagogique est débloqué
+        # Mode virtuel coché par défaut sur la carte Pédagogique (issue #205 —
+        # le bouton unique "menu-btn-primary" + checkbox globale #chk-virtual-mode
+        # ont été remplacés par une checkbox "Mode virtuel" par carte lors du
+        # refactoring des cartes menu Pédagogique/Labo).
         pg.wait_for_selector(
-            "button.menu-btn-primary:not([disabled])",
+            ".menu-card-primary .menu-card-head",
             timeout=5000,
         )
 

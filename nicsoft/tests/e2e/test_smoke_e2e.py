@@ -33,7 +33,7 @@ def test_titre_alchess(at_menu):
 
 def test_mode_virtuel_active_bouton_pedagogique(at_menu):
     """Mode virtuel coché → bouton Pédagogique non-disabled."""
-    btn = at_menu.locator("button.menu-btn-primary")
+    btn = at_menu.locator(".menu-card-primary .menu-card-head")
     assert not btn.is_disabled(), "Le bouton Pédagogique doit être actif en mode virtuel"
 
 
@@ -41,7 +41,7 @@ def test_mode_virtuel_active_bouton_pedagogique(at_menu):
 
 def test_clic_pedagogique_ouvre_config(at_menu):
     """Clic Pédagogique → écran config affiché."""
-    at_menu.locator("button.menu-btn-primary").click()
+    at_menu.locator(".menu-card-primary .menu-card-head").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
     assert at_menu.locator("#screen-config").is_visible()
     go_menu(at_menu)
@@ -49,7 +49,7 @@ def test_clic_pedagogique_ouvre_config(at_menu):
 
 def test_retour_depuis_config(at_menu):
     """Config pédagogique → Retour → menu."""
-    at_menu.locator("button.menu-btn-primary").click()
+    at_menu.locator(".menu-card-primary .menu-card-head").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
     at_menu.locator("#screen-config button", has_text="Retour").click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
@@ -58,7 +58,7 @@ def test_retour_depuis_config(at_menu):
 
 def test_pedagogique_demarrer_puis_retour_menu(at_menu):
     """Config pédagogique → Démarrer → écran jeu → Retour au menu."""
-    at_menu.locator("button.menu-btn-primary").click()
+    at_menu.locator(".menu-card-primary .menu-card-head").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
 
     # Démarrer la partie (VirtualBoard + Stockfish) — cibler le bouton dans l'écran config pédagogique
@@ -158,7 +158,7 @@ def test_transition_analyse_puis_menu(at_menu):
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
 
     # Pédagogique config → vérifier état propre
-    at_menu.locator("button.menu-btn-primary").click()
+    at_menu.locator(".menu-card-primary .menu-card-head").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
     assert at_menu.locator("#screen-config").is_visible()
     go_menu(at_menu)

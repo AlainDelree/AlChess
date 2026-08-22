@@ -11,6 +11,7 @@ import logging
 import os
 import pathlib
 import queue
+import re
 import secrets
 import sys
 import threading
@@ -55,16 +56,21 @@ def _get_or_create_secret_key() -> str:
 
 
 # Origines autorisées pour les connexions SocketIO — le serveur ne sert
-# l'interface qu'en local (127.0.0.1:5000), donc pas besoin d'ouvrir le
-# CORS à "*" (issue #202).
-CORS_ALLOWED_ORIGINS = [
-    "http://127.0.0.1:5000",
-    "http://localhost:5000",
-]
+# l'interface qu'en local (127.0.0.1/localhost), donc pas besoin d'ouvrir le
+# CORS à "*" (issue #202). Le port est choisi dynamiquement au démarrage
+# (voir alchess._find_free_port), donc validé par motif plutôt que par une
+# liste figée sur 5000 — sinon toute connexion SocketIO est rejetée dès que
+# le port par défaut est occupé (issue #205).
+_ALLOWED_ORIGIN_RE = re.compile(r"^https?://(127\.0\.0\.1|localhost):\d+$")
+
+
+def _is_allowed_origin(origin: str) -> bool:
+    return bool(origin) and bool(_ALLOWED_ORIGIN_RE.match(origin))
+
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = _get_or_create_secret_key()
-socketio = SocketIO(app, cors_allowed_origins=CORS_ALLOWED_ORIGINS, async_mode="threading", )
+socketio = SocketIO(app, cors_allowed_origins=_is_allowed_origin, async_mode="threading", )
 
 # Queue pour recevoir les événements du module Python
 event_queue: queue.Queue = queue.Queue()
