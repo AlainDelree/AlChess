@@ -121,21 +121,29 @@ def test_retour_depuis_analyse(at_menu):
 
 # ── Navigation Exercices ───────────────────────────────────────────────────────
 
+def go_exercices(page):
+    """Menu → Ouvertures → carte Exercices (chemin en 2 étapes depuis issue #141).
+
+    Sélecteurs indépendants de la locale (issue #212, même approche que #208) :
+    #wrap-ouvertures button est un id unique, et le fragment d'attribut
+    onclick*="'exercices'" ne dépend pas du texte affiché à l'écran.
+    """
+    page.locator("#wrap-ouvertures button").click()
+    page.wait_for_selector("#screen-ouvertures", state="visible", timeout=5000)
+    page.locator(".outil-card-clickable[onclick*=\"'exercices'\"]").click()
+    page.wait_for_selector("#screen-exercices", state="visible", timeout=5000)
+
+
 def test_exercices_liste_affichee(at_menu):
-    """Exercices → liste des ouvertures s'affiche."""
-    btn_ex = at_menu.locator("button", has_text="📚 Exercices")
-    if btn_ex.is_disabled():
-        pytest.skip("Exercices nécessite un échiquier ou mode virtuel non détecté")
-    btn_ex.click()
-    at_menu.wait_for_selector("#screen-exercices", state="visible", timeout=5000)
+    """Menu → Ouvertures → Exercices : liste des ouvertures s'affiche."""
+    go_exercices(at_menu)
     assert at_menu.locator("#screen-exercices").is_visible()
 
 
 def test_retour_depuis_exercices(at_menu):
     """Exercices → retour menu propre."""
     if not at_menu.locator("#screen-exercices").is_visible():
-        at_menu.locator("button", has_text="📚 Exercices").click()
-        at_menu.wait_for_selector("#screen-exercices", state="visible", timeout=5000)
+        go_exercices(at_menu)
 
     at_menu.locator("#screen-exercices button", has_text="Menu").first.click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
