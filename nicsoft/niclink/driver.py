@@ -28,9 +28,12 @@ import numpy as np
 import numpy.typing as npt
 
 try:
-    from . import hid_backend as _niclink  # backend Python pur, multiplateforme
-except ImportError:
-    from . import _niclink  # fallback : extension C++ compilée (.so)
+    from . import hid_backend as _niclink  # backend Python pur (hidapi), multiplateforme
+except ImportError as exc:
+    raise ImportError(
+        "Impossible de charger le backend hidapi (nicsoft/niclink/hid_backend.py). "
+        "Vérifiez que le paquet 'hidapi' est installé (pip install hidapi)."
+    ) from exc
 
 # mine
 from .nl_exceptions import ExitNicLink, IllegalMove, NoMove, NoNicLinkFen
