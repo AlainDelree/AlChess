@@ -1,7 +1,7 @@
-# This workflow will install Python dependencies, it can not run test's bc pybind11 jank
+# This workflow installs Python dependencies and runs the pytest suite (hors e2e et hardware).
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
-name: insall NicLink python deps
+name: NicLink python deps + tests
 
 on:
   push:
@@ -28,4 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Run tests (hors e2e et hardware)
+      run: |
+        pytest --ignore=nicsoft/tests/e2e -m "not hardware"
 
