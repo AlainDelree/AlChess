@@ -11,16 +11,16 @@ Stack : Python 3.12, Flask-SocketIO (backend), vanilla JS + HTML/CSS (frontend),
 ## Démarrage de session
 
 Toujours faire en début de session :
-1. Lire `TACHES.md` — bugs actifs et fonctionnalités à venir
-2. Lire `TESTS.md` — checklist de régression
-3. `git status` avant toute modification
-4. Vérifier que `CONTEXTE.md` est à jour (architecture, chemins, état actuel) — le corriger si nécessaire et mettre à jour la date
+1. Lire `TESTS.md` — checklist de régression
+2. `git status` avant toute modification
+3. Vérifier que `CONTEXTE.md` est à jour (architecture, chemins, état actuel) — le corriger si nécessaire et mettre à jour la date
+
+`TACHES.md` reste la référence pour les bugs actifs et fonctionnalités à venir, mais sa mise à jour n'est plus automatique : elle se fait manuellement, ou sur demande explicite d'Alain.
 
 ## Workflow de travail
 
-- Mettre à jour `TACHES.md` immédiatement après chaque correction (déplacer le bug dans "Bugs résolus récemment", noter le commit).
 - Committer après chaque étape stable, avec un message descriptif.
-- En cas d'interruption : l'état exact est dans `git log --oneline` (dernière étape stable) et `TACHES.md` (ce qui reste à faire).
+- En cas d'interruption : l'état exact est dans `git log --oneline` (dernière étape stable) et `TACHES.md` (ce qui reste à faire, si à jour).
 
 
 ## Commandes
@@ -70,7 +70,7 @@ Navigateur     →  SocketIO action  →  server.py  →  action_queue / menu_qu
 | `nicsoft/web/static/app.js` | Toute la logique JS frontend |
 | `nicsoft/web/templates/index.html` | Interface HTML unique (SPA) |
 | `nicsoft/niclink/driver.py` | Driver USB Chessnut Air, thread `_fen_reader_thread` |
-| `nicsoft/niclink/_niclink.cpython-*.so` | Extension C++ compilée (EasyLinkSDK) |
+| `nicsoft/niclink/hid_backend.py` | Backend USB HID (Python pur, hidapi) |
 | `nicsoft/niclink/virtual_board.py` | Simulation d'échiquier sans hardware |
 
 ### Machine d'état (`_app_state`)
@@ -124,9 +124,10 @@ Langues actives : `SUPPORTED_LOCALES = ['fr', 'en', 'de']` dans `nicsoft/web/sta
 ```bash
 git status                          # avant de commencer
 git add <fichiers> && git commit -m "description"   # après chaque étape stable
-git push                            # après chaque session stable
 git checkout .                      # annuler les modifications non commitées
 ```
+
+Le push reste à l'appréciation du contexte : en session Claude Code directe d'Alain, il peut être fait normalement après vérification. En session Bridge_Agent, il est explicitement interdit à CCL — Alain pousse lui-même après revue des commits.
 
 Effectuer un backup pinné avant toute modification importante :
 ```bash
@@ -149,30 +150,4 @@ python -m nicsoft.utils.backup_manager --pin --label "avant-refactoring-X"
 Le Chessnut Air nécessite un quirk usbhid :  
 `/etc/modprobe.d/chessnut.conf` → `options usbhid quirks=0x2d80:0x8003:0x40`
 
-Le `.so` C++ (`nicsoft/niclink/_niclink.cpython-*.so`) est compilé depuis `src/` avec CMake. Sur nouveau PC, recompiler depuis `src/` selon `INSTALLATION_ALCHESS.md` section 4c.
-
-## Bridge inter-agents (Linux ↔ Windows)
-
-Communication via GitHub Issues du repo AlainDelree/AlChess.
-
-**"lis tes tâches"** :
-```bash
-gh issue list --repo AlainDelree/AlChess --label "for-linux" --state open
-```
-
-**"traite la tâche #N"** :
-```bash
-gh issue view N --repo AlainDelree/AlChess
-# effectue la tâche, puis :
-gh issue comment N --repo AlainDelree/AlChess --body "Résultat : ..."
-gh issue close N --repo AlainDelree/AlChess
-```
-
-**"crée une tâche pour Windows"** :
-```bash
-gh issue create \
-  --repo AlainDelree/AlChess \
-  --title "TITRE" \
-  --body "## Contexte\n\n## Tâche demandée\n\n## Résultat attendu" \
-  --label "bridge,for-windows"
-```
+Le backend USB est `nicsoft/niclink/hid_backend.py` (Python pur, via `hidapi`) — aucune compilation requise.
