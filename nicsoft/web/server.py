@@ -81,7 +81,22 @@ action_queue: queue.Queue = queue.Queue()
 # Dernier état connu — renvoyé au navigateur qui se (re)connecte
 _game_state: dict = {}
 
+# Protège les séquences composées sur _game_state : send_event() y fait des
+# lecture-modification-écriture (setdefault+append, pop conditionnel,
+# lecture de hist[-1] avant mutation dans la branche "qualite") et
+# on_connect() lit plusieurs clés (fen/history/move/turn/feedback) qui
+# doivent rester cohérentes entre elles à un instant donné. Ce verrou
+# n'englobe jamais un emit()/put() — uniquement la mutation du dict.
+# Note : _game_state est aussi importé et muté directement (par référence,
+# hors verrou) par human.py, pedagogique.py et game_manager.py — hors
+# périmètre de cette issue, qui porte sur server.py.
+_game_state_lock = threading.RLock()
+
 # État de l application : menu / config / playing / game_over
+# Simple chaîne remplacée par affectation atomique (GIL) ; aucune séquence
+# composée locale à server.py ne la manipule (le "prev_state = _app_state"
+# de on_action() est un instantané local volontaire, pas une race) — pas de
+# verrou nécessaire ici.
 _app_state: str = "menu"
 
 # Queue pour les actions du menu (choix mode, config joueur, etc.)
@@ -92,12 +107,28 @@ menu_queue: queue.Queue = queue.Queue()
 _board_status: str | None = None
 _board_error_message: str = ""
 
+# Protège le couple (_board_status, _board_error_message) : toujours écrits
+# ensemble dans send_event() et lus ensemble dans on_connect() et
+# set_app_state() — sans verrou, un lecteur pourrait observer un statut
+# "error" combiné à l'ancien message (ou l'inverse).
+_board_status_lock = threading.Lock()
+
 # Référence vers le VirtualBoard actif — None si mode physique
 # Assignée par __main__.py via set_virtual_board() avant le lancement d'une partie
+# Simple pointeur (affectation atomique sous le GIL) : on_virtual_move() le
+# lit une seule fois dans une variable locale avant usage pour éviter un
+# TOCTOU si set_virtual_board(None) survient entre la vérification et
+# l'appel post_move() — pas besoin de verrou pour ça.
 _virtual_board_ref = None
 
 # Disponibilité des moteurs — mise en cache pour éviter les vérifications
 # répétées à chaque reconnexion du navigateur. None = pas encore vérifié.
+# Lecture-teste-calcule-écrit non protégée, volontairement : la
+# computation (vérif fichier / handshake UCI) est idempotente et sans
+# effet de bord partagé, donc une course au premier appel ne fait au pire
+# que la recalculer deux fois — jamais d'état incohérent. Un verrou
+# obligerait à le tenir pendant l'appel bloquant (handshake UCI/subprocess),
+# ce qui est proscrit ici.
 _stockfish_available_cache: bool | None = None
 _maia_available_cache: bool | None = None
 _rodent_available_cache: bool | None = None
@@ -281,9 +312,10 @@ def _get_game_folders():
 def on_connect():
     global _disconnect_timer
     # Annuler le timer de déconnexion si le navigateur revient
-    if _disconnect_timer and _disconnect_timer.is_alive():
-        _disconnect_timer.cancel()
-        _disconnect_timer = None
+    with _disconnect_timer_lock:
+        if _disconnect_timer and _disconnect_timer.is_alive():
+            _disconnect_timer.cancel()
+            _disconnect_timer = None
     logger.info("[WEB] Navigateur connecté")
     emit("status", {"message": "Connecté au serveur NicLink", "message_key": "status.connecte"})
     emit("app_state", {"state": _app_state})
@@ -292,43 +324,67 @@ def on_connect():
     emit("stockfish_status", {"available": _get_stockfish_available()})
     emit("maia_status", {"available": _get_maia_available()})
     emit("rodent_status", {"available": _get_rodent_available(), "downloadable": sys.platform == "win32"})
-    # Renvoyer le statut échiquier au navigateur qui arrive/rafraîchit
-    if _board_status == "ok":
+    # Renvoyer le statut échiquier au navigateur qui arrive/rafraîchit —
+    # instantané sous verrou pour ne jamais associer un statut à l'ancien
+    # message (ou l'inverse).
+    with _board_status_lock:
+        board_status, board_error_message = _board_status, _board_error_message
+    if board_status == "ok":
         emit("board_ok", {})
-    elif _board_status == "error":
-        emit("board_error", {"message": _board_error_message})
-    # Renvoyer l'état courant au navigateur qui arrive/rafraîchit
-    if _game_state.get("fen"):
-        emit("init",  _game_state.get("init", {}))
-        if _game_state.get("history"):
-            emit("history", {"moves": _game_state["history"]})
-        if _game_state.get("move"):
-            emit("move",  _game_state["move"])
-        if _game_state.get("turn"):
-            emit("turn",  _game_state["turn"])
-        if _game_state.get("feedback"):
-            emit("feedback", _game_state["feedback"])
+    elif board_status == "error":
+        emit("board_error", {"message": board_error_message})
+    # Renvoyer l'état courant au navigateur qui arrive/rafraîchit —
+    # instantané sous verrou pour que fen/history/move/turn/feedback
+    # restent cohérents entre eux même si send_event() mute _game_state
+    # en parallèle depuis un autre thread.
+    with _game_state_lock:
+        fen      = _game_state.get("fen")
+        init     = _game_state.get("init", {})
+        history  = _game_state.get("history")
+        move     = _game_state.get("move")
+        turn     = _game_state.get("turn")
+        feedback = _game_state.get("feedback")
+    if fen:
+        emit("init", init)
+        if history:
+            emit("history", {"moves": history})
+        if move:
+            emit("move", move)
+        if turn:
+            emit("turn", turn)
+        if feedback:
+            emit("feedback", feedback)
 
 
 # Délai avant fermeture après déconnexion (secondes)
 _DISCONNECT_TIMEOUT = 5.0
 _disconnect_timer: threading.Timer = None
 
+# Protège _disconnect_timer : on_connect() et on_disconnect() font tous les
+# deux un cycle vérifier-vivant → annuler → (re)créer/remettre à None ; un
+# enchaînement rapide déconnexion/reconnexion (ex. rafraîchissement de page)
+# peut faire tourner les deux handlers sur des threads différents en même
+# temps, ce qui pourrait laisser courir un timer qu'on croyait annulé.
+# Timer.cancel()/.start() ne bloquent pas — tenir ce verrou pendant l'appel
+# est donc sans risque de contention.
+_disconnect_timer_lock = threading.Lock()
+
 @socketio.on("disconnect")
 def on_disconnect():
     global _disconnect_timer
     logger.info("[WEB] Navigateur déconnecté")
-    # Annuler le timer précédent si existe
-    if _disconnect_timer and _disconnect_timer.is_alive():
-        _disconnect_timer.cancel()
-    # Lancer un timer — si pas de reconnexion dans le délai, quitter
-    def _shutdown():
-        logger.info("[WEB] Aucune reconnexion — fermeture du programme.")
-        import os
-        os._exit(0)
-    _disconnect_timer = threading.Timer(_DISCONNECT_TIMEOUT, _shutdown)
-    _disconnect_timer.daemon = True
-    _disconnect_timer.start()
+    with _disconnect_timer_lock:
+        # Annuler le timer précédent si existe
+        if _disconnect_timer and _disconnect_timer.is_alive():
+            _disconnect_timer.cancel()
+        # Lancer un timer — si pas de reconnexion dans le délai, quitter
+        def _shutdown():
+            logger.info("[WEB] Aucune reconnexion — fermeture du programme.")
+            import os
+            os._exit(0)
+        _disconnect_timer = threading.Timer(_DISCONNECT_TIMEOUT, _shutdown)
+        _disconnect_timer.daemon = True
+        _disconnect_timer.start()
 
 
 def _reconnect_board() -> None:
@@ -403,16 +459,18 @@ def on_virtual_move(data):
     data = {"uci": "e2e4"}
     Transmis au VirtualBoard actif via post_move().
     """
-    global _virtual_board_ref
     uci = data.get("uci", "")
     if not uci:
         logger.warning("virtual_move reçu sans UCI")
         return
-    if _virtual_board_ref is None:
+    # Une seule lecture du global dans une variable locale : évite un TOCTOU
+    # si set_virtual_board(None) survient entre la vérification et l'appel.
+    vb = _virtual_board_ref
+    if vb is None:
         logger.warning("virtual_move reçu mais aucun VirtualBoard actif")
         return
     logger.debug("virtual_move reçu : %s", uci)
-    _virtual_board_ref.post_move(uci)
+    vb.post_move(uci)
 
 
 def set_virtual_board(vb) -> None:
@@ -618,6 +676,14 @@ def on_outils_san_to_uci(data):
 _session_basket: list[dict] = []
 _BASKET_MAX = 10
 
+# Protège _session_basket : on_basket_add() fait append() + vérification de
+# longueur + pop(0) conditionnel, et on_basket_load() fait une vérification
+# de borne suivie d'un accès par index — deux handlers déclenchés
+# indépendamment par le navigateur, qui peuvent s'entrelacer (ex. un
+# basket_load() lisant un index pendant qu'un basket_add() concurrent fait
+# déborder la corbeille et décale les indices).
+_session_basket_lock = threading.Lock()
+
 
 @socketio.on("basket_add")
 def on_basket_add(data):
@@ -625,20 +691,21 @@ def on_basket_add(data):
     pgn   = data.get("pgn", "").strip()
     if not pgn:
         return
-    _session_basket.append({"label": label, "pgn": pgn})
-    if len(_session_basket) > _BASKET_MAX:
-        _session_basket.pop(0)
-    socketio.emit("basket_updated", {"entries": [{"label": e["label"]} for e in _session_basket]})
+    with _session_basket_lock:
+        _session_basket.append({"label": label, "pgn": pgn})
+        if len(_session_basket) > _BASKET_MAX:
+            _session_basket.pop(0)
+        entries = [{"label": e["label"]} for e in _session_basket]
+    socketio.emit("basket_updated", {"entries": entries})
 
 
 @socketio.on("basket_load")
 def on_basket_load(data):
     idx = data.get("idx", -1)
-    if 0 <= idx < len(_session_basket):
-        emit("basket_load_result", {
-            "pgn":   _session_basket[idx]["pgn"],
-            "label": _session_basket[idx]["label"],
-        })
+    with _session_basket_lock:
+        entry = dict(_session_basket[idx]) if 0 <= idx < len(_session_basket) else None
+    if entry is not None:
+        emit("basket_load_result", {"pgn": entry["pgn"], "label": entry["label"]})
     else:
         emit("basket_load_result", {"pgn": "", "label": ""})
 
@@ -910,6 +977,13 @@ def on_explorer_tts_stop(_data):
 # entre-temps), même mécanisme que tts_engine._tts_generation pour l'Explorateur.
 _analyse_llm_request_id: int = 0
 
+# Protège l'incrémentation de _analyse_llm_request_id : deux messages
+# envoyés coup sur coup depuis le drawer IA déclenchent deux exécutions
+# concurrentes de on_analyse_llm_ask() (un thread par événement SocketIO en
+# async_mode="threading") ; un `+= 1` non protégé pourrait faire calculer le
+# même my_id aux deux, cassant l'abandon silencieux des réponses obsolètes.
+_analyse_llm_lock = threading.Lock()
+
 
 def _emit_analyse_llm_response(sid, messages, context, language, my_id):
     from nicsoft.modes.opening_explorer.llm_explainer import get_analyse_response
@@ -937,8 +1011,9 @@ def on_analyse_llm_ask(data):
     language = data.get("language", "fr")
     if not messages:
         return
-    _analyse_llm_request_id += 1
-    my_id = _analyse_llm_request_id
+    with _analyse_llm_lock:
+        _analyse_llm_request_id += 1
+        my_id = _analyse_llm_request_id
     sid = request.sid
     threading.Thread(
         target=_emit_analyse_llm_response,
@@ -975,45 +1050,52 @@ def send_event(event_type: str, data: dict) -> None:
     un événement au navigateur.
     """
     global _board_status, _board_error_message
-    # Mettre à jour le statut échiquier
-    if event_type == "board_ok":
-        _board_status = "ok"
-        _board_error_message = ""
-    elif event_type == "board_error":
-        _board_status = "error"
-        _board_error_message = data.get("message", "")
-    # Mettre à jour l'état courant
-    if event_type == "init":
-        _game_state["fen"] = data.get("fen")
-        _game_state["init"] = data
-        _game_state["history"] = []
-        _game_state["history_fen"] = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]
-        _game_state.pop("feedback", None)
-    elif event_type == "move":
-        _game_state["fen"] = data.get("fen")
-        _game_state["move"] = data
-        _game_state.pop("feedback", None)
-        _game_state.setdefault("history", []).append(data)
-        _game_state.setdefault("history_fen", ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]).append(data.get("fen", ""))
-    elif event_type == "undo_move":
-        count = data.get("count", 1)
-        for _ in range(count):
-            if _game_state.get("history"):
-                _game_state["history"].pop()
-            if _game_state.get("history_fen") and len(_game_state["history_fen"]) > 1:
-                _game_state["history_fen"].pop()
-        _game_state["fen"] = data.get("fen", _game_state.get("fen"))
-    elif event_type == "turn":
-        _game_state["turn"] = data
-    elif event_type == "qualite":
-        # Mettre à jour la qualité du dernier coup dans l historique
-        hist = _game_state.get("history", [])
-        if hist and hist[-1].get("san") == data.get("san"):
-            hist[-1]["qualite"] = data.get("qualite")
-    elif event_type == "feedback":
-        _game_state["feedback"] = data
-    elif event_type == "game_over":
-        _game_state.pop("feedback", None)
+    # Mettre à jour le statut échiquier — sous verrou, le couple
+    # statut/message doit rester cohérent pour les lecteurs (on_connect,
+    # set_app_state).
+    with _board_status_lock:
+        if event_type == "board_ok":
+            _board_status = "ok"
+            _board_error_message = ""
+        elif event_type == "board_error":
+            _board_status = "error"
+            _board_error_message = data.get("message", "")
+    # Mettre à jour l'état courant — sous verrou : chaque branche est une
+    # séquence composée (setdefault+append, pop conditionnel, lecture de
+    # hist[-1] avant mutation) qui doit s'exécuter sans entrelacement avec
+    # une autre mutation ou avec la lecture faite par on_connect().
+    with _game_state_lock:
+        if event_type == "init":
+            _game_state["fen"] = data.get("fen")
+            _game_state["init"] = data
+            _game_state["history"] = []
+            _game_state["history_fen"] = ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]
+            _game_state.pop("feedback", None)
+        elif event_type == "move":
+            _game_state["fen"] = data.get("fen")
+            _game_state["move"] = data
+            _game_state.pop("feedback", None)
+            _game_state.setdefault("history", []).append(data)
+            _game_state.setdefault("history_fen", ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]).append(data.get("fen", ""))
+        elif event_type == "undo_move":
+            count = data.get("count", 1)
+            for _ in range(count):
+                if _game_state.get("history"):
+                    _game_state["history"].pop()
+                if _game_state.get("history_fen") and len(_game_state["history_fen"]) > 1:
+                    _game_state["history_fen"].pop()
+            _game_state["fen"] = data.get("fen", _game_state.get("fen"))
+        elif event_type == "turn":
+            _game_state["turn"] = data
+        elif event_type == "qualite":
+            # Mettre à jour la qualité du dernier coup dans l historique
+            hist = _game_state.get("history", [])
+            if hist and hist[-1].get("san") == data.get("san"):
+                hist[-1]["qualite"] = data.get("qualite")
+        elif event_type == "feedback":
+            _game_state["feedback"] = data
+        elif event_type == "game_over":
+            _game_state.pop("feedback", None)
     event_queue.put({"type": event_type, "data": data})
 
 
@@ -1040,12 +1122,15 @@ def set_app_state(state: str, data: dict = None) -> None:
     if data:
         payload.update(data)
     socketio.emit("app_state", payload)
-    # Au retour menu, renvoyer le statut échiquier pour réactiver les boutons
+    # Au retour menu, renvoyer le statut échiquier pour réactiver les
+    # boutons — instantané sous verrou (cf. _board_status_lock).
     if state == "menu":
-        if _board_status == "ok":
+        with _board_status_lock:
+            board_status, board_error_message = _board_status, _board_error_message
+        if board_status == "ok":
             socketio.emit("board_ok", {})
-        elif _board_status == "error":
-            socketio.emit("board_error", {"message": _board_error_message})
+        elif board_status == "error":
+            socketio.emit("board_error", {"message": board_error_message})
 
 
 def get_menu_action(timeout: float = 1.0):
