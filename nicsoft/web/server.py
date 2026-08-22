@@ -11,6 +11,7 @@ import logging
 import os
 import pathlib
 import queue
+import secrets
 import sys
 import threading
 from nicsoft.config import APP_DIR, DATA_DIR, ENGINES_DIR, GAMES_DIR, LOGS_DIR
@@ -32,9 +33,38 @@ DEBUG_MODE = os.environ.get("NICLINK_LOG", "").upper() == "DEBUG"
 # Mode test — activé via variable d'environnement NICLINK_TEST=random
 TEST_MODE = os.environ.get("NICLINK_TEST", "")
 
+# Clé secrète Flask — générée aléatoirement au premier lancement puis
+# persistée dans data/ (hors dépôt, voir .gitignore) pour rester stable
+# entre les redémarrages (issue #202).
+SECRET_KEY_FILE = DATA_DIR / "secret_key.txt"
+
+
+def _get_or_create_secret_key() -> str:
+    try:
+        if SECRET_KEY_FILE.exists():
+            key = SECRET_KEY_FILE.read_text(encoding="utf-8").strip()
+            if key:
+                return key
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        key = secrets.token_hex(32)
+        SECRET_KEY_FILE.write_text(key, encoding="utf-8")
+        return key
+    except OSError as e:
+        logger.warning(f"[WEB] Impossible de lire/écrire {SECRET_KEY_FILE} : {e}. Clé générée en mémoire uniquement.")
+        return secrets.token_hex(32)
+
+
+# Origines autorisées pour les connexions SocketIO — le serveur ne sert
+# l'interface qu'en local (127.0.0.1:5000), donc pas besoin d'ouvrir le
+# CORS à "*" (issue #202).
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5000",
+    "http://localhost:5000",
+]
+
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "niclink_pedagogique"
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading", )
+app.config["SECRET_KEY"] = _get_or_create_secret_key()
+socketio = SocketIO(app, cors_allowed_origins=CORS_ALLOWED_ORIGINS, async_mode="threading", )
 
 # Queue pour recevoir les événements du module Python
 event_queue: queue.Queue = queue.Queue()
