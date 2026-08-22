@@ -51,7 +51,9 @@ def test_retour_depuis_config(at_menu):
     """Config pédagogique → Retour → menu."""
     at_menu.locator(".menu-card-primary .menu-card-head").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
-    at_menu.locator("#screen-config button", has_text="Retour").click()
+    # Ciblage par attribut onclick plutôt que par texte traduit (issue #208) —
+    # le texte du bouton dépend de la locale (FR "Retour" / EN "Back").
+    at_menu.locator("#screen-config button[onclick*=\"type:'back'\"]").click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
     assert at_menu.locator("#screen-menu").is_visible()
 
@@ -61,15 +63,15 @@ def test_pedagogique_demarrer_puis_retour_menu(at_menu):
     at_menu.locator(".menu-card-primary .menu-card-head").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
 
-    # Démarrer la partie (VirtualBoard + Stockfish) — cibler le bouton dans l'écran config pédagogique
-    at_menu.locator("#screen-config button", has_text="Démarrer la partie").click()
+    # Démarrer la partie (VirtualBoard + Stockfish) — id stable, indépendant de la locale (issue #208)
+    at_menu.locator("#btn-start-peda").click()
 
     # Attendre le panel-playing (state=playing)
     at_menu.wait_for_selector("#panel-playing", state="visible", timeout=30000)
     assert at_menu.locator("#panel-playing").is_visible()
 
-    # Retour au menu — cibler panel-playing pour éviter l'ambiguïté avec les autres panels
-    at_menu.locator("#panel-playing button", has_text="Retour au menu").click()
+    # Retour au menu — ciblage par attribut onclick, indépendant de la locale (issue #208)
+    at_menu.locator("#panel-playing button[onclick*=\"back_menu\"]").click()
     # Confirmer dans la modal
     modal = at_menu.locator("#modal-overlay")
     if modal.is_visible():
@@ -84,7 +86,8 @@ def test_pedagogique_demarrer_puis_retour_menu(at_menu):
 def test_hh_ouvre_config(at_menu):
     """Clic HH → écran config HH (non disponible en mode virtuel — bouton absent)."""
     # HH a data-physical-only donc désactivé en mode virtuel
-    btn_hh = at_menu.locator("button", has_text="Humain vs Humain")
+    # Ciblage par classe CSS, indépendant de la locale (issue #208)
+    btn_hh = at_menu.locator("button.menu-btn-humain")
     if not btn_hh.is_visible() or btn_hh.is_disabled():
         pytest.skip("HH désactivé en mode virtuel (data-physical-only) — OK")
     btn_hh.click()
@@ -97,7 +100,8 @@ def test_hh_ouvre_config(at_menu):
 
 def test_analyse_accessible_sans_board(at_menu):
     """Analyse de partie accessible sans échiquier (pas de data-needs-board)."""
-    at_menu.locator("button", has_text="Analyse de partie").click()
+    # Ciblage par classe CSS, indépendant de la locale (issue #208)
+    at_menu.locator("button.menu-btn-analyse").click()
     # Analyse → app_state = game_over (écran de review)
     at_menu.wait_for_selector("#screen-game", state="visible", timeout=5000)
     assert at_menu.locator("#panel-gameover").is_visible()
@@ -106,10 +110,11 @@ def test_analyse_accessible_sans_board(at_menu):
 def test_retour_depuis_analyse(at_menu):
     """Analyse → Retour au menu → menu propre."""
     if not at_menu.locator("#panel-gameover").is_visible():
-        at_menu.locator("button", has_text="Analyse de partie").click()
+        at_menu.locator("button.menu-btn-analyse").click()
         at_menu.wait_for_selector("#panel-gameover", state="visible", timeout=5000)
 
-    at_menu.locator("#panel-gameover button", has_text="Retour au menu").click()
+    # Ciblage par attribut onclick, indépendant de la locale (issue #208)
+    at_menu.locator("#panel-gameover button[onclick*=\"back_menu\"]").click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
     assert at_menu.locator("#screen-menu").is_visible()
 
@@ -141,7 +146,8 @@ def test_retour_depuis_exercices(at_menu):
 
 def test_retranscription_formulaire(at_menu):
     """Retranscrire → formulaire visible."""
-    at_menu.locator("button", has_text="Retranscrire").click()
+    # Ciblage par classe CSS, indépendant de la locale (issue #208)
+    at_menu.locator("button.menu-btn-retrans").click()
     at_menu.wait_for_selector("#screen-retranscription", state="visible", timeout=5000)
     assert at_menu.locator("#screen-retranscription").is_visible()
     go_menu(at_menu)
@@ -151,10 +157,10 @@ def test_retranscription_formulaire(at_menu):
 
 def test_transition_analyse_puis_menu(at_menu):
     """Analyse → Retour → Pédagogique config — pas de résidu."""
-    # Analyse
-    at_menu.locator("button", has_text="Analyse de partie").click()
+    # Analyse — ciblage par classe CSS / attribut onclick, indépendant de la locale (issue #208)
+    at_menu.locator("button.menu-btn-analyse").click()
     at_menu.wait_for_selector("#panel-gameover", state="visible", timeout=5000)
-    at_menu.locator("#panel-gameover button", has_text="Retour au menu").click()
+    at_menu.locator("#panel-gameover button[onclick*=\"back_menu\"]").click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
 
     # Pédagogique config → vérifier état propre
