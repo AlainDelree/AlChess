@@ -1123,41 +1123,40 @@
     </div>
 
     <!-- ── Position virtuelle (fermé par défaut) ── -->
-    <div class="card" style="padding:0;">
-      <div onclick="laboToggleSection('labo-sec-pos')"
-        style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
-        <h2 style="margin-bottom:0;" data-i18n="labo.h2.position_virtuelle">POSITION VIRTUELLE</h2>
-        <span id="labo-sec-pos-arrow" style="color:#3a5a7a; font-size:0.8rem;">▼</span>
+    <div class="card labo-acc-card">
+      <div class="labo-acc-header" data-action="labo_toggle_section" data-section="labo-sec-pos">
+        <h2 class="labo-acc-title" data-i18n="labo.h2.position_virtuelle">POSITION VIRTUELLE</h2>
+        <span id="labo-sec-pos-arrow" class="labo-acc-arrow">▼</span>
       </div>
-      <div id="labo-sec-pos" style="padding:0 14px 12px; display:none; flex-direction:column; gap:7px;">
-        <input type="file" id="labo-pgn-input" accept=".pgn" style="display:none" onchange="laboLoadPgn(event)">
-        <button class="btn btn-best" style="margin-bottom:0;" onclick="document.getElementById('labo-pgn-input').click()" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
-        <div style="display:flex; gap:6px; align-items:stretch;">
-          <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
-          <div id="basket-select-labo" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-            <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
-            <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
-            <div class="basket-sel-list" style="display:none; position:absolute; top:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-top:none; border-radius:0 0 4px 4px; z-index:200; max-height:180px; overflow-y:auto;"></div>
+      <div id="labo-sec-pos" class="labo-pos-body" style="display:none;">
+        <input type="file" id="labo-pgn-input" accept=".pgn" class="labo-pos-file-input" onchange="laboLoadPgn(event)">
+        <button class="btn btn-best labo-btn-mb0" data-action="labo_trigger_pgn_input" data-i18n="labo.btn.importer_pgn">📂 Importer PGN</button>
+        <div class="labo-pos-row">
+          <span class="aide-panier-icone" data-action="aide_panier" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
+          <div id="basket-select-labo" class="basket-select" data-value="">
+            <span class="basket-sel-label" data-i18n="common.corbeille_vide">— classeur vide —</span>
+            <span class="basket-sel-arrow">▼</span>
+            <div class="basket-sel-list basket-sel-list-down" style="display:none;"></div>
           </div>
-          <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToLabo()" data-i18n="common.charger">🗂️ Charger</button>
+          <button class="btn basket-load-btn" disabled data-action="basket_load_to_labo" data-i18n="common.charger">🗂️ Charger</button>
         </div>
-        <div id="labo-pgn-nav" style="display:none; flex-direction:column; gap:5px;">
-          <div id="labo-pgn-info" style="font-size:0.75rem; color:#3a5a7a; text-align:center;"></div>
-          <div id="labo-pgn-san" style="text-align:center; font-size:1.1rem; font-weight:bold; color:#1a2a3a; min-height:1.4rem;"></div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn btn-continuer" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnPrev()" data-i18n="labo.pgn.precedent">← Précédent</button>
-            <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:5px; font-size:0.82rem;" onclick="laboPgnNext()" data-i18n="labo.pgn.suivant">Suivant →</button>
+        <div id="labo-pgn-nav" class="labo-pgn-nav-body" style="display:none;">
+          <div id="labo-pgn-info" class="labo-pgn-info"></div>
+          <div id="labo-pgn-san" class="labo-pgn-san"></div>
+          <div class="labo-pgn-nav-btns">
+            <button class="btn btn-continuer labo-pgn-nav-btn" data-action="labo_pgn_nav" data-direction="prev" data-i18n="labo.pgn.precedent">← Précédent</button>
+            <button class="btn btn-reprendre labo-pgn-nav-btn" data-action="labo_pgn_nav" data-direction="next" data-i18n="labo.pgn.suivant">Suivant →</button>
           </div>
         </div>
-        <button class="btn" id="labo-btn-copy" style="margin-bottom:0; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a; display:none;"
-          onclick="laboCopyToBoard()" data-i18n="labo.btn.copier_virtuel">📋 Source virtuelle → Plateau</button>
+        <button class="btn labo-btn-copy-style" id="labo-btn-copy" style="display:none;"
+          data-action="labo_copy_to_board" data-i18n="labo.btn.copier_virtuel">📋 Source virtuelle → Plateau</button>
 
       </div>
     </div>
 
     <!-- Retour -->
-    <div style="padding:4px 0 8px;">
-      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+    <div class="labo-back-row">
+      <button class="btn labo-btn-back" data-action="back_menu" data-i18n="common.retour_menu">← Retour au menu</button>
     </div>
 
   </div>

@@ -871,6 +871,27 @@
     .labo-analyse-checkbox { width: 14px; height: 14px; cursor: pointer; accent-color: #e94560; }
     .labo-analyse-activee { font-size: 0.8rem; color: #445; }
 
+    /* Écran Labo — Position virtuelle + retour (issue #240 partie 4/4) */
+    .labo-pos-body { padding: 0 14px 12px; flex-direction: column; gap: 7px; }
+    .labo-pos-file-input { display: none; }
+    .labo-pos-row { display: flex; gap: 6px; align-items: stretch; }
+    .labo-pgn-nav-body { flex-direction: column; gap: 5px; }
+    .labo-pgn-info { font-size: 0.75rem; color: #3a5a7a; text-align: center; }
+    .labo-pgn-san { text-align: center; font-size: 1.1rem; font-weight: bold; color: #1a2a3a; min-height: 1.4rem; }
+    .labo-pgn-nav-btns { display: flex; gap: 6px; }
+    .labo-pgn-nav-btn { flex: 1; margin-bottom: 0; padding: 5px; font-size: 0.82rem; }
+    .labo-btn-copy-style { margin-bottom: 0; background: #9ab8d8; color: #1a2a3a; border: 1px solid #2a5a8a; }
+    .labo-back-row { padding: 4px 0 8px; }
+    .labo-btn-back { background: #c2d4e8; color: #1a2a3a; border: 1px solid #a0b8d0; margin-bottom: 0; }
+
+    /* Sélecteur de classeur (basket-select) — réutilisé par Labo/Analyse/Outils */
+    .basket-select { flex: 1; position: relative; height: 34px; box-sizing: border-box; background: #a0b8d0; border: 1px solid #333; border-radius: 4px; padding: 4px 8px; font-size: 0.82rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; }
+    .basket-sel-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #556; }
+    .basket-sel-arrow { font-size: 0.6rem; margin-left: 4px; color: #1a2a3a; flex-shrink: 0; }
+    .basket-sel-list { position: absolute; left: 0; right: 0; background: #1a2a3a; border: 1px solid #a0b8d0; z-index: 200; max-height: 180px; overflow-y: auto; }
+    .basket-sel-list-down { top: 100%; border-top: none; border-radius: 0 0 4px 4px; }
+    .basket-load-btn { margin-bottom: 0; padding: 0 12px; white-space: nowrap; height: 34px; box-sizing: border-box; }
+
     .coord-rank {
       display: flex;
       flex-direction: column;

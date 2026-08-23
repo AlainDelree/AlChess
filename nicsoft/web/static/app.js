@@ -211,6 +211,18 @@ document.addEventListener("click", (e) => {
     case "labo_reset":
       laboReset();
       break;
+    case "labo_trigger_pgn_input":
+      document.getElementById("labo-pgn-input").click();
+      break;
+    case "basket_load_to_labo":
+      basketLoadToLabo();
+      break;
+    case "labo_pgn_nav":
+      if (el.dataset.direction === "prev") laboPgnPrev(); else laboPgnNext();
+      break;
+    case "labo_copy_to_board":
+      laboCopyToBoard();
+      break;
   }
 });
 
