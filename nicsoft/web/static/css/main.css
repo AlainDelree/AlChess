@@ -1339,3 +1339,39 @@
 #explorer-explanation strong, #explorer-chat-history strong {
   color: #1a2a3a; font-weight: 700;
 }
+
+/* ── Écran #screen-game — en-tête, barre WDL, panneau "Pendant la partie" (issue #241 partie 1/4) ── */
+.game-hist-card { height: calc(100vh - 110px); display:flex; flex-direction:column; }
+.game-legende { border-top:1px solid #a0b8d0; padding-top:10px; margin-top:8px; font-size:0.72rem; color:#1a2a3a; }
+.game-legende-title { font-weight:600; margin-bottom:4px; font-size:0.75rem; }
+.game-legende-table { width:100%; border-collapse:collapse; }
+.game-legende-sample { width:44px; }
+.game-legende-bon td         { color:#1a2a3a; }
+.game-legende-imprecision td { color:#f0a500; }
+.game-legende-erreur td      { color:#e05000; }
+.game-legende-gaffe td       { color:#9b00e0; }
+
+.game-wdl-container { margin-top:4px; width:100%; }
+.game-wdl-bar { display:flex; height:8px; border-radius:4px; overflow:hidden; width:100%; }
+.game-wdl-seg  { height:100%; transition:width 0.4s; }
+.game-wdl-win  { background:#4caf50; }
+.game-wdl-draw { background:#888; }
+.game-wdl-loss { background:#e94560; }
+.game-wdl-pct-row  { display:flex; justify-content:space-between; font-size:0.7rem; color:#666; margin-top:2px; }
+.game-wdl-pct-win  { color:#4caf50; }
+.game-wdl-pct-draw { color:#888; }
+.game-wdl-pct-loss { color:#e94560; }
+
+.game-btn-flip { background:none; border:none; color:#3a5a7a; cursor:pointer; font-size:0.8rem; padding:2px 6px; margin-left:auto; opacity:0.6; transition:opacity 0.2s; }
+.game-btn-flip:hover { opacity:1; }
+
+.game-subtitle-text { color:#445; margin-bottom:14px; font-size:0.9rem; }
+.game-pause-row { align-items:center; gap:10px; }
+.game-pause-label { font-size:0.8rem; color:#3a5a7a; white-space:nowrap; }
+.game-pause-select { flex:1; background:#a0b8d0; color:#1a2a3a; border:1px solid #7a9ab8; border-radius:4px; padding:4px 8px; font-size:0.82rem; }
+
+.game-btn-sequence { background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a; }
+.game-actions-card { flex-direction:column; gap:8px; }
+.game-btn-pause  { background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a; }
+.game-btn-nulle  { background:#4a4a6a; color:#e0e0e0; }
+.game-btn-quitter { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; }

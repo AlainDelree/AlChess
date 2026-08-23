@@ -71,8 +71,10 @@ def test_pedagogique_demarrer_puis_retour_menu(at_menu):
     at_menu.wait_for_selector("#panel-playing", state="visible", timeout=30000)
     assert at_menu.locator("#panel-playing").is_visible()
 
-    # Retour au menu — ciblage par attribut onclick, indépendant de la locale (issue #208)
-    at_menu.locator("#panel-playing button[onclick*=\"back_menu\"]").click()
+    # Retour au menu — ciblage par attribut data-action, indépendant de la locale (issue #208,
+    # migré vers data-action en #241 partie 1/4 : ce bouton ouvre une modale de confirmation,
+    # d'où le nom "quit_modal_moteur" distinct de l'action sendAction "back_menu")
+    at_menu.locator("#panel-playing button[data-action=\"quit_modal_moteur\"]").click()
     # Confirmer dans la modal
     modal = at_menu.locator("#modal-overlay")
     if modal.is_visible():

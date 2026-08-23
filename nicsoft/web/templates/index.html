@@ -528,16 +528,16 @@
 <!-- ── Écran jeu ── -->
 <div id="screen-game">
   <div id="left-panel">
-    <div class="card" style="height: calc(100vh - 110px); display:flex; flex-direction:column;">
+    <div class="card game-hist-card">
       <h2 data-i18n="game.historique">Historique</h2>
-      <div id="historique" style="flex:1; overflow-y:auto;"></div>
-      <div id="legende" style="border-top:1px solid #a0b8d0; padding-top:10px; margin-top:8px; font-size:0.72rem; color:#1a2a3a;">
-        <div style="font-weight:600; margin-bottom:4px; font-size:0.75rem;" data-i18n="game.legende">Légende</div>
-        <table style="width:100%;border-collapse:collapse;">
-          <tr><td style="width:44px;color:#1a2a3a">d4</td><td style="color:#1a2a3a" data-i18n="game.legende.bon">Bon coup</td></tr>
-          <tr><td style="color:#f0a500">e4?!</td><td style="color:#f0a500" data-i18n="game.legende.imprecision">Imprécision</td></tr>
-          <tr><td style="color:#e05000">Nf3?</td><td style="color:#e05000" data-i18n="game.legende.erreur">Erreur</td></tr>
-          <tr><td style="color:#9b00e0">Qg4??</td><td style="color:#9b00e0" data-i18n="game.legende.gaffe">Gaffe</td></tr>
+      <div id="historique"></div>
+      <div id="legende" class="game-legende">
+        <div class="game-legende-title" data-i18n="game.legende">Légende</div>
+        <table class="game-legende-table">
+          <tr class="game-legende-bon"><td class="game-legende-sample">d4</td><td data-i18n="game.legende.bon">Bon coup</td></tr>
+          <tr class="game-legende-imprecision"><td class="game-legende-sample">e4?!</td><td data-i18n="game.legende.imprecision">Imprécision</td></tr>
+          <tr class="game-legende-erreur"><td class="game-legende-sample">Nf3?</td><td data-i18n="game.legende.erreur">Erreur</td></tr>
+          <tr class="game-legende-gaffe"><td class="game-legende-sample">Qg4??</td><td data-i18n="game.legende.gaffe">Gaffe</td></tr>
         </table>
       </div>
     </div>
@@ -557,24 +557,22 @@
         </div>
       </div>
       <!-- Barre WDL -->
-      <div id="wdl-bar-container" style="display:none; margin-top:4px; width:100%;">
-        <div style="display:flex; height:8px; border-radius:4px; overflow:hidden; width:100%;">
-          <div id="wdl-win"  style="background:#4caf50; height:100%; transition:width 0.4s;"></div>
-          <div id="wdl-draw" style="background:#888;    height:100%; transition:width 0.4s;"></div>
-          <div id="wdl-loss" style="background:#e94560; height:100%; transition:width 0.4s;"></div>
+      <div id="wdl-bar-container" class="game-wdl-container" style="display:none;">
+        <div class="game-wdl-bar">
+          <div id="wdl-win"  class="game-wdl-seg game-wdl-win"></div>
+          <div id="wdl-draw" class="game-wdl-seg game-wdl-draw"></div>
+          <div id="wdl-loss" class="game-wdl-seg game-wdl-loss"></div>
         </div>
-        <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#666; margin-top:2px;">
-          <span id="wdl-win-pct"  style="color:#4caf50;"></span>
-          <span id="wdl-draw-pct" style="color:#888;"></span>
-          <span id="wdl-loss-pct" style="color:#e94560;"></span>
+        <div class="game-wdl-pct-row">
+          <span id="wdl-win-pct"  class="game-wdl-pct-win"></span>
+          <span id="wdl-draw-pct" class="game-wdl-pct-draw"></span>
+          <span id="wdl-loss-pct" class="game-wdl-pct-loss"></span>
         </div>
       </div>
       <div class="player-row" id="player-row-bottom">
         <span id="player-bottom-name">—</span>
         <span id="material-bottom"></span>
-        <button id="btn-flip" onclick="flipBoard()" title="Noirs en bas"
-          style="background:none; border:none; color:#3a5a7a; cursor:pointer; font-size:0.8rem; padding:2px 6px; margin-left:auto; opacity:0.6; transition:opacity 0.2s;"
-          onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">⇅</button>
+        <button id="btn-flip" data-action="flip_board" class="game-btn-flip" title="Noirs en bas">⇅</button>
       </div>
     </div>
   </div>
@@ -584,10 +582,10 @@
     <div id="panel-playing">
       <div class="card">
         <h2 class="card-title-lg" id="panel-playing-title">Partie Pédagogique</h2>
-        <div id="game-subtitle" style="color:#445; margin-bottom:14px; font-size:0.9rem;"></div>
-        <div id="pause-select-row" style="display:flex; align-items:center; gap:10px;">
-          <label style="font-size:0.8rem; color:#3a5a7a; white-space:nowrap;" data-i18n="game.label.pause">Pause :</label>
-          <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" style="flex:1; background:#a0b8d0; color:#1a2a3a; border:1px solid #7a9ab8; border-radius:4px; padding:4px 8px; font-size:0.82rem;">
+        <div id="game-subtitle" class="game-subtitle-text"></div>
+        <div id="pause-select-row" class="game-pause-row" style="display:flex;">
+          <label class="game-pause-label" data-i18n="game.label.pause">Pause :</label>
+          <select id="pause-select" onchange="sendAction({type:'set_pause', value:this.value})" class="game-pause-select">
             <option value="" disabled selected>...</option>
             <option value="toujours" data-i18n="config.pause.toujours">Toujours</option>
             <option value="imprecision" data-i18n="config.pause.imprecision">Imprécision + Erreur + Gaffe</option>
@@ -608,16 +606,16 @@
           <div id="feedback-detail"></div>
         </div>
         <div id="countdown"></div>
-        <button class="btn btn-best"      id="btn-best"      disabled onclick="sendAction({type:'meilleur'})" data-i18n="game.btn.meilleur">💡 Voir le meilleur coup</button>
-        <button class="btn"               id="btn-sequence"  disabled onclick="jouerSequencePunitive()" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" data-i18n="game.btn.sequence">🎬 Voir la séquence</button>
-        <button class="btn btn-continuer" id="btn-continuer" disabled onclick="sendAction({type:'continuer'})" data-i18n="game.btn.suite">→ Continuer</button>
+        <button class="btn btn-best"      id="btn-best"      disabled data-action="meilleur_coup" data-i18n="game.btn.meilleur">💡 Voir le meilleur coup</button>
+        <button class="btn game-btn-sequence" id="btn-sequence"  disabled data-action="jouer_sequence_punitive" data-i18n="game.btn.sequence">🎬 Voir la séquence</button>
+        <button class="btn btn-continuer" id="btn-continuer" disabled data-action="continuer" data-i18n="game.btn.suite">→ Continuer</button>
       </div>
-      <div class="card" id="card-actions" style="display:flex; flex-direction:column; gap:8px;">
+      <div class="card game-actions-card" id="card-actions" style="display:flex;">
         <h2 data-i18n="game.h2.actions">Actions</h2>
-        <button class="btn" style="background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" id="btn-pause" onclick="sendAction({type:'pause'})" data-i18n="game.btn.pause">⏸ Pause</button>
-        <button class="btn btn-warning" onclick="ouvrirModalAbandonner()" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
-        <button class="btn" id="btn-nulle" style="background:#4a4a6a; color:#e0e0e0;" onclick="ouvrirModalNulle()" data-i18n="game.btn.nulle">🤝 Partie Nulle</button>
-        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="ouvrirModal('back_menu', t('modal.quitter_moteur'), t('modal.quitter_btn'), '')" data-i18n="common.retour_menu">← Retour au menu</button>
+        <button class="btn game-btn-pause" id="btn-pause" data-action="pause" data-i18n="game.btn.pause">⏸ Pause</button>
+        <button class="btn btn-warning" data-action="ouvrir_modal_abandonner" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
+        <button class="btn game-btn-nulle" id="btn-nulle" data-action="ouvrir_modal_nulle" data-i18n="game.btn.nulle">🤝 Partie Nulle</button>
+        <button class="btn game-btn-quitter" data-action="quit_modal_moteur" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
     </div>
     <!-- ── Pause ── -->

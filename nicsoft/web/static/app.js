@@ -223,6 +223,30 @@ document.addEventListener("click", (e) => {
     case "labo_copy_to_board":
       laboCopyToBoard();
       break;
+    case "flip_board":
+      flipBoard();
+      break;
+    case "meilleur_coup":
+      sendAction({ type: "meilleur" });
+      break;
+    case "jouer_sequence_punitive":
+      jouerSequencePunitive();
+      break;
+    case "continuer":
+      sendAction({ type: "continuer" });
+      break;
+    case "pause":
+      sendAction({ type: "pause" });
+      break;
+    case "ouvrir_modal_abandonner":
+      ouvrirModalAbandonner();
+      break;
+    case "ouvrir_modal_nulle":
+      ouvrirModalNulle();
+      break;
+    case "quit_modal_moteur":
+      ouvrirModal("back_menu", t("modal.quitter_moteur"), t("modal.quitter_btn"), "");
+      break;
   }
 });
 
