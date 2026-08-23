@@ -900,58 +900,58 @@
 </div>
 
 <!-- ── Écran Exercice en cours ── -->
-<div id="screen-exercice-running" style="display:none; flex:1; grid-template-columns:220px minmax(0,1fr) 380px; gap:20px; padding:16px 20px; width:100%; max-width:100vw; align-items:start; overflow:hidden;">
+<div id="screen-exercice-running">
 
   <!-- Colonne gauche : info -->
-  <div style="display:flex; flex-direction:column; gap:8px;">
-    <div class="card" style="padding:12px 14px;">
-      <h2 id="ex-run-nom" style="color:#e94560; font-size:0.85rem; margin-bottom:8px;"></h2>
-      <div id="ex-run-status" style="font-size:0.9rem; font-weight:600; color:#1a2a3a; margin-bottom:8px;">—</div>
-      <div id="ex-run-info" style="font-size:0.8rem; color:#445; line-height:1.6;"></div>
-      <div id="ex-run-instructions" style="margin-top:10px; font-size:0.78rem; color:#4caf50; line-height:1.5; padding:8px; background:#0a2a1a; border-radius:4px; border-left:3px solid #4caf50;"></div>
+  <div class="exr-col-left">
+    <div class="card exr-card-sm">
+      <h2 id="ex-run-nom" class="exr-run-nom"></h2>
+      <div id="ex-run-status" class="exr-run-status">—</div>
+      <div id="ex-run-info" class="exr-run-info"></div>
+      <div id="ex-run-instructions" class="exr-run-instructions"></div>
     </div>
-    <div class="card" style="padding:12px 14px;">
+    <div class="card exr-card-sm">
       <h2 data-i18n="exercices.h2.coups_livre">COUPS DU LIVRE</h2>
-      <div id="ex-run-book-moves" style="font-size:0.82rem; color:#4caf50;"></div>
+      <div id="ex-run-book-moves" class="exr-run-book-moves"></div>
     </div>
   </div>
 
   <!-- Colonne centre : échiquier -->
-  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; max-height:calc(100vh - 60px); overflow:hidden;">
+  <div class="exr-col-center">
     <!-- Spinner chargement -->
     <div id="ex-spinner">
       <div class="spinner-ring"></div>
-      <div style="color:#3a5a7a; font-size:0.85rem; margin-top:14px;" data-i18n="labo.loading.echiquier">Connexion à l'échiquier…</div>
+      <div class="exr-spinner-text" data-i18n="labo.loading.echiquier">Connexion à l'échiquier…</div>
     </div>
-    <div id="ex-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden;">
-      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-top" style="color:#445; font-weight:bold; font-size:0.85rem;">Noirs</span></div>
-      <div style="display:flex; align-items:stretch;">
+    <div id="ex-board-wrapper" class="exr-board-wrapper">
+      <div class="player-row exr-player-row"><span id="ex-player-top" class="exr-player-top">Noirs</span></div>
+      <div class="exr-board-row">
         <div class="coord-rank" id="ex-coord-rank"></div>
-        <div id="ex-board" style="display:grid; grid-template-columns:repeat(8,1fr);"></div>
+        <div id="ex-board"></div>
       </div>
-      <div class="coord-file" id="ex-coord-file" style="width:100%;"></div>
-      <div class="player-row" style="padding:4px 6px; background:#a0b8d0;"><span id="ex-player-bottom" style="color:#1a2a3a; font-weight:bold; font-size:0.85rem;">Blancs</span></div>
+      <div class="coord-file exr-coord-file" id="ex-coord-file"></div>
+      <div class="player-row exr-player-row"><span id="ex-player-bottom" class="exr-player-bottom">Blancs</span></div>
     </div>
     <!-- Feedback -->
-    <div id="ex-feedback" style="margin-top:8px; padding:8px 16px; border-radius:6px; font-size:0.9rem; display:none; text-align:center; font-weight:600;"></div>
+    <div id="ex-feedback" class="exr-feedback"></div>
   </div>
 
   <!-- Colonne droite : contrôles -->
-  <div style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:calc(100vh - 60px);">
+  <div class="exr-col-right">
 
-    <div class="card" style="padding:14px 16px;">
+    <div class="card exr-card-md">
       <h2 data-i18n="exercices.h2.progression">PROGRESSION</h2>
-      <div id="ex-run-moves-count" style="font-size:1.2rem; font-weight:bold; color:#1a2a3a; text-align:center;">Coup 0</div>
-      <div id="ex-run-variete" style="font-size:0.75rem; color:#3a5a7a; text-align:center; margin-top:4px;"></div>
+      <div id="ex-run-moves-count" class="exr-run-moves-count">Coup 0</div>
+      <div id="ex-run-variete" class="exr-run-variete"></div>
     </div>
 
-    <div class="card" style="padding:14px 16px; display:flex; flex-direction:column; gap:8px;">
+    <div class="card exr-card-actions">
       <h2 data-i18n="exercices.h2.actions">ACTIONS</h2>
-      <button id="ex-btn-sync" class="btn" style="margin-bottom:0; background:#a0b8d0; border:1px solid #4caf50; color:#4caf50;" onclick="sendAction({type:'exercice_sync'})" data-i18n="exercices.btn.sync">🔄 Synchroniser plateau → Virtuel</button>
-      <button class="btn btn-reprendre" style="margin-bottom:0;" onclick="sendAction({type:'exercice_retry'})" data-i18n="exercices.btn.retry">↺ Recommencer l'exercice</button>
-      <button id="ex-btn-continuer" class="btn" style="margin-bottom:0; display:none; background:#2e7d32; color:#fff;" onclick="sendAction({type:'exercice_continue'})" data-i18n="exercices.btn.continuer_stockfish">▶ Continuer avec Stockfish</button>
-      <button class="btn btn-continuer" style="margin-bottom:0;" onclick="sendAction({type:'exercice_back'})" data-i18n="exercices.btn.choisir">← Choisir autre ouverture</button>
-      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+      <button id="ex-btn-sync" class="btn exr-btn-sync" data-action="exercice_sync" data-i18n="exercices.btn.sync">🔄 Synchroniser plateau → Virtuel</button>
+      <button class="btn btn-reprendre exr-btn-mb0" data-action="exercice_retry" data-i18n="exercices.btn.retry">↺ Recommencer l'exercice</button>
+      <button id="ex-btn-continuer" class="btn exr-btn-continuer" data-action="exercice_continue" data-i18n="exercices.btn.continuer_stockfish">▶ Continuer avec Stockfish</button>
+      <button class="btn btn-continuer exr-btn-mb0" data-action="exercice_back" data-i18n="exercices.btn.choisir">← Choisir autre ouverture</button>
+      <button class="btn btn-continuer exr-btn-mb0" data-action="back_menu" data-i18n="common.retour_menu">← Retour au menu</button>
     </div>
 
   </div>

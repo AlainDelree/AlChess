@@ -85,6 +85,18 @@ document.addEventListener("click", (e) => {
     case "ex_lancer_drill":
       exLancerDrill();
       break;
+    case "exercice_sync":
+      sendAction({ type: "exercice_sync" });
+      break;
+    case "exercice_retry":
+      sendAction({ type: "exercice_retry" });
+      break;
+    case "exercice_continue":
+      sendAction({ type: "exercice_continue" });
+      break;
+    case "exercice_back":
+      sendAction({ type: "exercice_back" });
+      break;
     case "select_color_hh":
       selectColorHH(el.dataset.color);
       break;
