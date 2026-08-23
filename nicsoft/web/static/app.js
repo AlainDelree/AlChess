@@ -190,6 +190,15 @@ document.addEventListener("click", (e) => {
     case "labo_toggle_section":
       laboToggleSection(el.dataset.section);
       break;
+    case "labo_select_engine":
+      laboSelectEngine(el.dataset.engine);
+      break;
+    case "labo_adj_elo":
+      laboAdjElo(parseInt(el.dataset.delta, 10));
+      break;
+    case "labo_adj_rodent_elo":
+      laboAdjRodentElo(parseInt(el.dataset.delta, 10));
+      break;
     case "labo_best_move":
       sendAction({ type: "best_move" });
       break;

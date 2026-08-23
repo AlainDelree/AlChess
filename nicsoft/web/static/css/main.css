@@ -854,6 +854,22 @@
     .labo-auto-btn-stop { background: #7b1a1a; color: #fff; }
     .labo-btn-undo { background: #9ab8d8; color: #1a2a3a; border: 1px solid #2a5a8a; }
     .labo-btn-reset { background: #c2d4e8; color: #1a2a3a; border: 1px solid #a0b8d0; }
+    .labo-cfg-body { padding: 0 14px 12px; flex-direction: column; gap: 8px; }
+    .labo-eng-btns { display: flex; gap: 6px; }
+    .labo-unavail-msg { font-size: 0.72rem; color: #c0392b; }
+    .labo-rodent-dl-status { display: block; font-size: 0.72rem; color: #3a5a7a; }
+    .labo-elo-row { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+    .labo-elo-btn { width: 32px; height: 28px; background: #a0b8d0; border: 1px solid #333; border-radius: 4px; color: #445; cursor: pointer; font-size: 0.7rem; }
+    .labo-elo-btn-wide { width: 36px; }
+    .labo-elo-input { flex: 1; text-align: center; margin-bottom: 0; font-size: 0.88rem; font-weight: bold; }
+    .labo-elo-label { text-align: center; font-size: 0.72rem; color: #3a5a7a; }
+    .labo-elo-label-spaced { margin-bottom: 3px; }
+    .labo-select-tight { margin-bottom: 0; }
+    .labo-analyse-row { display: flex; align-items: center; justify-content: space-between; }
+    .labo-analyse-label { margin-bottom: 0; font-size: 0.8rem; }
+    .labo-analyse-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .labo-analyse-checkbox { width: 14px; height: 14px; cursor: pointer; accent-color: #e94560; }
+    .labo-analyse-activee { font-size: 0.8rem; color: #445; }
 
     .coord-rank {
       display: flex;

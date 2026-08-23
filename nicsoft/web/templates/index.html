@@ -1060,39 +1060,38 @@
     </div>
 
     <!-- ── Config moteur (fermé par défaut) ── -->
-    <div class="card" style="padding:0;">
-      <div onclick="laboToggleSection('labo-sec-cfg')"
-        style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
-        <h2 style="margin-bottom:0;" data-i18n="labo.h2.config_moteur">CONFIG MOTEUR</h2>
-        <span id="labo-sec-cfg-arrow" style="color:#3a5a7a; font-size:0.8rem;">▼</span>
+    <div class="card labo-acc-card">
+      <div class="labo-acc-header" data-action="labo_toggle_section" data-section="labo-sec-cfg">
+        <h2 class="labo-acc-title" data-i18n="labo.h2.config_moteur">CONFIG MOTEUR</h2>
+        <span id="labo-sec-cfg-arrow" class="labo-acc-arrow">▼</span>
       </div>
-      <div id="labo-sec-cfg" style="padding:0 14px 12px; display:none; flex-direction:column; gap:8px;">
-        <div style="display:flex; gap:6px;">
-          <button class="color-btn selected" id="labo-eng-sf"     onclick="laboSelectEngine('stockfish')">⚡ Stockfish</button>
-          <button class="color-btn"          id="labo-eng-maia"   onclick="laboSelectEngine('maia')">🧠 Maia</button>
-          <button class="color-btn"          id="labo-eng-rodent" onclick="rodentCardClick('labo')"><span id="labo-rodent-icon">🐭</span> Rodent</button>
+      <div id="labo-sec-cfg" class="labo-cfg-body" style="display:none;">
+        <div class="labo-eng-btns">
+          <button class="color-btn selected" id="labo-eng-sf"     data-action="labo_select_engine" data-engine="stockfish">⚡ Stockfish</button>
+          <button class="color-btn"          id="labo-eng-maia"   data-action="labo_select_engine" data-engine="maia">🧠 Maia</button>
+          <button class="color-btn"          id="labo-eng-rodent" data-action="rodent_card_click" data-context="labo"><span id="labo-rodent-icon">🐭</span> Rodent</button>
         </div>
-        <div id="labo-stockfish-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
+        <div id="labo-stockfish-unavailable" class="labo-unavail-msg" style="display:none;"
              data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
-        <div id="labo-maia-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;"
+        <div id="labo-maia-unavailable" class="labo-unavail-msg" style="display:none;"
              data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
-        <div id="labo-rodent-unavailable" style="display:none; font-size:0.72rem; color:#c0392b;">
+        <div id="labo-rodent-unavailable" class="labo-unavail-msg" style="display:none;">
           <span data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</span>
         </div>
-        <span id="labo-rodent-download-status" style="display:block; font-size:0.72rem; color:#3a5a7a;"></span>
+        <span id="labo-rodent-download-status" class="labo-rodent-dl-status"></span>
         <div id="labo-cfg-sf">
-          <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-50</button>
-            <input id="labo-elo" class="cfg-input" type="number" min="1320" max="3190" value="1500"
-              style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampElo()">
-            <button onclick="laboAdjElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+200</button>
+          <div class="labo-elo-row">
+            <button class="labo-elo-btn labo-elo-btn-wide" data-action="labo_adj_elo" data-delta="-200">-200</button>
+            <button class="labo-elo-btn" data-action="labo_adj_elo" data-delta="-50">-50</button>
+            <input id="labo-elo" class="cfg-input labo-elo-input" type="number" min="1320" max="3190" value="1500"
+              oninput="laboClampElo()">
+            <button class="labo-elo-btn" data-action="labo_adj_elo" data-delta="50">+50</button>
+            <button class="labo-elo-btn labo-elo-btn-wide" data-action="labo_adj_elo" data-delta="200">+200</button>
           </div>
-          <div id="labo-elo-label" style="text-align:center;font-size:0.72rem;color:#3a5a7a;">~1500 Elo</div>
+          <div id="labo-elo-label" class="labo-elo-label">~1500 Elo</div>
         </div>
         <div id="labo-cfg-maia" style="display:none;">
-          <select id="labo-maia-elo" class="cfg-input" style="margin-bottom:0;" onchange="laboPushConfig()">
+          <select id="labo-maia-elo" class="cfg-input labo-select-tight" onchange="laboPushConfig()">
             <option value="1100">Maia 1100</option><option value="1200">Maia 1200</option>
             <option value="1300">Maia 1300</option><option value="1400">Maia 1400</option>
             <option value="1500" selected>Maia 1500</option><option value="1600">Maia 1600</option>
@@ -1101,23 +1100,23 @@
           </select>
         </div>
         <div id="labo-cfg-rodent" style="display:none;">
-          <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
-            <button onclick="laboAdjRodentElo(-200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-200</button>
-            <button onclick="laboAdjRodentElo(-50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">-50</button>
-            <input id="labo-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="1200"
-              style="flex:1;text-align:center;margin-bottom:0;font-size:0.88rem;font-weight:bold;" oninput="laboClampRodentElo()">
-            <button onclick="laboAdjRodentElo(50)"  style="width:32px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+50</button>
-            <button onclick="laboAdjRodentElo(200)" style="width:36px;height:28px;background:#a0b8d0;border:1px solid #333;border-radius:4px;color:#445;cursor:pointer;font-size:0.7rem;">+200</button>
+          <div class="labo-elo-row">
+            <button class="labo-elo-btn labo-elo-btn-wide" data-action="labo_adj_rodent_elo" data-delta="-200">-200</button>
+            <button class="labo-elo-btn" data-action="labo_adj_rodent_elo" data-delta="-50">-50</button>
+            <input id="labo-rodent-elo" class="cfg-input labo-elo-input" type="number" min="800" max="2800" value="1200"
+              oninput="laboClampRodentElo()">
+            <button class="labo-elo-btn" data-action="labo_adj_rodent_elo" data-delta="50">+50</button>
+            <button class="labo-elo-btn labo-elo-btn-wide" data-action="labo_adj_rodent_elo" data-delta="200">+200</button>
           </div>
-          <div id="labo-rodent-elo-label" style="text-align:center;font-size:0.72rem;color:#3a5a7a;margin-bottom:3px;">1200 Elo</div>
-          <select id="labo-rodent-personality" class="cfg-input" style="margin-bottom:0;" onchange="laboPushConfig()"></select>
+          <div id="labo-rodent-elo-label" class="labo-elo-label labo-elo-label-spaced">1200 Elo</div>
+          <select id="labo-rodent-personality" class="cfg-input labo-select-tight" onchange="laboPushConfig()"></select>
         </div>
-        <div style="display:flex; align-items:center; justify-content:space-between;">
-          <label class="cfg-label" style="margin-bottom:0; font-size:0.8rem;" data-i18n="labo.label.analyse_coups">Analyse des coups</label>
-          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
-            <input type="checkbox" id="labo-analyse-chk" checked style="width:14px; height:14px; cursor:pointer; accent-color:#e94560;"
+        <div class="labo-analyse-row">
+          <label class="cfg-label labo-analyse-label" data-i18n="labo.label.analyse_coups">Analyse des coups</label>
+          <label class="labo-analyse-toggle">
+            <input type="checkbox" id="labo-analyse-chk" checked class="labo-analyse-checkbox"
               onchange="sendAction({type:'set_analyse', value:this.checked})">
-            <span style="font-size:0.8rem; color:#445;" data-i18n="labo.label.activee">Activée</span>
+            <span class="labo-analyse-activee" data-i18n="labo.label.activee">Activée</span>
           </label>
         </div>
       </div>
