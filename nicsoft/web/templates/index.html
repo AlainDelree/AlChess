@@ -1609,29 +1609,29 @@
 
 
 <!-- ── Écran intermédiaire "Ouvertures" ── -->
-<div id="screen-ouvertures" style="display:none; flex-direction:column; align-items:center; padding:40px 20px; gap:24px; overflow-y:auto; width:100%;">
+<div id="screen-ouvertures">
 
-  <div style="width:100%; max-width:760px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-    <h2 style="margin:0; color:#1a2a3a; font-size:1.4rem;" data-i18n="ouvertures.titre">📖 Ouvertures</h2>
-    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+  <div class="ouvertures-header">
+    <h2 class="ouvertures-h2" data-i18n="ouvertures.titre">📖 Ouvertures</h2>
+    <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu">← Retour au menu</button>
   </div>
 
-  <div style="width:100%; max-width:760px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center;">
+  <div class="ouvertures-cards">
 
     <!-- Carte Exercices -->
-    <div class="outil-card outil-card-clickable" style="flex:1 1 280px; max-width:360px;" onclick="_menuCardLaunch('exercices', this)">
+    <div class="outil-card outil-card-clickable ouvertures-card" data-action="menu_card_launch" data-mode="exercices">
       <div class="outil-card-header">
         <span class="outil-title" data-i18n="ouvertures.carte_exercices.titre">📚 Exercices</span>
       </div>
       <p class="outil-desc" data-i18n="ouvertures.carte_exercices.desc">Entraînez-vous aux ouvertures sur l'échiquier physique — le livre répond et corrige vos coups.</p>
-      <label class="menu-card-chk-label" style="color:#1a2a3a;" onclick="event.stopPropagation()">
+      <label class="menu-card-chk-label ouvertures-chk-label">
         <input type="checkbox" class="menu-card-chk" checked>
         <span data-i18n="menu.mode_virtuel_label">Mode virtuel</span>
       </label>
     </div>
 
     <!-- Carte Opening Explorer -->
-    <div class="outil-card outil-card-clickable" style="flex:1 1 280px; max-width:360px;" onclick="sendAction({type:'mode', value:'opening_explorer'})">
+    <div class="outil-card outil-card-clickable ouvertures-card" data-action="send_mode" data-mode="opening_explorer">
       <div class="outil-card-header">
         <span class="outil-title" data-i18n="ouvertures.carte_explorer.titre">♟ Opening Explorer</span>
       </div>

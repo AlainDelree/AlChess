@@ -144,6 +144,15 @@
       justify-content: flex-start;
       overflow-y: auto;
     }
+    #screen-ouvertures {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      gap: 24px;
+      overflow-y: auto;
+      width: 100%;
+    }
     /* Grille unifiée pour tous les écrans avec échiquier */
     .screen-board-layout {
       display: none;
@@ -841,6 +850,13 @@
 .outil-num { background:#e94560; color:#fff; border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; flex-shrink:0; }
 .outil-title { font-weight:700; font-size:1.05rem; color:#1a2a3a; }
 .outil-desc { color:#3a5a7a; font-size:0.88rem; margin-bottom:10px; }
+
+/* ── Écran intermédiaire "Ouvertures" ── */
+.ouvertures-header { width:100%; max-width:760px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.ouvertures-h2 { margin:0; color:#1a2a3a; font-size:1.4rem; }
+.ouvertures-cards { width:100%; max-width:760px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.ouvertures-card { flex:1 1 280px; max-width:360px; }
+.ouvertures-chk-label { color:#1a2a3a; }
 
 /* ── Outil 1 — formulaire ajout ouverture ── */
 .add-field { display:flex; flex-direction:column; gap:3px; }

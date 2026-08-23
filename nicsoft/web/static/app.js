@@ -56,6 +56,11 @@ function toggleAutoUpdate() {
 // qu'un onclick="...". Modèle à réutiliser tel quel pour les écrans suivants
 // (issue #220) : ajouter simplement un nouveau `case` ci-dessous.
 document.addEventListener("click", (e) => {
+  // Le clic sur le label/checkbox "Mode virtuel" d'une carte ne doit jamais
+  // déclencher l'action de la carte parente (menu_card_launch) — on sort
+  // avant de chercher un data-action plutôt que d'utiliser
+  // event.stopPropagation() sur chaque label (issue #221).
+  if (e.target.closest(".menu-card-chk-label")) return;
   const el = e.target.closest("[data-action]");
   if (!el) return;
   switch (el.dataset.action) {
@@ -67,6 +72,9 @@ document.addEventListener("click", (e) => {
       break;
     case "send_mode":
       sendAction({ type: "mode", value: el.dataset.mode });
+      break;
+    case "back_menu":
+      sendAction({ type: "back_menu" });
       break;
     case "quit_modal":
       ouvrirModal("quit", t("modal.quitter_alchess"), t("modal.quitter_btn"), "btn-warning");

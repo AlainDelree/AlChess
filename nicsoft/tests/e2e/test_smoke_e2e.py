@@ -125,12 +125,13 @@ def go_exercices(page):
     """Menu → Ouvertures → carte Exercices (chemin en 2 étapes depuis issue #141).
 
     Sélecteurs indépendants de la locale (issue #212, même approche que #208) :
-    #wrap-ouvertures button est un id unique, et le fragment d'attribut
-    onclick*="'exercices'" ne dépend pas du texte affiché à l'écran.
+    #wrap-ouvertures button est un id unique, et l'attribut data-mode="exercices"
+    ne dépend pas du texte affiché à l'écran (issue #221 : bascule de l'ancien
+    onclick*="'exercices'" vers le mécanisme data-action).
     """
     page.locator("#wrap-ouvertures button").click()
     page.wait_for_selector("#screen-ouvertures", state="visible", timeout=5000)
-    page.locator(".outil-card-clickable[onclick*=\"'exercices'\"]").click()
+    page.locator(".outil-card-clickable[data-mode=\"exercices\"]").click()
     page.wait_for_selector("#screen-exercices", state="visible", timeout=5000)
 
 
