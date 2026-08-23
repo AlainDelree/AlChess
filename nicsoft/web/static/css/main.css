@@ -639,6 +639,15 @@
     .cfg-elo-caption { text-align: center; font-size: 0.78rem; color: #3a5a7a; }
     .cfg-elo-caption-spaced { margin-bottom: 10px; }
 
+    /* Carte Options (config péda) */
+    .cfg-options-card { padding: 14px 16px; }
+    .cfg-label-flush { margin-bottom: 0; }
+    .cfg-options-row { display: flex; align-items: center; justify-content: space-between; }
+    .cfg-options-row-spaced { margin-bottom: 10px; }
+    .cfg-options-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .cfg-options-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: #e94560; }
+    .cfg-options-toggle-label { font-size: 0.85rem; color: #445; display: inline-block; width: 52px; }
+
     /* ── Colonne gauche (Historique) ── */
     #left-panel {
       width: 220px;
