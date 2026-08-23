@@ -116,8 +116,8 @@ def test_retour_depuis_analyse(at_menu):
         at_menu.locator("button.menu-btn-analyse").click()
         at_menu.wait_for_selector("#panel-gameover", state="visible", timeout=5000)
 
-    # Ciblage par attribut onclick, indépendant de la locale (issue #208)
-    at_menu.locator("#panel-gameover button[onclick*=\"back_menu\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #208, migré #244)
+    at_menu.locator("#panel-gameover button[data-action=\"back_menu\"]").click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
     assert at_menu.locator("#screen-menu").is_visible()
 
@@ -169,10 +169,10 @@ def test_retranscription_formulaire(at_menu):
 
 def test_transition_analyse_puis_menu(at_menu):
     """Analyse → Retour → Pédagogique config — pas de résidu."""
-    # Analyse — ciblage par classe CSS / attribut onclick, indépendant de la locale (issue #208)
+    # Analyse — ciblage par classe CSS / attribut data-action, indépendant de la locale (issue #208, migré #244)
     at_menu.locator("button.menu-btn-analyse").click()
     at_menu.wait_for_selector("#panel-gameover", state="visible", timeout=5000)
-    at_menu.locator("#panel-gameover button[onclick*=\"back_menu\"]").click()
+    at_menu.locator("#panel-gameover button[data-action=\"back_menu\"]").click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
 
     # Pédagogique config → vérifier état propre

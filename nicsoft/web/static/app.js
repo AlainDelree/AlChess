@@ -277,6 +277,39 @@ document.addEventListener("click", (e) => {
     case "pgn_lib_select_tab":
       pgnLibSelectTab(el.dataset.tab);
       break;
+    case "trigger_pgn_file_input":
+      document.getElementById("pgn-file-input").click();
+      break;
+    case "toggle_coller_pgn":
+      toggleCollerPgn();
+      break;
+    case "charger_pgn_colle":
+      chargerPgnColle();
+      break;
+    case "basket_load_to_analyse":
+      basketLoadToAnalyse();
+      break;
+    case "pgn_lib_open_create_modal":
+      pgnLibOpenCreateModal();
+      break;
+    case "pgn_lib_confirm_delete":
+      pgnLibConfirmDelete();
+      break;
+    case "trigger_pgn_lib_file_input":
+      document.getElementById("pgn-lib-file-input").click();
+      break;
+    case "lancer_analyse":
+      lancerAnalyse();
+      break;
+    case "jouer_sequence_review":
+      jouerSequenceReview();
+      break;
+    case "telecharger_pgn":
+      telechargerPgn();
+      break;
+    case "vider_analyse":
+      _viderAnalyse();
+      break;
   }
 });
 
@@ -2617,15 +2650,14 @@ function loadPgnFile(event) {
 }
 
 function toggleCollerPgn() {
-  const zone = document.getElementById('coller-pgn-zone');
-  zone.style.display = zone.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('coller-pgn-zone').classList.toggle('is-open');
 }
 
 function chargerPgnColle() {
   const pgn = document.getElementById('coller-pgn-input').value.trim();
   if (!pgn) { alert(t('error.pgn_vide') || 'Zone PGN vide.'); return; }
   // Masquer la zone après chargement
-  document.getElementById('coller-pgn-zone').style.display = 'none';
+  document.getElementById('coller-pgn-zone').classList.remove('is-open');
   document.getElementById('coller-pgn-input').value = '';
   parsePgn(pgn);
 }
@@ -2746,7 +2778,7 @@ function pgnLibRenderGamesList() {
   const list = document.getElementById("pgn-lib-games-list");
   if (!list) return;
   if (_pgnLibGames.length === 0) {
-    list.innerHTML = `<div class="pgn-lib-empty" style="color:#778; font-size:0.8rem; text-align:center; padding:12px 0;">${t("pgn_lib.liste_vide")}</div>`;
+    list.innerHTML = `<div class="pgn-lib-empty">${t("pgn_lib.liste_vide")}</div>`;
     return;
   }
   list.innerHTML = _pgnLibGames.map(g => `

@@ -890,6 +890,7 @@
     .basket-sel-arrow { font-size: 0.6rem; margin-left: 4px; color: #1a2a3a; flex-shrink: 0; }
     .basket-sel-list { position: absolute; left: 0; right: 0; background: #1a2a3a; border: 1px solid #a0b8d0; z-index: 200; max-height: 180px; overflow-y: auto; }
     .basket-sel-list-down { top: 100%; border-top: none; border-radius: 0 0 4px 4px; }
+    .basket-sel-list-up { bottom: 100%; border-bottom: none; border-radius: 4px 4px 0 0; }
     .basket-load-btn { margin-bottom: 0; padding: 0 12px; white-space: nowrap; height: 34px; box-sizing: border-box; }
 
     .coord-rank {
@@ -1431,3 +1432,27 @@
 .game-gameover-tab-btn { flex:1; padding:8px 4px; font-size:0.78rem; font-weight:bold; cursor:pointer; border:none; transition:opacity 0.15s; }
 .game-gameover-tab-btn-active { background:#e94560; color:white; }
 .game-gameover-tab-btn-inactive { background:#c2d4e8; color:#3a5a7a; }
+
+/* ── Écran #screen-game — onglets "Mes parties AlChess" / "Bibliothèque PGN" (issue #244 partie 4/4) ── */
+.game-gameover-tab-content { display:flex; flex-direction:column; gap:8px; }
+.game-gameover-tab-content-hidden { display:none; flex-direction:column; gap:8px; }
+.game-gameover-file-input { display:none; }
+.game-gameover-btn-mb0 { margin-bottom:0; }
+.game-gameover-coller-pgn-zone { display:none; margin-top:8px; }
+.game-gameover-coller-pgn-zone.is-open { display:block; }
+.game-gameover-coller-pgn-textarea { width:100%; font-family:monospace; font-size:12px; resize:vertical; }
+.game-gameover-coller-pgn-charger-btn { margin-top:4px; margin-bottom:0; width:100%; }
+.game-gameover-basket-row { display:flex; gap:6px; align-items:stretch; }
+.game-gameover-lib-select { flex:1; min-width:0; background:#a0b8d0; color:#1a2a3a; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; height:34px; box-sizing:border-box; }
+.game-gameover-lib-create-btn { margin-bottom:0; padding:0 10px; white-space:nowrap; height:34px; box-sizing:border-box; background:#2e7d32; color:white; }
+.game-gameover-lib-delete-btn { margin-bottom:0; padding:0 10px; white-space:nowrap; height:34px; box-sizing:border-box; }
+.game-gameover-lib-spinner { display:none; align-items:center; gap:8px; color:#3a5a7a; font-size:0.8rem; }
+.game-gameover-lib-spinner-circle { width:14px; height:14px; border:2px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
+.game-gameover-lib-games-list { max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; border:1px solid #a0b8d0; border-radius:6px; padding:6px; background:#eef4fa; }
+.pgn-lib-empty { color:#778; font-size:0.8rem; text-align:center; padding:12px 0; }
+.game-gameover-seq-row { display:none; align-items:center; gap:8px; }
+.game-gameover-seq-label { font-size:0.8rem; color:#3a5a7a; white-space:nowrap; }
+.game-gameover-seq-select { flex:1; background:#a0b8d0; color:#1a2a3a; border:1px solid #2a5a8a; border-radius:4px; padding:4px 8px; font-size:0.82rem; }
+.game-gameover-hidden-init { margin-bottom:0; display:none; }
+.game-gameover-btn-sequence { background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a; }
+.game-gameover-btn-retour { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0; }
