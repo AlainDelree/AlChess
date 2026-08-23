@@ -1106,6 +1106,13 @@
 .expl-play-actions-card { padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
 .expl-play-btn-back { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0; }
 
+/* ── Écran connexion échiquier (issue #233) ── */
+.screen-connecting { display:none; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+.connecting-icon { font-size:2rem; }
+.connecting-msg { font-size:1.2rem; color:#e0e0e0; }
+.connecting-sub { color:#888; font-size:0.9rem; }
+.connecting-spinner { width:40px; height:40px; border:3px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; }
+
 /* ── Outil 1 — formulaire ajout ouverture ── */
 .add-field { display:flex; flex-direction:column; gap:3px; }
 .add-label { font-size:0.82rem; font-weight:600; color:#3a5a7a; }
