@@ -1005,6 +1005,26 @@
 .exr-btn-sync { margin-bottom:0; background:#a0b8d0; border:1px solid #4caf50; color:#4caf50; }
 .exr-btn-continuer { margin-bottom:0; display:none; background:#2e7d32; color:#fff; }
 
+/* ── Écran "Retranscription" (issue #230) ── */
+.retrans-resume-banner { display:none; background:#1a3a1a; border:1px solid #4caf50; border-radius:8px; padding:12px 16px; margin-bottom:16px; width:380px; text-align:center; }
+.retrans-resume-title { color:#4caf50; font-weight:bold; margin-bottom:6px; }
+.retrans-resume-info { color:#445; font-size:0.85rem; margin-bottom:10px; }
+.retrans-resume-actions { display:flex; gap:8px; }
+.retrans-resume-btn { flex:1; padding:6px; }
+.retrans-tabs { display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid #a0b8d0; margin-bottom:16px; width:380px; }
+.retrans-tab-btn { flex:1; padding:10px; font-size:0.9rem; font-weight:bold; cursor:pointer; border:none; transition:0.15s; }
+.retrans-tab-btn-active-init { background:#e94560; color:white; }
+.retrans-tab-btn-inactive-init { background:#c2d4e8; color:#3a5a7a; }
+.retrans-form-card { width:380px; }
+.retrans-form-card-hidden-init { display:none; }
+.retrans-form-actions { display:flex; gap:8px; margin-top:8px; }
+.retrans-btn-flex1 { flex:1; }
+.retrans-btn-flex2 { flex:2; }
+.retrans-camp-row { display:flex; gap:8px; margin-bottom:16px; }
+.retrans-camp-btn { flex:1; padding:8px; }
+.retrans-camp-btn-white-init { background:#e8c840; border:1px solid #e8c840; color:#d8e4f0; font-weight:bold; }
+.retrans-camp-btn-black-init { background:#c2d4e8; border:1px solid #a0b8d0; color:#3a5a7a; }
+
 /* ── Outil 1 — formulaire ajout ouverture ── */
 .add-field { display:flex; flex-direction:column; gap:3px; }
 .add-label { font-size:0.82rem; font-weight:600; color:#3a5a7a; }

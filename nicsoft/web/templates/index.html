@@ -424,29 +424,27 @@
   <div class="config-title" data-i18n="retrans.titre">📝 Retranscrire</div>
 
   <!-- Bandeau session en cours -->
-  <div id="retrans-resume-banner" style="display:none; background:#1a3a1a; border:1px solid #4caf50; border-radius:8px; padding:12px 16px; margin-bottom:16px; width:380px; text-align:center;">
-    <div style="color:#4caf50; font-weight:bold; margin-bottom:6px;" data-i18n="retrans.session_en_cours">♻ Session en cours</div>
-    <div id="retrans-resume-info" style="color:#445; font-size:0.85rem; margin-bottom:10px;"></div>
-    <div style="display:flex; gap:8px;">
-      <button class="btn btn-continuer" onclick="retransResume(false)" style="flex:1; padding:6px;" data-i18n="retrans.btn.nouvelle">Nouvelle</button>
-      <button class="btn btn-reprendre" onclick="retransResume(true)" style="flex:1; padding:6px;" data-i18n="retrans.btn.reprendre_session">↩ Reprendre</button>
+  <div id="retrans-resume-banner" class="retrans-resume-banner">
+    <div class="retrans-resume-title" data-i18n="retrans.session_en_cours">♻ Session en cours</div>
+    <div id="retrans-resume-info" class="retrans-resume-info"></div>
+    <div class="retrans-resume-actions">
+      <button class="btn btn-continuer retrans-resume-btn" data-action="retrans_resume" data-resume="false" data-i18n="retrans.btn.nouvelle">Nouvelle</button>
+      <button class="btn btn-reprendre retrans-resume-btn" data-action="retrans_resume" data-resume="true" data-i18n="retrans.btn.reprendre_session">↩ Reprendre</button>
     </div>
   </div>
 
   <!-- Onglets -->
-  <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid #a0b8d0; margin-bottom:16px; width:380px;">
-    <button id="retrans-tab-partie" onclick="retransSelectTab('partie')" data-i18n="retrans.tab.partie"
-      style="flex:1; padding:10px; font-size:0.9rem; font-weight:bold; cursor:pointer; border:none; background:#e94560; color:white; transition:0.15s;">
+  <div class="retrans-tabs">
+    <button id="retrans-tab-partie" class="retrans-tab-btn retrans-tab-btn-active-init" data-action="retrans_select_tab" data-tab="partie" data-i18n="retrans.tab.partie">
       🏆 Partie
     </button>
-    <button id="retrans-tab-exercice" onclick="retransSelectTab('exercice')" data-i18n="retrans.tab.exercice"
-      style="flex:1; padding:10px; font-size:0.9rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#3a5a7a; transition:0.15s;">
+    <button id="retrans-tab-exercice" class="retrans-tab-btn retrans-tab-btn-inactive-init" data-action="retrans_select_tab" data-tab="exercice" data-i18n="retrans.tab.exercice">
       📖 Exercice
     </button>
   </div>
 
   <!-- Formulaire Partie -->
-  <div id="retrans-form-partie" class="card" style="width:380px;">
+  <div id="retrans-form-partie" class="card retrans-form-card">
     <label class="cfg-label" data-i18n="retrans.label.blancs">Blancs</label>
     <input id="retrans-white" class="cfg-input" type="text" data-i18n-placeholder="retrans.placeholder.blancs" placeholder="Nom du joueur Blancs">
 
@@ -459,28 +457,26 @@
     <label class="cfg-label" data-i18n="retrans.label.evenement">Événement</label>
     <input id="retrans-event" class="cfg-input" type="text" data-i18n-placeholder="retrans.placeholder.evenement" placeholder="Tournoi, club...">
 
-    <div style="display:flex; gap:8px; margin-top:8px;">
-      <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;" data-i18n="common.retour">← Retour</button>
-      <button class="btn btn-reprendre" onclick="startRetranscription()" style="flex:2;" data-i18n="common.demarrer">▶ Démarrer la partie</button>
+    <div class="retrans-form-actions">
+      <button class="btn btn-continuer retrans-btn-flex1" data-action="back_menu" data-i18n="common.retour">← Retour</button>
+      <button class="btn btn-reprendre retrans-btn-flex2" data-action="start_retranscription" data-i18n="common.demarrer">▶ Démarrer la partie</button>
     </div>
   </div>
 
   <!-- Formulaire Exercice -->
-  <div id="retrans-form-exercice" class="card" style="width:380px; display:none;">
+  <div id="retrans-form-exercice" class="card retrans-form-card retrans-form-card-hidden-init">
     <label class="cfg-label" data-i18n="retrans.label.nom_ligne">Nom de la ligne</label>
     <input id="retrans-nom" class="cfg-input" type="text" data-i18n-placeholder="retrans.placeholder.nom_ligne" placeholder="ex: Chigorine, Ruy Lopez...">
 
     <label class="cfg-label" data-i18n="retrans.label.camp">Camp suggéré</label>
-    <div style="display:flex; gap:8px; margin-bottom:16px;">
-      <button id="retrans-camp-white" class="btn" onclick="retransSetCamp('white')" data-i18n="config.color.blancs"
-        style="flex:1; padding:8px; background:#e8c840; border:1px solid #e8c840; color:#d8e4f0; font-weight:bold;">♔ Blancs</button>
-      <button id="retrans-camp-black" class="btn" onclick="retransSetCamp('black')" data-i18n="config.color.noirs"
-        style="flex:1; padding:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#3a5a7a;">♚ Noirs</button>
+    <div class="retrans-camp-row">
+      <button id="retrans-camp-white" class="btn retrans-camp-btn retrans-camp-btn-white-init" data-action="retrans_set_camp" data-camp="white" data-i18n="config.color.blancs">♔ Blancs</button>
+      <button id="retrans-camp-black" class="btn retrans-camp-btn retrans-camp-btn-black-init" data-action="retrans_set_camp" data-camp="black" data-i18n="config.color.noirs">♚ Noirs</button>
     </div>
 
-    <div style="display:flex; gap:8px; margin-top:8px;">
-      <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;" data-i18n="common.retour">← Retour</button>
-      <button class="btn btn-reprendre" onclick="startRetranscription()" style="flex:2;" data-i18n="common.demarrer">▶ Démarrer la partie</button>
+    <div class="retrans-form-actions">
+      <button class="btn btn-continuer retrans-btn-flex1" data-action="back_menu" data-i18n="common.retour">← Retour</button>
+      <button class="btn btn-reprendre retrans-btn-flex2" data-action="start_retranscription" data-i18n="common.demarrer">▶ Démarrer la partie</button>
     </div>
   </div>
 </div>

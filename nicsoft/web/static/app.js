@@ -109,6 +109,18 @@ document.addEventListener("click", (e) => {
     case "quit_modal":
       ouvrirModal("quit", t("modal.quitter_alchess"), t("modal.quitter_btn"), "btn-warning");
       break;
+    case "retrans_resume":
+      retransResume(el.dataset.resume === "true");
+      break;
+    case "retrans_select_tab":
+      retransSelectTab(el.dataset.tab);
+      break;
+    case "retrans_set_camp":
+      retransSetCamp(el.dataset.camp);
+      break;
+    case "start_retranscription":
+      startRetranscription();
+      break;
   }
 });
 
