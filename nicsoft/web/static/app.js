@@ -142,6 +142,18 @@ document.addEventListener("click", (e) => {
     case "retrans_quit_sans_sauver":
       retransQuitSansSauver();
       break;
+    case "expl_chat_send":
+      explChatSend();
+      break;
+    case "expl_nav":
+      if (el.dataset.direction === "prev") explPrev(); else explNext();
+      break;
+    case "expl_toggle_tts":
+      explToggleTts();
+      break;
+    case "expl_back_to_select":
+      explBackToSelect();
+      break;
   }
 });
 

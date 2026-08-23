@@ -212,6 +212,17 @@
       align-items: start;
       overflow: hidden;
     }
+    #screen-opening-explorer-play {
+      display: none;
+      flex: 1;
+      grid-template-columns: 380px minmax(0, 1fr) 240px;
+      gap: 20px;
+      padding: 16px 20px;
+      width: 100%;
+      max-width: 100vw;
+      align-items: start;
+      overflow: hidden;
+    }
 
     /* ── Schéma connexion ordinateur-échiquier (écran menu) ── */
     .schema-connexion {
@@ -1062,6 +1073,38 @@
 .retrans-game-corbeille-row { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
 .retrans-game-btn-corbeille { flex:1; margin-bottom:0; font-size:0.82rem; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a; }
 .retrans-game-btn-quitter { width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#3a5a7a; }
+
+/* ── Écran "Opening Explorer" — partie en cours (issue #232) ── */
+.expl-play-left { display:flex; flex-direction:column; gap:10px; overflow-y:auto; max-height:calc(100vh - 60px); }
+.expl-play-explanation-card { padding:14px 16px; }
+.expl-play-explanation-text { font-size:0.85rem; color:#3a5a7a; line-height:1.5; }
+.expl-play-chat-card { padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+.expl-play-chat-history { font-size:0.82rem; color:#3a5a7a; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; }
+.expl-play-chat-input-row { display:flex; gap:6px; }
+.expl-play-chat-input { flex:1; padding:6px 10px; border:1px solid #a0b8d0; border-radius:6px; font-size:0.85rem; }
+.expl-play-chat-send-btn { margin:0; padding:6px 12px; font-size:0.82rem; }
+.expl-play-center { display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; max-height:calc(100vh - 60px); overflow:hidden; }
+.expl-play-board-wrapper { min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; }
+.expl-play-player-row { padding:4px 6px; background:#a0b8d0; }
+.expl-play-player-top { color:#445; font-weight:bold; font-size:0.85rem; }
+.expl-play-player-bottom { color:#1a2a3a; font-weight:bold; font-size:0.85rem; }
+.expl-play-board-row { display:flex; align-items:stretch; }
+.expl-play-board-pos { position:relative; display:inline-block; }
+.expl-play-arrows-svg { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+.expl-play-coord-file { width:100%; }
+.expl-play-nav-row { display:flex; gap:10px; margin-top:14px; }
+.expl-play-btn-prev { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-top:0; }
+.expl-play-btn-next { margin-top:0; }
+.expl-play-right { display:flex; flex-direction:column; gap:8px; overflow-y:auto; max-height:calc(100vh - 60px); }
+.expl-play-tts-row { display:flex; align-items:center; gap:8px; align-self:flex-start; }
+.expl-play-tts-toggle { background:none; border:1px solid #a0b8d0; border-radius:6px; padding:3px 10px; font-size:1rem; line-height:1.4; cursor:pointer; }
+.expl-play-tts-volume { width:90px; accent-color:#e94560; }
+.expl-play-info-card { padding:12px 14px; }
+.expl-play-nom { color:#e94560; font-size:0.85rem; margin-bottom:8px; }
+.expl-play-coup-courant { font-size:0.9rem; font-weight:600; color:#1a2a3a; }
+.expl-play-moves-card { padding:14px 16px; }
+.expl-play-actions-card { padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+.expl-play-btn-back { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0; }
 
 /* ── Outil 1 — formulaire ajout ouverture ── */
 .add-field { display:flex; flex-direction:column; gap:3px; }
