@@ -142,6 +142,7 @@
       justify-content: flex-start;
       padding: 0;
       gap: 0;
+      overflow: hidden;
       height: calc(100vh - 52px); /* 52px = hauteur header */
       max-height: calc(100vh - 52px);
     }
@@ -458,6 +459,52 @@
     }
     .cfg-input::placeholder { color: #3a5a7a; opacity: 1; }
     .cfg-input:focus { outline: none; border-color: #e94560; }
+
+    .cfg-ped-titlebar {
+      width: 100%;
+      background: #c2d4e8;
+      border-bottom: 1px solid #a0b8d0;
+      padding: 12px 32px;
+      flex-shrink: 0;
+    }
+    .cfg-ped-title { margin-bottom: 0; }
+    .cfg-ped-scroll {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      width: 100%;
+      padding: 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    .cfg-ped-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 12px;
+      width: 100%;
+      max-width: 760px;
+      align-items: start;
+    }
+    .cfg-ped-card-joueur { padding: 14px 16px; grid-column: 1; grid-row: 1; }
+    .cfg-ped-card-joueur .cfg-input { margin-bottom: 12px; }
+    .cfg-ped-card-joueur .color-btns { margin-bottom: 0; }
+    .cfg-ped-card-pause  { padding: 14px 16px; grid-column: 1; grid-row: 2; }
+    .cfg-ped-card-pause .cfg-input { margin-bottom: 0; }
+    .cfg-ped-footer {
+      width: 100%;
+      background: #c2d4e8;
+      border-top: 1px solid #a0b8d0;
+      padding: 12px 32px;
+      flex-shrink: 0;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .cfg-ped-btn-back  { width: 160px; margin-bottom: 0; }
+    .cfg-ped-btn-start { width: 260px; margin-bottom: 0; font-size: 1rem; }
 
     .color-btns { display: flex; gap: 8px; margin-bottom: 16px; }
     .color-btn {

@@ -51,9 +51,10 @@ def test_retour_depuis_config(at_menu):
     """Config pédagogique → Retour → menu."""
     at_menu.locator(".menu-card-primary .menu-card-head").click()
     at_menu.wait_for_selector("#screen-config", state="visible", timeout=5000)
-    # Ciblage par attribut onclick plutôt que par texte traduit (issue #208) —
-    # le texte du bouton dépend de la locale (FR "Retour" / EN "Back").
-    at_menu.locator("#screen-config button[onclick*=\"type:'back'\"]").click()
+    # Ciblage par attribut data-action plutôt que par texte traduit (issue #208,
+    # migré vers data-action en #234) — le texte du bouton dépend de la locale
+    # (FR "Retour" / EN "Back").
+    at_menu.locator("#screen-config button[data-action=\"back\"]").click()
     at_menu.wait_for_selector("#screen-menu", state="visible", timeout=5000)
     assert at_menu.locator("#screen-menu").is_visible()
 

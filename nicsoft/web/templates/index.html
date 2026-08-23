@@ -205,36 +205,36 @@
 </div>
 
 <!-- ── Écran config ── -->
-<div id="screen-config" style="justify-content:flex-start; padding:0; overflow:hidden;">
+<div id="screen-config">
 
   <!-- Barre de titre fixe -->
-  <div style="width:100%; background:#c2d4e8; border-bottom:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0;">
-    <div class="config-title" style="margin-bottom:0;" data-i18n="config.titre.pedagogique">🎓 Mode Pédagogique</div>
+  <div class="cfg-ped-titlebar">
+    <div class="config-title cfg-ped-title" data-i18n="config.titre.pedagogique">🎓 Mode Pédagogique</div>
   </div>
 
   <!-- Zone scrollable — hauteur contrainte entre titre et boutons -->
-  <div style="flex:1; overflow-y:auto; min-height:0; width:100%; padding:16px 32px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+  <div class="cfg-ped-scroll">
 
     <!-- Grille 2 colonnes, 2 lignes — placement explicite -->
-    <div style="display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:12px; width:100%; max-width:760px; align-items:start;">
+    <div class="cfg-ped-grid">
 
       <!-- Ligne 1, Col 1 : Joueur -->
-      <div class="card" style="padding:14px 16px; grid-column:1; grid-row:1;">
+      <div class="card cfg-ped-card-joueur">
         <h2 data-i18n="config.h2.joueur">Joueur</h2>
         <label class="cfg-label" data-i18n="config.label.nom">Nom</label>
-        <input id="cfg-player" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom" placeholder="Votre nom" style="margin-bottom:12px;">
+        <input id="cfg-player" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom" placeholder="Votre nom">
         <label class="cfg-label" data-i18n="config.label.couleur">Couleur</label>
-        <div class="color-btns" style="margin-bottom:0;">
-          <button class="color-btn selected" id="cfg-white"  onclick="selectColor('white')"  data-i18n="config.color.blancs">♔ Blancs</button>
-          <button class="color-btn"          id="cfg-black"  onclick="selectColor('black')"  data-i18n="config.color.noirs">♚ Noirs</button>
-          <button class="color-btn"          id="cfg-random" onclick="selectColor('random')" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
+        <div class="color-btns">
+          <button class="color-btn selected" id="cfg-white"  data-action="select_color" data-color="white"  data-i18n="config.color.blancs">♔ Blancs</button>
+          <button class="color-btn"          id="cfg-black"  data-action="select_color" data-color="black"  data-i18n="config.color.noirs">♚ Noirs</button>
+          <button class="color-btn"          id="cfg-random" data-action="select_color" data-color="random" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
         </div>
       </div>
 
       <!-- Ligne 2, Col 1 : Pause pédagogique -->
-      <div class="card" style="padding:14px 16px; grid-column:1; grid-row:2;">
+      <div class="card cfg-ped-card-pause">
         <h2 data-i18n="config.h2.pause_ped">Pause pédagogique</h2>
-        <select id="cfg-pause" class="cfg-input" style="margin-bottom:0;">
+        <select id="cfg-pause" class="cfg-input">
           <option value="toujours" data-i18n="config.pause.toujours">Toujours</option>
           <option value="imprecision" data-i18n="config.pause.imprecision">Imprécision + Erreur + Gaffe</option>
           <option value="erreur" data-i18n="config.pause.erreur">Erreur + Gaffe</option>
@@ -351,9 +351,9 @@
   </div><!-- fin zone scrollable -->
 
   <!-- Barre de boutons fixe en bas -->
-  <div style="width:100%; background:#c2d4e8; border-top:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0; display:flex; gap:12px; justify-content:center;">
-    <button class="btn btn-continuer" onclick="sendAction({type:'back'})" style="width:160px; margin-bottom:0;" data-i18n="common.retour">← Retour</button>
-    <button id="btn-start-peda" class="btn btn-reprendre" onclick="startGame()" style="width:260px; margin-bottom:0; font-size:1rem;" data-i18n="common.demarrer">▶ Démarrer la partie</button>
+  <div class="cfg-ped-footer">
+    <button class="btn btn-continuer cfg-ped-btn-back" data-action="back" data-i18n="common.retour">← Retour</button>
+    <button id="btn-start-peda" class="btn btn-reprendre cfg-ped-btn-start" data-action="start_game" data-i18n="common.demarrer">▶ Démarrer la partie</button>
   </div>
 
 </div>

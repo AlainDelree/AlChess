@@ -97,8 +97,14 @@ document.addEventListener("click", (e) => {
     case "exercice_back":
       sendAction({ type: "exercice_back" });
       break;
+    case "select_color":
+      selectColor(el.dataset.color);
+      break;
     case "select_color_hh":
       selectColorHH(el.dataset.color);
+      break;
+    case "start_game":
+      startGame();
       break;
     case "start_game_hh":
       startGameHH();
