@@ -247,6 +247,18 @@ document.addEventListener("click", (e) => {
     case "quit_modal_moteur":
       ouvrirModal("back_menu", t("modal.quitter_moteur"), t("modal.quitter_btn"), "");
       break;
+    case "pause_review_nav":
+      if (el.dataset.direction === "prev") pauseReviewPrev(); else pauseReviewNext();
+      break;
+    case "pause_reprendre":
+      pauseReprendre();
+      break;
+    case "resume_pause":
+      sendAction({ type: "resume_pause" });
+      break;
+    case "pause_toggle_changer_couleur":
+      pauseToggleChangerCouleur();
+      break;
   }
 });
 

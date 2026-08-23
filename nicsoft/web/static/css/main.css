@@ -938,6 +938,9 @@
       flex-direction: column;
       gap: 16px;
     }
+    #panel-pause {
+      gap: 12px;
+    }
 
     .card {
       background: #c2d4e8;
@@ -1127,6 +1130,7 @@
 .toast.toast-warning { border-color:#ff9800; color:#ff9800; }
 .pos-init-error { background: #b71c1c !important; }
 .sq-error { background: rgba(180,0,0,0.45) !important; }
+.feedback-box-pause { border-radius:6px; padding:10px 12px; }
 .feedback-box-pause.bon        { background:#1b5e20; border-left:4px solid #4caf50; }
 .feedback-box-pause.imprecision{ background:#e65100; border-left:4px solid #ff9800; }
 .feedback-box-pause.erreur     { background:#b71c1c; border-left:4px solid #f44336; }
@@ -1375,3 +1379,16 @@
 .game-btn-pause  { background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a; }
 .game-btn-nulle  { background:#4a4a6a; color:#e0e0e0; }
 .game-btn-quitter { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; }
+
+/* ── Écran #screen-game — panneau "Pause" (issue #242 partie 2/4) ── */
+.game-pause-card { padding:14px 16px; }
+.game-pause-info-text { color:#445; font-size:0.9rem; margin-top:4px; margin-bottom:8px; }
+.game-pause-feedback-label { font-size:1rem; font-weight:700; margin-bottom:4px; color:#f0f0f0; }
+.game-pause-feedback-detail { font-size:0.85rem; color:#f0f0f0; }
+.game-pause-move-san { text-align:center; font-size:1.6rem; font-weight:bold; color:#1a2a3a; min-height:2rem; margin-bottom:10px; }
+.game-pause-nav-row { display:flex; gap:8px; }
+.game-pause-nav-btn { flex:1; margin-bottom:0; padding:8px; }
+.game-pause-actions-card { padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+.game-btn-pause-continuer { background:#2e7d32; }
+.game-btn-changer-couleur { background:#a0b8d0; color:#1a2a3a; border:1px solid #e94560; }
+.game-pause-hidden-init { display:none; }
