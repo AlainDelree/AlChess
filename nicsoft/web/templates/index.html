@@ -482,62 +482,47 @@
 </div>
 
 <!-- ── Écran retranscription en cours ── -->
-<div id="screen-retrans-game" style="display:none; flex:1; grid-template-columns:220px minmax(0,1fr) 200px; gap:20px; padding:16px 20px; width:100%; max-width:100vw; align-items:start; overflow:hidden;">
-  <div id="retrans-left" style="width:220px; display:flex; flex-direction:column; gap:10px;">
-    <div class="card" style="padding:14px;">
-      <div id="retrans-title" style="font-weight:bold; color:#e94560; margin-bottom:6px;"></div>
-      <div id="retrans-turn" style="font-size:0.85rem; color:#445; margin-bottom:10px;"></div>
-      <div id="retrans-status" style="font-size:0.82rem; color:#445;"></div>
+<div id="screen-retrans-game">
+  <div id="retrans-left" class="retrans-game-left">
+    <div class="card retrans-game-info-card">
+      <div id="retrans-title" class="retrans-game-title"></div>
+      <div id="retrans-turn" class="retrans-game-turn"></div>
+      <div id="retrans-status" class="retrans-game-status"></div>
     </div>
-    <div class="card" style="padding:14px; flex:1; overflow-y:auto;">
+    <div class="card retrans-game-history-card">
       <h2 data-i18n="retrans.h2.coups">Coups</h2>
-      <div id="retrans-history" style="font-size:0.82rem; line-height:1.8;"></div>
+      <div id="retrans-history" class="retrans-game-history"></div>
     </div>
   </div>
 
-  <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-    <div id="retrans-player-top" style="font-size:0.85rem; font-weight:600; color:#445; padding:4px 0; text-align:center; width:100%;"></div>
-    <div id="retrans-board-wrapper" style="min-width:0; display:flex; flex-direction:row; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden;">
+  <div class="retrans-game-center">
+    <div id="retrans-player-top" class="retrans-game-player-top"></div>
+    <div id="retrans-board-wrapper" class="retrans-game-board-wrapper">
       <div id="retrans-coord-rank" class="coord-rank"></div>
-      <div style="display:flex; flex-direction:column;">
+      <div class="retrans-game-board-col">
         <div id="retrans-board" class="board"></div>
         <div id="retrans-coord-file" class="coord-file"></div>
       </div>
     </div>
-    <div id="retrans-player-bottom" style="font-size:0.85rem; font-weight:600; color:#1a2a3a; padding:4px 0; text-align:center; width:100%;"></div>
-    <div style="font-size:0.78rem; color:#3a5a7a;" data-i18n="retrans.cliquer_jouer">Cliquez pour jouer</div>
+    <div id="retrans-player-bottom" class="retrans-game-player-bottom"></div>
+    <div class="retrans-game-hint" data-i18n="retrans.cliquer_jouer">Cliquez pour jouer</div>
   </div>
 
-  <div id="retrans-right" style="width:200px; display:flex; flex-direction:column; gap:10px;">
-    <div class="card" style="padding:14px;">
+  <div id="retrans-right" class="retrans-game-right">
+    <div class="card retrans-game-actions-card">
       <h2 data-i18n="retrans.h2.actions">Actions</h2>
-      <button class="btn btn-warning" onclick="sendAction({type:'retranscription_undo'})"
-        style="width:100%; margin-bottom:8px;" data-i18n="retrans.btn.undo">↩ Annuler coup</button>
-      <button class="btn" onclick="retransFlip()"
-        style="width:100%; margin-bottom:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#445;"
-        data-i18n="retrans.btn.flip">⇅ Retourner l'échiquier</button>
-      <button id="btn-retrans-save-continue" class="btn btn-continuer" onclick="retransSaveContinue()"
-        style="width:100%; margin-bottom:8px; display:none;">💾 Sauver et continuer</button>
-      <button class="btn" onclick="retransEnd('1-0')"
-        style="width:100%; margin-bottom:4px; background:#1a2a1a; color:#4caf50; border:1px solid #4caf50;"
-        data-i18n="retrans.blancs_gagnent">Blancs gagnent (1-0)</button>
-      <button class="btn" onclick="retransEnd('0-1')"
-        style="width:100%; margin-bottom:4px; background:#2a1a1a; color:#e94560; border:1px solid #e94560;"
-        data-i18n="retrans.noirs_gagnent">Noirs gagnent (0-1)</button>
-      <button class="btn" onclick="retransEnd('1/2-1/2')"
-        style="width:100%; margin-bottom:8px; background:#1a1a2a; color:#3a5a7a; border:1px solid #445;"
-        data-i18n="retrans.nulle">Nulle (½-½)</button>
-      <button class="btn btn-continuer" onclick="retransEnd('*')"
-        style="width:100%; margin-bottom:4px; font-size:0.82rem;" data-i18n="retrans.btn.sauver">← Sauver et quitter</button>
-      <div style="display:flex; gap:6px; align-items:center; margin-bottom:4px;">
-        <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
-        <button class="btn" onclick="basketAddRetrans()"
-          style="flex:1; margin-bottom:0; font-size:0.82rem; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a;"
-          data-i18n="retrans.btn.corbeille">🗂️ Ajouter au classeur</button>
+      <button class="btn btn-warning retrans-game-btn-undo" data-action="retrans_undo" data-i18n="retrans.btn.undo">↩ Annuler coup</button>
+      <button class="btn retrans-game-btn-flip" data-action="retrans_flip" data-i18n="retrans.btn.flip">⇅ Retourner l'échiquier</button>
+      <button id="btn-retrans-save-continue" class="btn btn-continuer retrans-game-btn-save-continue" data-action="retrans_save_continue">💾 Sauver et continuer</button>
+      <button class="btn retrans-game-btn-end-blancs" data-action="retrans_end" data-result="1-0" data-i18n="retrans.blancs_gagnent">Blancs gagnent (1-0)</button>
+      <button class="btn retrans-game-btn-end-noirs" data-action="retrans_end" data-result="0-1" data-i18n="retrans.noirs_gagnent">Noirs gagnent (0-1)</button>
+      <button class="btn retrans-game-btn-end-nulle" data-action="retrans_end" data-result="1/2-1/2" data-i18n="retrans.nulle">Nulle (½-½)</button>
+      <button class="btn btn-continuer retrans-game-btn-end-sauver" data-action="retrans_end" data-result="*" data-i18n="retrans.btn.sauver">← Sauver et quitter</button>
+      <div class="retrans-game-corbeille-row">
+        <span class="aide-panier-icone" data-action="aide_panier" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
+        <button class="btn retrans-game-btn-corbeille" data-action="basket_add_retrans" data-i18n="retrans.btn.corbeille">🗂️ Ajouter au classeur</button>
       </div>
-      <button class="btn" onclick="retransQuitSansSauver()"
-        style="width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#3a5a7a;"
-        data-i18n="retrans.btn.quitter">✕ Quitter sans sauver</button>
+      <button class="btn retrans-game-btn-quitter" data-action="retrans_quit_sans_sauver" data-i18n="retrans.btn.quitter">✕ Quitter sans sauver</button>
     </div>
   </div>
 </div>

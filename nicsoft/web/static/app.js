@@ -121,6 +121,27 @@ document.addEventListener("click", (e) => {
     case "start_retranscription":
       startRetranscription();
       break;
+    case "retrans_undo":
+      sendAction({ type: "retranscription_undo" });
+      break;
+    case "retrans_flip":
+      retransFlip();
+      break;
+    case "retrans_save_continue":
+      retransSaveContinue();
+      break;
+    case "retrans_end":
+      retransEnd(el.dataset.result);
+      break;
+    case "aide_panier":
+      ouvrirAidePanier();
+      break;
+    case "basket_add_retrans":
+      basketAddRetrans();
+      break;
+    case "retrans_quit_sans_sauver":
+      retransQuitSansSauver();
+      break;
   }
 });
 

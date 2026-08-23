@@ -190,6 +190,17 @@
       align-items: start;
       overflow: hidden;
     }
+    #screen-retrans-game {
+      display: none;
+      flex: 1;
+      grid-template-columns: 220px minmax(0, 1fr) 200px;
+      gap: 20px;
+      padding: 16px 20px;
+      width: 100%;
+      max-width: 100vw;
+      align-items: start;
+      overflow: hidden;
+    }
     #screen-exercice-running {
       display: none;
       flex: 1;
@@ -1024,6 +1035,33 @@
 .retrans-camp-btn { flex:1; padding:8px; }
 .retrans-camp-btn-white-init { background:#e8c840; border:1px solid #e8c840; color:#d8e4f0; font-weight:bold; }
 .retrans-camp-btn-black-init { background:#c2d4e8; border:1px solid #a0b8d0; color:#3a5a7a; }
+
+/* ── Écran "Retranscription" — partie en cours (issue #231) ── */
+.retrans-game-left { width:220px; display:flex; flex-direction:column; gap:10px; }
+.retrans-game-info-card { padding:14px; }
+.retrans-game-title { font-weight:bold; color:#e94560; margin-bottom:6px; }
+.retrans-game-turn { font-size:0.85rem; color:#445; margin-bottom:10px; }
+.retrans-game-status { font-size:0.82rem; color:#445; }
+.retrans-game-history-card { padding:14px; flex:1; overflow-y:auto; }
+.retrans-game-history { font-size:0.82rem; line-height:1.8; }
+.retrans-game-center { display:flex; flex-direction:column; align-items:center; gap:4px; }
+.retrans-game-player-top { font-size:0.85rem; font-weight:600; color:#445; padding:4px 0; text-align:center; width:100%; }
+.retrans-game-board-wrapper { min-width:0; display:flex; flex-direction:row; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; }
+.retrans-game-board-col { display:flex; flex-direction:column; }
+.retrans-game-player-bottom { font-size:0.85rem; font-weight:600; color:#1a2a3a; padding:4px 0; text-align:center; width:100%; }
+.retrans-game-hint { font-size:0.78rem; color:#3a5a7a; }
+.retrans-game-right { width:200px; display:flex; flex-direction:column; gap:10px; }
+.retrans-game-actions-card { padding:14px; }
+.retrans-game-btn-undo { width:100%; margin-bottom:8px; }
+.retrans-game-btn-flip { width:100%; margin-bottom:8px; background:#c2d4e8; border:1px solid #a0b8d0; color:#445; }
+.retrans-game-btn-save-continue { width:100%; margin-bottom:8px; display:none; }
+.retrans-game-btn-end-blancs { width:100%; margin-bottom:4px; background:#1a2a1a; color:#4caf50; border:1px solid #4caf50; }
+.retrans-game-btn-end-noirs { width:100%; margin-bottom:4px; background:#2a1a1a; color:#e94560; border:1px solid #e94560; }
+.retrans-game-btn-end-nulle { width:100%; margin-bottom:8px; background:#1a1a2a; color:#3a5a7a; border:1px solid #445; }
+.retrans-game-btn-end-sauver { width:100%; margin-bottom:4px; font-size:0.82rem; }
+.retrans-game-corbeille-row { display:flex; gap:6px; align-items:center; margin-bottom:4px; }
+.retrans-game-btn-corbeille { flex:1; margin-bottom:0; font-size:0.82rem; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a; }
+.retrans-game-btn-quitter { width:100%; font-size:0.82rem; background:#c2d4e8; border:1px solid #333; color:#3a5a7a; }
 
 /* ── Outil 1 — formulaire ajout ouverture ── */
 .add-field { display:flex; flex-direction:column; gap:3px; }
