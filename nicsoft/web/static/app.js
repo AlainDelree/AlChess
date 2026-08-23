@@ -76,6 +76,9 @@ document.addEventListener("click", (e) => {
     case "back_menu":
       sendAction({ type: "back_menu" });
       break;
+    case "parametres_save":
+      parametresSave();
+      break;
     case "quit_modal":
       ouvrirModal("quit", t("modal.quitter_alchess"), t("modal.quitter_btn"), "btn-warning");
       break;

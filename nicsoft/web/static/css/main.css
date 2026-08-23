@@ -883,6 +883,18 @@
 .pos-init-attente { display:flex; align-items:center; gap:10px; color:#2a3a4a; font-size:0.85rem; }
 .pos-init-spinner { width:14px; height:14px; border:2px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
 
+/* ── Écran "Paramètres" ── */
+.screen-parametres { display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%; }
+.parametres-header { width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.parametres-h2 { margin:0; color:#1a2a3a; font-size:1.4rem; }
+.parametres-card { width:100%; max-width:860px; }
+.parametres-llm-fields { display:flex; flex-direction:column; gap:12px; }
+.parametres-tts-toggle { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.parametres-tts-checkbox { width:16px; height:16px; cursor:pointer; accent-color:#e94560; }
+.parametres-tts-rate-row { display:flex; align-items:center; gap:10px; }
+.parametres-tts-rate { width:200px; accent-color:#e94560; }
+.parametres-actions { width:100%; max-width:860px; display:flex; gap:10px; }
+
 /* ── Outil 1 — formulaire ajout ouverture ── */
 .add-field { display:flex; flex-direction:column; gap:3px; }
 .add-label { font-size:0.82rem; font-weight:600; color:#3a5a7a; }
