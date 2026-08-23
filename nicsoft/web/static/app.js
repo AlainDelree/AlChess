@@ -187,6 +187,21 @@ document.addEventListener("click", (e) => {
     case "labo_sync_physique":
       laboSyncPhysique();
       break;
+    case "labo_toggle_section":
+      laboToggleSection(el.dataset.section);
+      break;
+    case "labo_best_move":
+      sendAction({ type: "best_move" });
+      break;
+    case "labo_set_auto":
+      laboSetAuto(el.dataset.auto === "true");
+      break;
+    case "labo_undo":
+      sendAction({ type: "undo_labo" });
+      break;
+    case "labo_reset":
+      laboReset();
+      break;
   }
 });
 

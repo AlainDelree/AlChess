@@ -842,6 +842,18 @@
     .labo-last-move { margin-top: 6px; font-size: 1rem; font-weight: bold; color: #3a5a7a; min-height: 1.2rem; text-align: center; }
     .labo-feedback-side { margin-top: 4px; padding: 4px 8px; border-radius: 4px; font-size: 0.82rem; display: none; }
     .labo-btn-mb0 { margin-bottom: 0; }
+    .labo-acc-card { padding: 0; }
+    .labo-acc-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; }
+    .labo-acc-title { margin-bottom: 0; }
+    .labo-acc-arrow { color: #3a5a7a; font-size: 0.8rem; }
+    .labo-acc-body { padding: 0 14px 12px; display: flex; flex-direction: column; gap: 7px; }
+    .labo-engine-label { font-size: 0.78rem; color: #3a5a7a; margin-bottom: 2px; }
+    .labo-auto-group { display: flex; border-radius: 6px; overflow: hidden; border: 1px solid #444; }
+    .labo-auto-btn { flex: 1; border: none; padding: 7px 0; font-size: 1.1rem; cursor: pointer; }
+    .labo-auto-btn-play { border-right: 1px solid #444; background: #2a2a2a; color: #555; }
+    .labo-auto-btn-stop { background: #7b1a1a; color: #fff; }
+    .labo-btn-undo { background: #9ab8d8; color: #1a2a3a; border: 1px solid #2a5a8a; }
+    .labo-btn-reset { background: #c2d4e8; color: #1a2a3a; border: 1px solid #a0b8d0; }
 
     .coord-rank {
       display: flex;

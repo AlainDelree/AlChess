@@ -1041,23 +1041,20 @@
       data-action="labo_sync_physique" data-i18n="labo.btn.source_physique">🔄 Source physique → Virtuel</button>
 
     <!-- ── Moteur (ouvert par défaut) ── -->
-    <div class="card" style="padding:0;">
-      <div onclick="laboToggleSection('labo-sec-moteur')"
-        style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer;">
-        <h2 style="margin-bottom:0;" data-i18n="labo.h2.moteur">MOTEUR</h2>
-        <span id="labo-sec-moteur-arrow" style="color:#3a5a7a; font-size:0.8rem;">▲</span>
+    <div class="card labo-acc-card">
+      <div class="labo-acc-header" data-action="labo_toggle_section" data-section="labo-sec-moteur">
+        <h2 class="labo-acc-title" data-i18n="labo.h2.moteur">MOTEUR</h2>
+        <span id="labo-sec-moteur-arrow" class="labo-acc-arrow">▲</span>
       </div>
-      <div id="labo-sec-moteur" style="padding:0 14px 12px; display:flex; flex-direction:column; gap:7px;">
-        <div id="labo-engine-label" style="font-size:0.78rem; color:#3a5a7a; margin-bottom:2px;"></div>
-        <button class="btn btn-best" id="labo-btn-best" style="margin-bottom:0;" onclick="sendAction({type:'best_move'})" data-i18n="labo.btn.meilleur">💡 Meilleur coup</button>
-        <div style="display:flex; border-radius:6px; overflow:hidden; border:1px solid #444;">
-          <button id="labo-btn-auto-play" onclick="laboSetAuto(true)"
-            style="flex:1; border:none; border-right:1px solid #444; padding:7px 0; font-size:1.1rem; cursor:pointer; background:#2a2a2a; color:#555;">▶</button>
-          <button id="labo-btn-auto-stop" onclick="laboSetAuto(false)"
-            style="flex:1; border:none; padding:7px 0; font-size:1.1rem; cursor:pointer; background:#7b1a1a; color:#fff;">■</button>
+      <div id="labo-sec-moteur" class="labo-acc-body">
+        <div id="labo-engine-label" class="labo-engine-label"></div>
+        <button class="btn btn-best labo-btn-mb0" id="labo-btn-best" data-action="labo_best_move" data-i18n="labo.btn.meilleur">💡 Meilleur coup</button>
+        <div class="labo-auto-group">
+          <button id="labo-btn-auto-play" class="labo-auto-btn labo-auto-btn-play" data-action="labo_set_auto" data-auto="true">▶</button>
+          <button id="labo-btn-auto-stop" class="labo-auto-btn labo-auto-btn-stop" data-action="labo_set_auto" data-auto="false">■</button>
         </div>
-        <button class="btn" id="labo-btn-undo" style="margin-bottom:0; background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a;" onclick="sendAction({type:'undo_labo'})" disabled data-i18n="labo.btn.annuler">↩ Annuler coup</button>
-        <button class="btn" style="margin-bottom:0; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="laboReset()" data-i18n="labo.btn.reinit">🔄 Réinitialiser</button>
+        <button class="btn labo-btn-mb0 labo-btn-undo" id="labo-btn-undo" data-action="labo_undo" disabled data-i18n="labo.btn.annuler">↩ Annuler coup</button>
+        <button class="btn labo-btn-mb0 labo-btn-reset" data-action="labo_reset" data-i18n="labo.btn.reinit">🔄 Réinitialiser</button>
 
       </div>
     </div>
