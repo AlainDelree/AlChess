@@ -1643,29 +1643,29 @@
 </div>
 
 <!-- ── Écran Opening Explorer — sélecteur ── -->
-<div id="screen-opening-explorer-select" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%;">
+<div id="screen-opening-explorer-select">
 
-  <div style="width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-    <h2 style="margin:0; color:#1a2a3a; font-size:1.4rem;" data-i18n="opening_explorer.titre">♟ Opening Explorer</h2>
-    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+  <div class="expl-select-header">
+    <h2 class="expl-select-h2" data-i18n="opening_explorer.titre">♟ Opening Explorer</h2>
+    <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu">← Retour au menu</button>
   </div>
 
   <!-- Catalogue -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card expl-select-card">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="opening_explorer.catalogue.titre">📚 Catalogue</span>
     </div>
-    <div id="expl-catalogue-list" style="display:flex; flex-direction:column; gap:6px; margin-top:10px;"></div>
-    <div id="expl-catalogue-vide" style="display:none; color:#888; font-size:0.85rem;" data-i18n="opening_explorer.catalogue.vide">Aucune ouverture dans le catalogue.</div>
+    <div id="expl-catalogue-list" class="expl-select-catalogue-list"></div>
+    <div id="expl-catalogue-vide" class="expl-select-vide" data-i18n="opening_explorer.catalogue.vide">Aucune ouverture dans le catalogue.</div>
   </div>
 
   <!-- Mes ouvertures -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card expl-select-card">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="opening_explorer.mes_ouvertures.titre">★ Mes ouvertures</span>
     </div>
-    <div id="expl-mes-lignes-list" style="display:flex; flex-direction:column; gap:10px; margin-top:10px;"></div>
-    <div id="expl-mes-lignes-vide" style="display:none; color:#888; font-size:0.85rem;" data-i18n="opening_explorer.mes_ouvertures.vide">Aucune ligne personnelle importée. Utilisez Outils Exercices pour en ajouter.</div>
+    <div id="expl-mes-lignes-list" class="expl-select-lignes-list"></div>
+    <div id="expl-mes-lignes-vide" class="expl-select-vide" data-i18n="opening_explorer.mes_ouvertures.vide">Aucune ligne personnelle importée. Utilisez Outils Exercices pour en ajouter.</div>
   </div>
 
 </div>
