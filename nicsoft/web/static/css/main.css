@@ -941,6 +941,9 @@
     #panel-pause {
       gap: 12px;
     }
+    #panel-gameover {
+      gap: 12px;
+    }
 
     .card {
       background: #c2d4e8;
@@ -1392,3 +1395,39 @@
 .game-btn-pause-continuer { background:#2e7d32; }
 .game-btn-changer-couleur { background:#a0b8d0; color:#1a2a3a; border:1px solid #e94560; }
 .game-pause-hidden-init { display:none; }
+
+/* ── Écran #screen-game — panneau "Fin de partie", début (issue #243 partie 3/4) ── */
+.game-gameover-card { padding:14px 18px; }
+.game-gameover-title-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.game-gameover-title { font-size:0.95rem; font-weight:bold; color:#e94560; }
+.game-gameover-result { font-size:1.1rem; font-weight:bold; color:#e94560; }
+.game-gameover-info-text { color:#445; font-size:0.82em; margin-top:4px; }
+.game-gameover-nav-header-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.game-gameover-nav-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:2px; color:#3a5a7a; font-weight:700; }
+.game-gameover-move-info { font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; color:#3a5a7a; font-weight:700; }
+.game-gameover-move-san { text-align:center; font-size:1.6rem; font-weight:bold; color:#1a2a3a; margin-bottom:10px; min-height:2rem; }
+.game-gameover-best-move-row { margin-bottom:8px; }
+.game-gameover-best-move-btn { width:100%; margin-bottom:0; }
+.game-gameover-best-move-san { text-align:center; font-size:0.9rem; color:#3a5a7a; margin-top:6px; }
+.game-gameover-autoplay-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.game-gameover-btn-autoplay {
+  width:44px; height:44px; border-radius:50%; border:none; cursor:pointer;
+  background:#e94560; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 8px rgba(233,69,96,0.4); flex-shrink:0;
+  transition:background 0.2s; opacity:0.4; pointer-events:none; padding:0;
+}
+.game-gameover-speed-col { flex:1; display:flex; flex-direction:column; gap:3px; }
+.game-gameover-speed-labels { display:flex; justify-content:space-between; font-size:0.7rem; color:#3a5a7a; }
+.game-gameover-autoplay-slider { width:100%; accent-color:#e94560; cursor:pointer; opacity:0.4; pointer-events:none; }
+.game-gameover-nav-row { display:flex; gap:8px; margin-bottom:8px; }
+.game-gameover-nav-btn { flex:1; margin-bottom:0; padding:8px; opacity:0.4; pointer-events:none; }
+.game-gameover-save-block { display:flex; flex-direction:column; gap:6px; }
+.game-gameover-save-select { width:100%; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:white; padding:8px 10px; font-size:0.88rem; }
+.game-gameover-save-btn { width:100%; margin-bottom:0; padding:8px; }
+.game-gameover-basket-btn { width:100%; margin-bottom:0; padding:8px; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a; }
+.game-gameover-actions-card { padding:14px 18px; display:flex; flex-direction:column; gap:8px; }
+.game-gameover-tab-row { display:flex; gap:0; border-radius:6px; overflow:hidden; border:1px solid #a0b8d0; margin-bottom:2px; }
+.game-gameover-tab-btn { flex:1; padding:8px 4px; font-size:0.78rem; font-weight:bold; cursor:pointer; border:none; transition:opacity 0.15s; }
+.game-gameover-tab-btn-active { background:#e94560; color:white; }
+.game-gameover-tab-btn-inactive { background:#c2d4e8; color:#3a5a7a; }

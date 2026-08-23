@@ -259,6 +259,24 @@ document.addEventListener("click", (e) => {
     case "pause_toggle_changer_couleur":
       pauseToggleChangerCouleur();
       break;
+    case "review_best_move":
+      showReviewBestMove();
+      break;
+    case "review_toggle_autoplay":
+      toggleAutoPlay();
+      break;
+    case "review_nav":
+      if (el.dataset.direction === "prev") reviewPrev(); else reviewNext();
+      break;
+    case "save_alchess":
+      sauvegarderNicLink();
+      break;
+    case "basket_add":
+      basketAdd();
+      break;
+    case "pgn_lib_select_tab":
+      pgnLibSelectTab(el.dataset.tab);
+      break;
   }
 });
 
