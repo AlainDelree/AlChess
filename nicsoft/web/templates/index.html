@@ -937,29 +937,29 @@
 </div>
 
 <!-- ── Écran Labo ── -->
-<div id="screen-labo" style="display:none; flex:1; grid-template-columns:220px minmax(0,1fr) 450px; gap:20px; padding:16px 20px; width:100%; max-width:100vw; align-items:start; overflow:hidden;">
+<div id="screen-labo">
 
   <!-- Colonne gauche : journal + pgn -->
-  <div style="display:flex; flex-direction:column; gap:6px; height:calc(100vh - 60px);">
-    <div class="card" style="padding:10px 12px; display:flex; flex-direction:column; flex:1; min-height:0;">
+  <div class="labo-col-left">
+    <div class="card labo-journal-card">
 
       <!-- Titre Journal -->
-      <div style="margin-bottom:8px; flex-shrink:0; border-bottom:2px solid #e94560; padding-bottom:4px;">
-        <span style="font-size:0.72rem; font-weight:600; color:#1a2a3a; text-transform:uppercase; letter-spacing:1px;" data-i18n="labo.journal.titre">Journal</span>
+      <div class="labo-journal-title-wrap">
+        <span class="labo-journal-title" data-i18n="labo.journal.titre">Journal</span>
       </div>
 
       <!-- Panneau Journal -->
-      <div id="labo-tab-panel-journal" style="display:flex; flex-direction:column; flex:1; min-height:0;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-shrink:0;">
-          <div style="display:flex; flex-wrap:wrap; gap:4px;">
-            <button id="jfilt-coups"   onclick="laboJournalToggleFilt('coups')"   class="jfilt-btn active" style="color:#1a2a3a;" data-i18n="labo.journal.coups">Coups</button>
-            <button id="jfilt-alertes" onclick="laboJournalToggleFilt('alertes')" class="jfilt-btn active" style="color:#c65100;" data-i18n="labo.journal.alertes">Alertes</button>
-            <button id="jfilt-analyse" onclick="laboJournalToggleFilt('analyse')" class="jfilt-btn active" style="color:#2e7d32;" data-i18n="labo.journal.analyse">Analyse</button>
-            <button id="jfilt-config"  onclick="laboJournalToggleFilt('config')"  class="jfilt-btn active" style="color:#2a5a8a;" data-i18n="labo.journal.config">Config</button>
+      <div id="labo-tab-panel-journal" class="labo-journal-panel">
+        <div class="labo-journal-toolbar">
+          <div class="labo-journal-filters">
+            <button id="jfilt-coups"   data-action="labo_journal_toggle_filt" data-filt="coups"   class="jfilt-btn jfilt-coups active"     data-i18n="labo.journal.coups">Coups</button>
+            <button id="jfilt-alertes" data-action="labo_journal_toggle_filt" data-filt="alertes" class="jfilt-btn jfilt-alertes active"   data-i18n="labo.journal.alertes">Alertes</button>
+            <button id="jfilt-analyse" data-action="labo_journal_toggle_filt" data-filt="analyse" class="jfilt-btn jfilt-analyse active"   data-i18n="labo.journal.analyse">Analyse</button>
+            <button id="jfilt-config"  data-action="labo_journal_toggle_filt" data-filt="config"  class="jfilt-btn jfilt-config active"    data-i18n="labo.journal.config">Config</button>
           </div>
-          <button onclick="laboJournalVider()" style="background:none; border:1px solid #333; border-radius:4px; color:#3a5a7a; font-size:0.7rem; padding:2px 7px; cursor:pointer; flex-shrink:0;" data-i18n="labo.journal.vider">Vider</button>
+          <button data-action="labo_journal_vider" class="labo-journal-clear-btn" data-i18n="labo.journal.vider">Vider</button>
         </div>
-        <div id="labo-journal" style="flex:1; overflow-y:auto; min-height:0; font-size:0.75rem; line-height:1.5;"></div>
+        <div id="labo-journal" class="labo-journal-list"></div>
       </div>
 
 
@@ -967,82 +967,78 @@
   </div>
 
   <!-- Colonne centre : échiquier -->
-  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:0; height:calc(100vh - 60px); overflow:hidden;">
+  <div class="labo-col-center">
     <!-- Toggles camp + tour -->
-    <div style="display:flex; align-items:center; gap:16px; margin-bottom:6px; justify-content:center;">
+    <div class="labo-toggles-row">
       <!-- Je joue -->
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:0.78rem; color:#3a5a7a;" data-i18n="labo.label.je_joue">Je joue</span>
-        <div style="display:flex; border:1px solid #333; border-radius:6px; overflow:hidden;">
-          <button id="labo-camp-white" onclick="laboSetCamp('white')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#e94560; color:#fff; border:none; transition:all 0.15s;"
+      <div class="labo-toggle-group">
+        <span class="labo-toggle-label" data-i18n="labo.label.je_joue">Je joue</span>
+        <div class="labo-toggle-btns">
+          <button id="labo-camp-white" data-action="labo_set_camp" data-camp="white"
+            class="labo-toggle-btn labo-toggle-btn-white"
             data-i18n="labo.btn.blancs">♔ Blancs</button>
-          <button id="labo-camp-black" onclick="laboSetCamp('black')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#c2d4e8; color:#555; border:none; transition:all 0.15s;"
+          <button id="labo-camp-black" data-action="labo_set_camp" data-camp="black"
+            class="labo-toggle-btn labo-toggle-btn-black"
             data-i18n="labo.btn.noirs">♚ Noirs</button>
         </div>
       </div>
       <!-- Tour actuel -->
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span style="font-size:0.78rem; color:#3a5a7a;" data-i18n="labo.label.tour">Tour</span>
-        <div style="display:flex; border:1px solid #333; border-radius:6px; overflow:hidden;">
-          <button id="labo-turn-white" onclick="laboSetTurn('white')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#e94560; color:#fff; border:none; transition:all 0.15s;"
+      <div class="labo-toggle-group">
+        <span class="labo-toggle-label" data-i18n="labo.label.tour">Tour</span>
+        <div class="labo-toggle-btns">
+          <button id="labo-turn-white" data-action="labo_set_turn" data-turn="white"
+            class="labo-toggle-btn labo-toggle-btn-white"
             data-i18n="labo.btn.blancs">♔ Blancs</button>
-          <button id="labo-turn-black" onclick="laboSetTurn('black')"
-            style="padding:4px 10px; cursor:pointer; font-size:0.78rem; font-weight:600;
-                   background:#c2d4e8; color:#555; border:none; transition:all 0.15s;"
+          <button id="labo-turn-black" data-action="labo_set_turn" data-turn="black"
+            class="labo-toggle-btn labo-toggle-btn-black"
             data-i18n="labo.btn.noirs">♚ Noirs</button>
         </div>
       </div>
     </div>
-    <div id="labo-board-align" style="display:flex; flex-direction:column;">
-      <div style="display:flex; align-items:stretch; gap:6px;">
+    <div id="labo-board-align" class="labo-board-align">
+      <div class="labo-board-row">
         <!-- Barre d'évaluation verticale -->
-        <div id="labo-eval-bar-wrap" style="display:flex; flex-direction:column; align-items:center; width:18px; flex-shrink:0;">
-          <div id="labo-eval-score" style="font-size:0.62rem; color:#445; margin-bottom:2px; white-space:nowrap;">0.0</div>
-          <div style="flex:1; width:14px; border-radius:4px; overflow:hidden; border:1px solid #333; background:#111; display:flex; flex-direction:column;">
-            <div id="labo-eval-black" style="background:#222; width:100%; flex:1; transition:flex 0.4s ease;"></div>
-            <div id="labo-eval-white" style="background:#e0e0e0; width:100%; flex:1; transition:flex 0.4s ease;"></div>
+        <div id="labo-eval-bar-wrap" class="labo-eval-bar-wrap">
+          <div id="labo-eval-score" class="labo-eval-score">0.0</div>
+          <div class="labo-eval-bar-track">
+            <div id="labo-eval-black" class="labo-eval-fill-black"></div>
+            <div id="labo-eval-white" class="labo-eval-fill-white"></div>
           </div>
         </div>
         <!-- Échiquier -->
-        <div id="labo-board-wrapper" style="min-width:0; display:flex; flex-direction:column; border:2px solid #a0b8d0; border-radius:4px; overflow:hidden; position:relative;">
-          <div id="labo-loading" style="display:none; position:absolute; inset:0; background:rgba(10,20,40,0.88); z-index:10; flex-direction:column; justify-content:center; align-items:center; gap:14px;">
-            <div style="width:36px; height:36px; border:4px solid #3a5a7a; border-top-color:#a0c8f0; border-radius:50%; animation:spin 0.9s linear infinite;"></div>
-            <span style="color:#c0d8f0; font-size:0.85rem; letter-spacing:1px;" data-i18n="labo.loading.echiquier">Connexion à l'échiquier…</span>
+        <div id="labo-board-wrapper" class="labo-board-wrapper">
+          <div id="labo-loading" class="labo-loading-overlay">
+            <div class="labo-loading-spinner"></div>
+            <span class="labo-loading-text" data-i18n="labo.loading.echiquier">Connexion à l'échiquier…</span>
           </div>
-          <div style="display:flex; min-height:0;">
-            <div class="coord-rank" id="labo-coord-rank" style="height:auto; align-self:stretch;"></div>
-            <div id="labo-board" style="display:grid; grid-template-columns:repeat(8,1fr);"></div>
+          <div class="labo-board-coord-row">
+            <div class="coord-rank" id="labo-coord-rank"></div>
+            <div id="labo-board"></div>
           </div>
-          <div class="coord-file" id="labo-coord-file" style="width:100%;"></div>
+          <div class="coord-file labo-coord-file" id="labo-coord-file"></div>
         </div>
       </div>
     </div>
-    <div id="labo-feedback" style="margin-top:8px; padding:6px 14px; border-radius:6px; font-size:0.88rem; display:none; text-align:center;"></div>
+    <div id="labo-feedback" class="labo-feedback-center"></div>
   </div>
 
   <!-- Colonne droite : accordéon -->
-  <div style="display:flex; flex-direction:column; gap:6px; overflow-y:auto; max-height:calc(100vh - 60px);">
+  <div class="labo-col-right">
 
     <!-- ── Position + Tour (toujours visible) ── -->
-    <div class="card" style="padding:12px 14px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
-        <div id="labo-turn-info" style="font-size:0.95rem; font-weight:600; color:#1a2a3a;">—</div>
-  
+    <div class="card labo-turn-card">
+      <div class="labo-turn-card-header">
+        <div id="labo-turn-info" class="labo-turn-info">—</div>
+
       </div>
 
-      <div id="labo-last-move" style="margin-top:6px; font-size:1rem; font-weight:bold; color:#3a5a7a; min-height:1.2rem; text-align:center;"></div>
-      <div id="labo-feedback" style="margin-top:4px; padding:4px 8px; border-radius:4px; font-size:0.82rem; display:none;"></div>
+      <div id="labo-last-move" class="labo-last-move"></div>
+      <div id="labo-feedback" class="labo-feedback-side"></div>
     </div>
 
     <!-- Source physique — toujours visible -->
-    <button class="btn btn-continuer" id="labo-btn-source-physique" style="margin-bottom:0;"
-      onclick="laboSyncPhysique()" data-i18n="labo.btn.source_physique">🔄 Source physique → Virtuel</button>
+    <button class="btn btn-continuer labo-btn-mb0" id="labo-btn-source-physique"
+      data-action="labo_sync_physique" data-i18n="labo.btn.source_physique">🔄 Source physique → Virtuel</button>
 
     <!-- ── Moteur (ouvert par défaut) ── -->
     <div class="card" style="padding:0;">

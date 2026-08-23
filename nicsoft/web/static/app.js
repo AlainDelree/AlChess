@@ -172,6 +172,21 @@ document.addEventListener("click", (e) => {
     case "expl_back_to_select":
       explBackToSelect();
       break;
+    case "labo_journal_toggle_filt":
+      laboJournalToggleFilt(el.dataset.filt);
+      break;
+    case "labo_journal_vider":
+      laboJournalVider();
+      break;
+    case "labo_set_camp":
+      laboSetCamp(el.dataset.camp);
+      break;
+    case "labo_set_turn":
+      laboSetTurn(el.dataset.turn);
+      break;
+    case "labo_sync_physique":
+      laboSyncPhysique();
+      break;
   }
 });
 
