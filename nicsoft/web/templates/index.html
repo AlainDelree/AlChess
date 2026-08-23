@@ -246,43 +246,42 @@
       <!-- Col 2 : Moteur + Options (wrapper flex) -->
       <div style="display:flex; flex-direction:column; gap:12px; grid-column:2; grid-row:1 / span 2;">
 
-        <div class="card" style="padding:14px 16px;">
+        <div class="card cfg-engine-card">
           <h2 data-i18n="config.moteur">Moteur</h2>
-          <div style="display:flex; gap:8px; margin-bottom:14px;">
-            <button class="color-btn selected" id="cfg-engine-stockfish" onclick="selectEngine('stockfish')">⚡ Stockfish <span class="engine-tagline" data-i18n="config.tagline.stockfish">Best</span></button>
-            <button class="color-btn"          id="cfg-engine-maia"      onclick="selectEngine('maia')">🧠 Maia Chess <span class="engine-tagline" data-i18n="config.tagline.maia">Human</span></button>
-            <button class="color-btn"          id="cfg-engine-rodent"    onclick="rodentCardClick('cfg')"><span id="cfg-rodent-icon">🐭</span> Rodent <span class="engine-tagline" data-i18n="config.tagline.rodent">Weak</span></button>
+          <div class="cfg-engine-btns">
+            <button class="color-btn selected" id="cfg-engine-stockfish" data-action="select_engine" data-engine="stockfish">⚡ Stockfish <span class="engine-tagline" data-i18n="config.tagline.stockfish">Best</span></button>
+            <button class="color-btn"          id="cfg-engine-maia"      data-action="select_engine" data-engine="maia">🧠 Maia Chess <span class="engine-tagline" data-i18n="config.tagline.maia">Human</span></button>
+            <button class="color-btn"          id="cfg-engine-rodent"    data-action="rodent_card_click" data-context="cfg"><span id="cfg-rodent-icon">🐭</span> Rodent <span class="engine-tagline" data-i18n="config.tagline.rodent">Weak</span></button>
           </div>
-          <div id="cfg-stockfish-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
+          <div id="cfg-stockfish-unavailable" class="cfg-engine-unavailable-msg"
                data-i18n="engine.stockfish.unavailable">Stockfish non installé sur ce système</div>
-          <div id="cfg-maia-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;"
+          <div id="cfg-maia-unavailable" class="cfg-engine-unavailable-msg"
                data-i18n="engine.maia.unavailable">Maia (lc0 + poids) non installé sur ce système</div>
-          <div id="cfg-rodent-unavailable" style="display:none; font-size:0.78rem; color:#c0392b; margin:-8px 0 12px;">
+          <div id="cfg-rodent-unavailable" class="cfg-engine-unavailable-msg">
             <span data-i18n="engine.rodent.unavailable">Moteur Rodent indisponible sur ce système</span>
           </div>
-          <span id="cfg-rodent-download-status" style="display:block; margin:-8px 0 12px; font-size:0.78rem; color:#3a5a7a;"></span>
-          <div id="cfg-no-engine-alert" style="display:none; font-size:0.85rem; color:#c0392b; margin:8px 0; padding:8px; background:#ffe0e0; border-radius:4px; text-align:center;"
+          <span id="cfg-rodent-download-status" class="cfg-rodent-download-status"></span>
+          <div id="cfg-no-engine-alert" class="cfg-no-engine-alert"
                data-i18n="engine.none.available">Aucun moteur d'échecs n'est disponible</div>
 
           <!-- Section Stockfish -->
           <div id="cfg-section-stockfish">
             <label class="cfg-label" data-i18n="config.label.force_moteur">Force du moteur</label>
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-              <button onclick="adjustElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-200</button>
-              <button onclick="adjustElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-50</button>
-              <input id="cfg-elo" class="cfg-input" type="number" min="1320" max="3190" value="1500"
-                     style="flex:1; text-align:center; margin-bottom:0; font-size:1rem; font-weight:bold;"
+            <div class="cfg-elo-row">
+              <button class="cfg-elo-btn cfg-elo-btn-wide" data-action="adjust_elo" data-delta="-200">-200</button>
+              <button class="cfg-elo-btn" data-action="adjust_elo" data-delta="-50">-50</button>
+              <input id="cfg-elo" class="cfg-input cfg-elo-input" type="number" min="1320" max="3190" value="1500"
                      oninput="clampElo()">
-              <button onclick="adjustElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+50</button>
-              <button onclick="adjustElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+200</button>
+              <button class="cfg-elo-btn" data-action="adjust_elo" data-delta="50">+50</button>
+              <button class="cfg-elo-btn cfg-elo-btn-wide" data-action="adjust_elo" data-delta="200">+200</button>
             </div>
-            <div id="cfg-elo-label" style="text-align:center; font-size:0.78rem; color:#3a5a7a;">~1500 Elo — Joueur confirmé</div>
+            <div id="cfg-elo-label" class="cfg-elo-caption">~1500 Elo — Joueur confirmé</div>
           </div>
 
           <!-- Section Maia -->
-          <div id="cfg-section-maia" style="display:none;">
+          <div id="cfg-section-maia" class="cfg-section-hidden">
             <label class="cfg-label" data-i18n="config.maia.niveau">Niveau Maia</label>
-            <select id="cfg-maia-elo" class="cfg-input" style="margin-bottom:4px;">
+            <select id="cfg-maia-elo" class="cfg-input cfg-select-tight">
               <option value="1100">Maia 1100 — Grand débutant</option>
               <option value="1200">Maia 1200 — Débutant</option>
               <option value="1300">Maia 1300 — Débutant+</option>
@@ -293,25 +292,24 @@
               <option value="1800">Maia 1800 — Avancé+</option>
               <option value="1900">Maia 1900 — Expert</option>
             </select>
-            <div style="text-align:center; font-size:0.78rem; color:#3a5a7a;" data-i18n="config.maia.desc">Joue comme un humain de ce niveau</div>
+            <div class="cfg-elo-caption" data-i18n="config.maia.desc">Joue comme un humain de ce niveau</div>
           </div>
 
           <!-- Section Rodent -->
-          <div id="cfg-section-rodent" style="display:none;">
+          <div id="cfg-section-rodent" class="cfg-section-hidden">
             <label class="cfg-label" data-i18n="config.rodent.force">Force de Rodent</label>
-            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-              <button onclick="adjustRodentElo(-200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-200</button>
-              <button onclick="adjustRodentElo(-50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">-50</button>
-              <input id="cfg-rodent-elo" class="cfg-input" type="number" min="800" max="2800" value="1200"
-                     style="flex:1; text-align:center; margin-bottom:0; font-size:1rem; font-weight:bold;"
+            <div class="cfg-elo-row">
+              <button class="cfg-elo-btn cfg-elo-btn-wide" data-action="adjust_rodent_elo" data-delta="-200">-200</button>
+              <button class="cfg-elo-btn" data-action="adjust_rodent_elo" data-delta="-50">-50</button>
+              <input id="cfg-rodent-elo" class="cfg-input cfg-elo-input" type="number" min="800" max="2800" value="1200"
                      oninput="clampRodentElo()">
-              <button onclick="adjustRodentElo(50)"  style="width:34px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+50</button>
-              <button onclick="adjustRodentElo(200)" style="width:38px; height:32px; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:#445; cursor:pointer; font-size:0.75rem;">+200</button>
+              <button class="cfg-elo-btn" data-action="adjust_rodent_elo" data-delta="50">+50</button>
+              <button class="cfg-elo-btn cfg-elo-btn-wide" data-action="adjust_rodent_elo" data-delta="200">+200</button>
             </div>
-            <div id="cfg-rodent-elo-label" style="text-align:center; font-size:0.78rem; color:#3a5a7a; margin-bottom:10px;">1200 Elo — Débutant+</div>
+            <div id="cfg-rodent-elo-label" class="cfg-elo-caption cfg-elo-caption-spaced">1200 Elo — Débutant+</div>
             <label class="cfg-label" data-i18n="config.rodent.personality">Personnalité</label>
-            <select id="cfg-rodent-personality" class="cfg-input" style="margin-bottom:4px;"></select>
-            <div style="text-align:center; font-size:0.78rem; color:#3a5a7a;" data-i18n="config.rodent.personality.desc">Style de jeu du moteur</div>
+            <select id="cfg-rodent-personality" class="cfg-input cfg-select-tight"></select>
+            <div class="cfg-elo-caption" data-i18n="config.rodent.personality.desc">Style de jeu du moteur</div>
           </div>
 
         </div><!-- fin card moteur -->

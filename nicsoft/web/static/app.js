@@ -103,6 +103,18 @@ document.addEventListener("click", (e) => {
     case "select_color_hh":
       selectColorHH(el.dataset.color);
       break;
+    case "select_engine":
+      selectEngine(el.dataset.engine);
+      break;
+    case "rodent_card_click":
+      rodentCardClick(el.dataset.context);
+      break;
+    case "adjust_elo":
+      adjustElo(parseInt(el.dataset.delta, 10));
+      break;
+    case "adjust_rodent_elo":
+      adjustRodentElo(parseInt(el.dataset.delta, 10));
+      break;
     case "start_game":
       startGame();
       break;
@@ -743,9 +755,9 @@ function selectEngine(engine) {
   document.getElementById("cfg-engine-stockfish").classList.toggle("selected", engine === "stockfish");
   document.getElementById("cfg-engine-maia").classList.toggle("selected",      engine === "maia");
   document.getElementById("cfg-engine-rodent").classList.toggle("selected",    engine === "rodent");
-  document.getElementById("cfg-section-stockfish").style.display = engine === "stockfish" ? "" : "none";
-  document.getElementById("cfg-section-maia").style.display      = engine === "maia"      ? "" : "none";
-  document.getElementById("cfg-section-rodent").style.display    = engine === "rodent"    ? "" : "none";
+  document.getElementById("cfg-section-stockfish").classList.toggle("cfg-section-hidden", engine !== "stockfish");
+  document.getElementById("cfg-section-maia").classList.toggle("cfg-section-hidden",      engine !== "maia");
+  document.getElementById("cfg-section-rodent").classList.toggle("cfg-section-hidden",    engine !== "rodent");
 }
 
 // Personnalités Rodent IV (valeurs EXACTES de l'option UCI combo "Personality"

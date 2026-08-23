@@ -606,6 +606,39 @@
       pointer-events: none;
     }
 
+    /* Carte Moteur (config péda) */
+    .cfg-engine-card { padding: 14px 16px; }
+    .cfg-engine-btns { display: flex; gap: 8px; margin-bottom: 14px; }
+    .cfg-engine-unavailable-msg { display: none; font-size: 0.78rem; color: #c0392b; margin: -8px 0 12px; }
+    .cfg-rodent-download-status { display: block; margin: -8px 0 12px; font-size: 0.78rem; color: #3a5a7a; }
+    .cfg-no-engine-alert {
+      display: none;
+      font-size: 0.85rem;
+      color: #c0392b;
+      margin: 8px 0;
+      padding: 8px;
+      background: #ffe0e0;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .cfg-section-hidden { display: none; }
+    .cfg-select-tight { margin-bottom: 4px; }
+    .cfg-elo-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .cfg-elo-btn {
+      width: 34px;
+      height: 32px;
+      background: #a0b8d0;
+      border: 1px solid #333;
+      border-radius: 4px;
+      color: #445;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .cfg-elo-btn-wide { width: 38px; }
+    .cfg-elo-input { flex: 1; text-align: center; margin-bottom: 0; font-size: 1rem; font-weight: bold; }
+    .cfg-elo-caption { text-align: center; font-size: 0.78rem; color: #3a5a7a; }
+    .cfg-elo-caption-spaced { margin-bottom: 10px; }
+
     /* ── Colonne gauche (Historique) ── */
     #left-panel {
       width: 220px;
