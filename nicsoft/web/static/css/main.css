@@ -875,6 +875,14 @@
 .expl-select-lignes-list { display:flex; flex-direction:column; gap:10px; margin-top:10px; }
 .expl-select-vide { display:none; color:#888; font-size:0.85rem; }
 
+/* ── Écran position initiale ── */
+.pos-init-board-col { display:flex; flex-direction:column; align-items:center; gap:0; }
+.pos-init-label { display:flex; align-items:center; gap:8px; padding:4px 0; font-size:1em; font-weight:bold; color:#1a2a3a; }
+.pos-init-panel { display:flex; flex-direction:column; gap:16px; }
+.pos-init-texte { color:#1a2a3a; font-size:0.9rem; line-height:1.7; margin-bottom:16px; }
+.pos-init-attente { display:flex; align-items:center; gap:10px; color:#2a3a4a; font-size:0.85rem; }
+.pos-init-spinner { width:14px; height:14px; border:2px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+
 /* ── Outil 1 — formulaire ajout ouverture ── */
 .add-field { display:flex; flex-direction:column; gap:3px; }
 .add-label { font-size:0.82rem; font-weight:600; color:#3a5a7a; }

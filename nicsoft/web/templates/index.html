@@ -830,30 +830,30 @@
   </div>
 </div>
 <!-- ── Écran position initiale ── -->
-<div id="screen-pos-init" class="screen-board-layout" style="display:none;">
+<div id="screen-pos-init" class="screen-board-layout">
   <!-- Colonne gauche vide -->
   <div></div>
   <!-- Échiquier centré -->
-  <div id="board-container-pos" style="display:flex; flex-direction:column; align-items:center; gap:0;">
-    <div style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:1em; font-weight:bold; color:#1a2a3a;">
+  <div id="board-container-pos" class="pos-init-board-col">
+    <div class="pos-init-label">
       <span>♟</span><span data-i18n="pos_init.adversaire">Adversaire</span>
     </div>
     <div id="board-pos-init"></div>
-    <div style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:1em; font-weight:bold; color:#1a2a3a;">
+    <div class="pos-init-label">
       <span>♙</span><span data-i18n="pos_init.joueur">Joueur</span>
     </div>
   </div>
   <!-- Panel droit contextuel -->
-  <div style="display:flex; flex-direction:column; gap:16px;">
+  <div class="pos-init-panel">
     <div class="card">
       <h2 class="card-title-lg" data-i18n="pos_init.titre">Position incorrecte</h2>
-      <div style="color:#1a2a3a; font-size:0.9rem; line-height:1.7; margin-bottom:16px;" data-i18n-html="pos_init.texte_html">
+      <div class="pos-init-texte" data-i18n-html="pos_init.texte_html">
         Le plateau n'est pas en position initiale.<br>
         Rangez toutes les pièces à leur place de départ.<br><br>
         La partie démarrera automatiquement dès que la position sera correcte.
       </div>
-      <div style="display:flex; align-items:center; gap:10px; color:#2a3a4a; font-size:0.85rem;">
-        <div style="width:14px; height:14px; border:2px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0;"></div>
+      <div class="pos-init-attente">
+        <div class="pos-init-spinner"></div>
         <span data-i18n="pos_init.attente">En attente…</span>
       </div>
     </div>
