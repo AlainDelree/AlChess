@@ -76,6 +76,12 @@ document.addEventListener("click", (e) => {
     case "back_menu":
       sendAction({ type: "back_menu" });
       break;
+    case "select_color_hh":
+      selectColorHH(el.dataset.color);
+      break;
+    case "start_game_hh":
+      startGameHH();
+      break;
     case "parametres_save":
       parametresSave();
       break;

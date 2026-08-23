@@ -142,7 +142,8 @@
     }
     #screen-config-humain {
       justify-content: flex-start;
-      overflow-y: auto;
+      padding: 0;
+      overflow: hidden;
     }
     #screen-ouvertures {
       display: none;
@@ -433,6 +434,55 @@
       transition: all 0.2s;
     }
     .color-btn.selected { border-color: #e94560; color: #1a2a3a; background: #a0b8d0; font-weight: 600; }
+
+    /* ── Écran config Humain vs Humain ── */
+    .cfg-hh-titlebar {
+      width: 100%;
+      background: #c2d4e8;
+      border-bottom: 1px solid #a0b8d0;
+      padding: 12px 32px;
+      flex-shrink: 0;
+    }
+    .cfg-hh-title { margin-bottom: 0; }
+    .cfg-hh-scroll {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      width: 100%;
+      padding: 16px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+    .cfg-hh-players-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+      max-width: 560px;
+      align-items: start;
+    }
+    .cfg-hh-card { padding: 14px 16px; }
+    .cfg-hh-options-col {
+      width: 100%;
+      max-width: 560px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .cfg-hh-footer {
+      width: 100%;
+      background: #c2d4e8;
+      border-top: 1px solid #a0b8d0;
+      padding: 12px 32px;
+      display: flex;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .cfg-hh-btn-back { flex: 1; }
+    .cfg-hh-btn-start { flex: 2; }
+
     /* Badge profil moteur (tagline) — compact, à côté du nom */
     .engine-tagline {
       display: inline-block;

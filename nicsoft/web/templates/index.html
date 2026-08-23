@@ -359,27 +359,27 @@
 </div>
 
 <!-- ── Écran config Humain vs Humain ── -->
-<div id="screen-config-humain" style="justify-content:flex-start; padding:0; overflow:hidden;">
+<div id="screen-config-humain">
 
   <!-- Barre de titre fixe -->
-  <div style="width:100%; background:#c2d4e8; border-bottom:1px solid #a0b8d0; padding:12px 32px; flex-shrink:0;">
-    <div class="config-title" style="margin-bottom:0;" data-i18n="config.titre.humain">⚔️ Humain vs Humain</div>
+  <div class="cfg-hh-titlebar">
+    <div class="config-title cfg-hh-title" data-i18n="config.titre.humain">⚔️ Humain vs Humain</div>
   </div>
 
   <!-- Zone scrollable -->
-  <div style="flex:1; overflow-y:auto; min-height:0; width:100%; padding:16px 32px; display:flex; flex-direction:column; gap:12px; align-items:center;">
+  <div class="cfg-hh-scroll">
 
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:560px; align-items:start;">
+    <div class="cfg-hh-players-grid">
 
       <!-- Joueur Blancs -->
-      <div class="card" style="padding:14px 16px;">
+      <div class="card cfg-hh-card">
         <h2><span id="label-white-name" data-i18n="config.joueur_blancs">Joueur Blancs</span></h2>
         <label class="cfg-label" data-i18n="config.label.nom">Nom</label>
         <input id="cfg-white-name" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom_blancs" placeholder="Nom Blancs">
       </div>
 
       <!-- Joueur Noirs -->
-      <div class="card" style="padding:14px 16px;">
+      <div class="card cfg-hh-card">
         <h2><span id="label-black-name" data-i18n="config.joueur_noirs">Joueur Noirs</span></h2>
         <label class="cfg-label" data-i18n="config.label.nom">Nom</label>
         <input id="cfg-black-name" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom_noirs" placeholder="Nom Noirs">
@@ -388,18 +388,18 @@
     </div>
 
     <!-- Couleurs + Type -->
-    <div style="width:100%; max-width:560px; display:flex; flex-direction:column; gap:12px;">
+    <div class="cfg-hh-options-col">
 
-      <div class="card" style="padding:14px 16px;">
+      <div class="card cfg-hh-card">
         <h2 data-i18n="config.h2.couleurs">Couleurs</h2>
         <div class="color-btns">
-          <button class="color-btn selected" id="cfg-hh-white"  onclick="selectColorHH('white')" data-i18n="config.hh.blancs_en_bas">♔ Blancs en bas</button>
-          <button class="color-btn"          id="cfg-hh-black"  onclick="selectColorHH('black')" data-i18n="config.hh.noirs_en_bas">♚ Noirs en bas</button>
-          <button class="color-btn"          id="cfg-hh-random" onclick="selectColorHH('random')" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
+          <button class="color-btn selected" id="cfg-hh-white"  data-action="select_color_hh" data-color="white" data-i18n="config.hh.blancs_en_bas">♔ Blancs en bas</button>
+          <button class="color-btn"          id="cfg-hh-black"  data-action="select_color_hh" data-color="black" data-i18n="config.hh.noirs_en_bas">♚ Noirs en bas</button>
+          <button class="color-btn"          id="cfg-hh-random" data-action="select_color_hh" data-color="random" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
         </div>
       </div>
 
-      <div class="card" style="padding:14px 16px;">
+      <div class="card cfg-hh-card">
         <h2 data-i18n="config.h2.type_partie">Type de partie</h2>
         <select id="cfg-hh-type" class="cfg-input">
           <option value="Serious"     data-i18n="pgn.type.Serious">Serious</option>
@@ -413,9 +413,9 @@
   </div>
 
   <!-- Boutons fixes en bas -->
-  <div style="width:100%; background:#c2d4e8; border-top:1px solid #a0b8d0; padding:12px 32px; display:flex; gap:12px; flex-shrink:0;">
-    <button class="btn btn-continuer" onclick="sendAction({type:'back_menu'})" style="flex:1;" data-i18n="common.retour">← Retour</button>
-    <button class="btn btn-reprendre" onclick="startGameHH()" style="flex:2;" data-i18n="common.demarrer">▶ Démarrer la partie</button>
+  <div class="cfg-hh-footer">
+    <button class="btn btn-continuer cfg-hh-btn-back" data-action="back_menu" data-i18n="common.retour">← Retour</button>
+    <button class="btn btn-reprendre cfg-hh-btn-start" data-action="start_game_hh" data-i18n="common.demarrer">▶ Démarrer la partie</button>
   </div>
 
 </div>
