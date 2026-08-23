@@ -860,47 +860,42 @@
   </div>
 </div>
 <!-- ── Écran Exercices — sélection ── -->
-<div id="screen-exercices" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:16px; overflow-y:auto;">
+<div id="screen-exercices">
 
-  <div style="font-size:1.5rem; color:#e94560; font-weight:bold;" data-i18n="exercices.titre_ecran">📚 Exercices — Ouvertures</div>
-  <div style="font-size:0.85rem; color:#3a5a7a; margin-top:-10px;" data-i18n="exercices.sous_titre">Choisissez une ouverture et entraînez-vous avec le livre de GM</div>
+  <div class="ex-titre" data-i18n="exercices.titre_ecran">📚 Exercices — Ouvertures</div>
+  <div class="ex-soustitre" data-i18n="exercices.sous_titre">Choisissez une ouverture et entraînez-vous avec le livre de GM</div>
 
   <!-- Paramètres compacts -->
-  <div id="ex-variete-bar" style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; justify-content:center; background:#c2d4e8; border:1px solid #a0b8d0; border-radius:8px; padding:12px 20px;">
-    <div style="display:flex; align-items:center; gap:10px;">
-      <span style="color:#445; font-size:0.82rem;" data-i18n="exercices.variete">Variété</span>
-      <input type="range" id="ex-variete" min="1" max="8" value="3" style="width:90px; accent-color:#e94560;" oninput="exUpdateVariete()">
-      <span id="ex-variete-label" style="color:#1a2a3a; font-weight:bold; width:16px;">3</span>
+  <div id="ex-variete-bar" class="ex-variete-bar">
+    <div class="ex-variete-group">
+      <span class="ex-variete-txt" data-i18n="exercices.variete">Variété</span>
+      <input type="range" id="ex-variete" min="1" max="8" value="3" class="ex-variete-slider" oninput="exUpdateVariete()">
+      <span id="ex-variete-label" class="ex-variete-value">3</span>
     </div>
-    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-top:0;" onclick="sendAction({type:'back'})">← Menu</button>
+    <button class="btn btn-continuer" data-action="back">← Menu</button>
   </div>
 
   <!-- Onglets Blancs / Noirs / Mes lignes -->
-  <div style="display:flex; gap:0; border-radius:8px; overflow:hidden; border:1px solid #a0b8d0;">
-    <button id="ex-tab-white" onclick="exSelectTab('white')" data-i18n="exercices.tab.blancs"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#e8c840; color:#d8e4f0; transition:opacity 0.15s;">
+  <div class="ex-tabs">
+    <button id="ex-tab-white" class="ex-tab-btn ex-tab-btn-active-init" data-action="ex_select_tab" data-tab="white" data-i18n="exercices.tab.blancs">
       ♔ Blancs suggérés
     </button>
-    <button id="ex-tab-black" onclick="exSelectTab('black')" data-i18n="exercices.tab.noirs"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#3a5a7a; transition:opacity 0.15s;">
+    <button id="ex-tab-black" class="ex-tab-btn ex-tab-btn-inactive-init" data-action="ex_select_tab" data-tab="black" data-i18n="exercices.tab.noirs">
       ♚ Noirs suggérés
     </button>
-    <button id="ex-tab-mes-lignes" onclick="exSelectTab('mes-lignes')" data-i18n="exercices.tab.mes_lignes"
-      style="padding:10px 32px; font-size:0.95rem; font-weight:bold; cursor:pointer; border:none; background:#c2d4e8; color:#3a5a7a; transition:opacity 0.15s;">
+    <button id="ex-tab-mes-lignes" class="ex-tab-btn ex-tab-btn-inactive-init" data-action="ex_select_tab" data-tab="mes-lignes" data-i18n="exercices.tab.mes_lignes">
       ★ Mes lignes
     </button>
   </div>
 
   <!-- Liste des ouvertures groupées -->
   <!-- Barre drill compacte -->
-  <div id="ex-drill-bar" style="display:none; width:100%; max-width:960px; background:#c2d4e8; border:1px solid #a0b8d0; border-radius:8px; padding:8px 12px; margin-bottom:8px; align-items:center; gap:8px;">
-    <span id="ex-drill-count" style="font-size:0.82rem; color:#3a5a7a; flex:1;"></span>
-    <button class="btn" onclick="sendAction({type:'back'})"
-      style="padding:7px 14px; font-size:0.82rem; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; border:1px solid #333;">← Menu</button>
-    <button id="ex-drill-btn" class="btn btn-reprendre" onclick="exLancerDrill()" data-i18n="exercices.drill"
-      style="padding:7px 18px; font-size:0.85rem;">🎲 Drill</button>
+  <div id="ex-drill-bar" class="ex-drill-bar">
+    <span id="ex-drill-count" class="ex-drill-count"></span>
+    <button class="btn ex-drill-btn-menu" data-action="back">← Menu</button>
+    <button id="ex-drill-btn" class="btn btn-reprendre ex-drill-btn-launch" data-action="ex_lancer_drill" data-i18n="exercices.drill">🎲 Drill</button>
   </div>
-  <div id="ex-ouvertures-list" style="width:100%; max-width:960px;"></div>
+  <div id="ex-ouvertures-list" class="ex-ouvertures-list"></div>
 
 </div>
 

@@ -76,6 +76,15 @@ document.addEventListener("click", (e) => {
     case "back_menu":
       sendAction({ type: "back_menu" });
       break;
+    case "back":
+      sendAction({ type: "back" });
+      break;
+    case "ex_select_tab":
+      exSelectTab(el.dataset.tab);
+      break;
+    case "ex_lancer_drill":
+      exLancerDrill();
+      break;
     case "select_color_hh":
       selectColorHH(el.dataset.color);
       break;
