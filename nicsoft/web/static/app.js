@@ -365,6 +365,19 @@ document.addEventListener("click", (e) => {
     case "outils_add_reset":
       outilsAddReset();
       break;
+    case "outils_edit_refresh":
+      socket.emit('outils_edit_list', {});
+      document.getElementById('edit-list-wrap').innerHTML='<em style=color:#888>Chargement…</em>';
+      break;
+    case "outils_edit_save":
+      outilsEditSave();
+      break;
+    case "outils_edit_cancel":
+      document.getElementById('edit-form').style.display='none';
+      break;
+    case "outils_wiki_update":
+      outilsWikiUpdate();
+      break;
   }
 });
 

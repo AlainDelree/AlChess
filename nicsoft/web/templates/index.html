@@ -1421,38 +1421,37 @@
   </div>
 
   <!-- Modifier une ouverture -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card outils-card-w">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.modifier.titre">✏️ Modifier une ouverture du catalogue</span>
     </div>
     <p class="outil-desc" data-i18n-html="outils.modifier.desc">Recherchez une ouverture, cliquez dessus et modifiez ses champs.</p>
 
-    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-      <input id="edit-search" type="text" class="add-input" placeholder="Filtrer par ID, ECO ou nom…" data-i18n-placeholder="outils.edit.filter_placeholder"
-        style="flex:1; min-width:180px;" oninput="outilsEditFilter()">
-      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; padding:5px 12px;"
-        onclick="socket.emit('outils_edit_list', {}); document.getElementById('edit-list-wrap').innerHTML='<em style=color:#888>Chargement…</em>';" data-i18n="common.actualiser">🔄 Actualiser</button>
+    <div class="outils-edit-filter-row">
+      <input id="edit-search" type="text" class="add-input outils-edit-filter-input" placeholder="Filtrer par ID, ECO ou nom…" data-i18n-placeholder="outils.edit.filter_placeholder"
+        oninput="outilsEditFilter()">
+      <button class="btn outils-btn-secondary outils-edit-refresh-btn" data-action="outils_edit_refresh" data-i18n="common.actualiser">🔄 Actualiser</button>
     </div>
 
-    <div id="edit-list-wrap" style="max-height:260px; overflow-y:auto; border:1px solid #a0b8d0; border-radius:6px; background:#f8fafc;">
-      <em style="color:#888; padding:10px; display:block;">Chargement…</em>
+    <div id="edit-list-wrap" class="outils-edit-list-wrap">
+      <em class="outils-edit-list-loading">Chargement…</em>
     </div>
 
     <!-- Formulaire inline d'édition -->
-    <div id="edit-form" style="display:none; margin-top:14px; border-top:1px solid #a0b8d0; padding-top:14px;">
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-        <span style="font-weight:700; color:#1a2a3a;" data-i18n="outils.edit.titre">Édition :</span>
-        <code id="edit-form-id" style="background:#e8eef4; padding:2px 8px; border-radius:4px; font-size:0.88rem; color:#1a2a3a;"></code>
-        <span id="edit-form-init" style="font-family:monospace; font-size:0.8rem; color:#888;"></span>
+    <div id="edit-form" class="outils-edit-form">
+      <div class="outils-edit-form-header-row">
+        <span class="outils-edit-form-label" data-i18n="outils.edit.titre">Édition :</span>
+        <code id="edit-form-id" class="outils-edit-form-id"></code>
+        <span id="edit-form-init" class="outils-edit-form-init"></span>
       </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 18px;">
+      <div class="outils-add-grid">
         <div class="add-field">
           <label class="add-label" data-i18n="outils.label.nom">Nom</label>
           <input id="edit-nom" type="text" class="add-input">
         </div>
         <div class="add-field">
           <label class="add-label" data-i18n="outils.label.code_eco">Code ECO</label>
-          <input id="edit-eco" type="text" class="add-input" maxlength="4" style="text-transform:uppercase;">
+          <input id="edit-eco" type="text" class="add-input add-input-upper" maxlength="4">
         </div>
         <div class="add-field">
           <label class="add-label" data-i18n="outils.label.camp">Camp</label>
@@ -1465,37 +1464,36 @@
           <label class="add-label" data-i18n="outils.label.livre">Livre (.bin)</label>
           <input id="edit-book" type="text" class="add-input">
         </div>
-        <div class="add-field" style="grid-column:1/-1;">
+        <div class="add-field add-field-full">
           <label class="add-label" data-i18n="outils.label.description">Description</label>
           <input id="edit-desc" type="text" class="add-input">
         </div>
-        <div class="add-field" style="grid-column:1/-1;">
+        <div class="add-field add-field-full">
           <label class="add-label" data-i18n="outils.label.parent_eco">Parent ECO</label>
           <input id="edit-parent-eco" type="text" class="add-input" maxlength="4">
         </div>
       </div>
-      <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
-        <button class="btn btn-continuer" onclick="outilsEditSave()" data-i18n="outils.modifier.enregistrer">💾 Enregistrer</button>
-        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;"
-          onclick="document.getElementById('edit-form').style.display='none';" data-i18n="common.annuler">Annuler</button>
+      <div class="outils-add-btn-row">
+        <button class="btn btn-continuer" data-action="outils_edit_save" data-i18n="outils.modifier.enregistrer">💾 Enregistrer</button>
+        <button class="btn outils-btn-secondary" data-action="outils_edit_cancel" data-i18n="common.annuler">Annuler</button>
       </div>
-      <div id="edit-result" style="display:none; margin-top:10px;"></div>
+      <div id="edit-result" class="outils-edit-result"></div>
     </div>
   </div>
 
   <!-- Màj ECO Wikipedia -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card outils-card-w">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.wiki.titre">🌐 Mettre à jour eco_hierarchy.json</span>
     </div>
     <p class="outil-desc" data-i18n-html="outils.wiki.desc">Télécharge la liste ECO depuis Wikipedia et reconstruit <code>eco_hierarchy.json</code> — utilisé pour les codes parent ECO lors de l'ajout et l'import ECO.</p>
 
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-      <button id="wiki-btn" class="btn btn-continuer" onclick="outilsWikiUpdate()" data-i18n="outils.wiki.btn">🌐 Mettre à jour depuis Wikipedia</button>
-      <span id="wiki-status" style="font-size:0.85rem; color:#3a5a7a;"></span>
+    <div class="outils-wiki-row">
+      <button id="wiki-btn" class="btn btn-continuer" data-action="outils_wiki_update" data-i18n="outils.wiki.btn">🌐 Mettre à jour depuis Wikipedia</button>
+      <span id="wiki-status" class="outils-wiki-status"></span>
     </div>
 
-    <div id="wiki-result" style="display:none; margin-top:12px;"></div>
+    <div id="wiki-result" class="outils-wiki-result"></div>
   </div>
 
 </div>
