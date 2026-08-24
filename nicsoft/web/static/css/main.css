@@ -513,6 +513,13 @@
     .cfg-ped-card-joueur .color-btns { margin-bottom: 0; }
     .cfg-ped-card-pause  { padding: 14px 16px; grid-column: 1; grid-row: 2; }
     .cfg-ped-card-pause .cfg-input { margin-bottom: 0; }
+    .cfg-ped-col-moteur {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      grid-column: 2;
+      grid-row: 1 / span 2;
+    }
     .cfg-ped-footer {
       width: 100%;
       background: #c2d4e8;
