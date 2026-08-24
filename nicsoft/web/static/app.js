@@ -350,6 +350,21 @@ document.addEventListener("click", (e) => {
     case "explore_reset":
       exploreReset();
       break;
+    case "explore_add_verify":
+      exploreAddVerify();
+      break;
+    case "explore_add_cancel":
+      document.getElementById("explore-add-section").style.display = "none";
+      break;
+    case "explore_open_add":
+      exploreOpenAdd();
+      break;
+    case "outils_add_verify":
+      outilsAddVerify();
+      break;
+    case "outils_add_reset":
+      outilsAddReset();
+      break;
   }
 });
 

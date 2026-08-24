@@ -159,8 +159,9 @@ def test_ajouter_verifier_preview(at_outils):
     at_outils.locator("#add-nom").dispatch_event("input")
     at_outils.locator("#add-eco").fill("C65")
     at_outils.locator("#add-moves").fill("e2e4 e7e5 g1f3 b8c6 f1b5")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsAddVerify()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #247 partie 3/4)
+    at_outils.locator("button[data-action=\"outils_add_verify\"]").click()
     preview = at_outils.locator("#outils-add-preview")
     preview.wait_for(state="visible", timeout=5000)
     assert preview.is_visible()
@@ -170,8 +171,9 @@ def test_ajouter_effacer_remet_a_zero(at_outils):
     """Bouton ✕ Effacer vide les champs Ajouter."""
     at_outils.locator("#add-nom").fill("Test Effacer")
     at_outils.locator("#add-moves").fill("e2e4 e7e5")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsAddReset()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #247 partie 3/4)
+    at_outils.locator("button[data-action=\"outils_add_reset\"]").click()
     assert at_outils.locator("#add-nom").input_value() == ""
     assert at_outils.locator("#add-moves").input_value() == ""
 
