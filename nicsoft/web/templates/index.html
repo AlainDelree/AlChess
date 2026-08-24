@@ -1235,57 +1235,56 @@
   </div>
 
   <!-- Importer depuis ECO Lichess -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card outils-card-w">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.eco.titre">📊 Importer depuis ECO Lichess</span>
     </div>
     <p class="outil-desc" data-i18n-html="outils.eco.desc">Filtrez par code ECO (ex&nbsp;: <code>C65</code>, <code>C60-C67</code>, <code>D</code>, <code>C02,D4</code>) et importez les lignes sélectionnées dans le catalogue.</p>
 
-    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-      <input id="eco-filter" type="text" class="add-input" placeholder="C65 ou C60-C67 ou D ou C02,D4…" data-i18n-placeholder="outils.eco.filter_placeholder"
-        style="flex:1; min-width:160px; text-transform:uppercase; font-family:monospace;"
+    <div class="outils-eco-filter-row">
+      <input id="eco-filter" type="text" class="add-input outils-eco-filter-input" placeholder="C65 ou C60-C67 ou D ou C02,D4…" data-i18n-placeholder="outils.eco.filter_placeholder"
         onkeydown="if(event.key==='Enter') outilsEcoSearch()">
-      <button class="btn btn-continuer" onclick="outilsEcoSearch()" data-i18n="outils.eco.rechercher">🔍 Rechercher</button>
+      <button class="btn btn-continuer" data-action="outils_eco_search" data-i18n="outils.eco.rechercher">🔍 Rechercher</button>
     </div>
 
-    <div id="eco-results-wrap" style="display:none;">
+    <div id="eco-results-wrap" class="outils-hidden-init">
       <!-- Table des résultats -->
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap;">
-        <span id="eco-results-info" style="font-size:0.83rem; color:#3a5a7a;"></span>
-        <label style="font-size:0.83rem; color:#3a5a7a; display:flex; align-items:center; gap:4px; cursor:pointer;">
+      <div class="outils-eco-info-row">
+        <span id="eco-results-info" class="outils-eco-info-text"></span>
+        <label class="outils-eco-checkall-label">
           <input type="checkbox" id="eco-check-all" onchange="outilsEcoToggleAll(this.checked)"> <span data-i18n="outils.eco.tout_sel">Tout sélectionner</span>
         </label>
       </div>
-      <div style="max-height:280px; overflow-y:auto; border:1px solid #a0b8d0; border-radius:6px; background:#f8fafc; margin-bottom:10px;">
-        <table id="eco-results-table" style="width:100%; border-collapse:collapse; font-size:0.82rem;">
-          <thead><tr style="background:#c2d4e8; position:sticky; top:0;">
-            <th style="padding:5px 8px; width:28px;"></th>
-            <th style="padding:5px 8px; text-align:left; color:#1a2a3a;">ECO</th>
-            <th style="padding:5px 8px; text-align:left; color:#1a2a3a;">Nom</th>
-            <th style="padding:5px 8px; color:#1a2a3a;">Coups</th>
-            <th style="padding:5px 8px; color:#1a2a3a;">Statut</th>
+      <div class="outils-eco-table-wrap">
+        <table id="eco-results-table" class="outils-eco-table">
+          <thead><tr class="outils-eco-table-head">
+            <th class="outils-eco-th outils-eco-th-check"></th>
+            <th class="outils-eco-th outils-eco-th-left">ECO</th>
+            <th class="outils-eco-th outils-eco-th-left">Nom</th>
+            <th class="outils-eco-th">Coups</th>
+            <th class="outils-eco-th">Statut</th>
           </tr></thead>
           <tbody id="eco-results-body"></tbody>
         </table>
       </div>
 
       <!-- Camp + import -->
-      <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-        <label class="add-label" style="margin:0;" data-i18n="outils.label.camp">Camp</label>
-        <select id="eco-camp" class="add-input" style="width:auto;">
+      <div class="outils-eco-camp-row">
+        <label class="add-label outils-eco-camp-label" data-i18n="outils.label.camp">Camp</label>
+        <select id="eco-camp" class="add-input outils-eco-camp-select">
           <option value="white" data-i18n="outils.camp.blancs">Blancs</option>
           <option value="black" data-i18n="outils.camp.noirs">Noirs</option>
         </select>
-        <button class="btn btn-continuer" onclick="outilsEcoImport()" data-i18n="outils.eco.importer_sel">✅ Importer la sélection</button>
-        <span id="eco-selected-count" style="font-size:0.82rem; color:#888;"></span>
+        <button class="btn btn-continuer" data-action="outils_eco_import" data-i18n="outils.eco.importer_sel">✅ Importer la sélection</button>
+        <span id="eco-selected-count" class="outils-eco-selected-count"></span>
       </div>
 
-      <div id="eco-import-result" style="display:none; margin-top:10px;"></div>
+      <div id="eco-import-result" class="outils-hidden-init outils-eco-import-result"></div>
     </div>
   </div>
 
   <!-- Explorer un livre Polyglot -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card outils-card-w">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.polyglot.titre">📖 Explorer un livre Polyglot</span>
     </div>
@@ -1293,36 +1292,36 @@
 
     <!-- Sélecteur de livre -->
     <div id="explore-book-selector">
-      <div id="explore-book-list" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;"></div>
-      <div id="explore-no-books" style="display:none; color:#e94560; font-size:0.88rem;" data-i18n="outils.polyglot.no_books">Aucun livre .bin trouvé dans ~/NicLink/data/books/</div>
+      <div id="explore-book-list" class="outils-explore-book-list"></div>
+      <div id="explore-no-books" class="outils-hidden-init outils-explore-no-books" data-i18n="outils.polyglot.no_books">Aucun livre .bin trouvé dans ~/NicLink/data/books/</div>
     </div>
 
     <!-- Explorateur (affiché après sélection) -->
-    <div id="explore-panel" style="display:none; margin-top:14px;">
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
-        <span id="explore-book-name" style="font-weight:700; color:#1a2a3a; font-size:0.95rem;"></span>
-        <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; padding:4px 10px; font-size:0.82rem;" onclick="exploreChangeBook()" data-i18n="outils.polyglot.changer">← Changer</button>
+    <div id="explore-panel" class="outils-hidden-init outils-explore-panel">
+      <div class="outils-explore-name-row">
+        <span id="explore-book-name" class="outils-explore-book-name"></span>
+        <button class="btn outils-btn-secondary outils-explore-btn-sm" data-action="explore_change_book" data-i18n="outils.polyglot.changer">← Changer</button>
       </div>
 
       <!-- Ligne jouée -->
-      <div id="explore-history" style="font-family:monospace; font-size:0.88rem; color:#3a5a7a; margin-bottom:10px; min-height:1.2em;"></div>
+      <div id="explore-history" class="outils-explore-history"></div>
 
-      <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+      <div class="outils-explore-board-row">
         <!-- Mini-échiquier -->
         <div>
-          <div id="explore-board" style="line-height:0;"></div>
-          <div style="display:flex; gap:8px; margin-top:8px;">
-            <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; padding:4px 12px;" onclick="exploreBack()" id="explore-btn-back" disabled data-i18n="outils.polyglot.reculer">← Reculer</button>
-            <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; padding:4px 12px;" onclick="exploreReset()" data-i18n="outils.polyglot.debut">↺ Début</button>
+          <div id="explore-board" class="outils-explore-board"></div>
+          <div class="outils-explore-nav-row">
+            <button class="btn outils-btn-secondary outils-explore-btn-md" data-action="explore_back" id="explore-btn-back" disabled data-i18n="outils.polyglot.reculer">← Reculer</button>
+            <button class="btn outils-btn-secondary outils-explore-btn-md" data-action="explore_reset" data-i18n="outils.polyglot.debut">↺ Début</button>
           </div>
-          <div id="explore-depth" style="font-size:0.78rem; color:#888; margin-top:6px;"></div>
+          <div id="explore-depth" class="outils-explore-depth"></div>
         </div>
 
         <!-- Liste des coups -->
-        <div style="flex:1; min-width:200px;">
-          <div style="font-size:0.82rem; font-weight:700; color:#3a5a7a; margin-bottom:6px;" data-i18n="outils.polyglot.coups">Coups du livre :</div>
+        <div class="outils-explore-moves-col">
+          <div class="outils-explore-moves-title" data-i18n="outils.polyglot.coups">Coups du livre :</div>
           <div id="explore-moves-list"></div>
-          <div id="explore-in-catalogue" style="display:none; margin-top:8px; font-size:0.83rem; color:#7b1fa2; font-weight:600;"></div>
+          <div id="explore-in-catalogue" class="outils-hidden-init outils-explore-in-catalogue"></div>
         </div>
       </div>
 

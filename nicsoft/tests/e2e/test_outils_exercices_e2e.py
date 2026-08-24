@@ -181,8 +181,9 @@ def test_ajouter_effacer_remet_a_zero(at_outils):
 def test_eco_search_c65_renvoie_resultats(at_outils):
     """Recherche 'C65' → au moins une ligne dans le tableau."""
     at_outils.locator("#eco-filter").fill("C65")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsEcoSearch()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #246 partie 2/4)
+    at_outils.locator("button[data-action=\"outils_eco_search\"]").click()
     # eco-results-wrap peut être déjà visible d'un test précédent — attendre une ligne
     at_outils.locator("#eco-results-body tr").first.wait_for(state="visible", timeout=8000)
     assert at_outils.locator("#eco-results-body tr").count() > 0
@@ -191,8 +192,9 @@ def test_eco_search_c65_renvoie_resultats(at_outils):
 def test_eco_search_plage_renvoie_resultats(at_outils):
     """Recherche 'C60-C67' → plusieurs lignes."""
     at_outils.locator("#eco-filter").fill("C60-C67")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsEcoSearch()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #246 partie 2/4)
+    at_outils.locator("button[data-action=\"outils_eco_search\"]").click()
     # eco-results-wrap peut être déjà visible d'un test précédent —
     # attendre qu'au moins une ligne soit présente plutôt que la visibilité du wrap
     at_outils.locator("#eco-results-body tr").first.wait_for(state="visible", timeout=8000)
@@ -202,8 +204,9 @@ def test_eco_search_plage_renvoie_resultats(at_outils):
 def test_eco_tout_selectionner(at_outils):
     """Checkbox 'Tout sélectionner' coche toutes les lignes cochables (hors doublons disabled)."""
     at_outils.locator("#eco-filter").fill("C65")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsEcoSearch()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #246 partie 2/4)
+    at_outils.locator("button[data-action=\"outils_eco_search\"]").click()
     at_outils.locator("#eco-results-body tr").first.wait_for(state="visible", timeout=8000)
     at_outils.locator("#eco-check-all").check()
     total = at_outils.locator("#eco-results-body input[type=checkbox]:not(:disabled)").count()
@@ -246,8 +249,9 @@ def test_explorer_reset_retour_debut(at_outils):
         at_outils.locator("#explore-book-list button").first.wait_for(state="visible", timeout=5000)
         at_outils.locator("#explore-book-list button").first.click()
         panel.wait_for(state="visible", timeout=5000)
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"exploreReset()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #246 partie 2/4)
+    at_outils.locator("button[data-action=\"explore_reset\"]").click()
     at_outils.wait_for_timeout(500)
     # Après reset, l'historique montre la position initiale (traduite) ou est vide
     # — comparaison indépendante de la locale par défaut de Playwright (issue #211).

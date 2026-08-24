@@ -1485,3 +1485,36 @@
 .outils-uci-copy-btn:hover { color:#3a5a7a; }
 .outils-uci-btn-row { display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; }
 .outils-uci-result { display:none; margin-top:12px; }
+
+/* ── Écran #screen-outils-exercices — ECO Lichess, Explorateur Polyglot (issue #246 partie 2/4) ── */
+.outils-eco-filter-row { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
+.outils-eco-filter-input { flex:1; min-width:160px; text-transform:uppercase; font-family:monospace; }
+.outils-eco-info-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
+.outils-eco-info-text { font-size:0.83rem; color:#3a5a7a; }
+.outils-eco-checkall-label { font-size:0.83rem; color:#3a5a7a; display:flex; align-items:center; gap:4px; cursor:pointer; }
+.outils-eco-table-wrap { max-height:280px; overflow-y:auto; border:1px solid #a0b8d0; border-radius:6px; background:#f8fafc; margin-bottom:10px; }
+.outils-eco-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+.outils-eco-table-head { background:#c2d4e8; position:sticky; top:0; }
+.outils-eco-th { padding:5px 8px; color:#1a2a3a; }
+.outils-eco-th-check { width:28px; }
+.outils-eco-th-left { text-align:left; }
+.outils-eco-camp-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.outils-eco-camp-label { margin:0; }
+.outils-eco-camp-select { width:auto; }
+.outils-eco-selected-count { font-size:0.82rem; color:#888; }
+.outils-eco-import-result { margin-top:10px; }
+.outils-explore-book-list { display:flex; gap:10px; flex-wrap:wrap; margin-top:4px; }
+.outils-explore-no-books { color:#e94560; font-size:0.88rem; }
+.outils-explore-panel { margin-top:14px; }
+.outils-explore-name-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+.outils-explore-book-name { font-weight:700; color:#1a2a3a; font-size:0.95rem; }
+.outils-explore-btn-sm { padding:4px 10px; font-size:0.82rem; }
+.outils-explore-btn-md { padding:4px 12px; }
+.outils-explore-history { font-family:monospace; font-size:0.88rem; color:#3a5a7a; margin-bottom:10px; min-height:1.2em; }
+.outils-explore-board-row { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.outils-explore-board { line-height:0; }
+.outils-explore-nav-row { display:flex; gap:8px; margin-top:8px; }
+.outils-explore-depth { font-size:0.78rem; color:#888; margin-top:6px; }
+.outils-explore-moves-col { flex:1; min-width:200px; }
+.outils-explore-moves-title { font-size:0.82rem; font-weight:700; color:#3a5a7a; margin-bottom:6px; }
+.outils-explore-in-catalogue { margin-top:8px; font-size:0.83rem; color:#7b1fa2; font-weight:600; }

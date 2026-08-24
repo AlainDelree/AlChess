@@ -335,6 +335,21 @@ document.addEventListener("click", (e) => {
       document.getElementById("outils-uci-input").value = "";
       document.getElementById("outils-uci-result").style.display = "none";
       break;
+    case "outils_eco_search":
+      outilsEcoSearch();
+      break;
+    case "outils_eco_import":
+      outilsEcoImport();
+      break;
+    case "explore_change_book":
+      exploreChangeBook();
+      break;
+    case "explore_back":
+      exploreBack();
+      break;
+    case "explore_reset":
+      exploreReset();
+      break;
   }
 });
 
