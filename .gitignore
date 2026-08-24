@@ -8,18 +8,11 @@ data/
 dist/
 build/
 
-# Logs
-logs/*.log
-
 # Parties temporaires
 games/tmp/*.pgn
 
-# Fichiers de test lenteur
-Lenteur*
-
 TRAVAIL_EN_COURS/
 TACHES.md
-\n# Fichiers de travail temporaires\nmockup_menu.html
 
 #Fichiers rearchitecture Linux Windows Android
 REARCHITECTURE_ALAIN.md
@@ -33,10 +26,7 @@ engines/lc0*.exe
 # Installeur NSIS compilé (binaire Windows généré par makensis — voir issue #50)
 installer-exe/*.exe
 
-# Fichiers de debug et test
-debug_*.txt
-test_windows_result.txt
-alchess_err.txt
+# Log applicatif généré par les scripts de lancement Windows (2-Lancer_AlChess.bat, start_alchess.ps1, install_alchess.ps1)
 alchess_log.txt
 
 # --- Données personnelles (ne jamais publier) ---
@@ -50,7 +40,5 @@ mockup_menu.html
 test_perm.txt
 logs/
 
-# Parties (données perso / noms de tiers)
-games/
 .assetsignore
 .wrangler/
