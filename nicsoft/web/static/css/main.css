@@ -169,6 +169,15 @@
       overflow-y: auto;
       width: 100%;
     }
+    #screen-outils-exercices {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      gap: 20px;
+      overflow-y: auto;
+      width: 100%;
+    }
     /* Grille unifiée pour tous les écrans avec échiquier */
     .screen-board-layout {
       display: none;
@@ -1456,3 +1465,23 @@
 .game-gameover-hidden-init { margin-bottom:0; display:none; }
 .game-gameover-btn-sequence { background:#9ab8d8; color:#1a2a3a; border:1px solid #2a5a8a; }
 .game-gameover-btn-retour { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; margin-bottom:0; }
+
+/* ── Écran #screen-outils-exercices — en-tête, Importer PGN, Convertir SAN→UCI (issue #245 partie 1/4) ── */
+.outils-header-row { width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.outils-header-title { margin:0; color:#1a2a3a; font-size:1.4rem; }
+.outils-btn-secondary { background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0; }
+.outils-card-w { width:100%; max-width:860px; }
+.outils-pgn-dropzone { border:2px dashed #a0b8d0; border-radius:8px; padding:20px; text-align:center; cursor:pointer; color:#3a5a7a; margin-bottom:12px; }
+.outils-pgn-dropzone-icon { font-size:1.8rem; margin-bottom:6px; }
+.outils-pgn-file-input { display:none; }
+.outils-basket-row { display:flex; gap:6px; align-items:stretch; margin-bottom:12px; }
+.outils-pgn-preview-list { display:none; margin-bottom:12px; }
+.outils-btn-row { display:flex; gap:10px; flex-wrap:wrap; }
+.outils-hidden-init { display:none; }
+.outils-pgn-result { display:none; margin-top:12px; padding:12px; border-radius:6px; }
+.outils-uci-textarea-wrap { position:relative; }
+.outils-uci-textarea { width:100%; box-sizing:border-box; font-family:monospace; font-size:0.9rem; padding:8px 36px 8px 8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; resize:vertical; }
+.outils-uci-copy-btn { position:absolute; top:6px; right:6px; background:none; border:none; cursor:pointer; font-size:0.95rem; color:#a0b8d0; padding:2px 4px; line-height:1; border-radius:4px; transition:color 0.15s; }
+.outils-uci-copy-btn:hover { color:#3a5a7a; }
+.outils-uci-btn-row { display:flex; gap:10px; margin-top:8px; flex-wrap:wrap; }
+.outils-uci-result { display:none; margin-top:12px; }

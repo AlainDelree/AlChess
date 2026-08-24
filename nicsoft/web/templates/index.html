@@ -1156,84 +1156,82 @@
 
 
 <!-- ── Écran Outils Exercices ── -->
-<div id="screen-outils-exercices" style="display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%;">
+<div id="screen-outils-exercices">
 
-  <div style="width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-    <h2 style="margin:0; color:#1a2a3a; font-size:1.4rem;" data-i18n="outils.titre">🛠️ Outils Exercices</h2>
-    <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="sendAction({type:'back_menu'})" data-i18n="common.retour_menu">← Retour au menu</button>
+  <div class="outils-header-row">
+    <h2 class="outils-header-title" data-i18n="outils.titre">🛠️ Outils Exercices</h2>
+    <button class="btn outils-btn-secondary" data-action="back_menu" data-i18n="common.retour_menu">← Retour au menu</button>
   </div>
 
   <!-- Importer mes lignes PGN -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card outils-card-w">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.import_pgn.titre">📥 Importer mes lignes PGN</span>
     </div>
     <p class="outil-desc" data-i18n-html="outils.import_pgn.desc">Sélectionnez un ou plusieurs fichiers .pgn pour les importer dans vos exercices personnels (<em>mes_lignes.json</em>).</p>
 
     <!-- Zone d'upload -->
-    <div id="outils-pgn-dropzone" style="border:2px dashed #a0b8d0; border-radius:8px; padding:20px; text-align:center; cursor:pointer; color:#3a5a7a; margin-bottom:12px;"
-         onclick="document.getElementById('outils-pgn-input').click()"
+    <div id="outils-pgn-dropzone" class="outils-pgn-dropzone"
+         data-action="outils_trigger_pgn_input"
          ondragover="event.preventDefault(); this.style.borderColor='#e94560';"
          ondragleave="this.style.borderColor='#a0b8d0';"
          ondrop="outilsPgnDrop(event)">
-      <div style="font-size:1.8rem; margin-bottom:6px;">📄</div>
+      <div class="outils-pgn-dropzone-icon">📄</div>
       <div data-i18n-html="outils.pgn.drop_zone">Cliquez ou déposez vos fichiers <strong>.pgn</strong> ici</div>
     </div>
-    <input type="file" id="outils-pgn-input" accept=".pgn" multiple style="display:none;" onchange="outilsPgnFilesSelected(this.files)">
+    <input type="file" id="outils-pgn-input" accept=".pgn" multiple class="outils-pgn-file-input" onchange="outilsPgnFilesSelected(this.files)">
 
     <!-- Classeur de session -->
-    <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
-      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
-      <div id="basket-select-outils-pgn" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-        <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
-        <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
-        <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
+    <div class="outils-basket-row">
+      <span class="aide-panier-icone" data-action="aide_panier" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
+      <div id="basket-select-outils-pgn" class="basket-select" data-value="">
+        <span class="basket-sel-label" data-i18n="common.corbeille_vide">— classeur vide —</span>
+        <span class="basket-sel-arrow">▼</span>
+        <div class="basket-sel-list basket-sel-list-up" style="display:none;"></div>
       </div>
-      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsPgn()" data-i18n="common.charger">🗂️ Charger</button>
+      <button class="btn basket-load-btn" disabled data-action="basket_load_to_outils_pgn" data-i18n="common.charger">🗂️ Charger</button>
     </div>
 
     <!-- Liste de prévisualisation -->
-    <div id="outils-pgn-preview-list" style="display:none; margin-bottom:12px;"></div>
+    <div id="outils-pgn-preview-list" class="outils-pgn-preview-list"></div>
 
     <!-- Boutons d'action -->
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-      <button id="outils-pgn-btn-import" class="btn btn-continuer" style="display:none;" onclick="outilsPgnImport()" data-i18n="outils.import_pgn.btn">✅ Importer</button>
-      <button id="outils-pgn-btn-clear" class="btn" style="display:none; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="outilsPgnClear()" data-i18n="common.effacer">✕ Effacer</button>
+    <div class="outils-btn-row">
+      <button id="outils-pgn-btn-import" class="btn btn-continuer outils-hidden-init" data-action="outils_pgn_import" data-i18n="outils.import_pgn.btn">✅ Importer</button>
+      <button id="outils-pgn-btn-clear" class="btn outils-btn-secondary outils-hidden-init" data-action="outils_pgn_clear" data-i18n="common.effacer">✕ Effacer</button>
     </div>
 
     <!-- Résultat import -->
-    <div id="outils-pgn-result" style="display:none; margin-top:12px; padding:12px; border-radius:6px;"></div>
+    <div id="outils-pgn-result" class="outils-pgn-result"></div>
   </div>
 
   <!-- Convertir SAN → UCI -->
-  <div class="outil-card" style="width:100%; max-width:860px;">
+  <div class="outil-card outils-card-w">
     <div class="outil-card-header">
       <span class="outil-title" data-i18n="outils.convertir.titre">🔄 Convertir SAN → UCI</span>
     </div>
     <p class="outil-desc" data-i18n-html="outils.convertir.desc">Collez une ligne PGN (ex&nbsp;: <code>1. e4 e5 2. Nf3 Nc6 3. Bb5</code>) et obtenez les codes UCI pour le champ <code>[InitMoves]</code>.</p>
     <!-- Classeur de session -->
-    <div style="display:flex; gap:6px; align-items:stretch; margin-bottom:12px;">
-      <span class="aide-panier-icone" onclick="ouvrirAidePanier()" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
-      <div id="basket-select-outils-uci" class="basket-select" data-value="" style="flex:1; position:relative; height:34px; box-sizing:border-box; background:#a0b8d0; border:1px solid #333; border-radius:4px; padding:4px 8px; font-size:0.82rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none;">
-        <span class="basket-sel-label" data-i18n="common.corbeille_vide" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#556;">— classeur vide —</span>
-        <span style="font-size:0.6rem; margin-left:4px; color:#1a2a3a; flex-shrink:0;">▼</span>
-        <div class="basket-sel-list" style="display:none; position:absolute; bottom:100%; left:0; right:0; background:#1a2a3a; border:1px solid #a0b8d0; border-bottom:none; border-radius:4px 4px 0 0; z-index:200; max-height:180px; overflow-y:auto;"></div>
+    <div class="outils-basket-row">
+      <span class="aide-panier-icone" data-action="aide_panier" data-i18n-title="aide.panier.icone_title" title="Aide sur le classeur">?</span>
+      <div id="basket-select-outils-uci" class="basket-select" data-value="">
+        <span class="basket-sel-label" data-i18n="common.corbeille_vide">— classeur vide —</span>
+        <span class="basket-sel-arrow">▼</span>
+        <div class="basket-sel-list basket-sel-list-up" style="display:none;"></div>
       </div>
-      <button class="btn basket-load-btn" style="margin-bottom:0; padding:0 12px; white-space:nowrap; height:34px; box-sizing:border-box;" disabled onclick="basketLoadToOutilsUci()" data-i18n="common.charger">🗂️ Charger</button>
+      <button class="btn basket-load-btn" disabled data-action="basket_load_to_outils_uci" data-i18n="common.charger">🗂️ Charger</button>
     </div>
 
-    <div style="position:relative;">
+    <div class="outils-uci-textarea-wrap">
       <textarea id="outils-uci-input" placeholder="Collez votre PGN ici…" data-i18n-placeholder="outils.convertir.pgn_placeholder" rows="3"
-        style="width:100%; box-sizing:border-box; font-family:monospace; font-size:0.9rem; padding:8px 36px 8px 8px; border:1px solid #a0b8d0; border-radius:6px; background:#f0f4f8; color:#1a2a3a; resize:vertical;"></textarea>
-      <button title="Copier" onclick="navigator.clipboard.writeText(document.getElementById('outils-uci-input').value).then(()=>afficherToast('Copié !','success'))"
-        style="position:absolute; top:6px; right:6px; background:none; border:none; cursor:pointer; font-size:0.95rem; color:#a0b8d0; padding:2px 4px; line-height:1; border-radius:4px; transition:color 0.15s;"
-        onmouseover="this.style.color='#3a5a7a'" onmouseout="this.style.color='#a0b8d0'">📋</button>
+        class="outils-uci-textarea"></textarea>
+      <button title="Copier" data-action="outils_uci_copy" class="outils-uci-copy-btn">📋</button>
     </div>
-    <div style="display:flex; gap:10px; margin-top:8px; flex-wrap:wrap;">
-      <button class="btn btn-continuer" onclick="outilsSanToUci()" data-i18n="outils.uci.convertir">Convertir</button>
-      <button class="btn" style="background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="document.getElementById('outils-uci-input').value=''; document.getElementById('outils-uci-result').style.display='none';" data-i18n="common.effacer">Effacer</button>
+    <div class="outils-uci-btn-row">
+      <button class="btn btn-continuer" data-action="outils_san_to_uci" data-i18n="outils.uci.convertir">Convertir</button>
+      <button class="btn outils-btn-secondary" data-action="outils_uci_clear" data-i18n="common.effacer">Effacer</button>
     </div>
-    <div id="outils-uci-result" style="display:none; margin-top:12px;"></div>
+    <div id="outils-uci-result" class="outils-uci-result"></div>
   </div>
 
   <!-- Importer depuis ECO Lichess -->

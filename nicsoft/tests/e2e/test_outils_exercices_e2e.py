@@ -69,8 +69,9 @@ def test_outils_exercices_accessible(at_menu):
 
 def test_retour_menu_depuis_outils(at_outils):
     """Outils Exercices → Retour au menu → menu propre."""
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("#screen-outils-exercices button[onclick*=\"back_menu\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #245 partie 1/4)
+    at_outils.locator("#screen-outils-exercices button[data-action=\"back_menu\"]").click()
     at_outils.wait_for_selector("#screen-menu", state="visible", timeout=5000)
     assert at_outils.locator("#screen-menu").is_visible()
 
@@ -97,8 +98,9 @@ def test_ordre_des_outils(at_outils):
 def test_convertir_san_uci_valide(at_outils):
     """SAN valide '1. e4 e5 2. Nf3 Nc6 3. Bb5' → résultat UCI contient 'e2e4'."""
     at_outils.locator("#outils-uci-input").fill("1. e4 e5 2. Nf3 Nc6 3. Bb5")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsSanToUci()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #245 partie 1/4)
+    at_outils.locator("button[data-action=\"outils_san_to_uci\"]").click()
     result = at_outils.locator("#outils-uci-result")
     result.wait_for(state="visible", timeout=5000)
     # Attendre la réponse socket (le div montre "Conversion…" pendant le traitement)
@@ -108,8 +110,9 @@ def test_convertir_san_uci_valide(at_outils):
 def test_convertir_san_uci_resultat_complet(at_outils):
     """Conversion '1. d4 d5' → résultat contient d2d4 et d7d5."""
     at_outils.locator("#outils-uci-input").fill("1. d4 d5")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsSanToUci()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #245 partie 1/4)
+    at_outils.locator("button[data-action=\"outils_san_to_uci\"]").click()
     result = at_outils.locator("#outils-uci-result")
     result.wait_for(state="visible", timeout=5000)
     expect(result).to_contain_text("d2d4", timeout=5000)
@@ -119,8 +122,9 @@ def test_convertir_san_uci_resultat_complet(at_outils):
 def test_convertir_san_uci_sans_coups(at_outils):
     """PGN non reconnu → résultat chargé mais InitMoves vide (pas de coups UCI)."""
     at_outils.locator("#outils-uci-input").fill("xxx yyy zzz")
-    # Ciblage par attribut onclick, indépendant de la locale (issue #211, cf. #208)
-    at_outils.locator("button[onclick=\"outilsSanToUci()\"]").click()
+    # Ciblage par attribut data-action, indépendant de la locale (issue #211, cf. #208,
+    # migré vers data-action en #245 partie 1/4)
+    at_outils.locator("button[data-action=\"outils_san_to_uci\"]").click()
     result = at_outils.locator("#outils-uci-result")
     result.wait_for(state="visible", timeout=5000)
     # Attendre que "Conversion…" disparaisse (réponse reçue)
@@ -334,28 +338,28 @@ def test_corbeille_labels_vides(at_outils):
 
 def test_corbeille_boutons_charger_desactives_si_vide(at_outils):
     """Boutons 🧺 Charger désactivés quand la corbeille est vide."""
-    assert at_outils.locator("button[onclick='basketLoadToOutilsPgn()']").is_disabled()
-    assert at_outils.locator("button[onclick='basketLoadToOutilsUci()']").is_disabled()
+    assert at_outils.locator('button[data-action="basket_load_to_outils_pgn"]').is_disabled()
+    assert at_outils.locator('button[data-action="basket_load_to_outils_uci"]').is_disabled()
 
 
 def test_corbeille_boutons_actives_apres_ajout(at_outils):
     """Après ajout d'une partie en corbeille, les boutons Charger s'activent."""
     at_outils.evaluate("socket.emit('basket_add', {label: 'test_e2e.pgn', pgn: '1. e4 e5 *'})")
     at_outils.wait_for_function("typeof _basket !== 'undefined' && _basket.length > 0", timeout=5000)
-    assert not at_outils.locator("button[onclick='basketLoadToOutilsPgn()']").is_disabled()
-    assert not at_outils.locator("button[onclick='basketLoadToOutilsUci()']").is_disabled()
+    assert not at_outils.locator('button[data-action="basket_load_to_outils_pgn"]').is_disabled()
+    assert not at_outils.locator('button[data-action="basket_load_to_outils_uci"]').is_disabled()
 
 
 def test_corbeille_charger_uci_remplit_textarea(at_outils):
     """Charger depuis corbeille dans 'Convertir SAN → UCI' remplit le textarea."""
     at_outils.locator("#outils-uci-input").fill("")
-    at_outils.locator("button[onclick='basketLoadToOutilsUci()']").click()
+    at_outils.locator('button[data-action="basket_load_to_outils_uci"]').click()
     at_outils.wait_for_function("document.getElementById('outils-uci-input').value.length > 0", timeout=5000)
     assert len(at_outils.locator("#outils-uci-input").input_value()) > 0
 
 
 def test_corbeille_charger_pgn_affiche_preview(at_outils):
     """Charger depuis corbeille dans 'Importer mes lignes PGN' affiche la prévisualisation."""
-    at_outils.locator("button[onclick='basketLoadToOutilsPgn()']").click()
+    at_outils.locator('button[data-action="basket_load_to_outils_pgn"]').click()
     at_outils.locator("#outils-pgn-preview-list").wait_for(state="visible", timeout=8000)
     assert at_outils.locator("#outils-pgn-preview-list").is_visible()

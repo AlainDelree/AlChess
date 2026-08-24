@@ -310,6 +310,31 @@ document.addEventListener("click", (e) => {
     case "vider_analyse":
       _viderAnalyse();
       break;
+    case "outils_trigger_pgn_input":
+      document.getElementById("outils-pgn-input").click();
+      break;
+    case "basket_load_to_outils_pgn":
+      basketLoadToOutilsPgn();
+      break;
+    case "outils_pgn_import":
+      outilsPgnImport();
+      break;
+    case "outils_pgn_clear":
+      outilsPgnClear();
+      break;
+    case "basket_load_to_outils_uci":
+      basketLoadToOutilsUci();
+      break;
+    case "outils_uci_copy":
+      navigator.clipboard.writeText(document.getElementById("outils-uci-input").value).then(() => afficherToast("Copié !", "success"));
+      break;
+    case "outils_san_to_uci":
+      outilsSanToUci();
+      break;
+    case "outils_uci_clear":
+      document.getElementById("outils-uci-input").value = "";
+      document.getElementById("outils-uci-result").style.display = "none";
+      break;
   }
 });
 
