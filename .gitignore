@@ -11,13 +11,6 @@ build/
 # Parties temporaires
 games/tmp/*.pgn
 
-TRAVAIL_EN_COURS/
-TACHES.md
-
-#Fichiers rearchitecture Linux Windows Android
-REARCHITECTURE_ALAIN.md
-REARCHITECTURE_CLAUDE_CODE.md
-
 # Exécutables moteurs Windows (trop lourds, téléchargés par install_alchess.ps1)
 engines/stockfish*.exe
 engines/stockfish-windows*/
@@ -32,12 +25,6 @@ alchess_log.txt
 # --- Données personnelles (ne jamais publier) ---
 games/
 
-# --- Fichiers de travail / documents de handoff ---
-HANDOFF_*.md
-AUDIT_ALCHESS.md
-Copier-coller
-mockup_menu.html
-test_perm.txt
 logs/
 
 .assetsignore
