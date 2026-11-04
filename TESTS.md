@@ -109,6 +109,29 @@ Les vérifications minimales avant de continuer à travailler.
 > ℹ️ Ces tests ne peuvent pas être automatisés — ils nécessitent un humain avec l'échiquier physique.
 > Durée estimée : 5 minutes.
 
+## 🧪 Suite automatisée (pytest)
+
+Les tests vivent dans `nicsoft/tests/` (pas de dossier `tests/` à la racine). Deux marqueurs sont déclarés dans `pytest.ini` :
+
+- `hardware` : nécessite un échiquier Chessnut Air physiquement connecté (jamais exécuté en CI).
+- `slow` : test lent (de l'ordre de plusieurs secondes), typiquement les tests e2e qui démarrent un vrai serveur AlChess + un navigateur Playwright. Tout `nicsoft/tests/e2e/` est marqué `slow` : ces fichiers paient le coût d'un lancement serveur + navigateur (~5-6 s) alors que le reste de la suite s'exécute en moins d'une seconde.
+
+```bash
+# Suite rapide (itération courante) — ignore slow et hardware
+python -m pytest nicsoft/tests -m "not slow and not hardware"
+
+# Seulement les tests lents (e2e)
+python -m pytest nicsoft/tests -m slow
+
+# Suite complète hors tests hardware (ce qui tourne en CI)
+python -m pytest nicsoft/tests -m "not hardware"
+```
+
+Durées mesurées (04/11/2026, poste de dev) :
+- Sans `slow` (33 tests + skips) : ~0,5 s.
+- `slow` seul (42 tests e2e) : ~20,5 s.
+- Suite complète hors `hardware` : ~20,5 s (le temps est dominé par les tests e2e).
+
 ## 🔬 Tests à automatiser (futur)
 
 Ces séquences sont candidates pour des tests d'état serveur (`pytest`) :

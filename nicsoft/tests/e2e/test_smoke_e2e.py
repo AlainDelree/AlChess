@@ -9,6 +9,8 @@ Lancer : pytest nicsoft/tests/e2e/ -v
 import time
 import pytest
 
+pytestmark = pytest.mark.slow
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
