@@ -69,7 +69,7 @@ def _find_free_port(start=5000):
                 s.bind(("127.0.0.1", port))
                 return port
             except OSError:
-                port += 1
+                port += 1  # port déjà occupé, on tente le suivant
     return start
 
 
@@ -91,7 +91,7 @@ def launch_niclink(splash):
             urllib.request.urlopen(f"http://127.0.0.1:{port}", timeout=1)
             break
         except Exception:
-            continue
+            continue  # boucle de polling, erreur transitoire pendant le démarrage du serveur
 
     splash.set_status("Prêt !")
     time.sleep(0.4)

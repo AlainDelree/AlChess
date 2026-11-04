@@ -16,8 +16,12 @@ Navigation :
 
 import chess
 import chess.polyglot
+import logging
 import pathlib
 import sys
+
+logger = logging.getLogger("NL explore_book")
+
 from nicsoft.modes.exercices._catalogue import (
     _c, BOOKS_DIR, scan_books, book_moves_for,
     load_existing_ids, load_existing_inits, append_ouverture, resolve_parent_eco,
@@ -158,7 +162,7 @@ def do_import(board: chess.Board, uci_history: list, san_history: list,
         tmp = board.copy()
         for e in entries[:5]:
             try: sans.append(tmp.san(e.move))
-            except Exception: pass
+            except Exception as e2: logger.debug(f"do_import : construction SAN pour affichage (1 livre) : {e2}")
         print(green(f"✓ {len(entries)} coups dans {chosen_book} : {', '.join(sans)}"))
     else:
         book_list = list(found.items())
@@ -167,7 +171,7 @@ def do_import(board: chess.Board, uci_history: list, san_history: list,
             tmp = board.copy()
             for e in entries[:5]:
                 try: sans.append(tmp.san(e.move))
-                except Exception: pass
+                except Exception as e2: logger.debug(f"do_import : construction SAN pour affichage (plusieurs livres) : {e2}")
             print(f"  [{i+1}] {bp.name} — {len(entries)} coups : {', '.join(sans)}")
         while True:
             choice = ask(f"Quel livre ? (1-{len(book_list)})")
@@ -177,7 +181,7 @@ def do_import(board: chess.Board, uci_history: list, san_history: list,
                     chosen_book = book_list[idx][0].name
                     break
             except Exception:
-                pass
+                pass  # Saisie interactive : choix non numérique ignoré, redemande
             print(red("Choix invalide."))
 
     print()
@@ -228,7 +232,7 @@ def main():
                     book_path = books[idx]
                     break
             except Exception:
-                pass
+                pass  # Saisie interactive : choix non numérique ignoré, redemande
             print(red("Choix invalide."))
         print()
 
@@ -259,7 +263,8 @@ def main():
             for i, e in enumerate(entries[:9], 1):
                 try:
                     san = board.san(e.move)
-                except Exception:
+                except Exception as e2:
+                    logger.debug(f"main : SAN indisponible pour {e.move.uci()}, fallback UCI : {e2}")
                     san = e.move.uci()
                 pct  = round(e.weight / total_weight * 100)
                 bar  = weight_bar(e.weight, entries[0].weight)
@@ -317,7 +322,8 @@ def main():
             move  = entries[idx].move
             try:
                 san = board.san(move)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"main : SAN indisponible pour {move.uci()}, fallback UCI : {e}")
                 san = move.uci()
             board_stack.append(board.copy())
             uci_history.append(move.uci())
@@ -361,7 +367,8 @@ def get_moves_from_web(data: dict) -> dict:
             san_history.append(board.san(mv))
             board.push(mv)
             valid_moves.append(uci)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"get_moves_from_web : revalidation du coup '{uci}' échouée : {e}")
             break
 
     entries = book_moves_for(board, book_path)
@@ -371,7 +378,8 @@ def get_moves_from_web(data: dict) -> dict:
     for i, e in enumerate(entries[:9]):
         try:
             san = board.san(e.move)
-        except Exception:
+        except Exception as e2:
+            logger.debug(f"get_moves_from_web : SAN indisponible pour {e.move.uci()}, fallback UCI : {e2}")
             san = e.move.uci()
         moves_out.append({
             "san":    san,

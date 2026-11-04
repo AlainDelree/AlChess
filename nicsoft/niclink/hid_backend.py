@@ -109,7 +109,7 @@ def disconnect() -> None:
             _write(bytes([0x21, 0x01, 0x01]))  # upload mode avant fermeture
             _dev.close()
         except Exception:
-            pass
+            pass  # best-effort avant déconnexion — le plateau peut déjà être débranché
         _dev = None
     _connected = False
 
@@ -136,7 +136,8 @@ def check_physically_present() -> bool:
                 return True
         _connected = False
         return False
-    except Exception:
+    except Exception as e:
+        logger.debug(f"check_physically_present: hid.enumerate() a échoué : {e}")
         return False
 
 

@@ -354,7 +354,8 @@ class Game(threading.Thread):
                         "color":  m.get("color", "white"),
                         "qualite": m.get("qualite"),
                     })
-            except Exception:
+            except Exception as exc:
+                logger.warning(f"Reconstruction historique game-over: coup ignore ({m}): {exc}")
                 continue
         reason_str = reason or "Fin de partie"
         # Titre adapté selon la raison
@@ -519,7 +520,8 @@ class Game(threading.Thread):
             try:
                 tmp = chess.Board(self._fen_avant_coup)
                 return san_ep(tmp, chess.Move.from_uci(best_move))
-            except Exception:
+            except Exception as exc:
+                logger.debug(f"Calcul SAN du meilleur coup echoue: {exc}")
                 return best_move
 
         while True:
@@ -554,7 +556,7 @@ class Game(threading.Thread):
                 try:
                     choice = sys.stdin.readline().strip()
                 except Exception:
-                    return False
+                    return False  # erreur de terminal normale selon plateforme
                 if choice == "1" and best_move:
                     best_san = _get_best_san()
                     _led_meilleur_coup(self.nl_inst, best_move)
@@ -601,7 +603,8 @@ class Game(threading.Thread):
                         try:
                             tmp = chess.Board(self._fen_avant_coup)
                             best_san = san_ep(tmp, chess.Move.from_uci(best_move))
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"Calcul SAN du meilleur coup echoue: {exc}")
                             best_san = best_move
                         _led_meilleur_coup(self.nl_inst, best_move)
                         send_event("best_move", {"uci": best_move, "san": best_san})
@@ -620,7 +623,8 @@ class Game(threading.Thread):
                         try:
                             tmp = chess.Board(self._fen_avant_coup)
                             best_san = san_ep(tmp, chess.Move.from_uci(best_move))
-                        except Exception:
+                        except Exception as exc:
+                            logger.debug(f"Calcul SAN du meilleur coup echoue: {exc}")
                             best_san = best_move
                         _led_meilleur_coup(self.nl_inst, best_move)
                         send_event("best_move", {"uci": best_move, "san": best_san})
@@ -768,7 +772,8 @@ class Game(threading.Thread):
                     try:
                         tmp = chess.Board(self.nl_inst.game_board.fen())
                         best_san = san_ep(tmp, chess.Move.from_uci(bm))
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"Calcul SAN du meilleur coup echoue: {exc}")
                         best_san = bm
                     if DEBUG_MODE: logger.info(f"  [PAUSE] Meilleur coup : {best_san}")
                     _led_meilleur_coup(self.nl_inst, bm)
@@ -823,7 +828,7 @@ class Game(threading.Thread):
             from nicsoft.web.server import action_queue as _aq
             while not _aq.empty():
                 try: _aq.get_nowait()
-                except Exception: break
+                except Exception: break  # idiome de vidage de queue
             send_event("pause_wait_position", {
                 "fen":          expected_fen,
                 "physical_fen": current_fen,
@@ -995,6 +1000,7 @@ class Game(threading.Thread):
                     diff_count = sum(1 for sq in chess.SQUARES
                                      if self.nl_inst.game_board.piece_at(sq) != tmp_board.piece_at(sq))
                 except Exception:
+                    # boucle de polling rapide, erreur transitoire USB
                     time.sleep(0.1)
                     continue
 
@@ -1033,7 +1039,8 @@ class Game(threading.Thread):
                     try:
                         from nicsoft.engine.board_utils import analyser_position_illegale
                         msg = analyser_position_illegale(self.nl_inst.game_board, board_fen)
-                    except Exception:
+                    except Exception as exc:
+                        logger.warning(f"analyser_position_illegale a echoue, message generique utilise: {exc}")
                         msg = "⚠ Coup illégal — remettez la pièce à sa place."
                     try:
                         self.nl_inst.beep()
@@ -1487,7 +1494,8 @@ class Game(threading.Thread):
                     tmp_board  = chess.Board(board_fen + " w - - 0 1")
                     diff_count = sum(1 for sq in chess.SQUARES
                                      if self.nl_inst.game_board.piece_at(sq) != tmp_board.piece_at(sq))
-                except Exception:
+                except Exception as exc:
+                    logger.debug(f"Calcul diff_count (wait_fish) echoue: {exc}")
                     diff_count = 0
 
                 if diff_count <= 2:
@@ -1498,7 +1506,8 @@ class Game(threading.Thread):
                     try:
                         src_sq = chess.parse_square(fish_move[:2])
                         piece_moved_wrong = tmp_board.piece_at(src_sq) is None
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"Verification case source (wait_fish) echouee: {exc}")
                         piece_moved_wrong = False
                     if piece_moved_wrong and not _warning_sent:
                         send_event("board_warning", {"message_key": "game.wait_fish_erreur", "vars": {"move": fish_move}})
@@ -1516,7 +1525,8 @@ class Game(threading.Thread):
                                             diff_count, context="fish", fish_move=fish_move)
                     try:
                         self.nl_inst.show_board_diff(self.nl_inst.game_board, tmp_board)
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"show_board_diff echoue, fallback set_move_leds: {exc}")
                         self.nl_inst.set_move_leds(fish_move)
 
                 if check_tab_press() and warning_shown:

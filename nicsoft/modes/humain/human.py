@@ -136,7 +136,8 @@ class Game(threading.Thread):
 
         try:
             hw_board = chess.Board(hardware_fen + " w - - 0 1")
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"FEN physique invalide (check_resignation): {exc}")
             return False
 
         # Verifier les deux rois — n'importe qui peut retirer son roi
@@ -165,7 +166,7 @@ class Game(threading.Thread):
             try:
                 choice = input("  Votre choix [1/2/3] : ").strip()
             except (KeyboardInterrupt, EOFError):
-                choice = "3"
+                choice = "3"  # interruption utilisateur volontaire -> continuer la partie
 
             if choice == "1":
                 result = "0-1" if color == chess.WHITE else "1-0"
@@ -180,7 +181,7 @@ class Game(threading.Thread):
                 try:
                     answer = input("  (o/n) : ").strip().lower()
                 except (KeyboardInterrupt, EOFError):
-                    answer = "n"
+                    answer = "n"  # interruption utilisateur volontaire -> nulle refusee par defaut
 
                 if answer == "o":
                     print(f"\n  Nulle acceptée ! (1/2-1/2)")
@@ -409,7 +410,8 @@ class Game(threading.Thread):
         diffs = sum(1 for a, b in zip(expected, hardware) if a != b)
         try:
             hw_board = chess.Board(hardware + " w - - 0 1")
-        except Exception:
+        except Exception as exc:
+            logger.debug(f"FEN physique invalide (report_illegal_position): {exc}")
             hw_board = None
         if self.board.is_check():
             print("⚠  Echec au roi ! Parez l'echec avant de jouer.")
@@ -765,7 +767,7 @@ class GameWeb(threading.Thread):
                     raw = self.nl_inst.current_fen
                     phys = raw.strip().split()[0] if raw else ""
                 except Exception:
-                    continue
+                    continue  # boucle de polling rapide, erreur transitoire USB
                 if phys == expected:
                     # Position correcte — effacer avertissement si actif
                     if _illegal_reported[0]:
@@ -793,7 +795,8 @@ class GameWeb(threading.Thread):
                     try:
                         from nicsoft.engine.board_utils import analyser_position_illegale
                         msg = analyser_position_illegale(self.board, phys)
-                    except Exception:
+                    except Exception as exc:
+                        logger.warning(f"analyser_position_illegale a echoue, message generique utilise: {exc}")
                         msg = {"message": "⚠ Position illégale — remettez la pièce à sa place.",
                                "message_key": "game.illegal.position_illegale"}
                     # Deux bips rapprochés
@@ -836,7 +839,8 @@ class GameWeb(threading.Thread):
             if move_obj not in self.board.legal_moves:
                 return None
             san = san_ep(self.board, move_obj)
-        except Exception:
+        except Exception as exc:
+            logger.warning(f"Validation du coup recu echouee (move={move}): {exc}")
             return None
 
         self.board.push(move_obj)
@@ -879,7 +883,8 @@ class GameWeb(threading.Thread):
                 return result.move.uci() if result.move else None
             finally:
                 engine.quit()
-        except Exception:
+        except Exception as exc:
+            logger.warning(f"Analyse Stockfish rapide echouee: {exc}")
             return None
 
     def _handle_pause(self):
@@ -917,7 +922,8 @@ class GameWeb(threading.Thread):
                 if bm:
                     try:
                         best_san = san_ep(self.board.copy(), chess.Move.from_uci(bm))
-                    except Exception:
+                    except Exception as exc:
+                        logger.debug(f"Calcul SAN du meilleur coup echoue: {exc}")
                         best_san = bm
                     try:
                         self.nl_inst.set_move_leds(bm)
@@ -974,7 +980,7 @@ class GameWeb(threading.Thread):
             from nicsoft.web.server import action_queue as _aq
             while not _aq.empty():
                 try: _aq.get_nowait()
-                except Exception: break
+                except Exception: break  # idiome de vidage de queue
             send_event("pause_wait_position", {
                 "fen": expected, "physical_fen": current,
                 "message": "Reproduisez la position sur l'échiquier.",
@@ -1174,7 +1180,7 @@ class GameWeb(threading.Thread):
                 from nicsoft.web.server import action_queue as _aq
                 while not _aq.empty():
                     try: _aq.get_nowait()
-                    except Exception: break
+                    except Exception: break  # idiome de vidage de queue
                 confirmed = False
                 while not confirmed and not self.game_over:
                     action = get_action(timeout=0.5)

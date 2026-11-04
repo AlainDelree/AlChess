@@ -121,7 +121,8 @@ def _load_cache() -> dict:
         try:
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"_load_cache(): cache JSON '{CACHE_FILE}' corrompu, ignoré: {e}")
             return {}
     return {}
 
@@ -139,7 +140,8 @@ def _build_user_prompt(fen, move_san, opening_name, alternatives) -> str:
     try:
         board = _chess.Board(fen)
         player = "Noirs" if board.turn == _chess.WHITE else "Blancs"
-    except Exception:
+    except Exception as e:
+        logger.debug(f"_build_user_prompt(): détermination du genre grammatical échouée, fallback neutre: {e}")
         player = "le joueur"
     if alternatives:
         alt_text = ", ".join(a.get("san", a.get("uci", "")) for a in alternatives[:3])

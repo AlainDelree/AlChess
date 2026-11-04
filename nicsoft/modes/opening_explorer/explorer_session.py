@@ -47,7 +47,8 @@ class ExplorerSession:
         for uci in getattr(source, "init_moves", []):
             try:
                 move = chess.Move.from_uci(uci)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"load(): coup d'init invalide ignoré ({uci!r}): {e}")
                 continue
             if move not in scratch.legal_moves:
                 break
@@ -82,7 +83,8 @@ class ExplorerSession:
         le coup est illégal."""
         try:
             move = chess.Move.from_uci(uci)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"choose_move(): UCI invalide ignoré ({uci!r}): {e}")
             return self.get_state()
         if move not in self.board.legal_moves:
             return self.get_state()
@@ -127,10 +129,12 @@ class ExplorerSession:
                 for alt in self.source.get_alternatives(self.board):
                     try:
                         san = san_ep(self.board, chess.Move.from_uci(alt["uci"]))
-                    except Exception:
+                    except Exception as e:
+                        logger.debug(f"get_state(): conversion SAN échouée pour {alt['uci']!r}: {e}")
                         san = alt["uci"]
                     alternatives.append({"uci": alt["uci"], "san": san, "weight": alt.get("weight", 0)})
-            except Exception:
+            except Exception as e:
+                logger.warning(f"get_state(): source.get_alternatives() a échoué: {e}")
                 alternatives = []
         return {
             "fen":            self.board.fen(),

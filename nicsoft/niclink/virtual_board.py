@@ -78,7 +78,7 @@ class VirtualBoard:
             try:
                 uci = self._move_queue.get(timeout=0.1)
             except queue.Empty:
-                continue
+                continue  # idiome de vidage de queue — aucun coup en attente
 
             # Valider que le coup est légal sur le game_board courant
             try:
@@ -96,8 +96,8 @@ class VirtualBoard:
                 try:
                     from nicsoft.web.server import send_event
                     send_event("virtual_move_illegal", {"uci": uci})
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"await_move: notification virtual_move_illegal non envoyée : {e}")
                 continue
 
             self.last_move = uci
@@ -161,7 +161,7 @@ class VirtualBoard:
             try:
                 self._move_queue.get_nowait()
             except queue.Empty:
-                break
+                break  # idiome de vidage de queue — plus rien à retirer
         logger.debug("VirtualBoard reset")
 
     # ── LEDs — no-ops ─────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ class VirtualBoard:
                 try:
                     uci = self._move_queue.get(timeout=0.1)
                 except queue.Empty:
-                    continue
+                    continue  # idiome de vidage de queue — aucun coup en attente
 
                 try:
                     move = chess.Move.from_uci(uci)
@@ -239,8 +239,8 @@ class VirtualBoard:
                     try:
                         from nicsoft.web.server import send_event
                         send_event("virtual_move_illegal", {"uci": uci})
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"virtual_board_watcher: notification virtual_move_illegal non envoyée : {e}")
                     continue
 
                 # En auto, ignorer les coups du camp moteur
@@ -280,8 +280,8 @@ class VirtualBoard:
                                     "qualite": qualite, "delta_cp": delta,
                                     "san": s, "label": LABELS.get(qualite, qualite),
                                 })
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            logger.debug(f"virtual_board_watcher: évaluation de qualité du coup échouée : {e}")
                     threading.Thread(target=_eval, daemon=True).start()
 
                 session._send_position(uci)

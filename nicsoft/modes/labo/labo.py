@@ -158,7 +158,8 @@ class LaboSession:
                     t = "w" if self.active_turn == "white" else "b"
                     try:
                         board_copy = chess.Board(f"{phys} {t} - - 0 1")
-                    except Exception:
+                    except Exception as e:
+                        logger.debug(f"do_best_move : FEN physique invalide, repli sur le board interne : {e}")
                         board_copy = self.board.copy()
                 else:
                     board_copy = self.board.copy()
@@ -168,7 +169,8 @@ class LaboSession:
                     return
                 try:
                     best_san = san_ep(board_copy, chess.Move.from_uci(bm))
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"do_best_move : conversion SAN échouée pour {bm}, repli sur l'UCI : {e}")
                     best_san = bm
                 self.nl_inst.set_move_leds(bm)
                 send_event("labo_best_move", {
@@ -243,7 +245,9 @@ class LaboSession:
                 best_san = None
                 if bm:
                     try: best_san = san_ep(board_copy, chess.Move.from_uci(bm))
-                    except Exception: best_san = bm
+                    except Exception as e:
+                        logger.debug(f"do_analyse : conversion SAN échouée pour {bm}, repli sur l'UCI : {e}")
+                        best_san = bm
                     self.nl_inst.set_move_leds(bm)
                 send_event("labo_analyse", {
                     "cp": eval_info.get("cp"), "mate": eval_info.get("mate"),
@@ -359,7 +363,7 @@ class LaboSession:
                 raw  = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
             except Exception:
-                continue
+                continue  # FEN physique momentanément indisponible — boucle rapide (0.1s), on retente au tour suivant
 
             if not phys or phys == last_fen:
                 candidate_fen = None
@@ -431,7 +435,8 @@ class LaboSession:
                                 "qualite": qualite, "delta_cp": delta,
                                 "san": s, "label": LABELS.get(qualite, qualite),
                             })
-                    except Exception: pass
+                    except Exception as e:
+                        logger.debug(f"board_watcher : évaluation de qualité du coup échouée : {e}")
                 threading.Thread(target=_eval, daemon=True).start()
 
             self._send_position(uci)
@@ -444,6 +449,6 @@ class LaboSession:
     def quit(self) -> None:
         self._running = False
         try: self.engine.quit()
-        except Exception: pass
+        except Exception: pass  # fermeture best-effort en fin de programme — rien à faire si le moteur est déjà mort
         try: self.nl_inst.turn_off_all_leds()
-        except Exception: pass
+        except Exception: pass  # extinction best-effort en fin de programme — pas bloquant si l'échiquier est déconnecté

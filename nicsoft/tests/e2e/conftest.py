@@ -51,7 +51,7 @@ def server_url():
             if requests.get(url, timeout=1).status_code == 200:
                 break
         except Exception:
-            pass
+            pass  # boucle de polling pendant le démarrage du serveur de test
         time.sleep(0.3)
 
     yield url
@@ -60,7 +60,7 @@ def server_url():
     try:
         proc.wait(timeout=5)
     except subprocess.TimeoutExpired:
-        proc.kill()
+        proc.kill()  # arrêt forcé si le process ne répond pas à terminate()
 
 
 @pytest.fixture(scope="session")

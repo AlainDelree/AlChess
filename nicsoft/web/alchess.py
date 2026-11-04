@@ -19,6 +19,7 @@ from nicsoft.core.board_adapter import create_board
 # ── Logger timing ─────────────────────────────────────────────────────────────
 # Activer avec : NICLINK_LOG=DEBUG python -m nicsoft.web
 _timing_logger = logging.getLogger("niclink.timing")
+logger = logging.getLogger("niclink")
 
 LOG_FILE = LOGS_DIR / "niclink.log"
 
@@ -90,7 +91,7 @@ def _find_free_port(start=5000):
                 s.bind(("127.0.0.1", port))
                 return port
             except OSError:
-                port += 1
+                port += 1  # port déjà occupé, on tente le suivant
     return start  # fallback
 
 
@@ -174,8 +175,8 @@ def _board_menu_watcher():
                     _already_notified = True
             else:
                 _already_notified = False  # plateau reconnecté
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"[WATCHER] Vérification présence plateau échouée : {e}")
 
 
 def main():
@@ -202,7 +203,7 @@ def main():
                 "moves": nb,
             })
         except Exception:
-            pass
+            pass  # fichier optionnel, absent au premier lancement
     try:
         while True:
             action = get_menu_action(timeout=1.0)
@@ -274,7 +275,7 @@ def main():
                 nl = gm.get_nl_inst_ref()
                 if nl is not None:
                     try: nl.turn_off_all_leds()
-                    except Exception: pass
+                    except Exception: pass  # nettoyage best-effort en fin de programme
                 _start_modem_manager()
                 sys.exit(0)
     except KeyboardInterrupt:
@@ -282,7 +283,7 @@ def main():
         nl = gm.get_nl_inst_ref()
         if nl is not None:
             try: nl.turn_off_all_leds()
-            except Exception: pass
+            except Exception: pass  # nettoyage best-effort en fin de programme
         _start_modem_manager()
         sys.exit(0)
 

@@ -7,9 +7,12 @@ Utilisé par manage.py et tous les outils d'édition.
 import chess
 import chess.polyglot
 import json
+import logging
 import pathlib
 import re
 from nicsoft.config import DATA_DIR
+
+logger = logging.getLogger("NL exercices.catalogue")
 
 # ── Chemins ───────────────────────────────────────────────────────────────────
 
@@ -47,7 +50,8 @@ def book_moves_for(board: chess.Board, book_path: pathlib.Path) -> list:
             entries = list(reader.find_all(board))
         entries.sort(key=lambda e: e.weight, reverse=True)
         return entries
-    except Exception:
+    except Exception as e:
+        logger.warning(f"book_moves_for(): lecture du livre '{book_path}' échouée: {e}")
         return []
 
 
@@ -176,7 +180,8 @@ def load_eco_hierarchy() -> dict:
         return {}
     try:
         return json.loads(ECO_HIER_F.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as e:
+        logger.warning(f"load_eco_hierarchy(): JSON '{ECO_HIER_F}' corrompu, ignoré: {e}")
         return {}
 
 
@@ -216,6 +221,7 @@ def pgn_to_uci(pgn: str) -> list[str]:
             move = board.parse_san(token)
             uci_moves.append(move.uci())
             board.push(move)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"pgn_to_uci(): coup SAN invalide ({token!r}), résultat partiel renvoyé: {e}")
             break
     return uci_moves

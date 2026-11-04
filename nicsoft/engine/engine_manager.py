@@ -395,7 +395,8 @@ class EngineManager:
                     "fen_avant_coup":   fen_avant,
                 }
                 board.push(move)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"analyser_partie: coup #{idx} ({uci}) non évaluable, classé 'bon' par défaut : {e}")
                 res = {
                     "qualite":         "bon",
                     "delta_cp":        0,
@@ -437,7 +438,7 @@ class EngineManager:
                 try:
                     engine.quit()
                 except Exception:
-                    pass
+                    pass  # nettoyage best-effort en fin de vie
         self._engine_play = None
         self._engine_eval = None
 
@@ -545,7 +546,7 @@ def rodent_available() -> bool:
             try:
                 engine.quit()
             except Exception:
-                pass
+                pass  # nettoyage best-effort en fin de vie
 
 
 # ── Rodent IV : personnalités et bornes ──────────────────────────────────────

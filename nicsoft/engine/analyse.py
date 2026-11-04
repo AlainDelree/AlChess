@@ -6,6 +6,8 @@ Délègue tout à EngineManager — ce module reste pour la compatibilité
 des imports existants.
 """
 
+import logging
+
 from nicsoft.engine.engine_manager import (
     EngineManager,
     classifier_coup,
@@ -14,6 +16,8 @@ from nicsoft.engine.engine_manager import (
     SEUIL_IMPRECISION,
     SEUIL_ERREUR,
 )
+
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "classifier_coup",
@@ -43,8 +47,8 @@ def analyser_partie(moves_uci: list, niveau: int = 5, callback=None) -> list:
             with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
             engine_path = config.get("engine_path", "")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"analyser_partie: lecture config.json échouée, fallback find_stockfish() : {e}")
 
     if not engine_path:
         engine_path = find_stockfish() or "stockfish"

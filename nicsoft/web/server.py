@@ -455,8 +455,8 @@ def _reconnect_board() -> None:
             nl = create_board(virtual=False, logger_name="NicLink_reconnect")
             try:
                 nl._fen_reader_stop.set()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"[WEB] Arrêt du thread fen_reader (connexion de secours) échoué : {e}")
         send_event("board_ok", {})
     except Exception as e:
         logger.info(f"[WEB] Reconnexion échiquier échouée : {e}")
@@ -567,8 +567,8 @@ def on_analyser_pgn(data):
                 cfg = json.load(f)
             engine_path = cfg.get("engine_path", "")
             engine_elo  = cfg.get("engine_elo", engine_elo)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"[WEB] Lecture config.json pour le chemin moteur échouée : {e}")
     if not engine_path:
         engine_path = find_stockfish() or "stockfish"
 
@@ -1085,6 +1085,7 @@ def _dispatch_loop():
                 logger.debug(f"[DISPATCH] {event['type']}")
             socketio.emit(event["type"], event["data"])
         except queue.Empty:
+            # Idiome de vidage de queue — aucun événement disponible, on boucle.
             continue
         except Exception as e:
             logger.error(f"Erreur dispatch event {event.get('type','?')}: {e}", exc_info=True)
@@ -1178,6 +1179,7 @@ def get_action(timeout: float = 0.0):
     try:
         return action_queue.get(timeout=timeout)
     except queue.Empty:
+        # Idiome de vidage de queue — timeout normal, aucune action en attente.
         return None
 
 
@@ -1209,6 +1211,7 @@ def get_menu_action(timeout: float = 1.0):
     try:
         return menu_queue.get(timeout=timeout)
     except queue.Empty:
+        # Idiome de vidage de queue — timeout normal, aucune action en attente.
         return None
 
 
