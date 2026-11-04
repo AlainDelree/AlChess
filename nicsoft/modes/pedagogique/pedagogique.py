@@ -16,7 +16,6 @@ Historique affiché dans le terminal après chaque coup.
 """
 
 import datetime
-import json
 import logging
 import sys
 import threading
@@ -59,6 +58,7 @@ from nicsoft.engine.engine_manager import (
     score_to_cp     as _score_to_cp,
     SEUIL_BON, SEUIL_IMPRECISION, SEUIL_ERREUR,
 )
+from nicsoft.core.config_manager import read_json_with_defaults
 
 CONFIG_FILE = DATA_DIR / "config.json"
 DEFAULT_CONFIG = {
@@ -70,14 +70,10 @@ DEFAULT_CONFIG = {
 
 
 def load_config() -> dict:
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return {**DEFAULT_CONFIG, **data}
-        except Exception as exc:
-            logger.warning(f"Lecture config.json impossible, defaults utilises: {exc}")
-    return dict(DEFAULT_CONFIG)
+    return read_json_with_defaults(
+        CONFIG_FILE, DEFAULT_CONFIG,
+        on_error=lambda exc: logger.warning(f"Lecture config.json impossible, defaults utilises: {exc}"),
+    )
 
 
 logger = logging.getLogger("NL pedagogique")

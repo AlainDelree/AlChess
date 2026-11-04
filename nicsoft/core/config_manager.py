@@ -3,10 +3,11 @@ config_manager.py — AlChess
 
 Point d'accès centralisé à data/config.json.
 
-Ne remplace PAS les load_config() locaux existants (pedagogique.py,
-game_manager.py) — ceux-ci restent en place pour l'instant (hors scope).
-Ce module sert de base commune pour les nouveaux consommateurs (Opening
-Explorer, panneau Paramètres) et regroupe notamment les champs LLM/TTS.
+load_config()/save_config() servent de base commune pour les nouveaux
+consommateurs (Opening Explorer, panneau Paramètres) et regroupent
+notamment les champs LLM/TTS. pedagogique.py et human.py gardent leurs
+propres load_config() locaux (defaults et niveau de log différents) mais
+délèguent la lecture/fusion JSON à read_json_with_defaults() ci-dessous.
 """
 
 import json
@@ -30,16 +31,26 @@ DEFAULT_CONFIG = {
 }
 
 
+def read_json_with_defaults(path, defaults: dict, on_error=None) -> dict:
+    """
+    Lit `path` (JSON) et fusionne sur `defaults`.
+    Retombe sur `defaults` si le fichier est absent ou invalide ;
+    `on_error(exc)`, si fourni, est appelé dans ce cas (ex. pour logger).
+    """
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return {**defaults, **data}
+        except Exception as exc:
+            if on_error:
+                on_error(exc)
+    return dict(defaults)
+
+
 def load_config() -> dict:
     """Lit data/config.json avec fallback sur DEFAULT_CONFIG."""
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return {**DEFAULT_CONFIG, **data}
-        except Exception:
-            pass
-    return dict(DEFAULT_CONFIG)
+    return read_json_with_defaults(CONFIG_FILE, DEFAULT_CONFIG)
 
 
 def save_config(data: dict) -> dict:

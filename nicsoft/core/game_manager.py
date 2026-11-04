@@ -26,6 +26,23 @@ def _validated_engine_path(cfg: dict, key: str = "engine_path", default: str = "
     return default
 
 
+def _read_engine_elo_and_path() -> tuple:
+    """Lit engine_elo/engine_path depuis data/config.json (defaults si absent/invalide)."""
+    import json
+    cfg_path    = DATA_DIR / "config.json"
+    engine_elo  = 1500
+    engine_path = ""
+    if cfg_path.exists():
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            engine_elo  = cfg.get("engine_elo", 1500)
+            engine_path = _validated_engine_path(cfg)
+        except Exception as e:
+            logger.debug(f"Lecture config.json échouée, valeurs par défaut conservées : {e}")
+    return engine_elo, engine_path
+
+
 # ── Toasts d'erreur au retour menu ───────────────────────────────────────────────
 _TOAST_MESSAGES = {
     "toast.board_not_found":  "Échiquier non détecté au démarrage.",
@@ -127,7 +144,6 @@ def _wait_position_web(nl_inst, target_fen: str, timeout: float = 300.0):
 
 # ── Mode pédagogique ───────────────────────────────────────────────────────────
 def launch_pedagogique(config):
-    import json
     player        = config.get("player", "Anonyme") or "Anonyme"
     color         = config.get("color", "white")
     level         = int(config.get("level", 5))
@@ -142,17 +158,7 @@ def launch_pedagogique(config):
         color = random.choice(["white", "black"])
     playing_white = (color == "white")
 
-    cfg_path    = DATA_DIR / "config.json"
-    engine_elo  = 1500
-    engine_path = ""
-    if cfg_path.exists():
-        try:
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-            engine_elo  = cfg.get("engine_elo", 1500)
-            engine_path = _validated_engine_path(cfg)
-        except Exception as e:
-            logger.debug(f"Lecture config.json échouée, valeurs par défaut conservées : {e}")
+    engine_elo, engine_path = _read_engine_elo_and_path()
 
     web_server._app_state = "connecting"
     set_app_state("connecting")
@@ -930,7 +936,6 @@ def _do_copy_to_board(target_fen: str) -> None:
 
 # ── Labo libre ─────────────────────────────────────────────────────────────────
 def launch_labo_libre(config):
-    import json
     player        = config.get("player", "Anonyme") or "Anonyme"
     color         = config.get("color", "white")
     start_fen     = config.get("fen", chess.STARTING_FEN)
@@ -946,17 +951,7 @@ def launch_labo_libre(config):
         color = random.choice(["white", "black"])
     playing_white = (color == "white")
 
-    cfg_path    = DATA_DIR / "config.json"
-    engine_elo  = 1500
-    engine_path = ""
-    if cfg_path.exists():
-        try:
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-            engine_elo  = cfg.get("engine_elo", 1500)
-            engine_path = _validated_engine_path(cfg)
-        except Exception as e:
-            logger.debug(f"Lecture config.json échouée, valeurs par défaut conservées : {e}")
+    engine_elo, engine_path = _read_engine_elo_and_path()
 
     web_server._app_state = "connecting"
     set_app_state("connecting")

@@ -1,6 +1,5 @@
 import argparse
 import datetime
-import json
 import logging
 import os
 import pathlib
@@ -29,6 +28,7 @@ from nicsoft.engine.players import (
 from nicsoft.engine.board_utils import wait_for_initial_position, san_ep
 from nicsoft.web.server import send_event, get_action, set_app_state, set_history, get_history
 from nicsoft.niclink import NicLinkManager
+from nicsoft.core.config_manager import read_json_with_defaults
 
 logger = logging.getLogger("NL play Human")
 ch = logging.StreamHandler()
@@ -42,14 +42,10 @@ CONFIG_FILE = DATA_DIR / "config.json"
 DEFAULT_CONFIG = {"turn_signal": "beep", "game_type": "Serious"}
 
 def load_config() -> dict:
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return {**DEFAULT_CONFIG, **data}
-        except Exception as exc:
-            logger.warning(f"Lecture config.json impossible, defaults utilises: {exc}")
-    return dict(DEFAULT_CONFIG)
+    return read_json_with_defaults(
+        CONFIG_FILE, DEFAULT_CONFIG,
+        on_error=lambda exc: logger.warning(f"Lecture config.json impossible, defaults utilises: {exc}"),
+    )
 
 
 class Game(threading.Thread):
