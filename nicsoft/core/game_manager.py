@@ -10,20 +10,12 @@ import threading
 import chess
 import logging
 
-from pathlib import Path
 from nicsoft.config import DATA_DIR
+from nicsoft.core.config_manager import validated_engine_path
 from nicsoft.engine.engine_manager import RODENT_ELO_DEFAUT, RODENT_PERSONALITY_DEFAUT
 from nicsoft.core.board_adapter import create_board
 from nicsoft.web.server import send_event, set_app_state, get_action, set_virtual_board
 from nicsoft.web import server as web_server
-
-
-def _validated_engine_path(cfg: dict, key: str = "engine_path", default: str = "") -> str:
-    """Retourne le path moteur sauvegardé seulement s'il existe sur cette plateforme."""
-    p = cfg.get(key, default)
-    if p and Path(p).exists():
-        return p
-    return default
 
 
 def _read_engine_elo_and_path() -> tuple:
@@ -37,7 +29,7 @@ def _read_engine_elo_and_path() -> tuple:
             with open(cfg_path, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
             engine_elo  = cfg.get("engine_elo", 1500)
-            engine_path = _validated_engine_path(cfg)
+            engine_path = validated_engine_path(cfg)
         except Exception as e:
             logger.debug(f"Lecture config.json échouée, valeurs par défaut conservées : {e}")
     return engine_elo, engine_path
@@ -493,7 +485,7 @@ def _run_exercice(config: dict) -> None:
                 with open(cfg_path, "r", encoding="utf-8") as f:
                     cfg = json.load(f)
                 engine_elo  = cfg.get("engine_elo", 1500)
-                engine_path = _validated_engine_path(cfg)
+                engine_path = validated_engine_path(cfg)
             if not engine_path:
                 engine_path = find_stockfish() or "stockfish"
             engine = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=False)
@@ -590,7 +582,7 @@ def _run_drill(config: dict) -> None:
             engine_path = find_stockfish() or "stockfish"
             if cfg_path.exists():
                 cfg = json.loads(cfg_path.read_text())
-                engine_path = _validated_engine_path(cfg, default=engine_path)
+                engine_path = validated_engine_path(cfg, default=engine_path)
                 engine_elo  = cfg.get("engine_elo", engine_elo)
             engine = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=False)
             session._engine = engine
@@ -683,7 +675,7 @@ def _make_labo_session(nl_inst, config: dict):
         if cfg_path.exists():
             with open(cfg_path) as f:
                 cfg = json.load(f)
-            engine_path = _validated_engine_path(cfg)
+            engine_path = validated_engine_path(cfg)
     except Exception as e:
         logger.debug(f"[LABO] Lecture config.json échouée, fallback find_stockfish() : {e}")
     if not engine_path:

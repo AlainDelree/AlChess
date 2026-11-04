@@ -14,6 +14,8 @@ import json
 import logging
 import os
 
+from pathlib import Path
+
 from nicsoft.config import DATA_DIR
 
 logger = logging.getLogger("NL config_manager")
@@ -57,6 +59,14 @@ def load_config() -> dict:
         CONFIG_FILE, DEFAULT_CONFIG,
         on_error=lambda exc: logger.warning(f"config.json illisible, valeurs par défaut utilisées : {exc}"),
     )
+
+
+def validated_engine_path(cfg: dict, key: str = "engine_path", default: str = "") -> str:
+    """Retourne le path moteur sauvegardé seulement s'il existe sur cette plateforme."""
+    p = cfg.get(key, default)
+    if p and Path(p).exists():
+        return p
+    return default
 
 
 def save_config(data: dict) -> dict:

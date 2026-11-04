@@ -37,18 +37,13 @@ def analyser_partie(moves_uci: list, niveau: int = 5, callback=None) -> list:
     Préférer analyser_partie_avec_manager() si un EngineManager existe déjà.
     """
     from nicsoft.engine.engine_manager import find_stockfish
-    import pathlib, json
+    from nicsoft.core.config_manager import CONFIG_FILE, DEFAULT_CONFIG, read_json_with_defaults, validated_engine_path
 
-    from nicsoft.config import DATA_DIR
-    config_path = DATA_DIR / "config.json"
-    engine_path = ""
-    if config_path.exists():
-        try:
-            with open(config_path, "r", encoding="utf-8") as f:
-                config = json.load(f)
-            engine_path = config.get("engine_path", "")
-        except Exception as e:
-            logger.debug(f"analyser_partie: lecture config.json échouée, fallback find_stockfish() : {e}")
+    config = read_json_with_defaults(
+        CONFIG_FILE, DEFAULT_CONFIG,
+        on_error=lambda e: logger.debug(f"analyser_partie: lecture config.json échouée, fallback find_stockfish() : {e}"),
+    )
+    engine_path = validated_engine_path(config)
 
     if not engine_path:
         engine_path = find_stockfish() or "stockfish"
