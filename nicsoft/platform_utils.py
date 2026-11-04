@@ -33,4 +33,4 @@ def start_modem_manager() -> None:
             capture_output=True, timeout=5
         )
     except Exception:
-        pass
+        pass  # pas de sudo configuré ou ModemManager absent — pas bloquant

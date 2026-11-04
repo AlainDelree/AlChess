@@ -95,7 +95,7 @@ def ask_save_pgn(mode: str, white: str, black: str, default_game_type: str = "Se
     try:
         answer = input("  Sauvegarder la partie ? (o/n) : ").strip().lower()
     except (KeyboardInterrupt, EOFError):
-        return False, None, None
+        return False, None, None  # saisie interactive interrompue par l'utilisateur — comportement voulu
 
     if answer != "o":
         return False, None, None
@@ -112,7 +112,7 @@ def ask_save_pgn(mode: str, white: str, black: str, default_game_type: str = "Se
     try:
         raw = input(f"  Choix [1-3, Entree = {default_key}] : ").strip()
     except (KeyboardInterrupt, EOFError):
-        raw = ""
+        raw = ""  # saisie interactive interrompue par l'utilisateur — comportement voulu
 
     game_type = GAME_TYPES.get(raw, GAME_TYPES.get(default_key, "Serious"))
     final_path = build_final_path(mode, game_type, white, black)

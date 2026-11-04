@@ -10,8 +10,12 @@ Interface commune (duck typing) utilisée par ExplorerSession :
 Attributs communs : nom, camp_suggere, init_moves.
 """
 
+import logging
+
 import chess
 import chess.polyglot
+
+logger = logging.getLogger("niclink.opening_explorer")
 
 
 class PolyglotSource:
@@ -28,7 +32,8 @@ class PolyglotSource:
         try:
             with chess.polyglot.open_reader(self.book_path) as reader:
                 entries = list(reader.find_all(board))
-        except Exception:
+        except Exception as e:
+            logger.warning(f"PolyglotSource._entries(): lecture du livre '{self.book_path}' échouée: {e}")
             return []
         entries.sort(key=lambda e: e.weight, reverse=True)
         return entries
@@ -63,7 +68,8 @@ class PGNLineSource:
             return None
         try:
             move = chess.Move.from_uci(self.line[idx])
-        except Exception:
+        except Exception as e:
+            logger.debug(f"PGNLineSource.get_main_move(): UCI invalide dans la ligne ({self.line[idx]!r}): {e}")
             return None
         return move if move in board.legal_moves else None
 

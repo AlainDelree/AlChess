@@ -33,7 +33,8 @@ def analyser_position_illegale(board: chess.Board, fen_physique: str) -> dict:
 
     try:
         hw_board = chess.Board(fen_physique + " w - - 0 1")
-    except Exception:
+    except Exception as e:
+        logger.warning(f"analyser_position_illegale: FEN physique invalide ({fen_physique!r}) : {e}")
         return _err("⚠ Position illégale — remettez les pièces à leur place.",
                     "game.illegal.position_illegale")
 
@@ -85,8 +86,8 @@ def analyser_position_illegale(board: chess.Board, fen_physique: str) -> dict:
                         return _err(f"⚠ {pn} ne peut pas aller là.",
                                     "game.illegal.piece_ne_peut_pas",
                                     {"piece_key": pk})
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"analyser_position_illegale: détection pièce clouée échouée : {e}")
 
     return _err("⚠ Coup illégal — remettez la pièce à sa place.",
                 "game.illegal.coup_illegal")
@@ -140,7 +141,7 @@ def wait_for_initial_position(nl_inst, timeout: float = 10.0) -> None:
             try:
                 nl_inst.signal_lights(1)
             except Exception:
-                pass
+                pass  # signal LED cosmétique — échec sans conséquence fonctionnelle
             last_message_time = time.time()
         elif time.time() - last_message_time >= 3.0:
             print("   En attente de la position initiale...")

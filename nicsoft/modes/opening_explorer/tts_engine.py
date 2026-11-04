@@ -92,7 +92,7 @@ def check_internet() -> bool:
         urllib.request.urlopen("https://api.edge-tts.com", timeout=2)
         return True
     except Exception:
-        pass
+        pass  # edge-tts inaccessible, on tente le test suivant de la cascade
     # Fallback : ping un DNS public
     try:
         import socket
@@ -100,7 +100,7 @@ def check_internet() -> bool:
         socket.socket().connect(("8.8.8.8", 53))
         return True
     except Exception:
-        return False
+        return False  # dernier test de la cascade : pas d'internet détecté
 
 
 def _speak_edge(text: str, rate: int, language: str, volume: int = 80, on_playback_start=None) -> bool:
@@ -135,8 +135,8 @@ def _speak_edge(text: str, rate: int, language: str, volume: int = 80, on_playba
             finally:
                 try:
                     os.unlink(tmp)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"_speak_edge()._run(): suppression du fichier temporaire '{tmp}' échouée: {e}")
 
         asyncio.run(_run())
         return True

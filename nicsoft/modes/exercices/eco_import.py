@@ -14,9 +14,12 @@ Workflow :
 
 import chess
 import chess.polyglot
+import logging
 import pathlib
 import re
 import sys
+
+logger = logging.getLogger("NL eco_import")
 
 from nicsoft.modes.exercices._catalogue import (
     DATA_DIR, BOOKS_DIR, scan_books, book_moves_for, best_book_for,
@@ -81,7 +84,9 @@ def get_popularity(uci_moves: list, books: list) -> tuple:
     board = chess.Board()
     for uci in uci_moves[:-1]:
         try: board.push(chess.Move.from_uci(uci))
-        except Exception: return 0, 0
+        except Exception as e:
+            logger.debug(f"get_popularity : UCI invalide ({uci!r}), popularité forcée à 0 : {e}")
+            return 0, 0
     last_uci    = uci_moves[-1]
     best_weight = 0
     max_weight  = 0
@@ -96,8 +101,8 @@ def get_popularity(uci_moves: list, books: list) -> tuple:
                 max_weight  = total
                 best_weight = next(
                     (e.weight for e in entries if e.move.uci() == last_uci), 0)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"get_popularity : lecture livre '{book_path}' échouée : {e}")
     return best_weight, max_weight
 
 
@@ -178,7 +183,9 @@ def import_entry(r: dict, books: list[pathlib.Path],
     board = chess.Board()
     for uci in r["uci"]:
         try: board.push(chess.Move.from_uci(uci))
-        except Exception: break
+        except Exception as e:
+            logger.warning(f"import_entry : reconstruction board interrompue ({uci!r}) : {e}")
+            break
 
     book_path, entries = best_book_for(board, books)
     if not entries:
@@ -191,7 +198,7 @@ def import_entry(r: dict, books: list[pathlib.Path],
         tmp = board.copy()
         for e in entries[:4]:
             try: sans.append(tmp.san(e.move))
-            except Exception: pass
+            except Exception as e2: logger.debug(f"import_entry : construction SAN pour affichage : {e2}")
         print(green(f"  ✓ {len(entries)} coups dans {book_path.name} : {', '.join(sans)}"))
         chosen_book = book_path.name
 
@@ -257,7 +264,9 @@ def quick_import_batch(entries: list, camp: str, books: list,
         board = chess.Board()
         for uci in r["uci"]:
             try: board.push(chess.Move.from_uci(uci))
-            except Exception: break
+            except Exception as e:
+                logger.warning(f"quick_import_batch : reconstruction board interrompue ({uci!r}) : {e}")
+                break
         book_path, book_entries = best_book_for(board, books)
         if not book_entries:
             skipped.append((r, "absent du livre"))
@@ -434,6 +443,7 @@ def main():
                         idx = int(tok) - 1
                         if 0 <= idx < len(results_visible): quick_indices.append(idx)
                     except ValueError:
+                        # int() échoue → traiter le token comme un code ECO (idiome intentionnel)
                         eco_match = parse_filter(tok)
                         quick_indices.extend(i for i, r in enumerate(results_visible)
                                              if eco_match(r["eco"]))
@@ -472,7 +482,7 @@ def main():
                         print(red(f"  Numéro invalide : {tok}"))
                     continue
                 except ValueError:
-                    pass
+                    pass  # int() échoue → traiter le token comme un code ECO (idiome intentionnel)
                 # Code ECO (préfixe ou plage)
                 eco_match = parse_filter(tok)
                 matched = [i for i, r in enumerate(results_visible) if eco_match(r["eco"])]
@@ -585,7 +595,8 @@ def import_eco_from_web(data: dict) -> dict:
         for mv_uci in uci:
             try:
                 board.push(chess.Move.from_uci(mv_uci))
-            except Exception:
+            except Exception as e2:
+                logger.warning(f"import_eco_from_web : reconstruction board interrompue ({mv_uci!r}) : {e2}")
                 break
         book_path, book_entries = best_book_for(board, books)
 

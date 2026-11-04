@@ -126,6 +126,7 @@ def _wait_position_web(nl_inst, target_fen: str, timeout: float = 300.0):
             raw = nl_inst.get_fen()
             board_fen = raw.strip().split()[0] if raw else ""
         except Exception:
+            # lecture FEN momentanément indisponible — boucle rapide (0.2s), on retente sans tracer à chaque itération
             time.sleep(0.2)
             continue
         if board_fen == target:
@@ -246,12 +247,12 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         from nicsoft.web.server import action_queue as _aq
         while not _aq.empty():
             try: _aq.get_nowait()
-            except Exception: break
+            except Exception: break  # vidage de la queue avant le début de partie — queue déjà vide, rien à tracer
         game.save_pgn_tmp()
         logger.info(f"Partie : {player_name} vs {engine_label}")
         game.start()
     except BackMenuExit:
-        pass
+        pass  # retour au menu demandé par l'utilisateur — pas une erreur
     except SystemExit as e:
         if "board connection error" in str(e):
             logger.error("Erreur : échiquier non détecté.")
@@ -337,7 +338,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
         from nicsoft.web.server import action_queue as _aq
         while not _aq.empty():
             try: _aq.get_nowait()
-            except Exception: break
+            except Exception: break  # vidage de la queue avant le début de partie — queue déjà vide, rien à tracer
 
         game.save_pgn_tmp()
         logger.info(f"Partie : {white_name} vs {black_name}")
@@ -384,7 +385,7 @@ def launch_retranscription(config):
         try:
             web_server.action_queue.get_nowait()
         except _queue.Empty:
-            break
+            break  # queue vidée — fin normale du drain avant de démarrer la session
 
     web_server._app_state = "retranscription"
     set_app_state("retranscription", {
@@ -634,7 +635,7 @@ def launch_labo():
         try:
             web_server.action_queue.get_nowait()
         except _queue.Empty:
-            break
+            break  # queue vidée — fin normale du drain avant de démarrer la session
     web_server._app_state = "labo"
     set_app_state("labo")
     if _virtual_mode:
@@ -820,7 +821,7 @@ def _run_labo_session():
                     else:
                         break
                 except Exception:
-                    break
+                    break  # queue modifiée concurremment pendant le peek — on arrête le dédoublonnage, sans conséquence
             session.do_best_move()
 
         elif atype == "engine_auto":
@@ -843,7 +844,7 @@ def _run_labo_session():
                         else:
                             saved.append(pending)
                     except Exception:
-                        break
+                        break  # queue modifiée concurremment — on arrête le tri, les actions déjà extraites sont remises ci-dessous
                 for a in saved:
                     _aq.put_nowait(a)
                 if session._auto_on and session.board.turn == session.engine_color and not session._engine_busy:
@@ -1014,7 +1015,7 @@ def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active
         from nicsoft.web.server import action_queue as _aq
         while not _aq.empty():
             try: _aq.get_nowait()
-            except Exception: break
+            except Exception: break  # vidage de la queue avant le début de session — queue déjà vide, rien à tracer
 
         send_event("labo_init", {
             "fen":          fen_short,

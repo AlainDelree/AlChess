@@ -16,6 +16,7 @@ Les champs Event, White/Black (camp_suggere), ECO sont lus si présents.
 """
 
 import json
+import logging
 import pathlib
 import re
 import chess
@@ -26,6 +27,8 @@ from nicsoft.config import DATA_DIR
 from nicsoft.modes.exercices._catalogue import (
     bold, cyan, green, red, yellow, dim, make_unique_id, pgn_to_uci
 )
+
+logger = logging.getLogger("NL exercices.import_lignes")
 
 MES_LIGNES_DIR  = DATA_DIR / "mes_lignes"
 MES_LIGNES_JSON = DATA_DIR / "mes_lignes.json"
@@ -108,7 +111,8 @@ def _parse_pgn_content(name: str, content: str) -> tuple:
                     if mv in b.legal_moves:
                         init_uci.append(uci)
                         b.push(mv)
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"_parse_pgn_content(): InitMoves invalide dans l'en-tête PGN ({uci!r}), parsing arrêté: {e}")
                     break
         else:
             init_uci = []
@@ -296,7 +300,7 @@ def show_uci(pgn_text: str = None) -> None:
                     break
                 lines.append(line)
             except EOFError:
-                break
+                break  # Ctrl+D : fin de la saisie multi-lignes, comportement voulu
         pgn_text = "\n".join(lines)
 
     try:

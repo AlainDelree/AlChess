@@ -11,9 +11,12 @@ délèguent la lecture/fusion JSON à read_json_with_defaults() ci-dessous.
 """
 
 import json
+import logging
 import os
 
 from nicsoft.config import DATA_DIR
+
+logger = logging.getLogger("NL config_manager")
 
 CONFIG_FILE = DATA_DIR / "config.json"
 
@@ -50,7 +53,10 @@ def read_json_with_defaults(path, defaults: dict, on_error=None) -> dict:
 
 def load_config() -> dict:
     """Lit data/config.json avec fallback sur DEFAULT_CONFIG."""
-    return read_json_with_defaults(CONFIG_FILE, DEFAULT_CONFIG)
+    return read_json_with_defaults(
+        CONFIG_FILE, DEFAULT_CONFIG,
+        on_error=lambda exc: logger.warning(f"config.json illisible, valeurs par défaut utilisées : {exc}"),
+    )
 
 
 def save_config(data: dict) -> dict:

@@ -580,7 +580,8 @@ def get_mes_lignes() -> list:
     try:
         import json
         return json.loads(MES_LIGNES_JSON.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as e:
+        logger.warning(f"get_mes_lignes : JSON corrompu ({MES_LIGNES_JSON}) : {e}")
         return []
 
 
@@ -630,8 +631,8 @@ class ExerciceSession:
                 if mv in self.board.legal_moves:
                     self.board.push(mv)
                     self._init_moves.append(mv)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"__init__ : coup d'init invalide '{uci}' : {e}")
 
     # ── Livre Polyglot ou ligne perso ─────────────────────────────────────────
 
@@ -649,8 +650,8 @@ class ExerciceSession:
                         class _FakeEntry:
                             def __init__(self, m): self.move = m; self.weight = 1
                         return [_FakeEntry(move)]
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"_get_book_moves (init_only) : coup invalide : {e}")
             return []
         try:
             with chess.polyglot.open_reader(self._book_path) as reader:
@@ -738,7 +739,7 @@ class ExerciceSession:
                 self.nl_inst.turn_off_all_leds()
                 return True
         except Exception:
-            pass
+            pass  # Lecture FEN physique — erreur transitoire normale, on retente plus bas
 
         # Délai initial avant d'afficher les cases rouges
         if initial_delay > 0:
@@ -751,7 +752,7 @@ class ExerciceSession:
                         self.nl_inst.turn_off_all_leds()
                         return True
                 except Exception:
-                    pass
+                    pass  # Lecture FEN physique — erreur transitoire normale, on retente plus bas
 
         last_bad  = None
         bad_since = None
@@ -762,6 +763,7 @@ class ExerciceSession:
                 raw  = self.nl_inst.get_fen()
                 phys = raw.strip().split()[0] if raw else ""
             except Exception:
+                # Boucle de polling rapide (0.2s) — erreur transitoire USB normale, pas de log
                 time.sleep(0.2)
                 continue
 
@@ -809,8 +811,8 @@ class ExerciceSession:
                             # Pas d'interruption — juste mettre à jour game_board
                             self.nl_inst.kill_switch.set()
                             self._sync_requested = True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"_watch_actions : action web mal traitée : {e}")
                 time.sleep(0.2)
 
         self._retry_requested = False
@@ -825,7 +827,7 @@ class ExerciceSession:
                 self.nl_inst.kill_switch.clear()
                 move_uci = self.nl_inst.await_move()
             except ExitNicLink:
-                pass
+                pass  # Exception de contrôle de flux — sortie demandée (kill_switch), rien à faire
             except Exception as e:
                 logger.warning(f"await_move : {e}")
 
@@ -855,8 +857,8 @@ class ExerciceSession:
                 return move
             # Essayer aussi depuis la position physique
             # (le FEN physique peut avoir plus de contexte)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"_wait_human_move : conversion move_uci→Move échouée : {e}")
 
         # Chercher le coup par comparaison de FEN
         try:
@@ -868,8 +870,8 @@ class ExerciceSession:
                     test.push(m)
                     if test.board_fen() == phys:
                         return m
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"_wait_human_move : recherche du coup par FEN échouée : {e}")
 
         return None
 
@@ -892,14 +894,14 @@ class ExerciceSession:
             except _q.Empty:
                 pass
             except Exception:
-                pass
+                pass  # Boucle de polling — erreur transitoire ignorée
             try:
                 raw  = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
                 if phys == expected:
                     return True
             except Exception:
-                pass
+                pass  # Boucle de polling physique — erreur transitoire ignorée
             time.sleep(0.15)
         return False
 
@@ -912,7 +914,8 @@ class ExerciceSession:
         while self._running:
             try:
                 action = _aq.get(timeout=0.5)
-            except Exception:
+            except Exception as e:
+                logger.debug(f"_wait_initial_sync : {e}")
                 continue
             atype = action.get("type", "")
             if atype == "exercice_sync":
@@ -1016,7 +1019,7 @@ class ExerciceSession:
                     valid_moves = []
                     for e in book_moves[:5]:
                         try: valid_moves.append({"san": san_ep(self.board, e.move), "uci": e.move.uci()})
-                        except Exception: pass
+                        except Exception as e2: logger.warning(f"run : construction valid_moves : {e2}")
                     send_event("exercice_out_of_book", {
                         "san":         san,
                         "uci":         move.uci(),
@@ -1200,8 +1203,8 @@ class ExerciceSession:
                     "san": san_ep(self.board, e.move),
                     "uci": e.move.uci(),
                 })
-            except Exception:
-                pass
+            except Exception as e2:
+                logger.debug(f"_send_position : construction book_moves : {e2}")
         send_event("exercice_position", {
             "fen":        self.board.fen(),
             "from":       from_sq,
@@ -1254,7 +1257,8 @@ def build_virtual_book(lignes: list[dict]) -> dict[str, list[str]]:
                 if uci not in book[key]:
                     book[key].append(uci)
                 board.push(move)
-            except Exception:
+            except Exception as e:
+                logger.warning(f"build_virtual_book : construction interrompue : {e}")
                 break
     return book
 
@@ -1300,8 +1304,8 @@ class DrillSession(ExerciceSession):
                 move = chess.Move.from_uci(uci)
                 if move in board.legal_moves:
                     result.append(_FakeEntry(move))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"DrillSession._get_book_moves : coup invalide : {e}")
         return result
 
     def _pick_book_move(self, board) -> chess.Move | None:

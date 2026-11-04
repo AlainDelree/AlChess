@@ -12,9 +12,12 @@ import chess
 from nicsoft.utils.debug import DEBUG_MODE
 from nicsoft.engine.board_utils import san_ep
 import json
+import logging
 import pathlib
 import re
 from nicsoft.config import DATA_DIR, GAMES_DIR as _GAMES_DIR
+
+logger = logging.getLogger("NL retranscription")
 
 # ── Chemins ───────────────────────────────────────────────────────────────────
 
@@ -133,7 +136,8 @@ def load_session() -> dict | None:
         return None
     try:
         return json.loads(SAVE_PATH.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as e:
+        logger.warning(f"load_session : session sauvegardée illisible ({SAVE_PATH}), traitée comme absente : {e}")
         return None
 
 
@@ -186,7 +190,8 @@ def run_retranscription(config: dict,
                 try:
                     board.push_uci(uci)
                     moves_uci.append(uci)
-                except Exception:
+                except Exception as e:
+                    logger.warning(f"load_session : coup sauvegardé invalide ({uci}), reprise arrêtée après {len(moves_uci)} coups : {e}")
                     break
             if DEBUG_MODE: print(f"[RETRANSCRIPTION] Session reprise — {len(moves_uci)} coups")
 
@@ -251,8 +256,8 @@ def run_retranscription(config: dict,
                         send_event("retranscription_end", {"reason": "material", "result": "1/2-1/2"})
                 else:
                     send_event("virtual_move_illegal", {"uci": uci})
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"run_retranscription : traitement du coup virtuel {uci} échoué : {e}")
 
         if action is None:
             continue

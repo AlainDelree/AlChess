@@ -8,12 +8,15 @@ Usage :
 """
 
 import chess
+import logging
 import sys
 from nicsoft.modes.exercices._catalogue import (
     BOOKS_DIR, scan_books, check_books, load_existing_ids, load_existing_inits,
     append_ouverture, resolve_parent_eco,
     bold, cyan, green, red, yellow, ask,
 )
+
+logger = logging.getLogger("NL exercices.add_ouverture")
 
 
 def main():
@@ -84,7 +87,7 @@ def main():
             tmp = board.copy()
             for e in entries[:5]:
                 try: sans.append(tmp.san(e.move))
-                except Exception: pass
+                except Exception as e2: logger.debug(f"main(): conversion SAN échouée pour affichage du livre ({e.move}): {e2}")
             print(f"  [{i+1}] {bp.name} — {len(entries)} coup(s) : {', '.join(sans)}")
         if len(book_list) == 1:
             chosen_book = book_list[0][0].name
@@ -95,7 +98,7 @@ def main():
                 try:
                     idx = int(choice) - 1
                     if 0 <= idx < len(book_list): chosen_book = book_list[idx][0].name; break
-                except Exception: pass
+                except Exception: pass  # saisie non numérique ou hors plage, redemander
                 print(red("Choix invalide."))
 
     parent_eco = resolve_parent_eco(eco)

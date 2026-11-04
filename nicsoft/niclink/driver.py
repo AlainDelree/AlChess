@@ -179,7 +179,7 @@ and turned on?"
             try:
                 cmd = self._led_queue.get(timeout=1.0)
             except _queue_mod.Empty:
-                continue
+                continue  # idiome de vidage de queue — aucune commande en attente
             try:
                 kind = cmd[0]
                 if kind == "lights_out":
@@ -218,7 +218,7 @@ and turned on?"
                             else:
                                 self._led_queue.put(peek)
                         except _queue_mod.Empty:
-                            pass
+                            pass  # pas de commande prioritaire en attente — poursuivre le signal
                         time.sleep(0.05)
                     else:
                         # Délai écoulé sans interruption → éteindre
@@ -232,7 +232,7 @@ and turned on?"
                 try:
                     self._led_queue.task_done()
                 except Exception:
-                    pass
+                    pass  # nettoyage best-effort — task_done() peut échouer sans conséquence
 
     # ──────────────────────────────────────────────
     # Thread de lecture USB dédié
@@ -308,8 +308,8 @@ and turned on?"
                         return
                 else:
                     _consecutive_failures = 0
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.debug("fen_reader: erreur transitoire de lecture USB : %s", e)
             time.sleep(FEN_READER_DELAY)
 
     def start_960(self, starting_fen: str) -> None:
@@ -407,7 +407,7 @@ and turned on?"
                 self._led_queue.get_nowait()
                 self._led_queue.task_done()
             except _queue_mod.Empty:
-                break
+                break  # idiome de vidage de queue — plus rien à retirer
         self._led_queue.put(("lights_out",))
 
     def set_all_leds(self, light_board: npt.NDArray[np.str_]) -> None:
@@ -530,7 +530,7 @@ and turned on?"
 
             self.game_board.push(last_move)
         except IndexError:
-            last_move = False
+            last_move = False  # pas de coup joué — début de partie, valeur par défaut normale
 
         if new_fen == self.game_board.board_fen():
             self.logger.debug("no change in fen.")
