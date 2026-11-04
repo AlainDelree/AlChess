@@ -15,6 +15,8 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import expect
 
+pytestmark = pytest.mark.slow
+
 
 I18N_DIR = Path(__file__).resolve().parents[2] / "web" / "static" / "i18n"
 
