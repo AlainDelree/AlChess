@@ -7,6 +7,7 @@ au navigateur via SocketIO. Les actions du navigateur remontent
 via SocketIO à Python.
 """
 
+import hashlib
 import logging
 import os
 import pathlib
@@ -179,6 +180,48 @@ def _get_rodent_available() -> bool:
 _RODENT_WIN_BASE_URL = "https://raw.githubusercontent.com/AlainDelree/AlChess/master/engines/rodent-iv-win/"
 _RODENT_WIN_FILES = ["rodent-iv-x64.exe", "msvcr120.dll", "msvcp120.dll"]
 
+# Délai d'attente par requête réseau (secondes) — évite de figer le thread de
+# téléchargement si le serveur GitHub est injoignable (issue #256, EXP-013).
+_RODENT_WIN_DOWNLOAD_TIMEOUT = 15
+
+# Empreintes SHA-256 de référence pour chaque binaire Rodent IV Windows.
+# Source : fichiers identiques déjà versionnés dans ce dépôt
+# (engines/rodent-iv-win/), qui sont exactement la même release que celle
+# re-téléchargée ici pour les installations NSIS standalone n'embarquant pas
+# ces fichiers — calculées localement, jamais dérivées d'un téléchargement
+# (issue #256, SEC-022).
+_RODENT_WIN_SHA256 = {
+    "rodent-iv-x64.exe": "39c879b2dfdaf0252e94db547397d95422fee76ea8bafa584bfdc03e4d648de5",
+    "msvcr120.dll": "ad32240bb1de55c3f5fcac8789f583a17057f9d14914c538c2a7a5ad346b341c",
+    "msvcp120.dll": "81fbc2824e73f0d101d91854694a52e79db0ffaadbb2a10deaaf47b3b7f9b2b0",
+}
+
+
+def _telecharger_fichier_rodent(url: str, dest_path: pathlib.Path) -> None:
+    """Télécharge un fichier avec délai d'attente, vérifie son empreinte SHA-256
+    contre la référence connue, et supprime le fichier en cas d'écart.
+    """
+    import urllib.request
+
+    attendu = _RODENT_WIN_SHA256.get(dest_path.name)
+    if attendu is None:
+        raise ValueError(f"Aucune empreinte de référence connue pour {dest_path.name}")
+
+    hasher = hashlib.sha256()
+    with urllib.request.urlopen(url, timeout=_RODENT_WIN_DOWNLOAD_TIMEOUT) as response, \
+            open(dest_path, "wb") as out:
+        while True:
+            chunk = response.read(65536)
+            if not chunk:
+                break
+            hasher.update(chunk)
+            out.write(chunk)
+
+    obtenu = hasher.hexdigest()
+    if obtenu != attendu:
+        dest_path.unlink(missing_ok=True)
+        raise ValueError(f"Empreinte invalide pour {dest_path.name} (intégrité compromise)")
+
 
 @socketio.on("download_rodent")
 def on_download_rodent(_data):
@@ -186,14 +229,15 @@ def on_download_rodent(_data):
 
     SyncGitRepo ne récupère pas les binaires sur une installation NSIS
     standalone ; ce handler les télécharge directement depuis la branche
-    master du dépôt public, dans ENGINES_DIR/rodent-iv-win/.
+    master du dépôt public, dans ENGINES_DIR/rodent-iv-win/. Chaque requête
+    est bornée dans le temps et chaque fichier est vérifié par empreinte
+    SHA-256 avant d'être considéré installé (issue #256).
     """
     if sys.platform != "win32":
         emit("rodent_download_result", {"ok": False, "error": "Téléchargement disponible uniquement sous Windows"})
         return
 
     def run():
-        import urllib.request
         global _rodent_available_cache
         dest_dir = ENGINES_DIR / "rodent-iv-win"
         try:
@@ -203,7 +247,7 @@ def on_download_rodent(_data):
                 socketio.emit("rodent_download_progress", {
                     "file": filename, "index": index, "total": total,
                 })
-                urllib.request.urlretrieve(_RODENT_WIN_BASE_URL + filename, str(dest_dir / filename))
+                _telecharger_fichier_rodent(_RODENT_WIN_BASE_URL + filename, dest_dir / filename)
             _rodent_available_cache = None
             socketio.emit("rodent_download_result", {"ok": True})
             socketio.emit("rodent_status", {"available": _get_rodent_available(), "downloadable": True})
