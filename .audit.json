@@ -1,0 +1,23 @@
+{
+  "cas": ["C2", "C5"],
+  "cas_latents": ["C7"],
+  "roles": {
+    "interface": ["nicsoft/web"],
+    "métier": ["nicsoft/core", "nicsoft/engine", "nicsoft/modes"]
+  },
+  "donnees_personnelles": [
+    "data/config.json",
+    "data/players.json",
+    "data/secret_key.txt",
+    "data/mes_lignes.json",
+    "data/retranscription_en_cours.json",
+    "data/pgn_library",
+    "games",
+    "logs"
+  ],
+  "dossiers_depot": [
+    "data/books",
+    "data/mes_lignes",
+    "engines"
+  ]
+}
