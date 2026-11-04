@@ -167,14 +167,13 @@ Commande : `python -m pytest nicsoft/tests/ -q --tb=no`
 |---------|---------|
 | `Flask` | 3.1.3 |
 | `Flask-SocketIO` | 5.6.1 |
-| `python-socketio` | 5.16.1 |
-| `Werkzeug` | 3.1.7 |
+| `python-socketio` | 5.16.2 |
+| `Werkzeug` | 3.1.9 |
 | `chess` | 1.10.0 |
 | `stockfish` | 3.28.0 |
 | `hidapi` | 0.15.0 |
 | `requests` | 2.33.1 |
-| `berserk` | 0.13.2 |
-| `numpy` | 1.26.4 |
+| `numpy` | 2.5.4 |
 | `pyserial` | 3.5 |
 | `readchar` | 4.0.5 |
 
