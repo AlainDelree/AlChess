@@ -94,6 +94,11 @@ do
     if [[ -f "$BIN" ]]; then
         chmod +x "$BIN"
         ok "Exécutable : ${BIN#"$REPO"/}"
+    elif [[ "$BIN" == "$REPO/engines/rodent-iv/rodentIV" ]]; then
+        warn "Absent : ${BIN#"$REPO"/} — normal après un 'git clone' (non inclus" \
+             "dans le dépôt, seulement dans les paquets ZIP de release)."
+        info "Pour l'obtenir : compiler https://github.com/nescitus/rodent-iv" \
+             "puis placer le binaire résultant à cet emplacement (voir INSTALLATION/INSTALLATION_NICLINK.md)"
     else
         warn "Absent : ${BIN#"$REPO"/} (non inclus dans ce paquet ?)"
     fi

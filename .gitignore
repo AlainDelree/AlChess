@@ -19,6 +19,12 @@ engines/lc0*.exe
 # Installeur NSIS compilé (binaire Windows généré par makensis — voir issue #50)
 installer-exe/*.exe
 
+# Rodent IV Linux (issue #260) : ce dossier contient, sur la machine de dev, un
+# clone de nescitus/rodent-iv compilé localement — jamais suivi par git (pas de
+# sous-module déclaré). On l'ignore entièrement pour que le binaire compilé
+# n'apparaisse plus comme modification permanente du dépôt principal.
+engines/rodent-iv/
+
 # Log applicatif généré par les scripts de lancement Windows (2-Lancer_AlChess.bat, start_alchess.ps1, install_alchess.ps1)
 alchess_log.txt
 

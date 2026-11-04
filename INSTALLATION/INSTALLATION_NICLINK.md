@@ -40,10 +40,14 @@ rsync -av --exclude=venv alain@machine-source:~/NicLink/ ~/NicLink/
 git clone https://github.com/AlainDelree/AlChess.git ~/NicLink
 ```
 
-> ⚠️ Les binaires `engines/maia/lc0` et `engines/rodent-iv/rodentIV` sont inclus
-> dans le repo et compilés pour une architecture **x86_64 Linux**. Sur une autre
-> architecture (ARM, etc.), il faudra les recompiler depuis leurs sources respectives
-> (voir section 7).
+> ⚠️ Le binaire `engines/maia/lc0` est inclus dans le repo, compilé pour une
+> architecture **x86_64 Linux**. Sur une autre architecture (ARM, etc.), il
+> faudra le recompiler depuis ses sources (voir section 7).
+>
+> ⚠️ Le binaire `engines/rodent-iv/rodentIV`, lui, n'est **pas** dans le repo
+> (dossier vide après `git clone` — il n'est présent que dans les paquets ZIP
+> de release). Il faut le compiler soi-même depuis les sources (voir
+> section 7).
 
 > ⚠️ Le driver Rust `_niclink.so` (interface USB Chessnut) n'est **pas** dans le repo
 > car il est compilé pour la machine cible. Il doit être copié depuis une machine
@@ -141,24 +145,43 @@ Installé via apt (inclus dans `requirements.txt`, installé automatiquement via
 sudo apt install stockfish
 ```
 
-### Maia (lc0) et Rodent IV
+### Maia (lc0)
 
 **Option A — depuis une machine existante (recommandé) :**
 ```bash
-rsync -av alain@machine-source:~/NicLink/engines/ ~/NicLink/engines/
+rsync -av alain@machine-source:~/NicLink/engines/maia/ ~/NicLink/engines/maia/
 ```
 
 **Option B — depuis GitHub :**
-Les binaires sont inclus dans le repo (x86_64 Linux uniquement).
-Après `git clone`, rendre les binaires exécutables :
+Le binaire `lc0` est inclus dans le repo (x86_64 Linux uniquement).
+Après `git clone`, le rendre exécutable :
 ```bash
 chmod +x ~/NicLink/engines/maia/lc0
-chmod +x ~/NicLink/engines/rodent-iv/rodentIV
 ```
 
 **Option C — recompiler depuis les sources (autre architecture) :**
-- Rodent IV : https://github.com/nescior/Rodent_IV — `make` dans le dossier sources
-- lc0/Maia : https://github.com/LeelaChessZero/lc0 — voir leur guide de compilation
+- https://github.com/LeelaChessZero/lc0 — voir leur guide de compilation
+
+### Rodent IV
+
+Contrairement à Maia, le binaire Linux de Rodent IV **n'est pas inclus dans
+le dépôt Git** — seulement dans les paquets ZIP de release (`make_release.sh`
+le copie depuis la machine de build). Après un `git clone`, le dossier
+`engines/rodent-iv/` est vide.
+
+**Option A — depuis une machine existante (recommandé) :**
+```bash
+rsync -av alain@machine-source:~/NicLink/engines/rodent-iv/ ~/NicLink/engines/rodent-iv/
+```
+
+**Option B — compiler depuis les sources :**
+```bash
+git clone https://github.com/nescitus/rodent-iv.git /tmp/rodent-iv
+cd /tmp/rodent-iv
+make   # voir le README du dépôt pour le dossier exact et les dépendances si besoin
+cp rodentIV ~/NicLink/engines/rodent-iv/rodentIV
+chmod +x ~/NicLink/engines/rodent-iv/rodentIV
+```
 
 Tester après installation :
 ```bash
@@ -283,7 +306,8 @@ ls ~/NicLink/nicsoft/niclink/_niclink.so && echo "driver OK"
 | `Address already in use` sur port 5000 | Instance déjà en cours | NicLink trouve automatiquement le prochain port libre — relancer normalement |
 | Fenêtre GTK n'apparaît pas au clic | launcher.py lancé avec le venv python | Vérifier que le `.desktop` utilise `/usr/bin/python3` |
 | `_niclink.so` manquant après git clone | Driver non inclus dans le repo | Copier depuis machine source ou recompiler (voir section 7) |
-| Binaires engines non exécutables après git clone | Permissions non préservées par git | `chmod +x engines/maia/lc0 engines/rodent-iv/rodentIV` |
+| Binaire lc0 non exécutable après git clone | Permissions non préservées par git | `chmod +x engines/maia/lc0` |
+| `engines/rodent-iv/rodentIV` manquant après git clone | Binaire jamais inclus dans le dépôt Git (seulement dans les ZIP de release) | Copier depuis machine source ou compiler (voir section 7) |
 
 ---
 
@@ -307,9 +331,11 @@ rsync -av --exclude=venv alain@machine-source:~/NicLink/ ~/NicLink/
 # OU
 # 2b. Cloner depuis GitHub
 git clone https://github.com/AlainDelree/AlChess.git ~/NicLink
-# → Si depuis GitHub : copier _niclink.so et rendre les binaires exécutables
+# → Si depuis GitHub : copier _niclink.so, rendre lc0 exécutable, ET obtenir
+#   Rodent IV (absent du dépôt Git — voir section 7) :
 #   rsync -av alain@machine-source:~/NicLink/nicsoft/niclink/_niclink.so ~/NicLink/nicsoft/niclink/
-#   chmod +x ~/NicLink/engines/maia/lc0 ~/NicLink/engines/rodent-iv/rodentIV
+#   chmod +x ~/NicLink/engines/maia/lc0
+#   rsync -av alain@machine-source:~/NicLink/engines/rodent-iv/ ~/NicLink/engines/rodent-iv/
 
 # 3. Venv
 cd ~/NicLink

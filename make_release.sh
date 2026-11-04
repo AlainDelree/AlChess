@@ -96,13 +96,15 @@ rm -rf "$STAGE/engines/rodent-iv/mac" \
 # Binaire Windows de Rodent IV.
 # Les binaires Windows vivent dans engines/rodent-iv-win/ (rodent-iv-x64.exe +
 # msvcp120.dll + msvcr120.dll), un dossier du dépôt AlChess PRINCIPAL, À CÔTÉ du
-# sous-module engines/rodent-iv/ — et non plus dedans (issue #17). Raison : le
-# sous-dossier engines/rodent-iv/win/ appartenait au sous-module git (upstream
-# nescitus/rodent-iv) et ses fichiers y étaient gitignorés (*.exe/*.dll) ; sur un
-# clone frais + `git submodule update`, ils étaient absents → ZIP Windows sans
-# Rodent, silencieusement. Hors sous-module, ils sont trackés normalement par
-# AlChess (le .gitignore racine n'exclut que stockfish*.exe / lc0*.exe) et
-# arrivent bien sur un clone frais, rendant le build reproductible.
+# dépôt git imbriqué engines/rodent-iv/ (clone de nescitus/rodent-iv, jamais
+# déclaré en sous-module — voir issue #260) — et non plus dedans (issue #17).
+# Raison : le sous-dossier engines/rodent-iv/win/ appartenait à ce dépôt
+# imbriqué et ses fichiers y étaient gitignorés (*.exe/*.dll) ; sur un clone
+# frais, ce dépôt imbriqué (jamais déclaré en sous-module, donc jamais
+# récupéré) est absent → ZIP Windows sans Rodent, silencieusement. Hors de ce
+# dépôt imbriqué, ils sont trackés normalement par AlChess (le .gitignore
+# racine n'exclut que stockfish*.exe / lc0*.exe) et arrivent bien sur un
+# clone frais, rendant le build reproductible.
 # find_rodent() (nicsoft/engine/engine_manager.py) attend toujours un unique
 # engines/rodent-iv/rodentIV.exe. On unifie donc la structure AU MOMENT DU
 # PACKAGING seulement : on copie le .exe 64 bits sous le nom rodentIV.exe + ses
@@ -119,7 +121,7 @@ if [[ -f "$RODENT_WIN_SRC/rodent-iv-x64.exe" ]]; then
 else
   echo "  ⚠️  $RODENT_WIN_SRC/rodent-iv-x64.exe introuvable — ZIP Windows SANS Rodent"
 fi
-# engines/rodent-iv-win/ (hors sous-module) a été rsyncé dans le staging par la
+# engines/rodent-iv-win/ (hors du dépôt imbriqué engines/rodent-iv/) a été rsyncé dans le staging par la
 # liste blanche « engines » : ses fichiers ont déjà été copiés/renommés en
 # rodentIV.exe + DLL dans engines/rodent-iv/ ci-dessus. On supprime donc ce
 # dossier source du staging pour ne pas livrer une seconde copie redondante des
