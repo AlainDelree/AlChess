@@ -959,14 +959,23 @@ class ExerciceSession:
 
         # Livre introuvable : le signaler clairement plutôt que de laisser
         # croire à une ligne terminée (plus aucun coup théorique disponible).
+        # On affiche la position de départ de CET exercice (pas l'échiquier
+        # de l'exercice précédent) et on attend une action utilisateur — le
+        # retour à la liste ne doit jamais être automatique.
         if self._book_missing:
-            send_event("exercice_sync_error", {
+            self._send_position()
+            error_payload = {
                 "message":       f"Livre d'ouvertures introuvable : {self._book_path}",
                 "message_key":   "exercices.book_missing_msg",
                 "vars":          {"path": self._book_path},
                 "status_key":    "exercices.book_missing_status",
                 "show_sync_btn": False,
-            })
+            }
+            while self._running:
+                send_event("exercice_sync_error", error_payload)
+                if self._wait_action_end() != "RETRY":
+                    break
+            self.nl_inst.turn_off_all_leds()
             return
 
         # Envoyer la position de départ — juste l'afficher, pas vérifier
