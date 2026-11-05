@@ -16,6 +16,7 @@ from nicsoft.web import server as web_server
 import nicsoft.core.game_manager as gm
 from nicsoft.core.board_adapter import create_board
 from nicsoft.core import ihm_port
+from nicsoft.engine.board_utils import pgn_moves_played
 
 
 class _WebBackend:
@@ -259,11 +260,11 @@ def main():
         import json as _json
         try:
             _saved = _json.loads(_retrans_save.read_text(encoding="utf-8"))
-            nb = len(_saved.get("moves", []))
+            nb_demi_coups = len(_saved.get("moves", []))
             send_event("retranscription_en_cours", {
                 "white": _saved.get("white", "?"),
                 "black": _saved.get("black", "?"),
-                "moves": nb,
+                "moves": pgn_moves_played(nb_demi_coups),
             })
         except Exception:
             pass  # fichier optionnel, absent au premier lancement

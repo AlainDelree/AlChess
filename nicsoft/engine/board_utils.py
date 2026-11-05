@@ -20,6 +20,21 @@ def san_ep(board: chess.Board, move: chess.Move) -> str:
     return s
 
 
+def pgn_move_number(half_moves: int) -> int:
+    """Numéro de coup selon la convention PGN (une paire blanc+noir = un coup).
+    `half_moves` est le nombre de demi-coups déjà joués (len(board.move_stack)) :
+    le coup en cours est celui que les blancs commencent ou que les noirs
+    doivent répondre. Ex. 24 ou 25 demi-coups -> coup 13."""
+    return half_moves // 2 + 1
+
+
+def pgn_moves_played(half_moves: int) -> int:
+    """Nombre de coups complets joués selon la convention PGN. Pour un nombre
+    impair de demi-coups (coup commencé mais pas encore répondu), compte ce
+    coup comme joué. Ex. 4 demi-coups -> 2 coups ; 5 demi-coups -> 3 coups."""
+    return (half_moves + 1) // 2
+
+
 def analyser_position_illegale(board: chess.Board, fen_physique: str) -> dict:
     """
     Analyse pourquoi une position physique est illégale par rapport à board.

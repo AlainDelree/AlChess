@@ -244,7 +244,7 @@ def run_retranscription(config: dict,
                     send_event("retranscription_move", {
                         "uci": uci, "san": san, "color": color,
                         "fen": board.fen(),
-                        "move_num": len(moves_uci),
+                        "half_moves_played": len(moves_uci),
                         "moves_uci_line": " ".join(moves_uci),
                     })
                     if board.is_checkmate():
