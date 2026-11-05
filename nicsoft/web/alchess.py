@@ -9,7 +9,7 @@ import threading
 import webbrowser
 import socket
 import logging
-from nicsoft.config import APP_DIR, DATA_DIR, LOGS_DIR
+from nicsoft.config import APP_DIR, LOGS_DIR
 from nicsoft.platform_utils import stop_modem_manager, start_modem_manager
 from nicsoft.web.server import start_server, set_app_state, get_menu_action, send_event, set_virtual_board
 from nicsoft.web import server as web_server
@@ -242,6 +242,24 @@ def _board_menu_watcher():
             logger.debug(f"[WATCHER] Vérification présence plateau échouée : {e}")
 
 
+def _check_retranscription_session():
+    """Relit la session de retranscription sauvegardée et notifie le
+    navigateur si elle existe. Appelée à chaque ouverture de l'écran
+    retranscription (pas seulement au démarrage du programme) pour que le
+    bandeau de reprise soit proposé même en cas de retour après un premier
+    passage par ce mode au cours de la même exécution."""
+    from nicsoft.modes.retranscription.retranscription import load_session
+    saved = load_session()
+    if not saved:
+        return  # pas de session en attente — le frontend masque le bandeau par défaut
+    nb_demi_coups = len(saved.get("moves", []))
+    send_event("retranscription_en_cours", {
+        "white": saved.get("white", "?"),
+        "black": saved.get("black", "?"),
+        "moves": pgn_moves_played(nb_demi_coups),
+    })
+
+
 def main():
     _setup_logging()
     _stop_modem_manager()
@@ -255,19 +273,6 @@ def main():
     if os.environ.get("ALCHESS_SKIP_BOARD") != "1":
         threading.Thread(target=_check_board_at_startup, daemon=True).start()
         threading.Thread(target=_board_menu_watcher, daemon=True).start()
-    _retrans_save = DATA_DIR / "retranscription_en_cours.json"
-    if _retrans_save.exists():
-        import json as _json
-        try:
-            _saved = _json.loads(_retrans_save.read_text(encoding="utf-8"))
-            nb_demi_coups = len(_saved.get("moves", []))
-            send_event("retranscription_en_cours", {
-                "white": _saved.get("white", "?"),
-                "black": _saved.get("black", "?"),
-                "moves": pgn_moves_played(nb_demi_coups),
-            })
-        except Exception:
-            pass  # fichier optionnel, absent au premier lancement
     try:
         while True:
             action = get_menu_action(timeout=1.0)
@@ -282,6 +287,7 @@ def main():
                 set_app_state("config_humain")
             elif atype == "mode" and action.get("value") == "retranscription":
                 set_app_state("retranscription")
+                _check_retranscription_session()
             elif atype == "set_virtual_mode":
                 gm.set_virtual_mode(action.get("virtual", False))
                 print(f"[MENU] Mode virtuel : {gm.get_virtual_mode()}")

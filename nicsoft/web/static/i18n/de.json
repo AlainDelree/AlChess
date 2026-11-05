@@ -208,7 +208,7 @@
   "retrans.btn.undo": "↩ Zug zurücknehmen",
   "retrans.btn.flip": "⇅ Brett drehen",
   "retrans.cliquer_jouer": "Klicken zum Spielen",
-  "retrans.btn.sauver": "← Speichern und beenden",
+  "retrans.btn.sauver": "⏹ Beenden und speichern (ohne Ergebnis)",
   "retrans.btn.continuer": "💾 Speichern und weiter",
   "retrans.btn.quitter": "✕ Ohne Speichern beenden",
   "retrans.btn.corbeille": "🗂️ Zum Ordner hinzufügen",

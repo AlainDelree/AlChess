@@ -208,7 +208,7 @@
   "retrans.btn.undo": "↩ Annuler coup",
   "retrans.btn.flip": "⇅ Retourner l'échiquier",
   "retrans.cliquer_jouer": "Cliquez pour jouer",
-  "retrans.btn.sauver": "← Sauver et quitter",
+  "retrans.btn.sauver": "⏹ Terminer et enregistrer (sans résultat)",
   "retrans.btn.continuer": "💾 Sauver et continuer",
   "retrans.btn.quitter": "✕ Quitter sans sauver",
   "retrans.btn.corbeille": "🗂️ Ajouter au classeur",
