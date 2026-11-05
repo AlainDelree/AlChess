@@ -1091,6 +1091,14 @@ def _dispatch_loop():
             logger.error(f"Erreur dispatch event {event.get('type','?')}: {e}", exc_info=True)
 
 
+def emit(event_type: str, data: dict) -> None:
+    """
+    API publique — émission SocketIO directe, hors event_queue (ex.
+    popups ponctuels qui n'ont pas besoin d'être tracés dans _game_state).
+    """
+    socketio.emit(event_type, data)
+
+
 def send_event(event_type: str, data: dict) -> None:
     """
     API publique — appelée par le module pédagogique pour envoyer

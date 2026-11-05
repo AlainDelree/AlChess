@@ -15,6 +15,56 @@ from nicsoft.web.server import start_server, set_app_state, get_menu_action, sen
 from nicsoft.web import server as web_server
 import nicsoft.core.game_manager as gm
 from nicsoft.core.board_adapter import create_board
+from nicsoft.core import ihm_port
+
+
+class _WebBackend:
+    """
+    Implémentation concrète du port neutre nicsoft.core.ihm_port, branchée
+    sur le serveur Flask-SocketIO (règle ARC-001 — voir ihm_port.py).
+    _check_board_at_startup est résolu par son nom au moment de l'appel :
+    il n'est défini qu'au bas de ce module, après cette classe.
+    """
+
+    def send_event(self, event_type, data):
+        web_server.send_event(event_type, data)
+
+    def emit(self, event_type, data):
+        web_server.socketio.emit(event_type, data)
+
+    def set_history(self, history, history_fen):
+        web_server.set_history(history, history_fen)
+
+    def get_history(self):
+        return web_server.get_history()
+
+    def get_action(self, timeout=0.0):
+        return web_server.get_action(timeout)
+
+    def set_app_state(self, state, data=None):
+        web_server.set_app_state(state, data)
+
+    def get_menu_action(self, timeout=1.0):
+        return web_server.get_menu_action(timeout)
+
+    def set_virtual_board(self, vb):
+        web_server.set_virtual_board(vb)
+
+    @property
+    def action_queue(self):
+        return web_server.action_queue
+
+    def get_app_state(self):
+        return web_server._app_state
+
+    def set_raw_app_state(self, state):
+        web_server._app_state = state
+
+    def check_board_at_startup(self):
+        _check_board_at_startup()
+
+
+ihm_port.register_backend(_WebBackend())
 
 # ── Logger timing ─────────────────────────────────────────────────────────────
 # Activer avec : NICLINK_LOG=DEBUG python -m nicsoft.web
