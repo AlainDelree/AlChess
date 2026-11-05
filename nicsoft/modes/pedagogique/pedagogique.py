@@ -51,7 +51,7 @@ class BackMenuExit(Exception):
     """Levée pour sortir proprement vers le menu sans tuer le processus."""
     pass
 from nicsoft.config import DATA_DIR, ENGINES_DIR
-from nicsoft.web.server import send_event, get_action
+from nicsoft.core.ihm_port import send_event, get_action, set_app_state, get_history, get_action_queue, emit
 from nicsoft.niclink.nl_exceptions import ExitNicLink
 from nicsoft.engine.engine_manager import (
     classifier_coup as _classifier_coup,
@@ -336,9 +336,8 @@ class Game(threading.Thread):
             logger.warning(f"Fermeture du moteur echouee (processus potentiellement orphelin): {exc}")
         # Notifier le navigateur
         send_event("game_over", {"result": result, "reason": reason or "Fin de partie", "source": "niclink", "skip": skip_save})
-        from nicsoft.web.server import set_app_state, _game_state
-        # Reconstruire l'historique depuis _game_state["history"] — fiable même après chess.Board(fen)
-        history = _game_state.get("history", [])
+        # Reconstruire l'historique depuis get_history() — fiable même après chess.Board(fen)
+        history = get_history()[0]
         _hist_board = chess.Board()
         _hist_fens  = [_hist_board.board_fen()]
         _hist_moves = []
@@ -423,12 +422,11 @@ class Game(threading.Thread):
             winner, result = "Blancs", "1-0"
             reason = over_state.get("reason", "Fin de partie")
         # Envoyer une notification popup avant game_over
-        from nicsoft.web.server import socketio as _sio
         try:
             if "checkmate" in reason.lower():
-                _sio.emit("popup", {"message": "♚ Échec et mat !", "message_key": "server.popup.mat", "type": "gameover"})
+                emit("popup", {"message": "♚ Échec et mat !", "message_key": "server.popup.mat", "type": "gameover"})
             elif "stalemate" in reason.lower():
-                _sio.emit("popup", {"message": "Pat !", "message_key": "server.popup.pat", "type": "gameover"})
+                emit("popup", {"message": "Pat !", "message_key": "server.popup.pat", "type": "gameover"})
         except Exception as exc:
             logger.debug(f"Envoi popup fin de partie echoue: {exc}")
         self._end_game(result, reason)
@@ -713,8 +711,6 @@ class Game(threading.Thread):
         Gère la pause interactive — manuelle ou automatique (après blunder/erreur).
         Retourne (changer_couleur: bool, reprendre: bool).
         """
-        from nicsoft.web.server import set_app_state, get_history
-
         auto = qualite is not None
         if DEBUG_MODE: logger.info(f"\n  [PAUSE] Partie suspendue {'(auto: ' + qualite + ')' if auto else '(manuelle)'}.")
         self.nl_inst.turn_off_all_leds()
@@ -825,7 +821,7 @@ class Game(threading.Thread):
 
         if current_fen != expected_fen:
             if DEBUG_MODE: logger.info("  [PAUSE] Position incorrecte — attendu : %s", expected_fen)
-            from nicsoft.web.server import action_queue as _aq
+            _aq = get_action_queue()
             while not _aq.empty():
                 try: _aq.get_nowait()
                 except Exception: break  # idiome de vidage de queue
@@ -859,7 +855,6 @@ class Game(threading.Thread):
 
         # ── Utiliser _game_state["history"] comme source de vérité ──
         # (move_stack peut être vide si game_board reconstruit depuis FEN)
-        from nicsoft.web.server import get_history
         _history, _history_fen = get_history()
         resume_moves = list(_history)
         resume_fens  = list(_history_fen) if _history_fen else ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"]
@@ -1091,8 +1086,7 @@ class Game(threading.Thread):
                             self.pedagogique_pause = val
                             logger.debug(f"[WEB] Pause pédagogique changée : {val}")
                         else:
-                            from nicsoft.web.server import action_queue
-                            action_queue.put(action)
+                            get_action_queue().put(action)
                 except Exception as exc:
                     logger.warning(f"Erreur polling action web (abandon/nulle/pause): {exc}")
 
