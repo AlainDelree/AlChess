@@ -34,6 +34,9 @@ class _NullBackend:
     def get_history(self):
         return [], []
 
+    def get_init_data(self):
+        return {}
+
     def get_action(self, timeout=0.0):
         return None
 
@@ -84,6 +87,13 @@ def set_history(history: list, history_fen: list) -> None:
 def get_history() -> tuple:
     """Lit atomiquement (history, history_fen) depuis l'IHM."""
     return _backend.get_history()
+
+
+def get_init_data() -> dict:
+    """Lit le payload envoyé par le dernier événement 'init' (fen, player,
+    color, ... — voir game_manager._run_pedagogique). Utilisé pour
+    recomposer l'état de fin de partie (titre, historique...)."""
+    return _backend.get_init_data()
 
 
 def get_action(timeout: float = 0.0):

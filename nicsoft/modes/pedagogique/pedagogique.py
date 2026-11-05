@@ -51,7 +51,7 @@ class BackMenuExit(Exception):
     """Levée pour sortir proprement vers le menu sans tuer le processus."""
     pass
 from nicsoft.config import DATA_DIR, ENGINES_DIR
-from nicsoft.core.ihm_port import send_event, get_action, set_app_state, get_history, get_action_queue, emit
+from nicsoft.core.ihm_port import send_event, get_action, set_app_state, get_history, get_init_data, get_action_queue, emit
 from nicsoft.niclink.nl_exceptions import ExitNicLink
 from nicsoft.engine.engine_manager import (
     classifier_coup as _classifier_coup,
@@ -373,7 +373,7 @@ class Game(threading.Thread):
                 "skip": False,
                 "history_fen":   _hist_fens,
                 "history_moves": _hist_moves,
-                "init":          _game_state.get("init", {}),
+                "init":          get_init_data(),
             })
         # Sortie immédiate sans attendre (retour menu, ou partie sans serveur web)
         if skip_save:

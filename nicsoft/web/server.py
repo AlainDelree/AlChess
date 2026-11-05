@@ -1179,6 +1179,16 @@ def get_history() -> tuple:
         return _game_state.get("history", []), _game_state.get("history_fen", [])
 
 
+def get_init_data() -> dict:
+    """
+    API publique — lit _game_state["init"] (payload du dernier événement
+    'init'). À utiliser par tout module hors server.py au lieu de lire
+    _game_state["init"] directement.
+    """
+    with _game_state_lock:
+        return _game_state.get("init", {})
+
+
 def get_action(timeout: float = 0.0):
     """
     API publique — appelée par le module pédagogique pour récupérer

@@ -38,6 +38,9 @@ class _WebBackend:
     def get_history(self):
         return web_server.get_history()
 
+    def get_init_data(self):
+        return web_server.get_init_data()
+
     def get_action(self, timeout=0.0):
         return web_server.get_action(timeout)
 

@@ -16,7 +16,7 @@ from nicsoft.engine.engine_manager import RODENT_ELO_DEFAUT, RODENT_PERSONALITY_
 from nicsoft.core.board_adapter import create_board
 from nicsoft.core.ihm_port import (
     send_event, set_app_state, get_action, set_virtual_board, get_action_queue,
-    check_board_at_startup, app_state_proxy as web_server,
+    check_board_at_startup, set_history, app_state_proxy as web_server,
 )
 
 
@@ -317,7 +317,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
         if not virtual:
             _wait_initial_position_web(nl_inst)
         _nl_inst_ref = nl_inst
-        web_server.set_history([], ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"])
+        set_history([], ["rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"])
 
         game = GameWeb(nl_inst, white_name=white_name, black_name=black_name,
                        default_game_type=game_type)
