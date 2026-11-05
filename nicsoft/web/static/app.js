@@ -4781,8 +4781,11 @@ socket.on("exercice_synced", (data) => {
 socket.on("exercice_sync_error", (data) => {
   exSetFeedback(`⚠ ${_i18nMsg(data)}`, "#e94560", 0);
   const statusEl = document.getElementById("ex-run-status");
-  if (statusEl) { statusEl.textContent = t("exercices.sync_error_status"); statusEl.style.color = "#e94560"; }
-  exSetSyncBtn(true);
+  if (statusEl) {
+    statusEl.textContent = data.status_key ? t(data.status_key) : t("exercices.sync_error_status");
+    statusEl.style.color = "#e94560";
+  }
+  exSetSyncBtn(data.show_sync_btn !== false);
 });
 
 socket.on("exercice_end_of_line", (data) => {
