@@ -4695,7 +4695,10 @@ socket.on("exercice_wait_position", (data) => {
   exRenderBoard(data.fen, null, null);
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) {
-    statusEl.textContent = t("exercices.reproduire_position", {moves: t("common.n_coups", {n: data.move_count})});
+    const coupsLabel = data.move_count === 1
+      ? t("exercices.coup_joue", {n: data.move_count})
+      : t("exercices.coups_joues", {n: data.move_count});
+    statusEl.textContent = t("exercices.reproduire_position", {moves: coupsLabel});
     statusEl.style.color = "#ff9800";
   }
   if (_virtualMode) {
@@ -4795,8 +4798,9 @@ socket.on("exercice_sync_error", (data) => {
 });
 
 socket.on("exercice_end_of_line", (data) => {
-  const nbCoups = Math.floor(data.moves / 2);
-  exSetFeedback(t("exercices.end_of_line_feedback", {n: nbCoups}), "#4caf50", 0);
+  const nbCoups = data.moves;
+  const feedbackKey = nbCoups === 1 ? "exercices.end_of_line_feedback_un" : "exercices.end_of_line_feedback";
+  exSetFeedback(t(feedbackKey, {n: nbCoups}), "#4caf50", 0);
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) { statusEl.textContent = t("exercices.end_of_line_status"); statusEl.style.color = "#4caf50"; }
   exSetSyncBtn(false);
