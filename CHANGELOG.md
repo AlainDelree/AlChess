@@ -1,5 +1,14 @@
 # Changelog — Issue #255
 
+## Audit : justifie deux captures silencieuses, corrige des commentaires pris pour du code mort, documente deux gros fichiers (issue #285)
+
+- `nicsoft/modes/exercices/exercices.py` (ligne ~906, PRO-012) : la capture de file d'attente vide dans `_wait_placement_adv` passe à `contextlib.suppress(_q.Empty)`, ciblée sur la seule exception de file vide, sans changer le flux de contrôle (le `except Exception: pass` voisin, déjà commenté, reste inchangé pour les erreurs transitoires).
+- `nicsoft/modes/exercices/add_ouverture.py` (ligne ~186, PRO-012) : la capture générique autour de `tmp.san(e.move)` dans `verify_from_web()` passe de `except Exception: pass` à `except Exception as e2: logger.debug(...)`. `chess.polyglot.find_all()` ne renvoie que des coups déjà légaux pour la position, donc l'échec de `san()` ne devrait pas survenir en pratique ; resserrer l'exception aurait demandé de deviner son type exact sans garantie. La même fonction CLI (`main()`, ligne 89-90) applique déjà ce traitement par trace `debug` depuis l'issue #261 — choix aligné sur ce précédent, aucun changement de comportement (le coup reste simplement absent de l'affichage en cas d'échec).
+- `nicsoft/engine/engine_analysis.py` (PRO-013) : reformulation en phrases des commentaires explicatifs pris pour du code désactivé (lignes 95, 105, 109-110, 117) — suppression des signes `=`/`→`, information inchangée, aucune modification de code.
+- `CONTEXTE.md` (ARC-004) : ajout de `exercices.py` (~1350 l.) et `labo.py` (~450 l.) à la liste des gros fichiers conservés volontairement, avec leurs coutures naturelles de découpage ; mise à jour de la ligne « Ordre ».
+- `CONTEXTE.md` (Conventions) : ajout de la règle « pas de `noqa`/`nosec` » en attendant l'évolution de l'outil d'audit — corriger plutôt que supprimer.
+- `.audit.json` non modifié. Suite de tests complète (hors hardware) : 370 passed, 73 skipped.
+
 # Changelog — Issue #284
 
 ## CONTEXTE.md : mise à jour de la section « État actuel » et de l'architecture après les découpages récents
