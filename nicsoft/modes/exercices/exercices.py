@@ -623,6 +623,14 @@ class ExerciceSession:
         else:
             self._book_path = str(BOOK_DEFAULT)
 
+        # Fichier du livre introuvable (ex. dossier data/ absent) : signalé une seule
+        # fois, au démarrage — ne concerne pas le mode "ligne perso" (_init_only,
+        # pas de livre Polyglot).
+        self._book_missing = (not self._init_only) and not pathlib.Path(self._book_path).exists()
+        if self._book_missing:
+            logger.error(f"Livre d'ouvertures introuvable : {self._book_path}")
+        self._book_error_logged = False
+
         # Rejouer les coups d'init pour placer la position de départ
         self._init_moves: list[chess.Move] = []
         for uci in ouverture.get("init", []):
@@ -653,13 +661,17 @@ class ExerciceSession:
                 except Exception as e:
                     logger.debug(f"_get_book_moves (init_only) : coup invalide : {e}")
             return []
+        if self._book_missing:
+            return []
         try:
             with chess.polyglot.open_reader(self._book_path) as reader:
                 entries = list(reader.find_all(board))
             entries.sort(key=lambda e: e.weight, reverse=True)
             return entries
         except Exception as e:
-            logger.warning(f"Livre : {e}")
+            if not self._book_error_logged:
+                logger.warning(f"Livre : {e}")
+                self._book_error_logged = True
             return []
 
     def _pick_book_move(self, board: chess.Board) -> chess.Move | None:
@@ -944,6 +956,18 @@ class ExerciceSession:
     def run(self) -> None:
         self._running = True
         self.nl_inst.turn_off_all_leds()
+
+        # Livre introuvable : le signaler clairement plutôt que de laisser
+        # croire à une ligne terminée (plus aucun coup théorique disponible).
+        if self._book_missing:
+            send_event("exercice_sync_error", {
+                "message":       f"Livre d'ouvertures introuvable : {self._book_path}",
+                "message_key":   "exercices.book_missing_msg",
+                "vars":          {"path": self._book_path},
+                "status_key":    "exercices.book_missing_status",
+                "show_sync_btn": False,
+            })
+            return
 
         # Envoyer la position de départ — juste l'afficher, pas vérifier
         self._send_position()

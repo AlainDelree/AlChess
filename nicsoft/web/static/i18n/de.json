@@ -579,6 +579,8 @@
   "exercices.synced_feedback": "✓ Brett synchronisiert — spielen!",
   "exercices.sync_error_status": "⚠ Falsche Stellung",
   "exercices.sync_error_msg": "Figuren falsch — korrigieren und erneut synchronisieren",
+  "exercices.book_missing_status": "⚠ Buch nicht gefunden",
+  "exercices.book_missing_msg": "Eröffnungsbuch nicht gefunden ({path}). Installieren Sie die App-Daten neu (Ordner data/books) oder wählen Sie eine andere Eröffnung.",
   "exercices.end_of_line_feedback": "🎉 Linie abgeschlossen! {n} Theoriezüge gemeistert",
   "exercices.end_of_line_status": "🎉 Linie abgeschlossen!",
   "exercices.instructions_debut": "① Stellung auf dem Brett aufstellen<br>② Auf <b>Sync</b> klicken zum Starten<br>③ Züge spielen — das Buch antwortet automatisch<br><span style='color:#ff9800;'>Bei einem Fehler: Figur zurückstellen und erneut auf Sync klicken</span>",
