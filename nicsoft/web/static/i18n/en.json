@@ -208,7 +208,7 @@
   "retrans.btn.undo": "↩ Undo move",
   "retrans.btn.flip": "⇅ Flip board",
   "retrans.cliquer_jouer": "Click to play",
-  "retrans.btn.sauver": "← Save and quit",
+  "retrans.btn.sauver": "⏹ End and save (no result)",
   "retrans.btn.continuer": "💾 Save and continue",
   "retrans.btn.quitter": "✕ Quit without saving",
   "retrans.btn.corbeille": "🗂️ Add to folder",

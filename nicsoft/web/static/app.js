@@ -1265,6 +1265,12 @@ socket.on("app_state", (data) => {
     _updateActionButtons();
   }
   if (data.state === "retranscription") {
+    // Masqué par défaut à chaque ouverture de l'écran — le serveur réaffiche
+    // explicitement le bandeau (événement retranscription_en_cours) s'il
+    // retrouve une session sauvegardée.
+    const resumeBanner = document.getElementById("retrans-resume-banner");
+    if (resumeBanner) resumeBanner.style.display = "none";
+    _retransResume = false;
     retransSetResult("*");
     _retransMoves = [];
     if (data.white && data.white !== "Blancs") { const el = document.getElementById("retrans-white"); if (el) el.value = data.white; }
@@ -5453,6 +5459,12 @@ function retransResume(resume) {
   _retransResume = resume;
   const banner = document.getElementById("retrans-resume-banner");
   if (banner) banner.style.display = "none";
+  if (resume) {
+    // Un seul clic : rouvre directement la session reprise, avec les mêmes
+    // données que « Démarrer la partie » (le serveur ignore de toute façon
+    // les champs du formulaire et recharge la session sauvegardée).
+    startRetranscription();
+  }
 }
 
 function startRetranscription() {
