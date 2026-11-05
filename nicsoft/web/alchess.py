@@ -93,6 +93,13 @@ def _setup_logging():
     root_logger.addHandler(file_handler)
     root_logger.setLevel(logging.WARNING)
 
+    # python-chess relaie la sortie stderr des moteurs UCI (lc0/Maia, Stockfish...)
+    # en WARNING sur le logger "chess.engine" — ce sont des bannières de démarrage
+    # normales (version, backend, poids chargés...), pas de vrais avertissements.
+    # Les échecs réels de démarrage/arrêt des moteurs sont déjà journalisés par
+    # engine_manager.py via le logger "niclink" (cf. issue #265).
+    logging.getLogger("chess.engine").setLevel(logging.ERROR)
+
     import sys, traceback
     def _excepthook(exc_type, exc_value, exc_tb):
         if issubclass(exc_type, KeyboardInterrupt):
