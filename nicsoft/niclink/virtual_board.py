@@ -210,6 +210,10 @@ class VirtualBoard:
         """No-op — VirtualBoard n'a pas de thread propre."""
         pass
 
+    def disconnect(self) -> None:
+        """No-op — rien à fermer côté USB en mode virtuel."""
+        pass
+
     def make_virtual_board_watcher(self, session) -> threading.Thread:
         """
         Remplaçant de LaboSession.board_watcher() pour le mode virtuel.
