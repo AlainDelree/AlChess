@@ -17,7 +17,7 @@ PYTHON   = os.path.join(BASE_DIR, "venv", "bin", "python")
 def server_url():
     """Lance le serveur AlChess et retourne son URL."""
     env = os.environ.copy()
-    env["BROWSER"] = "/bin/false"  # empêche l'ouverture automatique du navigateur
+    env["BROWSER"] = "/bin/true"  # empêche l'ouverture automatique du navigateur
 
     proc = subprocess.Popen(
         [PYTHON, "-m", "nicsoft.web"],
