@@ -1,6 +1,6 @@
 # AlChess — Contexte projet
 
-Briefing CCL. Vérifié 5 nov. 2026 (branche `worktree-issue-263`).
+Briefing CCL. Vérifié 5 nov. 2026 (branche `worktree-issue-276`).
 
 ## Maintenance de ce fichier
 Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avancement majeur, mets à jour ce CONTEXTE.md dans le même commit.
@@ -11,7 +11,7 @@ Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avan
 ## Architecture (`nicsoft/`)
 - `niclink/` : `hid_backend.py` (USB hidapi pur), `driver.py` (Chessnut : thread FEN dédié, LEDs, beep), `virtual_board.py`, `nl_exceptions.py`.
 - `web/` : `alchess.py` orchestre ; `server.py` Flask-SocketIO + `_app_state` + détection moteurs (caches/events `*_status`) ; `static/app.js`, `templates/index.html`.
-- `core/` : `game_manager.py`, `board_adapter.py`, `ihm_port.py` (port neutre jeu↔IHM, voir ARC-001 ci-dessous). `engine/` UCI : `engine_manager players pgn_manager board_utils display analyse`.
+- `core/` : `game_manager.py`, `board_adapter.py`, `ihm_port.py` (port neutre jeu↔IHM, voir ARC-001 ci-dessous). `engine/` UCI : `engine_manager` (point d'entrée réexportant `move_quality engine_analysis uci_engine engine_detection engine_availability maia_engine rodent_engine`, découpé issue #276) `players pgn_manager board_utils display analyse`.
 - `config.py` (`APP_DIR` auto), `platform_utils.py`, `modes/`, `utils/` (timing, LEDs).
 
 **`_app_state`** : `menu`→`config`/`config_humain`/`retranscription`/`exercices`/`labo`→`connecting`→`playing`/`paused`→`game_over`.
