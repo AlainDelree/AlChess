@@ -26,7 +26,10 @@ from nicsoft.engine.players import (
     normalize_player_name,
 )
 from nicsoft.engine.board_utils import wait_for_initial_position, san_ep
-from nicsoft.web.server import send_event, get_action, set_app_state, set_history, get_history
+from nicsoft.core.ihm_port import (
+    send_event, get_action, set_app_state, set_history, get_history,
+    get_action_queue, app_state_proxy as _web_server,
+)
 from nicsoft.niclink import NicLinkManager
 from nicsoft.core.config_manager import read_json_with_defaults
 
@@ -977,7 +980,7 @@ class GameWeb(threading.Thread):
         expected = self.board.board_fen()
         current  = (self.nl_inst.current_fen or "").strip().split()[0]
         if current != expected:
-            from nicsoft.web.server import action_queue as _aq
+            _aq = get_action_queue()
             while not _aq.empty():
                 try: _aq.get_nowait()
                 except Exception: break  # idiome de vidage de queue
@@ -1057,7 +1060,6 @@ class GameWeb(threading.Thread):
             "title_vars": title_vars,
             "skip":   skip,
         })
-        from nicsoft.web import server as _web_server
         if not skip:
             _web_server._app_state = "game_over"
             set_app_state("game_over", {
@@ -1088,7 +1090,6 @@ class GameWeb(threading.Thread):
                 "source": "niclink", "title": "Fin de partie",
                 "title_key": "game.fin_partie_default",
             })
-            from nicsoft.web import server as _web_server
             _web_server._app_state = "game_over"
             _hist_fens, _hist_moves = self._build_history_from_stack()
             set_app_state("game_over", {
@@ -1106,7 +1107,6 @@ class GameWeb(threading.Thread):
                 "source": "niclink", "title": "Nulle",
                 "title_key": "game.titre_nulle",
             })
-            from nicsoft.web import server as _web_server
             _web_server._app_state = "game_over"
             _hist_fens2, _hist_moves2 = self._build_history_from_stack()
             set_app_state("game_over", {
@@ -1148,7 +1148,6 @@ class GameWeb(threading.Thread):
                     "source": "niclink", "title": "Nulle",
                     "title_key": "game.titre_nulle",
                 })
-                from nicsoft.web import server as _web_server
                 _web_server._app_state = "game_over"
                 _hist_fens, _hist_moves = self._build_history_from_stack()
                 set_app_state("game_over", {
@@ -1177,7 +1176,7 @@ class GameWeb(threading.Thread):
                     logger.warning(f"kill_switch.clear() (post-undo) a echoue, await_move pourrait rester bloque: {exc}")
                 # Attendre que le joueur replace la pièce et clique Confirmer
                 expected = self.board.board_fen()
-                from nicsoft.web.server import action_queue as _aq
+                _aq = get_action_queue()
                 while not _aq.empty():
                     try: _aq.get_nowait()
                     except Exception: break  # idiome de vidage de queue
