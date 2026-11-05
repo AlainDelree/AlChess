@@ -21,7 +21,7 @@ from nicsoft.config import DATA_DIR
 import threading
 import time
 
-from nicsoft.web.server import send_event, get_action, set_app_state
+from nicsoft.core.ihm_port import send_event, get_action, set_app_state, get_action_queue
 
 logger = logging.getLogger("NL exercices")
 logger.setLevel(logging.INFO)
@@ -786,7 +786,7 @@ class ExerciceSession:
     def _wait_human_move(self) -> chess.Move | None:
         """Attend un coup légal via await_move() — même méthode que pédagogique."""
         from nicsoft.niclink.nl_exceptions import ExitNicLink
-        from nicsoft.web.server import action_queue as _aq
+        _aq = get_action_queue()
 
         # Watcher actions web dans un thread séparé
         stop_watch = threading.Event()
@@ -878,7 +878,7 @@ class ExerciceSession:
     def _wait_placement_adv(self, uci: str) -> bool:
         """Attend que le joueur place la pièce adverse — lecture passive du FEN."""
         import queue as _q
-        from nicsoft.web.server import action_queue as _aq
+        _aq = get_action_queue()
         expected = self.board.board_fen()
         while self._running:
             try:
@@ -910,7 +910,7 @@ class ExerciceSession:
     def _wait_initial_sync(self) -> None:
         """Attend l'action exercice_sync du joueur avant de démarrer la boucle.
         Gère aussi exercice_back/back_menu/exercice_retry."""
-        from nicsoft.web.server import action_queue as _aq
+        _aq = get_action_queue()
         while self._running:
             try:
                 action = _aq.get(timeout=0.5)
@@ -1174,7 +1174,7 @@ class ExerciceSession:
     def _wait_action_end(self) -> str:
         """Attend une action de fin (retry, continue ou back). Retourne 'RETRY', 'CONTINUE' ou None."""
         while self._running:
-            from nicsoft.web.server import get_action as _ga
+            _ga = get_action
             action = _ga(timeout=1.0)
             if action is None:
                 continue
