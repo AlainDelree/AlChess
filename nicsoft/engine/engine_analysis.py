@@ -92,7 +92,7 @@ class EngineAnalysisMixin:
 
 
             if cp_avant is None:
-                # Position de mat → bon coup par défaut
+                # Position de mat : bon coup par défaut
                 return "bon", 0, None
 
             # Évaluation APRÈS le coup
@@ -102,19 +102,20 @@ class EngineAnalysisMixin:
             cp_apres   = eval_apres["cp"]
 
             if cp_apres is None:
-                # Mat après le coup → excellent
+                # Mat après le coup : excellent
                 return "bon", 0, None
 
-            # La perte est vue du point de vue du joueur AVANT son coup
-            # cp_avant = score pour joueur avant coup
-            # cp_apres = score pour l'adversaire après coup → on l'inverse
+            # La perte est vue du point de vue du joueur avant son coup.
+            # cp_avant est le score du point de vue du joueur avant son coup ;
+            # cp_apres est le score du point de vue de l'adversaire après le
+            # coup, donc on l'inverse pour comparer les deux du même point de vue.
             delta = max(0, cp_avant - (-cp_apres))
 
             qualite = classifier_coup(delta)
             best    = best_move if best_move and best_move != move.uci() else None
 
             # Si coup mauvais mais pas de meilleur coup alternatif trouvé,
-            # relancer en MultiPV=2 pour obtenir le vrai meilleur coup
+            # relancer en MultiPV réglé à 2 pour obtenir le vrai meilleur coup
             if qualite != "bon" and best is None:
                 try:
                     with self._lock_eval:

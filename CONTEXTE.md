@@ -29,6 +29,7 @@ Tâches via **GitHub Issues** (repo AlChess) label `for-linux` ; CCL travaille d
 
 ## Conventions
 Début session : lire `TACHES.md`+`TESTS.md`, `git status`, branche `master`. Commits ciblés ; `git checkout .` annule. Lancer `cd ~/NicLink && python -m nicsoft.web`. USB (ThinkPad X1 Gen 7) : quirk `/etc/modprobe.d/chessnut.conf` = `options usbhid quirks=0x2d80:0x8003:0x40` ; launcher `/usr/bin/python3` ; udev `autosuspend=-1`. Voir `INSTALLATION_ALCHESS.md`.
+- **Pas de `noqa`/`nosec`** (avec ou sans code) tant qu'Alain n'a pas confirmé l'évolution de l'outil d'audit (liste des suppressions justifiées au lieu de les cacher) : corriger plutôt que supprimer (exception précisée et resserrée, ou trace `debug` pour un `except` voulu ; vérifier qu'une adresse est en `https` avant de l'ouvrir plutôt que suppressed). Forme future : un commentaire au-dessus qui dit pourquoi, puis le code précis sur la ligne elle-même — jamais une suppression sans code.
 
 ## Principes techniques
 - **ARC-001 — le moteur ne connaît pas l'interface** : `core/modes/niclink/utils/engine` n'importent jamais `nicsoft.web`. Ils passent par `nicsoft/core/ihm_port.py` (send_event, get_action, set_app_state, set_virtual_board, get/set_history, get_action_queue, get/set_raw_app_state, check_board_at_startup ; `app_state_proxy` reproduit l'ancien accès direct `web_server._app_state`/`.action_queue`). `nicsoft.web.alchess` branche l'implémentation réelle via `ihm_port.register_backend()` au démarrage ; sans branchement (tests, import isolé), un backend neutre répond sans effet de bord. Verrouillé par `nicsoft/tests/test_no_web_import.py`.
@@ -44,7 +45,9 @@ Pas d'exception dans `.audit.json` (le mécanisme est par règle, pas par fichie
 - `driver.py` (~850 l.) : code issu de NicLink, matériel non testable sans la planche → ne pas toucher sauf raison fonctionnelle.
 - `pedagogique.py` (~1580 l.) et `human.py` (~1220 l.) : état d'instance et fils partagés. On les découpe seulement le long de coutures naturelles, au moment où on les modifie pour une autre raison, un fichier par issue, avec leurs tests.
 - `server.py` (~1250 l.) : ancrage du port neutre (`_WebBackend`). Même règle ; coutures : détection moteurs, routes HTTP, handlers par domaine.
-Ordre : (1) code commun pause/abandon/undo/historique PGN de human et pedagogique, (2) human, (3) pedagogique, (4) server ; driver hors liste.
+- `exercices.py` (~1350 l.) : même règle ; coutures : parties pures d'abord (données du catalogue, sélection d'un coup dans le livre), puis la session et l'enchaînement des lignes avec son fil d'exécution.
+- `labo.py` (~450 l.) : même règle ; aucun test de comportement n'existe et plusieurs fils d'exécution y partagent de l'état — ajouter des tests de non-régression avant toute extraction.
+Ordre : (1) code commun pause/abandon/undo/historique PGN de human et pedagogique, (2) human, (3) pedagogique, (4) server, (5) exercices (parties pures puis session/fil), (6) labo (tests de non-régression d'abord) ; driver hors liste.
 
 ## Fichiers de suivi
 `TACHES.md`, `TESTS.md`, `TEST_RESULTATS.md`, `HISTORIQUE_BUGS.md`, `INSTALLATION_ALCHESS.md`, `I18N.md`, `CLAUDE.md` (auto-chargé).

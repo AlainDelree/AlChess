@@ -11,6 +11,7 @@ Flux :
   4. Fin de ligne (plus de coups dans le livre) → message + option rejouer
 """
 
+import contextlib
 import chess
 from nicsoft.utils.debug import DEBUG_MODE
 from nicsoft.engine.board_utils import san_ep, pgn_move_number, pgn_moves_played
@@ -894,17 +895,16 @@ class ExerciceSession:
         expected = self.board.board_fen()
         while self._running:
             try:
-                action = _aq.get_nowait()
-                atype = action.get("type", "")
-                if atype in ("exercice_back", "back_menu"):
-                    self._running = False
-                    return False
-                elif atype == "exercice_retry":
-                    self._retry_requested = True
-                    self._running = False
-                    return False
-            except _q.Empty:
-                pass
+                with contextlib.suppress(_q.Empty):
+                    action = _aq.get_nowait()
+                    atype = action.get("type", "")
+                    if atype in ("exercice_back", "back_menu"):
+                        self._running = False
+                        return False
+                    elif atype == "exercice_retry":
+                        self._retry_requested = True
+                        self._running = False
+                        return False
             except Exception:
                 pass  # Boucle de polling — erreur transitoire ignorée
             try:

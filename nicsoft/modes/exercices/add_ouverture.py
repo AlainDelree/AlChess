@@ -183,8 +183,8 @@ def verify_from_web(data: dict) -> dict:
             for e in entries[:3]:
                 try:
                     sans.append(tmp.san(e.move))
-                except Exception:
-                    pass
+                except Exception as e2:
+                    logger.debug(f"verify_from_web(): conversion SAN échouée pour affichage du livre ({e.move}): {e2}")
             book_options.append({"name": bp.name, "count": len(entries), "next": ", ".join(sans)})
 
     parent_eco = resolve_parent_eco(eco)
