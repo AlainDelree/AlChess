@@ -38,6 +38,13 @@ Début session : lire `TACHES.md`+`TESTS.md`, `git status`, branche `master`. Co
 - **i18n** : clé ajoutée **simultanément** dans `fr/en/de.json` (`static/i18n/`) ; allemand incertain → valeur anglaise, jamais absente.
 - `python3 -c` plutôt que `sed`.
 
+## Gros fichiers conservés (ARC-004)
+Pas d'exception dans `.audit.json` (le mécanisme est par règle, pas par fichier) : on ne découpe pas pour réduire la taille. Le couplage jeu↔interface est déjà réglé (`ihm_port.py`, aucun import de `nicsoft.web` depuis le jeu, gardé par les tests ARC-001). Ces quatre fichiers restent grands volontairement :
+- `driver.py` (~850 l.) : code issu de NicLink, matériel non testable sans la planche → ne pas toucher sauf raison fonctionnelle.
+- `pedagogique.py` (~1580 l.) et `human.py` (~1220 l.) : état d'instance et fils partagés. On les découpe seulement le long de coutures naturelles, au moment où on les modifie pour une autre raison, un fichier par issue, avec leurs tests.
+- `server.py` (~1250 l.) : ancrage du port neutre (`_WebBackend`). Même règle ; coutures : détection moteurs, routes HTTP, handlers par domaine.
+Ordre : (1) code commun pause/abandon/undo/historique PGN de human et pedagogique, (2) human, (3) pedagogique, (4) server ; driver hors liste.
+
 ## Fichiers de suivi
 `TACHES.md`, `TESTS.md`, `TEST_RESULTATS.md`, `HISTORIQUE_BUGS.md`, `INSTALLATION_ALCHESS.md`, `I18N.md`, `CLAUDE.md` (auto-chargé).
 
