@@ -197,6 +197,7 @@ def _check_board_at_startup():
                 try:
                     nl._fen_reader_stop.set()
                 except Exception:
+                    # arrêt best-effort du lecteur du plateau temporaire : un échec est sans conséquence
                     pass
                 send_event("board_ok", {})
                 return  # succès
