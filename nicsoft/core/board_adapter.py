@@ -18,7 +18,7 @@ def create_board(virtual: bool = False, logger_name: str = "NicLink"):
         return VirtualBoard()
 
     from nicsoft.niclink import NicLinkManager
-    from nicsoft.web.server import send_event
+    from nicsoft.core.ihm_port import send_event
     _logger = logging.getLogger(logger_name)
     manager = NicLinkManager(refresh_delay=0.1, logger=_logger, thread_sleep_delay=0.1)
     # Notifie le navigateur si le plateau est perdu en cours de session
