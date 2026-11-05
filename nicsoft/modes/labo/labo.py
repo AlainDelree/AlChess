@@ -21,7 +21,7 @@ from nicsoft.engine.engine_manager import (
     EngineManager, RodentEngine, find_stockfish, find_rodent,
     RODENT_ELO_DEFAUT, RODENT_PERSONALITY_DEFAUT,
 )
-from nicsoft.web.server import send_event
+from nicsoft.core.ihm_port import send_event
 
 logger = logging.getLogger("NL labo")
 logger.setLevel(logging.INFO)
