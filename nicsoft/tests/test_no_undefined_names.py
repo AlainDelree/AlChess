@@ -1,11 +1,13 @@
 """
-Test de noms non définis (issue #264, suite #263) — équivalent restreint de
-l'outil pyflakes ("undefined name"), implémenté avec le seul module standard
-ast (pas de nouvelle dépendance de test).
+Test de noms non définis (issue #264, suite #263 ; découverte automatique
+#272) — équivalent restreint de l'outil pyflakes ("undefined name"),
+implémenté avec le seul module standard ast (pas de nouvelle dépendance de
+test).
 
-Principe : pour chaque fichier migré par la #263, on collecte TOUTES les
-identités liées n'importe où dans le fichier (imports, def/class, paramètres,
-cibles d'assignation/for/with/except, walrus, ...) et on vérifie que chaque
+Principe : pour chaque fichier des dossiers de jeu (découverts
+automatiquement par _arc001_discovery.py), on collecte TOUTES les identités
+liées n'importe où dans le fichier (imports, def/class, paramètres, cibles
+d'assignation/for/with/except, walrus, ...) et on vérifie que chaque
 identifiant simplement lu (ast.Name en contexte Load) appartient à cet
 ensemble ou aux builtins. Ce test n'effectue pas de résolution de portée
 fine comme pyflakes (il ne peut donc pas détecter une variable utilisée hors
@@ -16,22 +18,32 @@ découplage), comme l'a été `_game_state` dans pedagogique.py (issue #264).
 """
 import ast
 import builtins
-import pathlib
 
 import pytest
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+from nicsoft.tests._arc001_discovery import (
+    REPO_ROOT,
+    decouvrir_fichiers_py,
+    verifier_decouverte_non_cassee,
+)
+
+_TOUS_LES_FICHIERS = decouvrir_fichiers_py()
+verifier_decouverte_non_cassee(_TOUS_LES_FICHIERS)
+
+# nicsoft/utils/light_board.py : bug préexistant sans rapport avec ARC-001,
+# mis en lumière par cette découverte élargie (issue #272) — `List`
+# (typing) et `np` (numpy) non importés, et la fonction _build_led_map
+# utilise un paramètre `move` qui n'existe pas (le paramètre réel est
+# `moves`, pluriel). Module mort, jamais appelé ailleurs dans le code ;
+# corriger la logique interne de _build_led_map n'est pas trivial (il
+# faudrait deviner le comportement voulu), donc non corrigé ici — voir le
+# commentaire de clôture de l'issue #272.
+FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS = {
+    "nicsoft/utils/light_board.py",
+}
 
 FICHIERS_MIGRES = [
-    "nicsoft/core/ihm_port.py",
-    "nicsoft/core/game_manager.py",
-    "nicsoft/core/board_adapter.py",
-    "nicsoft/niclink/virtual_board.py",
-    "nicsoft/modes/humain/human.py",
-    "nicsoft/modes/pedagogique/pedagogique.py",
-    "nicsoft/modes/exercices/exercices.py",
-    "nicsoft/modes/labo/labo.py",
-    "nicsoft/modes/retranscription/retranscription.py",
+    f for f in _TOUS_LES_FICHIERS if f not in FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS
 ]
 
 # Noms disponibles implicitement dans tout module, sans liaison explicite.
@@ -114,3 +126,27 @@ def test_pas_de_nom_non_defini(chemin_relatif):
     assert undefined == [], (
         f"{chemin_relatif} : nom(s) non défini(s) détecté(s) — {undefined}"
     )
+
+
+@pytest.mark.parametrize(
+    "chemin_relatif", sorted(FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS)
+)
+def test_fichiers_exclus_restent_documentes(chemin_relatif):
+    """Ce fichier est exclu de test_pas_de_nom_non_defini pour un bug
+    préexistant documenté (issue #272). Ce test échoue si le bug est
+    corrigé sans retirer l'exclusion, pour éviter qu'elle devienne
+    silencieusement obsolète."""
+    chemin = REPO_ROOT / chemin_relatif
+    source = chemin.read_text(encoding="utf-8")
+    undefined = _noms_non_definis(source, str(chemin))
+    assert undefined != [], (
+        f"{chemin_relatif} ne contient plus de nom non défini — retirer son "
+        f"exclusion de FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS"
+    )
+
+
+def test_decouverte_couvre_les_dossiers_de_jeu():
+    """Garde-fou (#272) : la découverte ne doit jamais retourner une liste
+    vide ni perdre silencieusement un fichier connu."""
+    verifier_decouverte_non_cassee(_TOUS_LES_FICHIERS)
+    assert len(_TOUS_LES_FICHIERS) >= 20

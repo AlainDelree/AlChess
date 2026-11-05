@@ -1,5 +1,6 @@
 """
-Test de contrat du port neutre (issue #264, suite #263).
+Test de contrat du port neutre (issue #264, suite #263 ; découverte
+automatique #272).
 
 La #263 a découplé les modules de jeu de nicsoft.web via nicsoft/core/ihm_port.py
 et un objet `app_state_proxy` imitant l'ancien accès direct à web_server.
@@ -8,7 +9,9 @@ d'import de nicsoft.web, mais pas que chaque appel migré trouve bien sa
 cible : c'est exactement ce qui a provoqué la régression du mode Humain
 (`web_server.set_history(...)` sur un objet qui n'exposait pas set_history).
 
-Ce test vérifie, par analyse statique (ast) des fichiers migrés :
+Ce test vérifie, par analyse statique (ast) de tous les fichiers des dossiers
+de jeu (découverts automatiquement par _arc001_discovery.py, pas listés à la
+main) :
 1. que chaque nom importé depuis nicsoft.core.ihm_port existe réellement
    dans ce module ;
 2. que chaque attribut accédé sur l'alias local de `app_state_proxy`
@@ -17,26 +20,25 @@ Ce test vérifie, par analyse statique (ast) des fichiers migrés :
 3. que le backend réel (_WebBackend, nicsoft.web.alchess) et le backend
    neutre (_NullBackend, nicsoft.core.ihm_port) exposent chacun toutes les
    méthodes utilisées par les fonctions de module de ihm_port.py.
+
+Les fichiers qui n'importent rien de ihm_port (la grande majorité) passent
+trivialement les vérifications 1 et 2 — ce n'est pas une liste de fichiers
+« migrés », mais toute la surface où une migration future pourrait se
+produire.
 """
 import ast
-import pathlib
 
 import pytest
 
 from nicsoft.core import ihm_port
+from nicsoft.tests._arc001_discovery import (
+    REPO_ROOT,
+    decouvrir_fichiers_py,
+    verifier_decouverte_non_cassee,
+)
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-
-FICHIERS_MIGRES = [
-    "nicsoft/core/game_manager.py",
-    "nicsoft/core/board_adapter.py",
-    "nicsoft/niclink/virtual_board.py",
-    "nicsoft/modes/humain/human.py",
-    "nicsoft/modes/pedagogique/pedagogique.py",
-    "nicsoft/modes/exercices/exercices.py",
-    "nicsoft/modes/labo/labo.py",
-    "nicsoft/modes/retranscription/retranscription.py",
-]
+FICHIERS_MIGRES = decouvrir_fichiers_py()
+verifier_decouverte_non_cassee(FICHIERS_MIGRES)
 
 
 def _parse(chemin_relatif):
@@ -137,3 +139,10 @@ def test_web_backend_expose_toutes_les_methodes_utilisees():
     methodes = _methodes_backend_utilisees_par_ihm_port()
     manquantes = [m for m in methodes if not hasattr(_WebBackend, m)]
     assert manquantes == [], f"_WebBackend (nicsoft.web.alchess) n'implémente pas : {manquantes}"
+
+
+def test_decouverte_couvre_les_dossiers_de_jeu():
+    """Garde-fou (#272) : la découverte ne doit jamais retourner une liste
+    vide ni perdre silencieusement un fichier connu."""
+    verifier_decouverte_non_cassee(FICHIERS_MIGRES)
+    assert len(FICHIERS_MIGRES) >= 20
