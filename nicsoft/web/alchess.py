@@ -284,8 +284,8 @@ def main():
                 set_app_state("retranscription")
             elif atype == "set_virtual_mode":
                 gm.set_virtual_mode(action.get("virtual", False))
-                print(f"[MENU] Mode virtuel : {gm._virtual_mode}")
-                if gm._virtual_mode:
+                print(f"[MENU] Mode virtuel : {gm.get_virtual_mode()}")
+                if gm.get_virtual_mode():
                     web_server._board_status = "virtual"
                     send_event("virtual_mode_active", {})
                 else:
