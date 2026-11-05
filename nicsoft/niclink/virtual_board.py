@@ -15,6 +15,7 @@ import time
 
 import chess
 from nicsoft.engine.board_utils import san_ep
+from nicsoft.core.ihm_port import send_event
 
 from .nl_exceptions import ExitNicLink
 
@@ -94,7 +95,6 @@ class VirtualBoard:
                 )
                 # Notifier le navigateur que le coup était illégal
                 try:
-                    from nicsoft.web.server import send_event
                     send_event("virtual_move_illegal", {"uci": uci})
                 except Exception as e:
                     logger.debug(f"await_move: notification virtual_move_illegal non envoyée : {e}")
@@ -237,7 +237,6 @@ class VirtualBoard:
                 if move not in session.board.legal_moves:
                     logger.warning("virtual_board_watcher: coup illégal : %s", uci)
                     try:
-                        from nicsoft.web.server import send_event
                         send_event("virtual_move_illegal", {"uci": uci})
                     except Exception as e:
                         logger.debug(f"virtual_board_watcher: notification virtual_move_illegal non envoyée : {e}")
@@ -259,7 +258,6 @@ class VirtualBoard:
                 session._fen_history.append(session.board.fen())
                 self.game_board = session.board.copy()
 
-                from nicsoft.web.server import send_event
                 send_event("move", {
                     "fen":    session.board.board_fen(),
                     "san":    san,
