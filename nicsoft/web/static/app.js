@@ -852,7 +852,7 @@ function _applyStockfishAvailability() {
       if (_stockfishAvailable) btn.removeAttribute("title");
       else                     btn.setAttribute("title", msg);
     }
-    if (box) box.style.display = _stockfishAvailable ? "none" : "";
+    if (box) box.style.display = _stockfishAvailable ? "none" : "block";
   });
   _checkNoEngineAvailable();
 }
@@ -870,7 +870,7 @@ function _applyMaiaAvailability() {
       if (_maiaAvailable) btn.removeAttribute("title");
       else                btn.setAttribute("title", msg);
     }
-    if (box) box.style.display = _maiaAvailable ? "none" : "";
+    if (box) box.style.display = _maiaAvailable ? "none" : "block";
   });
   _checkNoEngineAvailable();
 }
@@ -898,7 +898,7 @@ function _applyRodentAvailability() {
       if (taglineEl) taglineEl.textContent = tagline;
     }
     if (icon) icon.textContent = downloadState ? "⬇" : "🐭";
-    if (box) box.style.display = (!_rodentAvailable && !downloadState) ? "" : "none";
+    if (box) box.style.display = (!_rodentAvailable && !downloadState) ? "block" : "none";
   });
   _checkNoEngineAvailable();
 }
@@ -937,7 +937,7 @@ function _checkNoEngineAvailable() {
   const noEngine = !_stockfishAvailable && !_maiaAvailable && !_rodentAvailable;
   const alertBox = document.getElementById("cfg-no-engine-alert");
   const btnStart = document.getElementById("btn-start-peda");
-  if (alertBox) alertBox.style.display = noEngine ? "" : "none";
+  if (alertBox) alertBox.style.display = noEngine ? "block" : "none";
   if (btnStart) {
     btnStart.disabled = noEngine;
     btnStart.style.opacity = noEngine ? "0.4" : "";
@@ -4805,7 +4805,7 @@ socket.on("exercice_end_of_line", (data) => {
   if (statusEl) { statusEl.textContent = t("exercices.end_of_line_status"); statusEl.style.color = "#4caf50"; }
   exSetSyncBtn(false);
   const btnContinuer = document.getElementById("ex-btn-continuer");
-  if (btnContinuer) btnContinuer.style.display = data.can_continue ? "" : "none";
+  if (btnContinuer) btnContinuer.style.display = data.can_continue ? "block" : "none";
   exSetInstructions(
     t("exercices.instructions_fin_titre") + "<br>" +
     (data.can_continue ? t("exercices.instructions_fin_continuer") : t("exercices.instructions_fin_restart"))
@@ -5422,8 +5422,8 @@ function retransSelectTab(tab) {
   const eForm = document.getElementById("retrans-form-exercice");
   if (pBtn)  { pBtn.style.background  = tab === "partie"   ? "#e94560" : "#16213e"; pBtn.style.color  = tab === "partie"   ? "white" : "#778"; }
   if (eBtn)  { eBtn.style.background  = tab === "exercice" ? "#e94560" : "#16213e"; eBtn.style.color  = tab === "exercice" ? "white" : "#778"; }
-  if (pForm) pForm.style.display = tab === "partie"   ? "" : "none";
-  if (eForm) eForm.style.display = tab === "exercice" ? "" : "none";
+  if (pForm) pForm.style.display = tab === "partie"   ? "block" : "none";
+  if (eForm) eForm.style.display = tab === "exercice" ? "block" : "none";
 }
 
 function retransSetCamp(camp) {
@@ -5732,7 +5732,7 @@ socket.on("retranscription_init", (data) => {
   _rtActivateBoard(); _retransRenderHistory(); _retransUpdateTurn();
   // Bouton "Sauver et continuer" uniquement en mode exercice
   const btnSC = document.getElementById("btn-retrans-save-continue");
-  if (btnSC) btnSC.style.display = data.mode === "exercice" ? "" : "none";
+  if (btnSC) btnSC.style.display = data.mode === "exercice" ? "block" : "none";
 });
 
 socket.on("retranscription_move", (data) => {
