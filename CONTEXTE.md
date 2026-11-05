@@ -1,6 +1,6 @@
 # AlChess — Contexte projet
 
-Briefing CCL. Vérifié 5 nov. 2026 (branche `worktree-issue-276`).
+Briefing CCL. Vérifié 5 nov. 2026 (branche `worktree-issue-284`).
 
 ## Maintenance de ce fichier
 Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avancement majeur, mets à jour ce CONTEXTE.md dans le même commit.
@@ -11,8 +11,9 @@ Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avan
 ## Architecture (`nicsoft/`)
 - `niclink/` : `hid_backend.py` (USB hidapi pur), `driver.py` (Chessnut : thread FEN dédié, LEDs, beep), `virtual_board.py`, `nl_exceptions.py`.
 - `web/` : `alchess.py` orchestre ; `server.py` Flask-SocketIO + `_app_state` + détection moteurs (caches/events `*_status`) ; `static/app.js`, `templates/index.html`.
-- `core/` : `game_manager.py`, `board_adapter.py`, `ihm_port.py` (port neutre jeu↔IHM, voir ARC-001 ci-dessous). `engine/` UCI : `engine_manager` (point d'entrée réexportant `move_quality engine_analysis uci_engine engine_detection engine_availability maia_engine rodent_engine`, découpé issue #276) `players pgn_manager board_utils display analyse`.
-- `config.py` (`APP_DIR` auto), `platform_utils.py`, `modes/`, `utils/` (timing, LEDs).
+- `core/` : `game_manager.py` (façade, réexporte les lanceurs par mode depuis `core/game_manager_modes/` — `pedagogique humain retranscription exercices labo` + `state.py` pour l'état partagé, découpé issue #278), `board_adapter.py`, `config_manager.py`, `ihm_port.py` (port neutre jeu↔IHM, voir ARC-001 ci-dessous). `engine/` UCI : `engine_manager` (point d'entrée réexportant `move_quality engine_analysis uci_engine engine_detection engine_availability maia_engine rodent_engine`, découpé issue #276) `players pgn_manager board_utils display analyse`.
+- `modes/` (`pedagogique humain exercices retranscription labo`) : dans `exercices/`, `explore_book.py` et `eco_import.py` sont des façades réexportant des modules par rôle (`*_cli/_display/_import/_web`, + `eco_import_data.py`) ; `opening_explorer/llm_explainer.py` façade réexportant `llm_prompts llm_cache llm_functions llm_provider tts_engine sources explorer_session`.
+- `config.py` (`APP_DIR` auto), `platform_utils.py`, `utils/` (timing, LEDs).
 
 **`_app_state`** : `menu`→`config`/`config_humain`/`retranscription`/`exercices`/`labo`→`connecting`→`playing`/`paused`→`game_over`.
 **Queues** : `event_queue` Py→nav ; `action_queue` nav→Py (partie) ; `menu_queue` nav→Py (menu).
@@ -48,7 +49,7 @@ Ordre : (1) code commun pause/abandon/undo/historique PGN de human et pedagogiqu
 ## Fichiers de suivi
 `TACHES.md`, `TESTS.md`, `TEST_RESULTATS.md`, `HISTORIQUE_BUGS.md`, `INSTALLATION_ALCHESS.md`, `I18N.md`, `CLAUDE.md` (auto-chargé).
 
-## État actuel (21 juil. 2026)
-**Stable Linux+Win**, Release **v1.0.0** (ZIP) : tous les modes (Pédagogique Stockfish/Maia/Rodent, Humain, Analyse PGN, Exercices, Retranscription, Labo, virtuel) ; i18n FR/EN/DE.
-**Bugs** : rangement HH ignoré si déconnexion USB silencieuse `[Win]` ; race LEDs rare `[Linux]` ; WAIT_FISH lent intermittent (hardware).
-**Chantiers** : statut « Connected » trompeur (Socket.IO ≠ échiquier) ; finitions Win ; `git submodule update --init` échoue sur clone frais.
+## État actuel (5 nov. 2026)
+Dernière release taguée **v1.3.2** (18 août 2026) ; dépôt ~220 commits plus avancé depuis, pas de nouvelle release taguée. Depuis juillet : dépendances à jour et épinglées (correctifs de sécurité + versions figées, `requirements.txt`) ; découplage jeu/interface via `ihm_port.py` (aucun import de `nicsoft.web` depuis le jeu, gardé par les tests ARC-001) ; outil de sauvegarde `backup_manager` retiré (protection = git) ; journalisation des erreurs auparavant silencieuses (règle PRO-012) ; tests de garde ARC-001 découvrant seuls les fichiers de `core/modes/niclink/utils/engine` ; hook git pre-push lançant la suite complète (~40 s) ; découpages en façades de `game_manager`, `engine_manager`, `explore_book`/`eco_import`, `llm_explainer` ; reprise de session de retranscription proposée à chaque ouverture ; régressions d'affichage dues à l'extraction des styles en ligne corrigées (issue #279).
+**Bugs connus** (non revérifiés depuis juillet — matériel/Windows) : rangement HH ignoré si déconnexion USB silencieuse `[Win]` ; race LEDs rare `[Linux]` ; WAIT_FISH lent intermittent (hardware).
+**Chantiers** : statut « Connected » trompeur, Socket.IO ≠ échiquier (non revérifié) ; finitions Win (non revérifié) ; éléments d'interface morts signalés mais non traités — bouton d'abandon de la pause (`#btn-pause-abandonner`), compte à rebours (`#countdown`), id dupliqué du labo (`#labo-feedback`) (issue #279) ; gros fichiers conservés volontairement — voir section ARC-004 ci-dessous.
