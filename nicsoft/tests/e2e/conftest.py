@@ -9,22 +9,34 @@ import time
 import pytest
 import requests
 
-BASE_DIR = os.path.expanduser("~/NicLink")
-PYTHON   = os.path.join(BASE_DIR, "venv", "bin", "python")
+# Racine du dépôt (ou worktree) où tournent ces tests, déduite de
+# l'emplacement de ce fichier : nicsoft/tests/e2e/conftest.py → remonter de 3.
+REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+# Python de l'environnement virtuel de l'utilisateur (hidapi, Flask-SocketIO,
+# etc.) — seul le code importé (REPO_DIR) doit venir du dépôt testé, pas ce
+# Python lui-même.
+PYTHON = os.path.join(os.path.expanduser("~/NicLink"), "venv", "bin", "python")
 
 
 @pytest.fixture(scope="session")
 def server_url():
-    """Lance le serveur AlChess et retourne son URL."""
+    """Lance le serveur AlChess (code de REPO_DIR) et retourne son URL."""
     env = os.environ.copy()
     env["BROWSER"] = "/bin/true"  # empêche l'ouverture automatique du navigateur
+    env["ALCHESS_SKIP_BOARD"] = "1"  # n'interroge pas l'échiquier USB réel
+    # Données réelles (ECO, livres d'ouvertures...) non versionnées dans le dépôt
+    # (data/ est dans .gitignore) : un worktree de test ne les a pas. On pointe
+    # ALCHESS_DIR vers le dossier utilisateur pour les tests qui en dépendent,
+    # tout en gardant le CODE importé depuis REPO_DIR (cwd ci-dessous).
+    env.setdefault("ALCHESS_DIR", os.path.expanduser("~/NicLink"))
 
     proc = subprocess.Popen(
         [PYTHON, "-m", "nicsoft.web"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
-        cwd=BASE_DIR,
+        cwd=REPO_DIR,
         env=env,
     )
 

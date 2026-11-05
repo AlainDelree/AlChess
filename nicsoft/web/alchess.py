@@ -176,6 +176,8 @@ def _run_detect_chessnut():
 
 
 def _check_board_at_startup():
+    if os.environ.get("ALCHESS_SKIP_BOARD") == "1":
+        return  # tests e2e — pas d'échiquier physique à solliciter
     if not _board_check_lock.acquire(blocking=False):
         return  # une vérification est déjà en cours
     try:
@@ -249,8 +251,9 @@ def main():
     webbrowser.open(f"http://127.0.0.1:{_port}")
     time.sleep(1.5)  # laisser la page charger avant d'envoyer app_state
     set_app_state("menu")
-    threading.Thread(target=_check_board_at_startup, daemon=True).start()
-    threading.Thread(target=_board_menu_watcher, daemon=True).start()
+    if os.environ.get("ALCHESS_SKIP_BOARD") != "1":
+        threading.Thread(target=_check_board_at_startup, daemon=True).start()
+        threading.Thread(target=_board_menu_watcher, daemon=True).start()
     _retrans_save = DATA_DIR / "retranscription_en_cours.json"
     if _retrans_save.exists():
         import json as _json
