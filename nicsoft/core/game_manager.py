@@ -14,8 +14,10 @@ from nicsoft.config import DATA_DIR
 from nicsoft.core.config_manager import validated_engine_path
 from nicsoft.engine.engine_manager import RODENT_ELO_DEFAUT, RODENT_PERSONALITY_DEFAUT
 from nicsoft.core.board_adapter import create_board
-from nicsoft.web.server import send_event, set_app_state, get_action, set_virtual_board
-from nicsoft.web import server as web_server
+from nicsoft.core.ihm_port import (
+    send_event, set_app_state, get_action, set_virtual_board, get_action_queue,
+    check_board_at_startup, app_state_proxy as web_server,
+)
 
 
 def _read_engine_elo_and_path() -> tuple:
@@ -180,7 +182,6 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
                      rodent_personality=RODENT_PERSONALITY_DEFAUT,
                      _error=None, virtual=False):
     from nicsoft.modes.pedagogique.pedagogique import Game, load_config, BackMenuExit
-    from nicsoft.web.server import get_action
 
     config = load_config()
     config["pedagogique_pause"] = pause
@@ -236,7 +237,7 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
             "opponent":    engine_label,
             "engine_type": engine_type,
         })
-        from nicsoft.web.server import action_queue as _aq
+        _aq = get_action_queue()
         while not _aq.empty():
             try: _aq.get_nowait()
             except Exception: break  # vidage de la queue avant le début de partie — queue déjà vide, rien à tracer
@@ -301,8 +302,7 @@ def launch_humain(config):
     if web_server._app_state == "menu" and not _virtual_mode:
         # Re-vérifier l'état réel du plateau au retour menu depuis HH
         # (déconnexion silencieuse pendant la partie non détectée jusqu'ici).
-        from nicsoft.web.alchess import _check_board_at_startup
-        threading.Thread(target=_check_board_at_startup, daemon=True).start()
+        threading.Thread(target=check_board_at_startup, daemon=True).start()
 
 
 def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
@@ -327,7 +327,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
         send_event("init_hh", {"fen": chess.STARTING_FEN, "white": white_name, "black": black_name})
         set_app_state("playing")
 
-        from nicsoft.web.server import action_queue as _aq
+        _aq = get_action_queue()
         while not _aq.empty():
             try: _aq.get_nowait()
             except Exception: break  # vidage de la queue avant le début de partie — queue déjà vide, rien à tracer
@@ -370,7 +370,7 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
 # ── Mode retranscription ───────────────────────────────────────────────────────
 def launch_retranscription(config):
     from nicsoft.modes.retranscription.retranscription import run_retranscription
-    from nicsoft.web.server import get_action as _get_action
+    _get_action = get_action
     import queue as _queue
 
     while True:
@@ -698,7 +698,7 @@ def _make_labo_session(nl_inst, config: dict):
 
 
 def _run_labo_session():
-    from nicsoft.web.server import get_action as _get_action
+    _get_action = get_action
 
     for _ in range(50):
         if _nl_inst_ref is not None:
@@ -804,7 +804,7 @@ def _run_labo_session():
                     logger.error(f"[LABO] Erreur recréation : {e}")
 
         elif atype == "best_move":
-            from nicsoft.web.server import action_queue as _aq
+            _aq = get_action_queue()
             while not _aq.empty():
                 try:
                     peek = _aq.queue[0]
@@ -824,7 +824,7 @@ def _run_labo_session():
                 if not _virtual_mode:
                     session.sync_from_physical(turn=labo_config.get("active_turn", session.active_turn))
                 time.sleep(0.1)
-                from nicsoft.web.server import action_queue as _aq
+                _aq = get_action_queue()
                 saved = []
                 while not _aq.empty():
                     try:
@@ -1004,7 +1004,7 @@ def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active
             rodent_personality = rodent_personality,
         )
 
-        from nicsoft.web.server import action_queue as _aq
+        _aq = get_action_queue()
         while not _aq.empty():
             try: _aq.get_nowait()
             except Exception: break  # vidage de la queue avant le début de session — queue déjà vide, rien à tracer
