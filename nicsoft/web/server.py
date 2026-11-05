@@ -14,6 +14,7 @@ import pathlib
 import queue
 import re
 import secrets
+import shutil
 import sys
 import threading
 from nicsoft.config import APP_DIR, DATA_DIR, ENGINES_DIR, GAMES_DIR, LOGS_DIR
@@ -200,12 +201,22 @@ _RODENT_WIN_SHA256 = {
 def _telecharger_fichier_rodent(url: str, dest_path: pathlib.Path) -> None:
     """Télécharge un fichier avec délai d'attente, vérifie son empreinte SHA-256
     contre la référence connue, et supprime le fichier en cas d'écart.
+
+    `dest_path` doit toujours pointer dans le dossier temporaire de
+    téléchargement (jamais dans le dossier définitif du moteur) : l'ouverture
+    en écriture ci-dessous tronque le fichier dès l'appel, et un fichier
+    tronqué ne doit jamais apparaître là où une installation existante
+    fonctionne déjà (SEC-025) — c'est `_installer_rodent_depuis_temp` qui se
+    charge de la mise en place finale, une fois tous les fichiers vérifiés.
     """
     import urllib.request
 
     attendu = _RODENT_WIN_SHA256.get(dest_path.name)
     if attendu is None:
         raise ValueError(f"Aucune empreinte de référence connue pour {dest_path.name}")
+
+    if not url.startswith("https://"):
+        raise ValueError(f"Adresse de téléchargement refusée (https:// requis) : {url}")
 
     hasher = hashlib.sha256()
     with urllib.request.urlopen(url, timeout=_RODENT_WIN_DOWNLOAD_TIMEOUT) as response, \
@@ -223,15 +234,79 @@ def _telecharger_fichier_rodent(url: str, dest_path: pathlib.Path) -> None:
         raise ValueError(f"Empreinte invalide pour {dest_path.name} (intégrité compromise)")
 
 
+def _nettoyer_dossier_temp_rodent(tmp_dir: pathlib.Path) -> None:
+    """Supprime le dossier temporaire de téléchargement Rodent s'il existe —
+    que ce soit un résidu d'un arrêt brutal (crash, kill) ou le nettoyage de
+    fin de tentative. Sans effet si absent."""
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def _installer_rodent_depuis_temp(tmp_dir: pathlib.Path, dest_dir: pathlib.Path) -> None:
+    """Met en place atomiquement (tout-ou-rien) les fichiers déjà vérifiés de
+    `tmp_dir` vers `dest_dir`, sur le même volume (les deux sont dans
+    ENGINES_DIR). Si la mise en place échoue en cours de route (dossier
+    verrouillé par le moteur en cours d'exécution, disque plein...), restaure
+    `dest_dir` dans l'état exact où il était avant l'appel et propage
+    l'erreur : une installation existante qui fonctionne n'est jamais
+    perdue (SEC-025).
+    """
+    backup_dir = dest_dir.parent / (dest_dir.name + ".bak")
+    shutil.rmtree(backup_dir, ignore_errors=True)
+    dest_existait = dest_dir.exists()
+    try:
+        if dest_existait:
+            os.replace(dest_dir, backup_dir)
+        os.replace(tmp_dir, dest_dir)
+    except OSError:
+        if dest_existait and not dest_dir.exists() and backup_dir.exists():
+            os.replace(backup_dir, dest_dir)
+        raise
+    else:
+        if dest_existait:
+            shutil.rmtree(backup_dir, ignore_errors=True)
+
+
+def _telecharger_et_installer_rodent(dest_dir: pathlib.Path, tmp_dir: pathlib.Path, on_progress=None) -> None:
+    """Télécharge les trois binaires Rodent IV Windows dans `tmp_dir`, vérifie
+    chacun, puis les met en place tout-ou-rien dans `dest_dir` (voir
+    `_installer_rodent_depuis_temp`). Nettoie `tmp_dir` avant de commencer
+    (résidu d'un arrêt brutal précédent) et après, que la tentative réussisse
+    ou échoue — isolée du handler SocketIO pour pouvoir être testée
+    directement, sans dépendre de la plateforme (issue #286).
+
+    `on_progress(index, total, filename)`, si fourni, est appelé juste avant
+    chaque téléchargement.
+    """
+    _nettoyer_dossier_temp_rodent(tmp_dir)
+    try:
+        tmp_dir.mkdir(parents=True, exist_ok=True)
+        total = len(_RODENT_WIN_FILES)
+        for index, filename in enumerate(_RODENT_WIN_FILES, start=1):
+            if on_progress is not None:
+                on_progress(index, total, filename)
+            _telecharger_fichier_rodent(_RODENT_WIN_BASE_URL + filename, tmp_dir / filename)
+        _installer_rodent_depuis_temp(tmp_dir, dest_dir)
+    finally:
+        _nettoyer_dossier_temp_rodent(tmp_dir)
+
+
 @socketio.on("download_rodent")
 def on_download_rodent(_data):
     """Télécharge les binaires Rodent IV Windows depuis GitHub (issue #131).
 
     SyncGitRepo ne récupère pas les binaires sur une installation NSIS
     standalone ; ce handler les télécharge directement depuis la branche
-    master du dépôt public, dans ENGINES_DIR/rodent-iv-win/. Chaque requête
-    est bornée dans le temps et chaque fichier est vérifié par empreinte
-    SHA-256 avant d'être considéré installé (issue #256).
+    master du dépôt public. Chaque requête est bornée dans le temps et
+    chaque fichier est vérifié par empreinte SHA-256 (issue #256).
+
+    Installation tout-ou-rien (issue #286, SEC-025) : les trois fichiers sont
+    d'abord téléchargés et vérifiés dans un dossier temporaire à côté du
+    dossier définitif (même volume), et ne sont mis en place dans
+    ENGINES_DIR/rodent-iv-win/ qu'une fois les trois conformes. Le moindre
+    échec (réseau, délai dépassé, empreinte invalide, disque plein, dossier
+    verrouillé) supprime le dossier temporaire et laisse le dossier définitif
+    strictement inchangé — une installation existante qui fonctionne n'est
+    jamais tronquée ni détruite par une tentative ratée.
     """
     if sys.platform != "win32":
         emit("rodent_download_result", {"ok": False, "error": "Téléchargement disponible uniquement sous Windows"})
@@ -240,14 +315,14 @@ def on_download_rodent(_data):
     def run():
         global _rodent_available_cache
         dest_dir = ENGINES_DIR / "rodent-iv-win"
+        tmp_dir = ENGINES_DIR / "rodent-iv-win.tmp"
         try:
-            dest_dir.mkdir(parents=True, exist_ok=True)
-            total = len(_RODENT_WIN_FILES)
-            for index, filename in enumerate(_RODENT_WIN_FILES, start=1):
-                socketio.emit("rodent_download_progress", {
-                    "file": filename, "index": index, "total": total,
-                })
-                _telecharger_fichier_rodent(_RODENT_WIN_BASE_URL + filename, dest_dir / filename)
+            _telecharger_et_installer_rodent(
+                dest_dir, tmp_dir,
+                on_progress=lambda index, total, filename: socketio.emit(
+                    "rodent_download_progress", {"file": filename, "index": index, "total": total},
+                ),
+            )
             _rodent_available_cache = None
             socketio.emit("rodent_download_result", {"ok": True})
             socketio.emit("rodent_status", {"available": _get_rodent_available(), "downloadable": True})
