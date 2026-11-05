@@ -30,22 +30,6 @@ from nicsoft.tests._arc001_discovery import (
 _TOUS_LES_FICHIERS = decouvrir_fichiers_py()
 verifier_decouverte_non_cassee(_TOUS_LES_FICHIERS)
 
-# nicsoft/utils/light_board.py : bug préexistant sans rapport avec ARC-001,
-# mis en lumière par cette découverte élargie (issue #272) — `List`
-# (typing) et `np` (numpy) non importés, et la fonction _build_led_map
-# utilise un paramètre `move` qui n'existe pas (le paramètre réel est
-# `moves`, pluriel). Module mort, jamais appelé ailleurs dans le code ;
-# corriger la logique interne de _build_led_map n'est pas trivial (il
-# faudrait deviner le comportement voulu), donc non corrigé ici — voir le
-# commentaire de clôture de l'issue #272.
-FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS = {
-    "nicsoft/utils/light_board.py",
-}
-
-FICHIERS_MIGRES = [
-    f for f in _TOUS_LES_FICHIERS if f not in FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS
-]
-
 # Noms disponibles implicitement dans tout module, sans liaison explicite.
 NOMS_IMPLICITES = {
     "__name__", "__file__", "__doc__", "__package__", "__builtins__",
@@ -116,7 +100,7 @@ def _noms_non_definis(source: str, filename: str) -> list:
     return undefined
 
 
-@pytest.mark.parametrize("chemin_relatif", FICHIERS_MIGRES)
+@pytest.mark.parametrize("chemin_relatif", _TOUS_LES_FICHIERS)
 def test_pas_de_nom_non_defini(chemin_relatif):
     """Aucun identifiant lu dans le fichier ne doit être totalement non lié
     (reste d'une référence à nicsoft.web supprimée par la #263)."""
@@ -125,23 +109,6 @@ def test_pas_de_nom_non_defini(chemin_relatif):
     undefined = _noms_non_definis(source, str(chemin))
     assert undefined == [], (
         f"{chemin_relatif} : nom(s) non défini(s) détecté(s) — {undefined}"
-    )
-
-
-@pytest.mark.parametrize(
-    "chemin_relatif", sorted(FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS)
-)
-def test_fichiers_exclus_restent_documentes(chemin_relatif):
-    """Ce fichier est exclu de test_pas_de_nom_non_defini pour un bug
-    préexistant documenté (issue #272). Ce test échoue si le bug est
-    corrigé sans retirer l'exclusion, pour éviter qu'elle devienne
-    silencieusement obsolète."""
-    chemin = REPO_ROOT / chemin_relatif
-    source = chemin.read_text(encoding="utf-8")
-    undefined = _noms_non_definis(source, str(chemin))
-    assert undefined != [], (
-        f"{chemin_relatif} ne contient plus de nom non défini — retirer son "
-        f"exclusion de FICHIERS_AVEC_NOMS_NON_DEFINIS_CONNUS"
     )
 
 
