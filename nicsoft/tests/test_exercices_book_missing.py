@@ -187,6 +187,7 @@ def test_nouvelle_session_apres_restauration_du_livre(monkeypatch, tmp_path, cap
     livre = tmp_path / "gm2001.bin"
 
     # 1) Session avec livre manquant, sortie par une action de retour.
+    monkeypatch.setattr(exercices_mod, "BOOK_DEFAULT", livre)  # livre pas encore écrit : absent
     with caplog.at_level(logging.ERROR, logger="NL exercices"):
         session1 = ExerciceSession(_FakeBoard(), OUVERTURE, "white", 3)
     assert session1._book_missing is True
