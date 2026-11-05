@@ -168,12 +168,9 @@ Commande : `python -m pytest nicsoft/tests/ -q --tb=no`
 | `python-socketio` | 5.16.2 |
 | `Werkzeug` | 3.1.9 |
 | `chess` | 1.10.0 |
-| `stockfish` | 3.28.0 |
 | `hidapi` | 0.15.0 |
 | `requests` | 2.33.1 |
 | `numpy` | 2.5.4 |
-| `pyserial` | 3.5 |
-| `readchar` | 4.0.5 |
 
 ### Tests
 
