@@ -104,6 +104,7 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
             rodent_personality=rodent_personality,
         )
         game.player_name    = player_name
+        game.opponent_label = engine_label
         game.move_gaps      = []
         game.last_move_time = time.time()
 

@@ -87,6 +87,11 @@ logger.addHandler(ch)
 # Seuils d'évaluation (centipawns de perte)
 # ──────────────────────────────────────────────
 
+# Seuil d'acceptation d'une proposition de nulle, en centipions depuis le
+# point de vue du moteur : celui-ci accepte tant qu'il n'estime pas être
+# mieux de plus d'un pion et demi (150cp). Décision utilisateur (issue #282) :
+# volontairement plus souple qu'un seuil strict ; ne pas modifier sans accord.
+SEUIL_ACCEPTATION_NULLE_CP = 150
 
 SYMBOLES = {
     "bon":        "✓",
@@ -664,33 +669,42 @@ class Game(threading.Thread):
     def _traiter_nulle(self, board=None) -> None:
         """Traite une proposition de nulle depuis l'interface web."""
         human_color = chess.WHITE if self.playing_white == chess.WHITE else chess.BLACK
+        opponent_label = getattr(self, "opponent_label", None) or self.engine.engine_name
+        # Seule l'évaluation de la position (appel moteur) est protégée : une
+        # évaluation ratée refuse la nulle sans arrêter la partie. La fin de
+        # partie en cas d'acceptation (ci-dessous) doit rester hors de cette
+        # zone pour laisser BackMenuExit remonter normalement (issue #282).
         try:
             board_courant = board if board is not None else chess.Board(self.nl_inst.get_game_fen())
             eval_info = self.engine.evaluate(board_courant, depth=10)
             cp   = eval_info["cp"]
             mate = eval_info["mate"]
-            sf_color = not human_color
-            if mate is not None:
-                sf_winning = (mate > 0 and board_courant.turn == sf_color) or \
-                             (mate < 0 and board_courant.turn != sf_color)
-                accepts = not sf_winning
-            elif cp is not None:
-                sf_cp = cp if board_courant.turn == sf_color else -cp
-                accepts = sf_cp <= 150
-            else:
-                accepts = False
-            if accepts:
-                self._end_game("1/2-1/2", "Nulle acceptée")
-            else:
-                send_event("nulle_refusee", {
-                    "reason": "Stockfish estime avoir l'avantage.",
-                    "reason_key": "toast.nulle_refusee_default",
-                })
         except Exception as e:
             logger.error(f"Erreur évaluation nulle: {e}")
             send_event("nulle_refusee", {
                 "reason": "Impossible d'évaluer la position.",
                 "reason_key": "toast.nulle_refusee_eval",
+            })
+            return
+
+        sf_color = not human_color
+        if mate is not None:
+            sf_winning = (mate > 0 and board_courant.turn == sf_color) or \
+                         (mate < 0 and board_courant.turn != sf_color)
+            accepts = not sf_winning
+        elif cp is not None:
+            sf_cp = cp if board_courant.turn == sf_color else -cp
+            accepts = sf_cp <= SEUIL_ACCEPTATION_NULLE_CP
+        else:
+            accepts = False
+
+        if accepts:
+            self._end_game("1/2-1/2", "Nulle acceptée")
+        else:
+            send_event("nulle_refusee", {
+                "reason": f"{opponent_label} estime avoir l'avantage.",
+                "reason_key": "toast.nulle_refusee_default",
+                "vars": {"opponent": opponent_label},
             })
     def _traiter_abandon(self) -> None:
         """Traite un abandon confirmé (appeler depuis le thread principal)."""

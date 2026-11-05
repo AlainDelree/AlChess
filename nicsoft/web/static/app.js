@@ -2199,7 +2199,10 @@ function ouvrirModalNulle() {
     btn.className   = "btn btn-reprendre";
     btn.onclick = () => { fermerModal(); sendAction({ type: "nulle_hh" }); };
   } else {
-    document.getElementById("modal-title").textContent = t("modal.nulle_stockfish_titre");
+    const isWhite = currentPlayerColor === "white";
+    const opponentEl = document.getElementById(isWhite ? "player-top-name" : "player-bottom-name");
+    const opponent = opponentEl?.textContent || t("config.moteur");
+    document.getElementById("modal-title").textContent = t("modal.nulle_stockfish_titre", {opponent});
     btn.textContent = t("modal.proposer_nulle");
     btn.className   = "btn";
     btn.onclick = () => { fermerModal(); sendAction({ type: "nulle" }); };
