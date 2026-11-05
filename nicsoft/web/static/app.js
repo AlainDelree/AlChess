@@ -5706,7 +5706,8 @@ socket.on("retranscription_en_cours", (data) => {
   const banner = document.getElementById("retrans-resume-banner");
   const info   = document.getElementById("retrans-resume-info");
   if (banner) banner.style.display = "";
-  if (info) info.textContent = `${_localPlayerName(data.white, "config.blancs")} vs ${_localPlayerName(data.black, "config.noirs")} — ${t("common.n_coups", {n: data.moves})}`;
+  const coupsLabel = data.moves === 1 ? t("common.n_coup", {n: data.moves}) : t("common.n_coups", {n: data.moves});
+  if (info) info.textContent = `${_localPlayerName(data.white, "config.blancs")} vs ${_localPlayerName(data.black, "config.noirs")} — ${coupsLabel}`;
 });
 
 socket.on("retranscription_init", (data) => {
@@ -6033,7 +6034,7 @@ socket.on("outils_add_verify_result", (data) => {
       <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.nom").trim()}</td><td>${data.nom}</td></tr>
       ${data.eco ? `<tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">ECO</td><td>${data.eco}${data.parent_eco ? ` ${t("outils.parent_eco_label", {eco: data.parent_eco})}` : ""}</td></tr>` : ""}
       <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.camp")}</td><td>${campLabel}</td></tr>
-      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.coups")}</td><td style="font-family:monospace;">${data.moves.join(" ")} <span style="color:#888;">${t("common.n_coups", {n: data.moves.length})}</span></td></tr>
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.coups")}</td><td style="font-family:monospace;">${data.moves.join(" ")} <span style="color:#888;">${t("outils.n_demi_coups", {n: data.moves.length})}</span></td></tr>
     </table>
   </div>`;
 
