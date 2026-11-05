@@ -196,9 +196,11 @@ def _check_board_at_startup():
                 nl = create_board(virtual=False, logger_name="NicLink_startup")
                 try:
                     nl._fen_reader_stop.set()
-                except Exception:
+                except Exception as e:
                     # arrêt best-effort du lecteur du plateau temporaire : un échec est sans conséquence
-                    pass
+                    # (threading.Event.set() ne documente aucune exception en usage normal — ce log
+                    # est purement diagnostique si l'attribut venait à manquer dans un cas inattendu)
+                    logger.debug("arrêt best-effort du lecteur temporaire échoué : %s", e)
                 send_event("board_ok", {})
                 return  # succès
             except SystemExit as e:
@@ -207,8 +209,11 @@ def _check_board_at_startup():
                     send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
                     return
                 # board pas encore prêt — réessayer
-            except Exception:
-                pass  # réessayer
+            except Exception as e:
+                # réessayer — échec d'ouverture HID (OSError/IOError, cf. hid.device.open_path()
+                # dans hidapi) ou de démarrage d'un thread interne (RuntimeError) ; boucle lente
+                # (1 tentative/s, 4 tentatives max) donc une trace de diagnostic est utile ici.
+                logger.debug("tentative de connexion au plateau (essai %d/4) échouée : %s", attempt + 1, e)
         _run_detect_chessnut()
         send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
     finally:
@@ -346,7 +351,11 @@ def main():
                 nl = gm.get_nl_inst_ref()
                 if nl is not None:
                     try: nl.turn_off_all_leds()
-                    except Exception: pass  # nettoyage best-effort en fin de programme
+                    except ValueError as e:
+                        # nettoyage best-effort en fin de programme — ValueError : course possible
+                        # entre ce vidage de _led_queue et le thread _led_worker_loop qui consomme
+                        # la même queue (task_done() appelé en double, cf. driver.py ~l.234).
+                        logger.debug("extinction des LEDs best-effort échouée : %s", e)
                 _start_modem_manager()
                 sys.exit(0)
     except KeyboardInterrupt:
@@ -354,7 +363,11 @@ def main():
         nl = gm.get_nl_inst_ref()
         if nl is not None:
             try: nl.turn_off_all_leds()
-            except Exception: pass  # nettoyage best-effort en fin de programme
+            except ValueError as e:
+                # nettoyage best-effort en fin de programme — ValueError : course possible
+                # entre ce vidage de _led_queue et le thread _led_worker_loop qui consomme
+                # la même queue (task_done() appelé en double, cf. driver.py ~l.234).
+                logger.debug("extinction des LEDs best-effort échouée : %s", e)
         _start_modem_manager()
         sys.exit(0)
 

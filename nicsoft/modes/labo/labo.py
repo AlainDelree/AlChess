@@ -362,8 +362,11 @@ class LaboSession:
             try:
                 raw  = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
-            except Exception:
-                continue  # FEN physique momentanément indisponible — boucle rapide (0.1s), on retente au tour suivant
+            except (AttributeError, IndexError):
+                # FEN physique momentanément indisponible — boucle rapide (0.1s), on retente au tour suivant.
+                # AttributeError : nl_inst/current_fen pas encore prêt (ex. virtual_board sans game_board défini) ;
+                # IndexError : raw non vide mais composé uniquement d'espaces → .split() renvoie une liste vide.
+                continue
 
             if not phys or phys == last_fen:
                 candidate_fen = None
@@ -448,7 +451,19 @@ class LaboSession:
 
     def quit(self) -> None:
         self._running = False
-        try: self.engine.quit()
-        except Exception: pass  # fermeture best-effort en fin de programme — rien à faire si le moteur est déjà mort
-        try: self.nl_inst.turn_off_all_leds()
-        except Exception: pass  # extinction best-effort en fin de programme — pas bloquant si l'échiquier est déconnecté
+        try:
+            self.engine.quit()
+        except Exception as e:
+            # fermeture best-effort en fin de programme — rien à faire si le moteur est déjà mort.
+            # EngineManager.quit() absorbe déjà les erreurs par sous-moteur (play/eval) ; si une exception
+            # remonte malgré tout jusqu'ici, c'est inattendu (ex. chess.engine.EngineTerminatedError,
+            # BrokenPipeError/OSError, asyncio.TimeoutError) — on la trace en debug sans bloquer l'arrêt.
+            logger.debug("quit : arrêt du moteur — erreur ignorée : %s", e)
+        try:
+            self.nl_inst.turn_off_all_leds()
+        except AttributeError:
+            # extinction best-effort en fin de programme — pas bloquant si l'échiquier est déconnecté.
+            # turn_off_all_leds() ne fait que manipuler une queue.Queue interne (get_nowait/put), qui ne lève
+            # aucune exception documentée ; seul AttributeError est réaliste si nl_inst n'est pas pleinement
+            # initialisé (ex. objet sans _led_queue).
+            pass

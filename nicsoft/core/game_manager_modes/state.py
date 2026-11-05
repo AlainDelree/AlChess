@@ -111,7 +111,13 @@ def _wait_initial_position_web(nl_inst, timeout: float = 300.0):
         if first_check:
             first_check = False
             try: nl_inst.signal_lights(1)
-            except Exception: pass  # signal LED cosmétique — échec sans conséquence fonctionnelle
+            except Exception as e:
+                # signal LED cosmétique — best-effort : aucune exception précise n'est
+                # documentée pour cet appel (file d'attente non bornée + construction
+                # numpy), deviner une liste serait arbitraire. On trace en debug pour
+                # garder une visibilité en cas d'échec imprévu ; appelé une seule fois
+                # par cycle d'attente (first_check), donc pas de risque de spam.
+                logger.debug("signal_lights cosmétique a échoué : %s", e)
         set_app_state("position_initiale", {"fen": board_fen})
         time.sleep(0.5)
 

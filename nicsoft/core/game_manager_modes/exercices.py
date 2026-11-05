@@ -138,7 +138,9 @@ def _run_exercice(config: dict) -> None:
                 logger.warning(f"[EXERCICE] Fermeture du moteur échouée (processus potentiellement orphelin) : {e}")
         if nl_inst:
             try: nl_inst.turn_off_all_leds()
-            except Exception: pass  # extinction LED best-effort — sans conséquence fonctionnelle
+            except ValueError: pass  # extinction LED best-effort — task_done() de la queue LED
+            # peut être appelé en trop par une course avec le worker LED (driver.py), sans
+            # conséquence fonctionnelle (voir Queue.task_done())
             try: nl_inst.disconnect()
             except Exception as e:
                 logger.warning(f"[EXERCICE] Déconnexion échiquier échouée : {e}")
@@ -232,7 +234,9 @@ def _run_drill(config: dict) -> None:
                 logger.warning(f"[DRILL] Fermeture du moteur échouée (processus potentiellement orphelin) : {e}")
         if nl_inst:
             try: nl_inst.turn_off_all_leds()
-            except Exception: pass  # extinction LED best-effort — sans conséquence fonctionnelle
+            except ValueError: pass  # extinction LED best-effort — task_done() de la queue LED
+            # peut être appelé en trop par une course avec le worker LED (driver.py), sans
+            # conséquence fonctionnelle (voir Queue.task_done())
             try: nl_inst.disconnect()
             except Exception as e:
                 logger.warning(f"[DRILL] Déconnexion échiquier échouée : {e}")

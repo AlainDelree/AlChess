@@ -135,8 +135,11 @@ def _led_bon_coup(nl_inst: NicLinkManager, dest_sq: int) -> None:
         nl_inst.set_led(sq_name, True)
         time.sleep(1.5)
         nl_inst.turn_off_all_leds()
-    except Exception:
-        pass  # LED best-effort, sans impact fonctionnel
+    except Exception as exc:
+        # LED best-effort, sans impact fonctionnel : les échecs possibles sont
+        # hétérogènes (case mal formée, nl_inst incomplet en contexte de test,
+        # etc.) — tracer en debug plutôt que deviner une liste précise.
+        logger.debug("LED bon coup (%s) impossible: %s", sq_name, exc)
 
 
 def _led_clignote(nl_inst: NicLinkManager, dest_sq: int,
@@ -149,8 +152,11 @@ def _led_clignote(nl_inst: NicLinkManager, dest_sq: int,
             time.sleep(interval)
             nl_inst.turn_off_all_leds()
             time.sleep(interval)
-    except Exception:
-        pass  # LED best-effort, sans impact fonctionnel
+    except Exception as exc:
+        # LED best-effort, sans impact fonctionnel : échecs hétérogènes possibles
+        # (case mal formée, nl_inst incomplet en test, etc.) — tracer en debug
+        # plutôt que deviner une liste d'exceptions précises.
+        logger.debug("LED clignote (%s) interrompue: %s", sq_name, exc)
 
 
 def _led_imprecision(nl_inst: NicLinkManager, dest_sq: int) -> None:
@@ -192,8 +198,11 @@ def _led_blunder(nl_inst: NicLinkManager, dest_sq: int) -> None:
             time.sleep(0.2)
             nl_inst.turn_off_all_leds()
             time.sleep(0.2)
-    except Exception:
-        pass  # LED best-effort, sans impact fonctionnel
+    except Exception as exc:
+        # LED best-effort, sans impact fonctionnel : échecs hétérogènes possibles
+        # (construction du pattern LED, nl_inst incomplet en test, etc.) — tracer
+        # en debug plutôt que deviner une liste d'exceptions précises.
+        logger.debug("LED blunder (cases adjacentes) impossible: %s", exc)
 
 
 def _led_meilleur_coup(nl_inst: NicLinkManager, best_move: str) -> None:
@@ -202,8 +211,11 @@ def _led_meilleur_coup(nl_inst: NicLinkManager, best_move: str) -> None:
         nl_inst.set_move_leds(best_move)
         time.sleep(5.0)
         nl_inst.turn_off_all_leds()
-    except Exception:
-        pass  # LED best-effort, sans impact fonctionnel
+    except Exception as exc:
+        # LED best-effort, sans impact fonctionnel : échecs hétérogènes possibles
+        # (coup mal formé, nl_inst incomplet en test, etc.) — tracer en debug
+        # plutôt que deviner une liste d'exceptions précises.
+        logger.debug("LED meilleur coup (%s) impossible: %s", best_move, exc)
 
 
 # ──────────────────────────────────────────────
@@ -466,14 +478,19 @@ class Game(threading.Thread):
         try:
             sig = 3 if self.playing_white == chess.WHITE else 2
             self.nl_inst.signal_lights(sig)
-        except Exception:
-            pass  # LED/bip best-effort, sans impact fonctionnel
+        except Exception as exc:
+            # LED/bip best-effort, sans impact fonctionnel : échecs hétérogènes
+            # possibles (nl_inst incomplet en test, file LED indisponible, etc.)
+            # — tracer en debug plutôt que deviner une liste précise.
+            logger.debug("Signal de tour (bip/LED) impossible: %s", exc)
 
     def _shutdown_leds(self) -> None:
         try:
             self.nl_inst.turn_off_all_leds()
-        except Exception:
-            pass  # LED best-effort, sans impact fonctionnel
+        except Exception as exc:
+            # LED best-effort, sans impact fonctionnel : tracer en debug plutôt
+            # que deviner une liste d'exceptions précises.
+            logger.debug("Extinction des LEDs impossible: %s", exc)
 
     # ── Analyse et feedback ───────────────────────────────────────────────
 
@@ -492,8 +509,10 @@ class Game(threading.Thread):
         if qualite != "bon":
             try:
                 self.nl_inst.beep()
-            except Exception:
-                pass  # Bip best-effort, sans impact fonctionnel
+            except Exception as exc:
+                # Bip best-effort, sans impact fonctionnel : tracer en debug
+                # plutôt que deviner une liste d'exceptions précises.
+                logger.debug("Bip feedback (qualite=%s) impossible: %s", qualite, exc)
 
     def _doit_pause(self, qualite: str) -> bool:
         """Détermine si on doit faire une pause interactive."""
@@ -1055,8 +1074,11 @@ class Game(threading.Thread):
                         self.nl_inst.beep()
                         time.sleep(0.15)
                         self.nl_inst.beep()
-                    except Exception:
-                        pass  # Bip best-effort, sans impact fonctionnel
+                    except Exception as exc:
+                        # Bip best-effort, sans impact fonctionnel : déclenché au
+                        # plus une fois par détection de position illégale (pas à
+                        # chaque tour de boucle) — tracer en debug ne spamme pas.
+                        logger.debug("Double bip (position illegale) impossible: %s", exc)
                     send_event("illegal_position", {"message": msg})
 
                 if check_tab_press() and warning_shown and last_tmp_board:
@@ -1214,8 +1236,10 @@ class Game(threading.Thread):
         if self._doit_pause(qualite):
             try:
                 self.nl_inst.beep()
-            except Exception:
-                pass  # Bip best-effort, sans impact fonctionnel
+            except Exception as exc:
+                # Bip best-effort, sans impact fonctionnel : tracer en debug
+                # plutôt que deviner une liste d'exceptions précises.
+                logger.debug("Bip (pause pedagogique, qualite=%s) impossible: %s", qualite, exc)
 
         # Toujours informer le navigateur (pour activer btn-reprendre et afficher qualité)
         # Calculer la séquence punitive si blunder/erreur
@@ -1470,8 +1494,11 @@ class Game(threading.Thread):
                         if not cancel_ref._cancel_led_off:
                             try:
                                 cancel_ref.nl_inst.turn_off_all_leds()
-                            except Exception:
-                                pass  # LED best-effort, sans impact fonctionnel
+                            except Exception as exc:
+                                # LED best-effort, sans impact fonctionnel : exécuté
+                                # une seule fois par thread daemon (pas à chaque
+                                # tour de boucle) — tracer en debug ne spamme pas.
+                                logger.debug("Extinction LEDs differee impossible: %s", exc)
                     threading.Thread(target=_do_led_off, daemon=True).start()
                     if warning_shown or _warning_sent:
                         send_event("turn", {

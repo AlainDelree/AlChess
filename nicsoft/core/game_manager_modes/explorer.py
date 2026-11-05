@@ -130,7 +130,9 @@ def explorer_cleanup() -> None:
     global _explorer_nl_inst, _explorer_session
     if _explorer_nl_inst is not None:
         try: _explorer_nl_inst.turn_off_all_leds()
-        except Exception: pass  # extinction LED best-effort — sans conséquence fonctionnelle
+        except ValueError: pass  # extinction LED best-effort — task_done() de la queue LED
+        # peut être appelé en trop par une course avec le worker LED (driver.py), sans
+        # conséquence fonctionnelle (voir Queue.task_done())
         try: _explorer_nl_inst.disconnect()
         except Exception as e:
             logger.warning(f"[EXPLORER] Déconnexion échiquier échouée : {e}")

@@ -5,6 +5,8 @@ import subprocess
 import sys
 import pathlib
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 import gi
 gi.require_version("Gtk", "3.0")
@@ -84,13 +86,19 @@ def launch_niclink(splash):
         cwd=str(niclink_dir)
     )
 
-    # Attendre que Flask réponde
+    # Attendre que Flask réponde — adresse locale constante (jamais distante),
+    # vérifiée précisément avant ouverture (schéma http + hôte 127.0.0.1)
+    url = f"http://127.0.0.1:{port}"
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "http" or parsed.hostname != "127.0.0.1":
+        raise ValueError(f"Adresse locale refusée : {url}")
+
     for _ in range(40):
         time.sleep(0.5)
         try:
-            urllib.request.urlopen(f"http://127.0.0.1:{port}", timeout=1)
+            urllib.request.urlopen(url, timeout=1)
             break
-        except Exception:
+        except urllib.error.URLError:
             continue  # boucle de polling, erreur transitoire pendant le démarrage du serveur
 
     splash.set_status("Prêt !")

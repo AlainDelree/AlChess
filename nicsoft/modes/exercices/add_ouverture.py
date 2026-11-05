@@ -98,7 +98,7 @@ def main():
                 try:
                     idx = int(choice) - 1
                     if 0 <= idx < len(book_list): chosen_book = book_list[idx][0].name; break
-                except Exception: pass  # saisie non numérique ou hors plage, redemander
+                except ValueError: pass  # saisie non numérique, redemander (hors plage déjà géré par le if)
                 print(red("Choix invalide."))
 
     parent_eco = resolve_parent_eco(eco)

@@ -10,6 +10,11 @@ import json
 import urllib.error
 import urllib.request
 
+from nicsoft.utils.net_safety import ensure_https
+
+_CLAUDE_URL = "https://api.anthropic.com/v1/messages"
+_OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+
 
 def call_claude(prompt_sys: str, messages, api_key: str, model: str) -> str:
     """messages : liste de {"role": "user"|"assistant", "content": str}, ou une
@@ -22,8 +27,9 @@ def call_claude(prompt_sys: str, messages, api_key: str, model: str) -> str:
         "system": prompt_sys,
         "messages": messages,
     }).encode("utf-8")
+    ensure_https(_CLAUDE_URL)
     req = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
+        _CLAUDE_URL,
         data=body,
         headers={
             "x-api-key": api_key,
@@ -47,8 +53,9 @@ def call_openai(prompt_sys: str, messages, api_key: str, model: str) -> str:
         "max_tokens": 300,
         "messages": [{"role": "system", "content": prompt_sys}] + messages,
     }).encode("utf-8")
+    ensure_https(_OPENAI_URL)
     req = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
+        _OPENAI_URL,
         data=body,
         headers={
             "Authorization": f"Bearer {api_key}",

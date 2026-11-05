@@ -155,7 +155,7 @@ def wait_for_initial_position(nl_inst, timeout: float = 10.0) -> None:
             print("   Rangez toutes les pieces, la partie demarrera automatiquement.")
             try:
                 nl_inst.signal_lights(1)
-            except Exception:
+            except AttributeError:
                 pass  # signal LED cosmétique — échec sans conséquence fonctionnelle
             last_message_time = time.time()
         elif time.time() - last_message_time >= 3.0:
