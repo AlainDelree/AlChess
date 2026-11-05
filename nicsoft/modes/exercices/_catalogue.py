@@ -74,6 +74,16 @@ def best_book_for(board: chess.Board, books: list[pathlib.Path]) -> tuple:
             best_path, best_entries = b, entries
     return best_path, best_entries
 
+
+def trouve_doublon(uci_moves: list, existing_inits: list) -> str:
+    """Retourne l'id existant si uci_moves correspond déjà à une séquence du
+    catalogue (comparaison exacte de la liste de coups), sinon None.
+    Mutualise une vérification répétée à l'identique dans explore_book.py et
+    eco_import.py (issue #281). Non utilisée pour search_eco_from_web, qui
+    construit volontairement un dict {tuple(coups): id} pour vérifier
+    jusqu'à 300 lignes en O(1) chacune plutôt qu'en O(n) via cette fonction."""
+    return next((eid for eid, einit in existing_inits if einit == uci_moves), None)
+
 # ── Lecture catalogue ─────────────────────────────────────────────────────────
 
 def load_existing_ids() -> list[str]:
