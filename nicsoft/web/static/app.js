@@ -4593,6 +4593,12 @@ let _exHumanColor = "w";  // couleur du joueur humain en exercice
 
 socket.on("exercice_init", (data) => {
   _exLaunching = false;
+  // Efface le feedback résiduel d'un exercice précédent (ex. erreur "livre
+  // introuvable" ou message de fin de ligne, tous deux affichés sans
+  // disparition automatique — duration 0) : sinon il reste visible au
+  // retour dans un nouvel exercice même une fois la cause corrigée.
+  const fbReset = document.getElementById("ex-feedback");
+  if (fbReset) { fbReset.style.display = "none"; fbReset.textContent = ""; }
   _exHumanColor = data.human_color === "black" ? "b" : "w";
   _exBoardFlipped = data.human_color === "black";
   // Retourner l'échiquier selon la couleur du joueur

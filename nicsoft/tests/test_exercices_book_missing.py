@@ -179,6 +179,58 @@ def test_livre_absent_recommencer_reaffiche_erreur_sans_boucle(monkeypatch, tmp_
     assert sum(1 for r in caplog.records if r.name == "NL exercices") == 1
 
 
+def test_nouvelle_session_apres_restauration_du_livre(monkeypatch, tmp_path, caplog):
+    """Issue #273 (suite #271) : après un retour depuis l'erreur "livre
+    manquant", une nouvelle session créée une fois le livre restauré ne doit
+    signaler aucune erreur et ne doit pas se terminer immédiatement — comme
+    quand on revient dans un exercice après avoir remis le livre en place."""
+    livre = tmp_path / "gm2001.bin"
+
+    # 1) Session avec livre manquant, sortie par une action de retour.
+    with caplog.at_level(logging.ERROR, logger="NL exercices"):
+        session1 = ExerciceSession(_FakeBoard(), OUVERTURE, "white", 3)
+    assert session1._book_missing is True
+
+    backend = _RecordingBackend()
+    monkeypatch.setattr(ihm_port, "_backend", backend)
+
+    thread1 = threading.Thread(target=session1.run, daemon=True)
+    thread1.start()
+    try:
+        thread1.join(timeout=0.3)
+        assert thread1.is_alive()
+        backend.action_queue.put({"type": "exercice_back"})
+        thread1.join(timeout=2.0)
+        assert not thread1.is_alive()
+    finally:
+        session1._running = False
+        thread1.join(timeout=2.0)
+
+    # 2) Livre restauré (livre minimal construit pour le test), nouvelle
+    # session — comme le fait le lanceur en relançant l'exercice.
+    key = chess.polyglot.zobrist_hash(chess.Board())
+    move = chess.Move.from_uci("e2e4")
+    _write_polyglot_book(livre, [(key, move, 10)])
+    monkeypatch.setattr(exercices_mod, "BOOK_DEFAULT", livre)
+
+    session2 = ExerciceSession(_FakeBoard(), OUVERTURE, "white", 3)
+    assert session2._book_missing is False
+
+    backend.events.clear()
+    thread2 = threading.Thread(target=session2.run, daemon=True)
+    thread2.start()
+    try:
+        thread2.join(timeout=0.3)
+        # Ne se termine pas immédiatement : en attente de la synchro initiale.
+        assert thread2.is_alive()
+        event_types = [e for e, _ in backend.events]
+        assert "exercice_sync_error" not in event_types
+        assert "exercice_wait_position" in event_types
+    finally:
+        session2._running = False
+        thread2.join(timeout=2.0)
+
+
 def test_livre_present_comportement_inchange(monkeypatch, tmp_path):
     livre = tmp_path / "gm2001.bin"
     board = chess.Board()
