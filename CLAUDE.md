@@ -45,11 +45,6 @@ cd ~/NicLink && python -m pytest nicsoft/tests/
 python -m nicsoft.modes.exercices.manage
 python -m nicsoft.modes.exercices.eco_import
 
-# Sauvegardes
-python -m nicsoft.utils.backup_manager                        # backup normal
-python -m nicsoft.utils.backup_manager --pin --label "label" # backup pinné (jamais supprimé)
-python -m nicsoft.utils.backup_manager --list
-
 # Installation sur nouveau PC
 pip install git+https://github.com/AlainDelree/AlChess.git
 ```
@@ -129,10 +124,7 @@ git checkout .                      # annuler les modifications non commitées
 
 Le push reste à l'appréciation du contexte : en session Claude Code directe d'Alain, il peut être fait normalement après vérification. En session Bridge_Agent, il est explicitement interdit à CCL — Alain pousse lui-même après revue des commits.
 
-Effectuer un backup pinné avant toute modification importante :
-```bash
-python -m nicsoft.utils.backup_manager --pin --label "avant-refactoring-X"
-```
+La protection du travail repose sur git : commits ciblés après chaque étape stable, retour arrière par `git checkout .` ou `git log`/`git reset` ciblé, push fait par Alain après revue.
 
 ## Fichiers de suivi
 

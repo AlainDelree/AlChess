@@ -12,7 +12,7 @@ Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avan
 - `niclink/` : `hid_backend.py` (USB hidapi pur), `driver.py` (Chessnut : thread FEN dédié, LEDs, beep), `virtual_board.py`, `nl_exceptions.py`.
 - `web/` : `alchess.py` orchestre ; `server.py` Flask-SocketIO + `_app_state` + détection moteurs (caches/events `*_status`) ; `static/app.js`, `templates/index.html`.
 - `core/` : `game_manager.py`, `board_adapter.py`, `ihm_port.py` (port neutre jeu↔IHM, voir ARC-001 ci-dessous). `engine/` UCI : `engine_manager players pgn_manager board_utils display analyse`.
-- `config.py` (`APP_DIR` auto), `platform_utils.py`, `modes/`, `utils/` (backups, timing, LEDs).
+- `config.py` (`APP_DIR` auto), `platform_utils.py`, `modes/`, `utils/` (timing, LEDs).
 
 **`_app_state`** : `menu`→`config`/`config_humain`/`retranscription`/`exercices`/`labo`→`connecting`→`playing`/`paused`→`game_over`.
 **Queues** : `event_queue` Py→nav ; `action_queue` nav→Py (partie) ; `menu_queue` nav→Py (menu).
@@ -24,10 +24,10 @@ Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avan
 - **Rodent IV** : Linux **sous-module** `engines/rodent-iv/` ; Win `engines/rodent-iv-win/` (hors sous-module). Détection=handshake UCI ; `setoption` **Personality→UCI_LimitStrength→UCI_Elo**.
 
 ## Bridge inter-agents
-Tâches via **GitHub Issues** (repo AlChess) label `for-linux` ; CCL travaille **exclusivement dans `~/NicLink`**. Lecture seule par défaut ; `mode_write` → **backup pinné avant modif**, **jamais `git push`** (Alain pousse après revue), rien de destructeur sans demande. Détail : `BRIDGE_AGENT_DOC.md`.
+Tâches via **GitHub Issues** (repo AlChess) label `for-linux` ; CCL travaille dans un worktree git isolé par issue. Lecture seule par défaut ; `mode_write` → protection du travail par git (commits ciblés, retour arrière par git), **jamais `git push`** (Alain pousse après revue), rien de destructeur sans demande. Détail : `BRIDGE_AGENT_DOC.md`.
 
 ## Conventions
-Début session : lire `TACHES.md`+`TESTS.md`, `git status`, branche `dev`. Commits ciblés ; `git checkout .` annule ; `dev`→`master` à une Release. Backup `python -m nicsoft.utils.backup_manager --pin --label "..."`. Lancer `cd ~/NicLink && python -m nicsoft.web`. USB (ThinkPad X1 Gen 7) : quirk `/etc/modprobe.d/chessnut.conf` = `options usbhid quirks=0x2d80:0x8003:0x40` ; launcher `/usr/bin/python3` ; udev `autosuspend=-1`. Voir `INSTALLATION_ALCHESS.md`.
+Début session : lire `TACHES.md`+`TESTS.md`, `git status`, branche `dev`. Commits ciblés ; `git checkout .` annule ; `dev`→`master` à une Release. Lancer `cd ~/NicLink && python -m nicsoft.web`. USB (ThinkPad X1 Gen 7) : quirk `/etc/modprobe.d/chessnut.conf` = `options usbhid quirks=0x2d80:0x8003:0x40` ; launcher `/usr/bin/python3` ; udev `autosuspend=-1`. Voir `INSTALLATION_ALCHESS.md`.
 
 ## Principes techniques
 - **ARC-001 — le moteur ne connaît pas l'interface** : `core/modes/niclink/utils/engine` n'importent jamais `nicsoft.web`. Ils passent par `nicsoft/core/ihm_port.py` (send_event, get_action, set_app_state, set_virtual_board, get/set_history, get_action_queue, get/set_raw_app_state, check_board_at_startup ; `app_state_proxy` reproduit l'ancien accès direct `web_server._app_state`/`.action_queue`). `nicsoft.web.alchess` branche l'implémentation réelle via `ihm_port.register_backend()` au démarrage ; sans branchement (tests, import isolé), un backend neutre répond sans effet de bord. Verrouillé par `nicsoft/tests/test_no_web_import.py`.

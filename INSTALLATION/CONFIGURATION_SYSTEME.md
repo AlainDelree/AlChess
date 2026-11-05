@@ -206,7 +206,6 @@ chmod +x ~/Desktop/NicLink.desktop
 | `~/NicLink/data/eco_*.tsv` | Catalogue ECO Lichess (à télécharger) |
 | `~/NicLink/games/` | Parties sauvegardées (PGN) |
 | `~/NicLink/logs/niclink.log` | Journal des erreurs |
-| `~/NicLink/backups/` | Sauvegardes pinned |
 
 ### Télécharger les fichiers ECO Lichess (pour les exercices)
 
