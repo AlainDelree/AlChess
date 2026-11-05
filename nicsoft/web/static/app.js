@@ -2426,7 +2426,7 @@ function _setNavControls(enabled) {
     if (!el) return;
     el.disabled = !enabled;
     el.style.opacity = enabled ? "1" : "0.4";
-    el.style.pointerEvents = enabled ? "" : "none";
+    el.style.pointerEvents = enabled ? "auto" : "none";
   });
 }
 
