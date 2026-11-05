@@ -5705,7 +5705,7 @@ function _retransUpdateTurn() {
 socket.on("retranscription_en_cours", (data) => {
   const banner = document.getElementById("retrans-resume-banner");
   const info   = document.getElementById("retrans-resume-info");
-  if (banner) banner.style.display = "";
+  if (banner) banner.style.display = "block";
   const coupsLabel = data.moves === 1 ? t("common.n_coup", {n: data.moves}) : t("common.n_coups", {n: data.moves});
   if (info) info.textContent = `${_localPlayerName(data.white, "config.blancs")} vs ${_localPlayerName(data.black, "config.noirs")} — ${coupsLabel}`;
 });
