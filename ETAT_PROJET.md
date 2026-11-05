@@ -31,7 +31,6 @@ _Généré le 2026-05-22_
 | `nicsoft/niclink/virtual_board.py` | Simulation échiquier sans hardware | 2026-05-08 |
 | `nicsoft/utils/debug.py` | `DEBUG_MODE` via `NICLINK_LOG=DEBUG` | 2026-05-08 |
 | `nicsoft/utils/timing.py` | `tlog()` — timings (DEBUG seulement) | 2026-05-02 |
-| `nicsoft/utils/backup_manager.py` | Sauvegardes pinnées/auto | 2026-05-02 |
 
 ### Frontend
 
@@ -97,7 +96,6 @@ _Généré le 2026-05-22_
 | Internationalisation EN | ✅ Stable | 606 clés |
 | Internationalisation DE | ⚠️ Partiel | 606 clés présentes — corrections résiduelles au fil tests |
 | Split-button menu physique/virtuel | ✅ Stable | |
-| Sauvegarde / backup pinné | ✅ Stable | `backup_manager.py` |
 | Logs structurés | ✅ Stable | `niclink.log`, bouton 📋 UI |
 | Réarchitecture multiplateforme | ✅ Stable | Mergée master (commit 9618efc) |
 | Portage Windows — driver hidapi | ✅ Stable | 16/16 tests Windows 11 (commit 4c78247) |

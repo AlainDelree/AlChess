@@ -145,5 +145,5 @@ Ces séquences sont candidates pour des tests d'état serveur (`pytest`) :
 ## 📋 Comment utiliser ce fichier
 
 **Smoke test** : cocher après chaque commit avant de continuer.  
-**Régression complète** : cocher avant chaque backup pinné "stable" ou distribution.  
+**Régression complète** : cocher avant chaque version "stable" ou distribution.  
 **Nouveau bug trouvé** : ajouter dans `HISTORIQUE_BUGS.md` + ajouter le test correspondant ici.

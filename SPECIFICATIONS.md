@@ -323,11 +323,7 @@ logs/
 ```
 
 ### Sauvegarde
-```bash
-python -m nicsoft.utils.backup_manager                        # backup automatique
-python -m nicsoft.utils.backup_manager --pin --label "label" # backup pinné (jamais supprimé)
-python -m nicsoft.utils.backup_manager --list
-```
+La protection du travail repose sur git : commits ciblés, retour arrière par git (`git checkout .`, `git reset`), push fait par Alain après revue.
 
 ---
 
