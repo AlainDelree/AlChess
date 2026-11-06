@@ -10,6 +10,7 @@ sont déplacées/renversées, avec deux modes d'affichage :
 L'utilisateur peut basculer entre les deux en appuyant sur Tab.
 """
 
+import os
 import sys
 import chess
 
@@ -142,31 +143,49 @@ def check_tab_press() -> bool:
     """
     Vérifie de façon non-bloquante si Tab a été pressé.
     Si oui, bascule le mode d'affichage et retourne True.
-    Fonctionne sur Linux/Mac. Sur Windows, retourne toujours False.
+    Fonctionne sur Linux/Mac. Sur Windows, ou hors terminal (lancement sans
+    console, entrée standard redirigée/fermée/absente), retourne toujours False.
 
     À appeler dans les boucles d'attente (wait_for_fish_move_on_board,
     wait_for_initial_position, etc.)
     """
+    if sys.stdin is None:
+        return False
+
+    try:
+        fd = sys.stdin.fileno()
+        if not os.isatty(fd):
+            return False
+    except (OSError, ValueError, AttributeError):
+        return False  # entrée standard fermée, absente, ou sans fileno()
+
     try:
         import select
         import tty
         import termios
+    except ImportError:
+        return False  # modules termios/tty absents (Windows)
 
-        fd = sys.stdin.fileno()
+    try:
         old = termios.tcgetattr(fd)
+    except termios.error:
+        return False  # terminal ne supportant pas termios malgré isatty()
+
+    try:
+        tty.setraw(fd)
+        r, _, _ = select.select([sys.stdin], [], [], 0)
+        if r:
+            ch = sys.stdin.read(1)
+            if ch == "\t":
+                toggle_display_mode()
+                return True
+    except (termios.error, OSError, ValueError):
+        pass  # erreur attendue sur certains terminaux
+    finally:
         try:
-            tty.setraw(fd)
-            r, _, _ = select.select([sys.stdin], [], [], 0)
-            if r:
-                ch = sys.stdin.read(1)
-                if ch == "\t":
-                    toggle_display_mode()
-                    return True
-        finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    except (ImportError, OSError):
-        pass  # erreur attendue sur certains terminaux (termios/tty indisponible,
-        # ou modules termios/tty absents sur Windows)
+        except termios.error:
+            pass  # best-effort : restaurer l'état du terminal
     return False
 
 

@@ -461,9 +461,9 @@ class LaboSession:
             logger.debug("quit : arrêt du moteur — erreur ignorée : %s", e)
         try:
             self.nl_inst.turn_off_all_leds()
-        except AttributeError:
+        except (AttributeError, ValueError):
             # extinction best-effort en fin de programme — pas bloquant si l'échiquier est déconnecté.
-            # turn_off_all_leds() ne fait que manipuler une queue.Queue interne (get_nowait/put), qui ne lève
-            # aucune exception documentée ; seul AttributeError est réaliste si nl_inst n'est pas pleinement
-            # initialisé (ex. objet sans _led_queue).
+            # AttributeError si nl_inst n'est pas pleinement initialisé (ex. objet sans _led_queue) ;
+            # ValueError via Queue.task_done() en cas de course avec le thread _led_worker_loop qui
+            # consomme la même queue — même risque que partout ailleurs où turn_off_all_leds() est appelé.
             pass

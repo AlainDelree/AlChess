@@ -5,6 +5,7 @@ import subprocess
 import sys
 import pathlib
 import time
+import http.client
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -98,8 +99,10 @@ def launch_niclink(splash):
         try:
             urllib.request.urlopen(url, timeout=1)
             break
-        except urllib.error.URLError:
+        except (urllib.error.URLError, ConnectionError, TimeoutError, http.client.HTTPException):
             continue  # boucle de polling, erreur transitoire pendant le démarrage du serveur
+            # (ex: connexion acceptée puis coupée par Werkzeug pas encore prêt —
+            # http.client.RemoteDisconnected n'est pas une sous-classe d'URLError)
 
     splash.set_status("Prêt !")
     time.sleep(0.4)

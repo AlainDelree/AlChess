@@ -6,6 +6,7 @@ changement depuis llm_explainer.py, point d'entrée utilisé par
 nicsoft/web/server.py.
 """
 
+import http.client
 import logging
 import urllib.error
 
@@ -51,7 +52,8 @@ def get_explanation(line_id, move_index, fen, move_san, opening_name, camp,
             explanation = call_openai(prompt_sys, prompt_user, api_key, model)
         else:
             explanation = call_claude(prompt_sys, prompt_user, api_key, model)
-    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError, TimeoutError) as e:
+    except (urllib.error.URLError, urllib.error.HTTPError, http.client.HTTPException,
+            ConnectionError, KeyError, ValueError, TimeoutError) as e:
         logger.warning(f"[LLM_EXPLAINER] Appel {provider} échoué : {e}")
         return "", []
 
@@ -82,7 +84,8 @@ def get_chat_response(question, state, language, config):
             response = call_openai(prompt_sys, prompt_user, api_key, model)
         else:
             response = call_claude(prompt_sys, prompt_user, api_key, model)
-    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError, TimeoutError) as e:
+    except (urllib.error.URLError, urllib.error.HTTPError, http.client.HTTPException,
+            ConnectionError, KeyError, ValueError, TimeoutError) as e:
         logger.warning(f"[LLM_EXPLAINER] Appel chat {provider} échoué : {e}")
         return "", []
 
@@ -121,7 +124,8 @@ def get_analyse_response(messages, context, language, config):
             response = call_openai(prompt_sys, clean_messages, api_key, model)
         else:
             response = call_claude(prompt_sys, clean_messages, api_key, model)
-    except (urllib.error.URLError, urllib.error.HTTPError, KeyError, ValueError, TimeoutError) as e:
+    except (urllib.error.URLError, urllib.error.HTTPError, http.client.HTTPException,
+            ConnectionError, KeyError, ValueError, TimeoutError) as e:
         logger.warning(f"[LLM_EXPLAINER] Appel analyse {provider} échoué : {e}")
         return None, str(e)
 

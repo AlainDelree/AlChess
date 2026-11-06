@@ -108,8 +108,10 @@ def disconnect() -> None:
         try:
             _write(bytes([0x21, 0x01, 0x01]))  # upload mode avant fermeture
             _dev.close()
-        except (OSError, IOError):
+        except (OSError, IOError, ValueError):
             pass  # best-effort avant déconnexion — le plateau peut déjà être débranché
+            # (ValueError('not open') : hidapi/hid.pyx lève ValueError, pas OSError,
+            # si le handle a déjà été fermé par un autre thread — course possible ici)
         _dev = None
     _connected = False
 
@@ -154,7 +156,9 @@ def get_fen() -> str:
         return ""
     try:
         buf = _dev.read(256, timeout_ms=50)
-    except (OSError, IOError) as e:
+    except (OSError, IOError, ValueError) as e:
+        # ValueError('not open') : hidapi/hid.pyx lève ValueError, pas OSError,
+        # quand le handle a déjà été fermé par un autre thread (course avec disconnect()).
         logger.warning("get_fen: erreur de lecture USB (plateau déconnecté ?) : %s", e)
         _dev = None
         _current_fen = ""

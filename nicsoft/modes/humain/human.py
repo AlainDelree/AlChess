@@ -769,8 +769,10 @@ class GameWeb(threading.Thread):
                 try:
                     raw = self.nl_inst.current_fen
                     phys = raw.strip().split()[0] if raw else ""
-                except AttributeError:
-                    continue  # boucle de polling rapide, erreur transitoire USB (type inattendu pour current_fen)
+                except (AttributeError, IndexError):
+                    # boucle de polling rapide, erreur transitoire USB (type inattendu pour current_fen) ;
+                    # IndexError : raw non vide mais composé uniquement d'espaces → .split() renvoie une liste vide.
+                    continue
                 if phys == expected:
                     # Position correcte — effacer avertissement si actif
                     if _illegal_reported[0]:

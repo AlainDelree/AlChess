@@ -752,9 +752,10 @@ class ExerciceSession:
             if raw and raw.strip().split()[0] == target_fen:
                 self.nl_inst.turn_off_all_leds()
                 return True
-        except (NoNicLinkFen, ValueError):
+        except (NoNicLinkFen, ValueError, IndexError):
             pass  # Lecture FEN physique — erreur transitoire normale (plateau non lu /
-            # course USB sur déconnexion), on retente plus bas
+            # course USB sur déconnexion), on retente plus bas ; IndexError : raw non vide
+            # mais composé uniquement d'espaces → .split() renvoie une liste vide.
 
         # Délai initial avant d'afficher les cases rouges
         if initial_delay > 0:
@@ -766,9 +767,10 @@ class ExerciceSession:
                     if raw and raw.strip().split()[0] == target_fen:
                         self.nl_inst.turn_off_all_leds()
                         return True
-                except (NoNicLinkFen, ValueError):
+                except (NoNicLinkFen, ValueError, IndexError):
                     pass  # Lecture FEN physique — erreur transitoire normale (plateau non lu /
-                    # course USB sur déconnexion), on retente plus bas
+                    # course USB sur déconnexion), on retente plus bas ; IndexError : raw non vide
+                    # mais composé uniquement d'espaces → .split() renvoie une liste vide.
 
         last_bad  = None
         bad_since = None
@@ -915,8 +917,10 @@ class ExerciceSession:
                 phys = raw.strip().split()[0] if raw else ""
                 if phys == expected:
                     return True
-            except AttributeError:
-                pass  # Boucle de polling physique — current_fen indisponible transitoirement, ignorée
+            except (AttributeError, IndexError):
+                # Boucle de polling physique — current_fen indisponible transitoirement, ignorée ;
+                # IndexError : raw non vide mais composé uniquement d'espaces → .split() renvoie une liste vide.
+                pass
             time.sleep(0.15)
         return False
 
