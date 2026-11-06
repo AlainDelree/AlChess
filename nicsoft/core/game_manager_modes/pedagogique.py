@@ -154,6 +154,8 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
         set_virtual_board(None)
         if nl_inst:
             try: nl_inst.turn_off_all_leds()
-            except Exception: pass  # extinction LED best-effort — sans conséquence fonctionnelle
+            except ValueError: pass  # extinction LED best-effort — task_done() de la queue LED
+            # peut être appelé en trop par une course avec le worker LED (driver.py), sans
+            # conséquence fonctionnelle (voir Queue.task_done())
         if web_server._app_state != "game_over":
             web_server._app_state = "menu"

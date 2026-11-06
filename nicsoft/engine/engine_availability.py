@@ -61,4 +61,8 @@ def rodent_available() -> bool:
             try:
                 engine.quit()
             except Exception:
-                pass  # nettoyage best-effort en fin de vie
+                # nettoyage best-effort en fin de vie : le moteur peut déjà être
+                # arrêté/mort (EngineTerminatedError), ne pas répondre à temps
+                # (TimeoutError) ou échouer pour une raison OS diverse — sans
+                # conséquence fonctionnelle ici, mais tracé pour le debug.
+                logger.debug("Échec quit() sur moteur de test Rodent IV", exc_info=True)

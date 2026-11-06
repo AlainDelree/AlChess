@@ -231,7 +231,7 @@ and turned on?"
             finally:
                 try:
                     self._led_queue.task_done()
-                except Exception:
+                except ValueError:
                     pass  # nettoyage best-effort — task_done() peut échouer sans conséquence
 
     # ──────────────────────────────────────────────

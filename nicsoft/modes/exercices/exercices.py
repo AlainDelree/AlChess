@@ -23,6 +23,7 @@ import threading
 import time
 
 from nicsoft.core.ihm_port import send_event, get_action, set_app_state, get_action_queue
+from nicsoft.niclink.nl_exceptions import NoNicLinkFen
 
 logger = logging.getLogger("NL exercices")
 logger.setLevel(logging.INFO)
@@ -751,8 +752,9 @@ class ExerciceSession:
             if raw and raw.strip().split()[0] == target_fen:
                 self.nl_inst.turn_off_all_leds()
                 return True
-        except Exception:
-            pass  # Lecture FEN physique — erreur transitoire normale, on retente plus bas
+        except (NoNicLinkFen, ValueError):
+            pass  # Lecture FEN physique — erreur transitoire normale (plateau non lu /
+            # course USB sur déconnexion), on retente plus bas
 
         # Délai initial avant d'afficher les cases rouges
         if initial_delay > 0:
@@ -764,8 +766,9 @@ class ExerciceSession:
                     if raw and raw.strip().split()[0] == target_fen:
                         self.nl_inst.turn_off_all_leds()
                         return True
-                except Exception:
-                    pass  # Lecture FEN physique — erreur transitoire normale, on retente plus bas
+                except (NoNicLinkFen, ValueError):
+                    pass  # Lecture FEN physique — erreur transitoire normale (plateau non lu /
+                    # course USB sur déconnexion), on retente plus bas
 
         last_bad  = None
         bad_since = None
@@ -905,15 +908,15 @@ class ExerciceSession:
                         self._retry_requested = True
                         self._running = False
                         return False
-            except Exception:
-                pass  # Boucle de polling — erreur transitoire ignorée
+            except AttributeError:
+                pass  # Boucle de polling — action mal formée (pas un dict), ignorée
             try:
                 raw  = self.nl_inst.current_fen
                 phys = raw.strip().split()[0] if raw else ""
                 if phys == expected:
                     return True
-            except Exception:
-                pass  # Boucle de polling physique — erreur transitoire ignorée
+            except AttributeError:
+                pass  # Boucle de polling physique — current_fen indisponible transitoirement, ignorée
             time.sleep(0.15)
         return False
 

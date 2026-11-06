@@ -62,7 +62,7 @@ def server_url():
         try:
             if requests.get(url, timeout=1).status_code == 200:
                 break
-        except Exception:
+        except requests.exceptions.RequestException:
             pass  # boucle de polling pendant le démarrage du serveur de test
         time.sleep(0.3)
 

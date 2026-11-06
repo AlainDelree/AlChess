@@ -19,8 +19,8 @@ def stop_modem_manager() -> None:
         )
         if result.returncode == 0:
             print("[NicLink] ModemManager arrêté.")
-    except Exception:
-        pass  # pas de sudo configuré ou ModemManager absent — pas bloquant
+    except (OSError, subprocess.TimeoutExpired):
+        pass  # pas de sudo configuré (binaire absent) ou commande trop lente — pas bloquant
 
 
 def start_modem_manager() -> None:
@@ -32,5 +32,5 @@ def start_modem_manager() -> None:
             ["sudo", "systemctl", "start", "ModemManager"],
             capture_output=True, timeout=5
         )
-    except Exception:
-        pass  # pas de sudo configuré ou ModemManager absent — pas bloquant
+    except (OSError, subprocess.TimeoutExpired):
+        pass  # pas de sudo configuré (binaire absent) ou commande trop lente — pas bloquant

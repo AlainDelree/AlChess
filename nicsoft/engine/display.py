@@ -164,8 +164,9 @@ def check_tab_press() -> bool:
                     return True
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    except Exception:
-        pass  # erreur attendue sur certains terminaux (termios/tty indisponible)
+    except (ImportError, OSError):
+        pass  # erreur attendue sur certains terminaux (termios/tty indisponible,
+        # ou modules termios/tty absents sur Windows)
     return False
 
 

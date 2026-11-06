@@ -213,7 +213,7 @@ class Game(threading.Thread):
         king_name = chess.square_name(king_sq)
         try:
             self.nl_inst.set_led(king_name, True)
-        except Exception:
+        except (ValueError, IndexError):
             pass  # LED indicative best-effort, sans impact fonctionnel
         while True:
             hardware = self.get_hardware_piece_placement()
@@ -224,8 +224,8 @@ class Game(threading.Thread):
                     if piece and piece.piece_type == chess.KING and piece.color == color:
                         try:
                             self.nl_inst.turn_off_all_leds()
-                        except Exception:
-                            pass  # LED best-effort, sans impact fonctionnel
+                        except Exception as exc:
+                            logger.debug("turn_off_all_leds (roi replace) a echoue: %s", exc)  # LED best-effort, sans impact fonctionnel
                         print(f"  Roi replace en {king_name}. La partie continue.")
                         return
                 except Exception as exc:
@@ -253,8 +253,8 @@ class Game(threading.Thread):
 
         try:
             self.nl_inst.turn_off_all_leds()
-        except Exception:
-            pass  # LED best-effort, sans impact fonctionnel
+        except Exception as exc:
+            logger.debug("turn_off_all_leds (fin de partie) a echoue: %s", exc)  # LED best-effort, sans impact fonctionnel
 
         self.game_over = True
         sys.exit(0)
@@ -358,8 +358,8 @@ class Game(threading.Thread):
         if self._leds_showing_turn:
             try:
                 self.nl_inst.turn_off_all_leds()
-            except Exception:
-                pass  # LED best-effort, sans impact fonctionnel
+            except Exception as exc:
+                logger.debug("turn_off_all_leds (ensure_updated_board) a echoue: %s", exc)  # LED best-effort, sans impact fonctionnel
             self._leds_showing_turn = False
 
         if hardware == self._last_raw_fen:
@@ -383,8 +383,8 @@ class Game(threading.Thread):
             if self._leds_showing_turn:
                 try:
                     self.nl_inst.turn_off_all_leds()
-                except Exception:
-                    pass  # LED best-effort, sans impact fonctionnel
+                except Exception as exc:
+                    logger.debug("turn_off_all_leds (handle_turn) a echoue: %s", exc)  # LED best-effort, sans impact fonctionnel
                 self._leds_showing_turn = False
 
             is_white_turn = (self.board.turn == chess.WHITE)
@@ -423,22 +423,22 @@ class Game(threading.Thread):
                     self.nl_inst.show_board_diff(self.board, hw_board)
                     king_sq = chess.square_name(self.board.king(self.board.turn))
                     self.nl_inst.set_led(king_sq, True)
-                except Exception:
-                    pass  # LED/affichage diff best-effort, sans impact fonctionnel
+                except Exception as exc:
+                    logger.debug("Affichage diff/LED echec (echec au roi): %s", exc)  # LED/affichage diff best-effort, sans impact fonctionnel
         elif diffs > 4:
             print("⚠  Plusieurs pieces ont bouge -- remettez l'échiquier en ordre.")
             if hw_board:
                 try:
                     self.nl_inst.show_board_diff(self.board, hw_board)
-                except Exception:
-                    pass  # LED/affichage diff best-effort, sans impact fonctionnel
+                except Exception as exc:
+                    logger.debug("Affichage diff echec (plusieurs pieces bougees): %s", exc)  # LED/affichage diff best-effort, sans impact fonctionnel
         else:
             print("⚠  Coup illegal -- remettez la piece a sa place.")
             if hw_board:
                 try:
                     self.nl_inst.show_board_diff(self.board, hw_board)
-                except Exception:
-                    pass  # LED/affichage diff best-effort, sans impact fonctionnel
+                except Exception as exc:
+                    logger.debug("Affichage diff echec (coup illegal): %s", exc)  # LED/affichage diff best-effort, sans impact fonctionnel
         print(f"   Position attendue : {expected}")
         print(f"   Position detectee : {hardware}")
         print()
@@ -579,8 +579,8 @@ def main():
         if _nl_ref[0] is not None:
             try:
                 _nl_ref[0].turn_off_all_leds()
-            except Exception:
-                pass  # LED best-effort, sans impact fonctionnel
+            except Exception as exc:
+                logger.debug("turn_off_all_leds (arret urgence) a echoue: %s", exc)  # LED best-effort, sans impact fonctionnel
         # Nettoyage du fichier tmp si la partie n'a pas ete sauvegardee
         g = _game_ref[0]
         if g and os.path.exists(g.tmp_path):
@@ -618,8 +618,8 @@ def main():
         if nl_inst is not None:
             try:
                 nl_inst.turn_off_all_leds()
-            except Exception:
-                pass  # LED best-effort, sans impact fonctionnel
+            except Exception as exc:
+                logger.debug("turn_off_all_leds (fin de main()) a echoue: %s", exc)  # LED best-effort, sans impact fonctionnel
 
 
 
@@ -692,8 +692,8 @@ class GameWeb(threading.Thread):
         try:
             sig = 3 if is_white else 2
             self.nl_inst.signal_lights(sig)
-        except Exception:
-            pass  # LED best-effort, sans impact fonctionnel
+        except Exception as exc:
+            logger.debug("signal_lights (debut de tour) a echoue: %s", exc)  # LED best-effort, sans impact fonctionnel
 
         fen_avant = self.board.fen()
         expected  = self.board.board_fen()
@@ -734,7 +734,7 @@ class GameWeb(threading.Thread):
                         try:
                             self.nl_inst.set_led(from_sq, True)
                             self.nl_inst.set_led(to_sq, True)
-                        except Exception:
+                        except (ValueError, IndexError):
                             pass  # LED best-effort, sans impact fonctionnel
                         self.save_pgn_tmp()
                         send_event("undo_move", {
@@ -769,8 +769,8 @@ class GameWeb(threading.Thread):
                 try:
                     raw = self.nl_inst.current_fen
                     phys = raw.strip().split()[0] if raw else ""
-                except Exception:
-                    continue  # boucle de polling rapide, erreur transitoire USB
+                except AttributeError:
+                    continue  # boucle de polling rapide, erreur transitoire USB (type inattendu pour current_fen)
                 if phys == expected:
                     # Position correcte — effacer avertissement si actif
                     if _illegal_reported[0]:
@@ -807,8 +807,8 @@ class GameWeb(threading.Thread):
                         self.nl_inst.beep()
                         time.sleep(0.15)
                         self.nl_inst.beep()
-                    except Exception:
-                        pass  # Bip best-effort, sans impact fonctionnel
+                    except Exception as exc:
+                        logger.debug("beep (position illegale) a echoue: %s", exc)  # Bip best-effort, sans impact fonctionnel
                     send_event("illegal_position", msg)
 
         pos_watcher = threading.Thread(target=watch_position, daemon=True)
@@ -930,7 +930,7 @@ class GameWeb(threading.Thread):
                         best_san = bm
                     try:
                         self.nl_inst.set_move_leds(bm)
-                    except Exception:
+                    except (ValueError, IndexError):
                         pass  # LED best-effort, sans impact fonctionnel
                     send_event("best_move", {"uci": bm, "san": best_san})
                 continue

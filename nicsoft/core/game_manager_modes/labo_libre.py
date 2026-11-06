@@ -135,6 +135,8 @@ def _run_labo_libre(player_name, playing_white, start_fen, pause, analyse_active
     finally:
         if nl_inst:
             try: nl_inst.turn_off_all_leds()
-            except Exception: pass  # extinction LED best-effort — sans conséquence fonctionnelle
+            except ValueError: pass  # extinction LED best-effort — task_done() de la queue LED
+            # peut être appelé en trop par une course avec le worker LED (driver.py), sans
+            # conséquence fonctionnelle (voir Queue.task_done())
         if web_server._app_state not in ("menu",):
             web_server._app_state = "menu"

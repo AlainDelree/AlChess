@@ -91,7 +91,7 @@ def do_import(board: chess.Board, uci_history: list, san_history: list,
                 if 0 <= idx < len(book_list):
                     chosen_book = book_list[idx][0].name
                     break
-            except Exception:
+            except ValueError:
                 pass  # Saisie interactive : choix non numérique ignoré, redemande
             print(red("Choix invalide."))
 

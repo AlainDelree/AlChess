@@ -13,7 +13,7 @@ Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avan
 - `web/` : `alchess.py` orchestre ; `server.py` Flask-SocketIO + `_app_state` + détection moteurs (caches/events `*_status`) ; `static/app.js`, `templates/index.html`.
 - `core/` : `game_manager.py` (façade, réexporte les lanceurs par mode depuis `core/game_manager_modes/` — `pedagogique humain retranscription exercices labo` + `state.py` pour l'état partagé, découpé issue #278), `board_adapter.py`, `config_manager.py`, `ihm_port.py` (port neutre jeu↔IHM, voir ARC-001 ci-dessous). `engine/` UCI : `engine_manager` (point d'entrée réexportant `move_quality engine_analysis uci_engine engine_detection engine_availability maia_engine rodent_engine`, découpé issue #276) `players pgn_manager board_utils display analyse`.
 - `modes/` (`pedagogique humain exercices retranscription labo`) : dans `exercices/`, `explore_book.py` et `eco_import.py` sont des façades réexportant des modules par rôle (`*_cli/_display/_import/_web`, + `eco_import_data.py`) ; `opening_explorer/llm_explainer.py` façade réexportant `llm_prompts llm_cache llm_functions llm_provider tts_engine sources explorer_session`.
-- `config.py` (`APP_DIR` auto), `platform_utils.py`, `utils/` (timing, LEDs).
+- `config.py` (`APP_DIR` auto), `platform_utils.py`, `utils/` (timing, LEDs, `net_safety.py` — vérification de schéma avant ouverture d'une adresse distante avec urllib, n'importe jamais `nicsoft.web`, issue #288).
 
 **`_app_state`** : `menu`→`config`/`config_humain`/`retranscription`/`exercices`/`labo`→`connecting`→`playing`/`paused`→`game_over`.
 **Queues** : `event_queue` Py→nav ; `action_queue` nav→Py (partie) ; `menu_queue` nav→Py (menu).

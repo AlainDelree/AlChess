@@ -108,7 +108,7 @@ def disconnect() -> None:
         try:
             _write(bytes([0x21, 0x01, 0x01]))  # upload mode avant fermeture
             _dev.close()
-        except Exception:
+        except (OSError, IOError):
             pass  # best-effort avant déconnexion — le plateau peut déjà être débranché
         _dev = None
     _connected = False

@@ -20,6 +20,7 @@ import re
 import sys
 import urllib.request
 from nicsoft.config import DATA_DIR
+from nicsoft.utils.net_safety import ensure_https
 
 OUTPUT = DATA_DIR / "eco_hierarchy.json"
 API_URL = "https://en.wikipedia.org/w/api.php?action=parse&page=List_of_ECO_codes&prop=wikitext&format=json"
@@ -88,6 +89,7 @@ def clean_moves(raw: str) -> str:
 
 def download_wikitext() -> str:
     print("Téléchargement depuis Wikipedia...")
+    ensure_https(API_URL)
     req = urllib.request.Request(
         API_URL,
         headers={"User-Agent": "NicLink/1.0 (chess opening tool; contact via github)"}

@@ -17,6 +17,8 @@ import re
 import subprocess
 import tempfile
 
+from nicsoft.utils.net_safety import ensure_https
+
 logger = logging.getLogger("niclink.opening_explorer.tts")
 
 _current_tts_process: "subprocess.Popen | None" = None
@@ -89,10 +91,12 @@ def check_internet() -> bool:
     """Test rapide (2s max) de connectivité, pour décider edge-tts vs Web Speech API."""
     try:
         import urllib.request
-        urllib.request.urlopen("https://api.edge-tts.com", timeout=2)
+        url = "https://api.edge-tts.com"
+        ensure_https(url)
+        urllib.request.urlopen(url, timeout=2)
         return True
-    except Exception:
-        pass  # edge-tts inaccessible, on tente le test suivant de la cascade
+    except Exception as e:
+        logger.debug("edge-tts inaccessible (%s), on tente le test suivant de la cascade", e)
     # Fallback : ping un DNS public
     try:
         import socket
