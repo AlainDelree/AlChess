@@ -176,6 +176,15 @@ def _run_detect_chessnut():
         logger.info(f"detect_chessnut.py — appel best-effort échoué : {e}")
 
 
+def _maybe_open_browser(url):
+    """Ouvre `url` dans le navigateur par défaut, sauf lancement sans
+    utilisateur (ALCHESS_SKIP_BOARD=1) ou vérification explicite demandant
+    l'absence de navigateur (ALCHESS_NO_BROWSER=1)."""
+    if os.environ.get("ALCHESS_SKIP_BOARD") == "1" or os.environ.get("ALCHESS_NO_BROWSER") == "1":
+        return
+    webbrowser.open(url)
+
+
 def _check_board_at_startup():
     if os.environ.get("ALCHESS_SKIP_BOARD") == "1":
         return  # tests e2e — pas d'échiquier physique à solliciter
@@ -273,7 +282,7 @@ def main():
     _port = _find_free_port(5000)
     threading.Thread(target=start_server, kwargs={"host": "127.0.0.1", "port": _port}, daemon=True).start()
     time.sleep(0.5)  # laisser Flask démarrer
-    webbrowser.open(f"http://127.0.0.1:{_port}")
+    _maybe_open_browser(f"http://127.0.0.1:{_port}")
     time.sleep(1.5)  # laisser la page charger avant d'envoyer app_state
     set_app_state("menu")
     if os.environ.get("ALCHESS_SKIP_BOARD") != "1":
