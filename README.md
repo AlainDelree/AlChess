@@ -133,7 +133,7 @@ Contributions are welcome! Open an **Issue** to report a bug or suggest a featur
 
 ### License
 
-GNU General Public License v3.0 — see [LICENSE](LICENSE).
+Origins and license. AlChess is derived from NicLink (https://github.com/nicvagn/NicLink), a Python interface for the Chessnut Air by nicvagn, released under the GNU General Public License v3.0. It started from NicLink's code (notably the USB driver in nicsoft/niclink/) and has since been substantially modified and extended: web interface, training modes, engine support, Windows support. Modifications © 2026 Alain Delrée. AlChess is distributed under the same license, GNU General Public License v3.0 — see [LICENSE](LICENSE). Third-party components bundled with AlChess are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ---
 
@@ -263,4 +263,4 @@ Les contributions sont les bienvenues ! Ouvrez une **Issue** pour signaler un bu
 
 ### Licence
 
-GNU General Public License v3.0 — voir [LICENSE](LICENSE).
+Origine et licence. AlChess dérive de NicLink (https://github.com/nicvagn/NicLink), une interface Python pour le Chessnut Air de nicvagn, publiée sous licence GNU General Public License v3.0. Il est parti du code de NicLink (notamment le pilote USB dans nicsoft/niclink/) puis a été largement modifié et étendu : interface web, modes d'entraînement, moteurs, prise en charge de Windows. Modifications © 2026 Alain Delrée. AlChess est distribué sous la même licence, GNU General Public License v3.0 — voir [LICENSE](LICENSE). Les composants tiers fournis avec AlChess sont listés dans [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
