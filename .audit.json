@@ -19,5 +19,9 @@
     "data/books",
     "data/mes_lignes",
     "engines"
+  ],
+  "exceptions": [
+    {"regle": "MAN-004", "raison": "2026-11-07 — Le dossier data/ ne contient que des données jetables (réglages, joueurs, lignes d'ouverture, parties, journaux), perdables sans conséquence ; le code est sauvegardé par git sur GitHub. Aucune restauration de sauvegarde testée : risque accepté. À revoir si des données critiques y sont un jour stockées."},
+    {"regle": "MAN-003", "raison": "2026-11-07 — Sans objet : application locale mono-utilisateur, sans comptes ni droits d'accès ; le serveur n'écoute que sur 127.0.0.1."}
   ]
 }
