@@ -201,8 +201,6 @@ def check_physically_present() -> bool:
     physique du périphérique.
     """
     global _connected
-    if not _connected or _dev is None:
-        return False
     try:
         for info in hid.enumerate(VENDOR_ID, 0):
             if info['product_id'] in PRODUCT_IDS:
