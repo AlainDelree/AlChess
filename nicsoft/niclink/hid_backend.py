@@ -36,6 +36,15 @@ _last_write: float = 0.0
 _connected_product_id: int | None = None
 _connected: bool = False  # True entre un connect() réussi et une erreur de lecture/un disconnect()
 
+# Protège les écritures de _dev/_connected/_connected_product_id : connect(),
+# get_fen() et disconnect() peuvent s'exécuter sur des fils différents (ex. un
+# fen_reader de session précédente encore vivant pendant qu'une nouvelle
+# connexion s'établit — issue #292). connect() et get_fen() travaillent sur une
+# référence locale au périphérique pendant leurs I/O (potentiellement lentes ou
+# bloquantes) et ne touchent la variable partagée que sous ce verrou, le temps
+# d'une affectation — jamais pendant un appel USB.
+_state_lock = threading.Lock()
+
 
 def _list_paths() -> list[tuple[bytes, int]]:
     """Retourne les (path, product_id) HID des Chessnut Air détectés."""
@@ -51,16 +60,24 @@ def _list_paths() -> list[tuple[bytes, int]]:
     return paths
 
 
-def _write(data: bytes) -> None:
-    """Écriture HID avec délai minimum entre deux écritures (idem C++ WRITE_INTERVAL)."""
+def _write_to(dev: "hid.device | None", data: bytes) -> None:
+    """Écriture HID sur une référence locale, avec délai minimum entre deux
+    écritures (idem C++ WRITE_INTERVAL). Ne touche pas la variable partagée _dev."""
     global _last_write
     with _write_lock:
         elapsed = time.time() - _last_write
         if elapsed < WRITE_INTERVAL:
             time.sleep(WRITE_INTERVAL - elapsed)
-        if _dev is not None:
-            _dev.write(data)
+        if dev is not None:
+            dev.write(data)
         _last_write = time.time()
+
+
+def _write(data: bytes) -> None:
+    """Écriture HID sur le périphérique courant (_dev)."""
+    with _state_lock:
+        dev = _dev
+    _write_to(dev, data)
 
 
 def connect() -> None:
@@ -72,48 +89,91 @@ def connect() -> None:
     Note : dans le C++ original, switchUploadMode() était appelé avant open_path(),
     donc c'était un no-op (b_write vérifie connectStatus). On ne l'envoie pas ici
     pour éviter un bip parasite causé par la commande de switch de mode.
+
+    Travaille sur une référence locale au périphérique (`dev`) du début à la
+    fin : un fil de lecture (get_fen()) ou une déconnexion (disconnect()) d'une
+    session précédente, encore vivants en parallèle, peuvent librement remettre
+    la variable partagée _dev à None sans jamais perturber cette connexion en
+    cours — elle ne lit/écrit `dev` qu'après l'avoir publiée dans l'état partagé,
+    une fois la connexion établie (issue #292 : plus d'AttributeError sur un
+    _dev redevenu None pendant l'attente du premier paquet).
     """
     global _dev, _current_fen, _connected_product_id, _connected
     paths = _list_paths()
     if not paths:
         raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
     path, product_id = paths[0]
-    _dev = hid.device()
-    _dev.open_path(path)
+    dev = hid.device()
+    try:
+        dev.open_path(path)
 
-    _connected_product_id = product_id
-    _connected = True
+        time.sleep(2)  # attente initialisation hardware (identique C++)
+        _write_to(dev, bytes([0x0b, 0x04, 0x02, 0x58, 0x00, 0xc8]))  # beep (600Hz, 200ms)
+        _write_to(dev, bytes([0x21, 0x01, 0x00]))  # realtime mode — le plateau envoie sa position en continu
+
+        # Attendre le premier paquet FEN valide (le plateau peut prendre ~600ms)
+        # pour que driver.py lise un FEN non-vide dès la première tentative.
+        fen = ""
+        for _ in range(30):  # jusqu'à 3s (30 × 100ms)
+            buf = dev.read(256, timeout_ms=100)
+            if buf and len(buf) > 1:
+                decoded = _decode_fen(bytes(buf))
+                if decoded:
+                    fen = decoded
+                    break
+    except (OSError, IOError, ValueError) as e:
+        # Connexion perdue pendant l'établissement (plateau débranché juste après
+        # l'ouverture, ou pendant le handshake) — jamais d'AttributeError, toujours
+        # l'exception que les lanceurs de mode savent déjà afficher comme
+        # "échiquier non détecté" (NicLinkManager.__init__ attrape RuntimeError).
+        try:
+            dev.close()
+        except (OSError, IOError, ValueError):
+            pass  # best-effort — le plateau peut déjà être débranché
+        _reset_state()
+        raise RuntimeError("Chessnut Air déconnecté pendant la connexion") from e
+
+    with _state_lock:
+        _dev = dev
+        _current_fen = fen
+        _connected_product_id = product_id
+        _connected = True
     name = _PRODUCT_NAMES.get(product_id, "modèle inconnu")
     logger.info("Chessnut connecté : PID=0x%04x (%s)", product_id, name)
 
-    time.sleep(2)  # attente initialisation hardware (identique C++)
-    _write(bytes([0x0b, 0x04, 0x02, 0x58, 0x00, 0xc8]))  # beep (600Hz, 200ms)
-    _write(bytes([0x21, 0x01, 0x00]))  # realtime mode — le plateau envoie sa position en continu
 
-    # Attendre le premier paquet FEN valide (le plateau peut prendre ~600ms)
-    # pour que driver.py lise un FEN non-vide dès la première tentative.
-    for _ in range(30):  # jusqu'à 3s (30 × 100ms)
-        buf = _dev.read(256, timeout_ms=100)
-        if buf and len(buf) > 1:
-            fen = _decode_fen(bytes(buf))
-            if fen:
-                _current_fen = fen
-                break
+def _reset_state() -> None:
+    """Remet l'état partagé du module à zéro (après un échec de connexion),
+    pour qu'un nouvel essai (y compris via le bouton de reconnexion) reparte
+    d'un état propre sans redémarrer l'application."""
+    global _dev, _current_fen, _connected_product_id, _connected
+    with _state_lock:
+        _dev = None
+        _current_fen = ""
+        _connected_product_id = None
+        _connected = False
 
 
 def disconnect() -> None:
-    """Repasse en upload mode et ferme la connexion HID."""
+    """Repasse en upload mode et ferme la connexion HID.
+
+    Récupère la référence partagée puis la remet à None sous verrou avant de
+    faire l'I/O (potentiellement lente) sur la référence locale : un get_fen()
+    concurrent ne peut plus jamais voir une référence à moitié fermée.
+    """
     global _dev, _connected
-    if _dev is not None:
+    with _state_lock:
+        dev = _dev
+        _dev = None
+        _connected = False
+    if dev is not None:
         try:
-            _write(bytes([0x21, 0x01, 0x01]))  # upload mode avant fermeture
-            _dev.close()
+            _write_to(dev, bytes([0x21, 0x01, 0x01]))  # upload mode avant fermeture
+            dev.close()
         except (OSError, IOError, ValueError):
             pass  # best-effort avant déconnexion — le plateau peut déjà être débranché
             # (ValueError('not open') : hidapi/hid.pyx lève ValueError, pas OSError,
             # si le handle a déjà été fermé par un autre thread — course possible ici)
-        _dev = None
-    _connected = False
 
 
 def is_connected() -> bool:
@@ -150,25 +210,47 @@ def get_fen() -> str:
     Retourne le dernier FEN valide reçu (ou "" si aucune donnée).
     Si la lecture USB échoue (plateau débranché en cours de session),
     réinitialise l'état de connexion sans lever d'exception.
+
+    Travaille sur une référence locale (`dev`), capturée sous verrou puis lue
+    hors verrou — l'opération USB peut bloquer jusqu'à 50ms sans retenir
+    quiconque appellerait connect()/disconnect() entre-temps. Si la lecture
+    échoue, l'état partagé n'est remis à zéro que s'il référence encore CE
+    même périphérique : un fil de lecture d'une session abandonnée ne peut
+    alors jamais écraser une connexion plus récente déjà établie (issue #292).
     """
-    global _current_fen, _dev, _connected
-    if _dev is None:
+    global _current_fen
+    with _state_lock:
+        dev = _dev
+    if dev is None:
         return ""
     try:
-        buf = _dev.read(256, timeout_ms=50)
+        buf = dev.read(256, timeout_ms=50)
     except (OSError, IOError, ValueError) as e:
         # ValueError('not open') : hidapi/hid.pyx lève ValueError, pas OSError,
         # quand le handle a déjà été fermé par un autre thread (course avec disconnect()).
         logger.warning("get_fen: erreur de lecture USB (plateau déconnecté ?) : %s", e)
-        _dev = None
+        _reset_state_if_current(dev)
         _current_fen = ""
-        _connected = False
         return ""
     if buf and len(buf) > 1:
         fen = _decode_fen(bytes(buf))
         if fen:
             _current_fen = fen
     return _current_fen
+
+
+def _reset_state_if_current(dev: "hid.device | None") -> None:
+    """Remet _dev/_connected à zéro seulement si _dev est toujours `dev`.
+
+    Évite qu'une erreur de lecture tardive, provenant d'un fil de lecture
+    d'une session déjà abandonnée, n'efface la référence d'une connexion plus
+    récente établie entre-temps par connect().
+    """
+    global _dev, _connected
+    with _state_lock:
+        if _dev is dev:
+            _dev = None
+            _connected = False
 
 
 def _decode_fen(data: bytes) -> str:

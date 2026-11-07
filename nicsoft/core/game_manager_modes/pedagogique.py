@@ -157,5 +157,12 @@ def _run_pedagogique(player_name, playing_white, level, pause, analyse_active, b
             except ValueError: pass  # extinction LED best-effort — task_done() de la queue LED
             # peut être appelé en trop par une course avec le worker LED (driver.py), sans
             # conséquence fonctionnelle (voir Queue.task_done())
+            # Arrêter le fil de lecture USB (fen_reader) et libérer le périphérique
+            # avant qu'une prochaine partie n'en crée un nouveau — sinon l'ancien fil
+            # continue d'appeler hid_backend.get_fen() en parallèle de la connexion
+            # suivante (issue #292 : 'NoneType' object has no attribute 'read').
+            try: nl_inst.disconnect()
+            except Exception as e:
+                logger.warning(f"Déconnexion échiquier échouée : {e}")
         if web_server._app_state != "game_over":
             web_server._app_state = "menu"
