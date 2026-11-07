@@ -133,10 +133,19 @@ def _setup_logging():
 
 
 def _stop_modem_manager():
+    """N'arrête jamais ModemManager lors d'un lancement sans échiquier
+    (ALCHESS_SKIP_BOARD=1, ex. tests de bout en bout) — un tel lancement n'a
+    aucune raison de toucher à un service système."""
+    if os.environ.get("ALCHESS_SKIP_BOARD") == "1":
+        return
     stop_modem_manager()
 
 
 def _start_modem_manager():
+    """Symétrique de _stop_modem_manager : ne relance pas non plus
+    ModemManager en l'absence d'échiquier, puisqu'il n'a jamais été arrêté."""
+    if os.environ.get("ALCHESS_SKIP_BOARD") == "1":
+        return
     start_modem_manager()
 
 
