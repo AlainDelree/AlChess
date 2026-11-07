@@ -103,6 +103,17 @@ def connect() -> None:
     if not paths:
         raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
     path, product_id = paths[0]
+    # Fermer la connexion déjà ouverte (ex. vérification du démarrage) avant d'en ouvrir une
+    # nouvelle : le périphérique n'accepte qu'un seul handle à la fois (OSError « open failed »).
+    with _state_lock:
+        old_dev = _dev
+        _dev = None
+        _connected = False
+    if old_dev is not None:
+        try:
+            old_dev.close()
+        except (OSError, IOError, ValueError) as e:
+            logger.debug("connect: fermeture de l'ancien handle échouée : %s", e)
     dev = hid.device()
     try:
         dev.open_path(path)
