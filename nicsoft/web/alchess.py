@@ -172,7 +172,8 @@ def _run_detect_chessnut():
     if not detect_script.exists():
         return
     try:
-        result = subprocess.run(
+        # Interpréteur courant et chemin de script fixes, aucune entrée externe
+        result = subprocess.run(  # noqa: S603  # nosec B603
             [sys.executable, str(detect_script)], capture_output=True, text=True, timeout=15
         )
         if result.returncode == 1:

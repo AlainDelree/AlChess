@@ -219,8 +219,11 @@ def _telecharger_fichier_rodent(url: str, dest_path: pathlib.Path) -> None:
         raise ValueError(f"Adresse de téléchargement refusée (https:// requis) : {url}")
 
     hasher = hashlib.sha256()
-    with urllib.request.urlopen(url, timeout=_RODENT_WIN_DOWNLOAD_TIMEOUT) as response, \
-            open(dest_path, "wb") as out:
+    with (
+        # URL construite depuis une base https constante, vérifiée ci-dessus
+        urllib.request.urlopen(url, timeout=_RODENT_WIN_DOWNLOAD_TIMEOUT) as response,  # noqa: S310  # nosec B310
+        open(dest_path, "wb") as out,
+    ):
         while True:
             chunk = response.read(65536)
             if not chunk:

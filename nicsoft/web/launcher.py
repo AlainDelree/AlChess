@@ -82,7 +82,8 @@ def launch_niclink(splash):
     venv_python = niclink_dir / "venv" / "bin" / "python"
 
     splash.set_status("Lancement de NicLink…")
-    subprocess.Popen(
+    # Chemin venv local et module fixes, aucune entrée externe
+    subprocess.Popen(  # noqa: S603  # nosec B603
         [str(venv_python), "-m", "nicsoft.web"],
         cwd=str(niclink_dir)
     )
@@ -97,7 +98,8 @@ def launch_niclink(splash):
     for _ in range(40):
         time.sleep(0.5)
         try:
-            urllib.request.urlopen(url, timeout=1)
+            # Adresse locale constante, vérifiée précisément ci-dessus
+            urllib.request.urlopen(url, timeout=1)  # nosec B310
             break
         except (urllib.error.URLError, ConnectionError, TimeoutError, http.client.HTTPException):
             continue  # boucle de polling, erreur transitoire pendant le démarrage du serveur

@@ -38,7 +38,8 @@ def call_claude(prompt_sys: str, messages, api_key: str, model: str) -> str:
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    # URL constante en https, vérifiée par ensure_https ci-dessus
+    with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310  # nosec B310
         data = json.loads(resp.read().decode("utf-8"))
     return data["content"][0]["text"]
 
@@ -63,6 +64,7 @@ def call_openai(prompt_sys: str, messages, api_key: str, model: str) -> str:
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    # URL constante en https, vérifiée par ensure_https ci-dessus
+    with urllib.request.urlopen(req, timeout=15) as resp:  # noqa: S310  # nosec B310
         data = json.loads(resp.read().decode("utf-8"))
     return data["choices"][0]["message"]["content"]

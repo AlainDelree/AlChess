@@ -81,7 +81,8 @@ def ajouter_regle_udev(product_id: int, dry_run: bool = False) -> bool:
     try:
         with open(UDEV_RULES_FILE, "a", encoding="utf-8") as f:
             f.write(lignes_a_ajouter)
-        os.system("udevadm control --reload-rules && udevadm trigger")
+        # Commande shell constante, aucune entrée externe
+        os.system("udevadm control --reload-rules && udevadm trigger")  # noqa: S605, S607  # nosec B605 B607
         return True
     except PermissionError:
         print(f"[WARN] Impossible d'écrire dans {UDEV_RULES_FILE} — relancer avec sudo "

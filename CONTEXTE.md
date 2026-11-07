@@ -1,6 +1,6 @@
 # AlChess — Contexte projet
 
-Briefing CCL. Vérifié 5 nov. 2026 (branche `worktree-issue-284`).
+Briefing CCL. Vérifié 7 nov. 2026 (branche `worktree-issue-296`).
 
 ## Maintenance de ce fichier
 Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avancement majeur, mets à jour ce CONTEXTE.md dans le même commit.
@@ -29,7 +29,7 @@ Tâches via **GitHub Issues** (repo AlChess) label `for-linux` ; CCL travaille d
 
 ## Conventions
 Début session : lire `TACHES.md`+`TESTS.md`, `git status`, branche `master`. Commits ciblés ; `git checkout .` annule. Lancer `cd ~/NicLink && python -m nicsoft.web`. USB (ThinkPad X1 Gen 7) : quirk `/etc/modprobe.d/chessnut.conf` = `options usbhid quirks=0x2d80:0x8003:0x40` ; launcher `/usr/bin/python3` ; udev `autosuspend=-1`. Voir `INSTALLATION_ALCHESS.md`.
-- **Pas de `noqa`/`nosec`** (avec ou sans code) tant qu'Alain n'a pas confirmé l'évolution de l'outil d'audit (liste des suppressions justifiées au lieu de les cacher) : corriger plutôt que supprimer (exception précisée et resserrée, ou trace `debug` pour un `except` voulu ; vérifier qu'une adresse est en `https` avant de l'ouvrir plutôt que de supprimer le signalement). Forme future : un commentaire au-dessus qui dit pourquoi, puis le code précis sur la ligne elle-même — jamais une suppression sans code.
+- **`noqa`/`nosec` autorisés depuis la #296, uniquement pour un faux positif jugé** des trois familles vérifiées (adresse constante ouverte par urllib après vérification du schéma — B310/S310 ; processus lancé avec des arguments fixes, sans aucune donnée venant de l'utilisateur/d'un fichier/du réseau — B603/B605/B607/S603/S605/S607 ; aléa non cryptographique jamais utilisé pour un secret — B311/S311), jamais en masse, et seulement après avoir vérifié qu'une correction (exception précisée, vérification `https` avant ouverture, suppression ciblée) n'est pas possible. Forme imposée : une ligne de commentaire qui dit la raison en clair (≥2 mots), juste au-dessus ou juste après le code, puis sur la ligne du code les directives avec le code précis de la règle (ex. `# noqa: S310  # nosec B310`) — jamais `noqa`/`nosec` seul sans code. Verrouillé par `nicsoft/tests/test_issue296_security_suppressions.py`. Les suppressions de style déjà présentes ne sont pas concernées par cette règle.
 - **Toute vérification qui démarre le serveur** (test automatisé, contrôle manuel par un agent) doit positionner `ALCHESS_SKIP_BOARD=1` **et** `ALCHESS_NO_BROWSER=1`, jamais sans — sinon elle ouvre un onglet et sollicite l'échiquier sur le poste de l'utilisateur. `ALCHESS_SKIP_BOARD=1` empêche aussi tout arrêt/relance de ModemManager. Détail : `TESTS.md`.
 
 ## Principes techniques

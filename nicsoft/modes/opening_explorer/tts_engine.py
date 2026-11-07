@@ -93,7 +93,8 @@ def check_internet() -> bool:
         import urllib.request
         url = "https://api.edge-tts.com"
         ensure_https(url)
-        urllib.request.urlopen(url, timeout=2)
+        # URL constante en https, vérifiée par ensure_https ci-dessus
+        urllib.request.urlopen(url, timeout=2)  # nosec B310
         return True
     except Exception as e:
         logger.debug("edge-tts inaccessible (%s), on tente le test suivant de la cascade", e)
@@ -130,7 +131,8 @@ def _speak_edge(text: str, rate: int, language: str, volume: int = 80, on_playba
                 await communicate.save(tmp)
                 if _tts_generation != my_gen:
                     return  # stop_speaking() appelé pendant le download
-                proc = subprocess.Popen(["mpg123", "-q", "--scale", scale, tmp])
+                # Commande fixe, volume borné numériquement, fichier temporaire local
+                proc = subprocess.Popen(["mpg123", "-q", "--scale", scale, tmp])  # noqa: S603, S607  # nosec B603 B607
                 _current_tts_process = proc
                 if on_playback_start:
                     on_playback_start()

@@ -94,7 +94,8 @@ def download_wikitext() -> str:
         API_URL,
         headers={"User-Agent": "NicLink/1.0 (chess opening tool; contact via github)"}
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    # URL constante en https, vérifiée par ensure_https ci-dessus
+    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310  # nosec B310
         data = json.loads(resp.read().decode("utf-8"))
     wikitext = data["parse"]["wikitext"]["*"]
     print(f"✓ {len(wikitext)} caractères téléchargés")

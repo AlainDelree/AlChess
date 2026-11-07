@@ -34,7 +34,8 @@ def launch_pedagogique(config):
     rodent_elo    = int(config.get("rodent_elo", RODENT_ELO_DEFAUT))
     rodent_perso  = config.get("rodent_personality", RODENT_PERSONALITY_DEFAUT)
     if color == "random":
-        color = random.choice(["white", "black"])
+        # Tirage de la couleur, jamais un secret
+        color = random.choice(["white", "black"])  # noqa: S311  # nosec B311
     playing_white = (color == "white")
 
     engine_elo, engine_path = _read_engine_elo_and_path()

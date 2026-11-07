@@ -25,7 +25,8 @@ def launch_humain(config):
     white = config.get("white", "Anonyme1") or "Anonyme1"
     black = config.get("black", "Anonyme2") or "Anonyme2"
     if config.get("color") == "random":
-        if random.random() < 0.5:
+        # Tirage de la couleur, jamais un secret
+        if random.random() < 0.5:  # noqa: S311  # nosec B311
             white, black = black, white
     game_type = config.get("game_type", "Serious")
     web_server._app_state = "connecting"

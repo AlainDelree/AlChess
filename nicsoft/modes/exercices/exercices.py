@@ -689,7 +689,8 @@ class ExerciceSession:
         total = sum(e.weight for e in pool)
         if total == 0:
             return pool[0].move
-        r = random.randint(0, total - 1)
+        # Pondération du choix d'ouverture, jamais un secret
+        r = random.randint(0, total - 1)  # noqa: S311  # nosec B311
         cumul = 0
         for e in pool:
             cumul += e.weight
@@ -1354,4 +1355,5 @@ class DrillSession(ExerciceSession):
         entries = self._get_book_moves(board)
         if not entries:
             return None
-        return random.choice(entries).move
+        # Pondération du choix d'ouverture, jamais un secret
+        return random.choice(entries).move  # noqa: S311  # nosec B311
