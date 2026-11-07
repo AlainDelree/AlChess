@@ -61,9 +61,14 @@ def _poll_board_fen_labo():
         logger.error(f"[LABO POLL] Erreur : {e}")
     finally:
         if nl:
-            try: nl._fen_reader_stop.set()
+            # Filet de sécurité : _run_labo_session (labo_session.py) ferme déjà nl
+            # à la fin normale d'une session (retour menu ou abandon) — disconnect()
+            # est sans effet si déjà appelé. Reste nécessaire si la session n'a
+            # jamais démarré (ex. échec de _make_labo_session) : sans ce filet, le
+            # fil de lecture USB resterait orphelin pour la session suivante.
+            try: nl.disconnect()
             except Exception as e:
-                logger.warning(f"[LABO POLL] Arrêt du thread de lecture FEN échoué : {e}")
+                logger.warning(f"[LABO POLL] Déconnexion échiquier échouée : {e}")
 
 
 def _make_labo_session(nl_inst, config: dict):

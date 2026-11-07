@@ -45,7 +45,14 @@ from nicsoft.niclink.nl_exceptions import ExitNicLink
 # ── Faux hidapi ──────────────────────────────────────────────────────────────
 
 class _FakeDevice:
-    """Remplace hid.device() : pas d'USB réel, comportement configurable."""
+    """Remplace hid.device() : pas d'USB réel, comportement configurable.
+
+    open_path()/close() simulent l'ouverture exclusive du vrai Chessnut Air
+    (issue #295, défaut 1) : tant qu'un _FakeDevice créé par le même
+    _FakeHidModule reste ouvert, toute nouvelle tentative d'open_path() sur
+    ce module échoue avec OSError('open failed'), comme le périphérique
+    réel. L'instance ne sait rien de son module tant que _FakeHidModule.device()
+    ne l'y a pas rattachée via `_hid_module` — voir plus bas."""
 
     def __init__(self, fail_reads=False, fail_after=None, read_delay=0.0):
         self.closed = False
@@ -53,9 +60,16 @@ class _FakeDevice:
         self._fail_reads = fail_reads
         self._fail_after = fail_after
         self._read_delay = read_delay
+        self._hid_module = None  # rattaché par _FakeHidModule.device()
+        self._is_opener = False  # True si CETTE instance tient le verrou d'exclusivité
 
     def open_path(self, path):
-        pass
+        hm = self._hid_module
+        if hm is not None:
+            if hm._is_open:
+                raise OSError("open failed")
+            hm._is_open = True
+            self._is_opener = True
 
     def write(self, data):
         pass
@@ -72,14 +86,22 @@ class _FakeDevice:
 
     def close(self):
         self.closed = True
+        if self._is_opener and self._hid_module is not None:
+            self._hid_module._is_open = False
+            self._is_opener = False
 
 
 class _FakeHidModule:
-    """Remplace le module `hid` (hidapi) importé par hid_backend.py."""
+    """Remplace le module `hid` (hidapi) importé par hid_backend.py.
+
+    `_is_open` simule l'état d'ouverture exclusive du vrai périphérique USB :
+    device() rattache chaque _FakeDevice créé à ce module (`_hid_module`) pour
+    que son open_path()/close() sache contre quel verrou jouer."""
 
     def __init__(self, device_factory, present=True):
         self._device_factory = device_factory
         self.present = present
+        self._is_open = False
 
     def enumerate(self, vendor_id, product_id):
         if not self.present:
@@ -87,7 +109,9 @@ class _FakeHidModule:
         return [{"path": b"/fake/chessnut", "product_id": 0x8003, "usage_page": 0xFF00}]
 
     def device(self):
-        return self._device_factory()
+        dev = self._device_factory()
+        dev._hid_module = self
+        return dev
 
 
 @pytest.fixture(autouse=True)

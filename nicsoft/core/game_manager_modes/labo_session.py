@@ -78,6 +78,9 @@ def _run_labo_session():
 
         if atype == "back_menu":
             session.quit()
+            try: nl.disconnect()
+            except Exception as e:
+                logger.warning(f"[LABO] Déconnexion échiquier échouée : {e}")
             set_virtual_board(None)
             web_server._app_state = "menu"
             set_app_state("menu")
@@ -221,6 +224,9 @@ def _run_labo_session():
 
     _copy_cancel.set()
     session.quit()
+    try: nl.disconnect()
+    except Exception as e:
+        logger.warning(f"[LABO] Déconnexion échiquier échouée : {e}")
     web_server._app_state = "menu"
     set_app_state("menu")
 

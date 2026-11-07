@@ -109,5 +109,12 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
             except ValueError: pass  # extinction LED best-effort — task_done() de la queue LED
             # peut être appelé en trop par une course avec le worker LED (driver.py), sans
             # conséquence fonctionnelle (voir Queue.task_done())
+            # Arrêter le fil de lecture USB (fen_reader) et libérer le périphérique
+            # avant qu'une prochaine partie n'en crée un nouveau — sinon l'ancien fil
+            # continue d'appeler hid_backend.get_fen() en parallèle de la connexion
+            # suivante (issue #292 : 'NoneType' object has no attribute 'read').
+            try: nl_inst.disconnect()
+            except Exception as e:
+                logger.warning(f"Déconnexion échiquier échouée (humain) : {e}")
         if web_server._app_state not in ("game_over", "menu"):
             web_server._app_state = "menu"
