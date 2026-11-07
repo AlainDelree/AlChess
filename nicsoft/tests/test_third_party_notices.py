@@ -18,14 +18,23 @@ def _fichiers_binaires_suivis() -> list:
     pas de dépendance au contenu binaire lui-même."""
     fichiers = []
     for dossier in DOSSIERS_SURVEILLES:
-        resultat = subprocess.run(
-            ["git", "ls-files", dossier],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        fichiers.extend(ligne for ligne in resultat.stdout.splitlines() if ligne)
+        try:
+            resultat = subprocess.run(
+                ["git", "ls-files", dossier],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            fichiers.extend(ligne for ligne in resultat.stdout.splitlines() if ligne)
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # Copie sans dépôt git (ex. copie propre du crochet de pre-push) :
+            # la copie ne contient que les fichiers suivis, on liste donc le dossier.
+            chemin = REPO_ROOT / dossier
+            if chemin.is_dir():
+                fichiers.extend(
+                    f"{dossier}/{p.name}" for p in chemin.iterdir() if p.is_file()
+                )
     return sorted(fichiers)
 
 
