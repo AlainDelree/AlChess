@@ -1,5 +1,18 @@
 // ── VARIABLES GLOBALES ────────────────────────────────────
 
+// Échappement HTML commun (issue #303) : tout texte venu de l'extérieur
+// (serveur, joueur, fichier PGN, réponse LLM) doit passer par esc() avant
+// toute insertion via innerHTML/insertAdjacentHTML. null/undefined → "".
+function esc(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 let _boardFlipped = false;  // true = noirs en bas
 
 // Normalise les noms de joueurs reçus du backend : "Blancs"/"Noirs" sont des
@@ -720,7 +733,7 @@ function renderBoard(fen, from, to, bestFrom, bestTo, feedbackSq, feedbackClass)
       const sq = document.getElementById(`sq-${id}`);
       if (!sq) continue;
       const piece = grid[id];
-      sq.innerHTML = piece ? (PIECES[piece] || piece) : "";
+      sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
       const isLight = (rank + file) % 2 === 1;
       sq.className = `square ${isLight ? 'light' : 'dark'}`;
       if (from     && id === from)     sq.classList.add("last-move-from");
@@ -1594,7 +1607,7 @@ socket.on("init_hh", (data) => {
   botName.textContent  = _localPlayerName(data.white, "config.blancs");
   topName.style.color  = "#3a5a7a";
   botName.style.color  = "#1a2a3a";
-  { const wh = _localPlayerName(data.white, "config.blancs"), bl = _localPlayerName(data.black, "config.noirs");
+  { const wh = esc(_localPlayerName(data.white, "config.blancs")), bl = esc(_localPlayerName(data.black, "config.noirs"));
     document.getElementById("game-subtitle").innerHTML =
       `<span style="color:#1a2a3a;">♔ ${wh}</span>`+
       `<span style="color:#445; margin:0 8px;">vs</span>`+
@@ -1903,7 +1916,7 @@ function renderBoardPosInit(fen) {
       const sq  = document.getElementById(`pi-${id}`);
       if (!sq) continue;
       const piece = grid[id];
-      sq.innerHTML = piece ? (PIECES[piece] || piece) : "";
+      sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
       const isLight = (rank + file) % 2 === 1;
       // Case incorrecte = pièce actuelle différente de l'initiale
       const correct = (grid[id] || "") === (gridInit[id] || "");
@@ -2148,8 +2161,8 @@ function _renderHistory() {
     const bq = b?.qualite || "bon";
     const wsym = w?.qualite ? (sym[wq] || "") : "";
     const bsym = b?.qualite ? (sym[bq] || "") : "";
-    html += w ? `<td><span class="move-chip ${wq}">${w.san}${wsym}</span></td>` : `<td></td>`;
-    html += b ? `<td><span class="move-chip ${bq}">${b.san}${bsym}</span></td>` : `<td></td>`;
+    html += w ? `<td><span class="move-chip ${esc(wq)}">${esc(w.san)}${wsym}</span></td>` : `<td></td>`;
+    html += b ? `<td><span class="move-chip ${esc(bq)}">${esc(b.san)}${bsym}</span></td>` : `<td></td>`;
     html += `</tr>`;
   }
   html += '</table>';
@@ -2549,8 +2562,8 @@ function renderHistory(activeIdx) {
       const colorW  = activeIdx === idxW ? "#e94560" : qualiteColor(mw ? mw.qualite : "bon");
       const colorB  = activeIdx === idxB ? "#e94560" : qualiteColor(mb ? mb.qualite : "bon");
       html += `<tr>`;
-      html += mw ? `<td style="padding:2px 4px;cursor:pointer;color:${colorW};${activeW}" onclick="reviewGoTo(${idxW})">${i+1}. ${mw.san}${qualiteSymbole(mw.qualite)}</td>` : `<td></td>`;
-      html += mb ? `<td style="padding:2px 4px;cursor:pointer;color:${colorB};${activeB}" onclick="reviewGoTo(${idxB})">${mb.san}${qualiteSymbole(mb.qualite)}</td>` : `<td></td>`;
+      html += mw ? `<td style="padding:2px 4px;cursor:pointer;color:${colorW};${activeW}" onclick="reviewGoTo(${idxW})">${i+1}. ${esc(mw.san)}${qualiteSymbole(mw.qualite)}</td>` : `<td></td>`;
+      html += mb ? `<td style="padding:2px 4px;cursor:pointer;color:${colorB};${activeB}" onclick="reviewGoTo(${idxB})">${esc(mb.san)}${qualiteSymbole(mb.qualite)}</td>` : `<td></td>`;
       html += `</tr>`;
   }
   html += '</table>';
@@ -2803,9 +2816,7 @@ function parsePgn(pgn) {
 // ── Bibliothèque PGN personnelle (écran Analyse de partie, issue #194) ──────
 
 function _pgnLibEsc(str) {
-  const div = document.createElement("div");
-  div.textContent = str == null ? "" : String(str);
-  return div.innerHTML;
+  return esc(str);
 }
 
 function pgnLibSelectTab(tab) {
@@ -3480,8 +3491,8 @@ function _laboRenderPgnHistory() {
     const cwW = active === wIdx ? "color:#e94560;font-weight:bold;" : "color:#ccc;";
     const cwB = active === bIdx ? "color:#e94560;font-weight:bold;" : "color:#888;";
     html += `<tr><td style="color:#444;text-align:right;padding-right:4px;font-size:0.72rem;">${i+1}.</td>`;
-    html += whites[i] ? `<td style="padding:1px 3px;cursor:pointer;${cwW}" onclick="laboPgnGoTo(${wIdx+1})">${whites[i]}</td>` : "<td></td>";
-    html += blacks[i] ? `<td style="padding:1px 3px;cursor:pointer;${cwB}" onclick="laboPgnGoTo(${bIdx+1})">${blacks[i]}</td>` : "<td></td>";
+    html += whites[i] ? `<td style="padding:1px 3px;cursor:pointer;${cwW}" onclick="laboPgnGoTo(${wIdx+1})">${esc(whites[i])}</td>` : "<td></td>";
+    html += blacks[i] ? `<td style="padding:1px 3px;cursor:pointer;${cwB}" onclick="laboPgnGoTo(${bIdx+1})">${esc(blacks[i])}</td>` : "<td></td>";
     html += "</tr>";
   }
   html += "</table>";
@@ -3586,7 +3597,7 @@ function laboJournalAdd(cat, msg) {
   entry.className = "jlog-entry";
   entry.dataset.cat = cat;
   entry.style.display = _journalFiltres.has(cat) ? "flex" : "none";
-  entry.innerHTML = `<span class="jlog-time">${hms}</span><span class="jlog-msg" style="color:${_COLORS[cat] || "#aaa"};">${msg}</span>`;
+  entry.innerHTML = `<span class="jlog-time">${hms}</span><span class="jlog-msg" style="color:${_COLORS[cat] || "#aaa"};">${esc(msg)}</span>`;
   journal.insertBefore(entry, journal.firstChild);
   // Limiter à _JOURNAL_MAX entrées
   while (journal.children.length > _JOURNAL_MAX) {
@@ -3746,7 +3757,7 @@ function laboRenderBoard(fen, from, to) {
       const sq = document.getElementById(`labo-sq-${id}`);
       if (!sq) continue;
       const piece = grid[id];
-      sq.innerHTML = piece ? (PIECES[piece] || piece) : "";
+      sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
       const isLight = (rank + file) % 2 === 1;
       sq.className = `square ${isLight ? "light" : "dark"}`;
       if (from && id === from) sq.classList.add("last-move-from");
@@ -4177,8 +4188,8 @@ function _exBuildCard(o, color, nbVariants, onClick, isVariant) {
       `${nbVariants} ${t(nbVariants > 1 ? "exercices.variantes" : "exercices.variante")} <span id="ex-chevron-${o.id}">▼</span></div>`
     : "";
   card.innerHTML = `
-    <div style="font-size:0.7rem; color:${color}${isVariant ? "cc" : "88"}; margin-bottom:3px;">${o.eco}</div>
-    <div style="font-size:0.85rem; font-weight:bold; color:${isVariant ? "#1a2a3a" : "#e0e0e0"}; margin-bottom:8px; line-height:1.3;">${o.nom}</div>
+    <div style="font-size:0.7rem; color:${color}${isVariant ? "cc" : "88"}; margin-bottom:3px;">${esc(o.eco)}</div>
+    <div style="font-size:0.85rem; font-weight:bold; color:${isVariant ? "#1a2a3a" : "#e0e0e0"}; margin-bottom:8px; line-height:1.3;">${esc(o.nom)}</div>
     <div style="display:flex; justify-content:center;">${miniBoard}</div>
     ${badge}
   `;
@@ -4370,7 +4381,10 @@ function exRenderMesLignes(lignes) {
     grouped[group].push(o);
   });
   Object.entries(grouped).forEach(([group, items]) => {
-    const groupId = `drill-group-${group.replace(/\s+/g, '_')}`;
+    // Slug restreint à [a-zA-Z0-9_-] : groupId sert aussi d'argument JS inline
+    // (onchange="...('${groupId}')") — un remplacement qui ne retirerait que
+    // les espaces laisserait passer un nom de ligne contenant un guillemet.
+    const groupId = `drill-group-${group.replace(/[^a-zA-Z0-9_-]+/g, '_')}`;
     const section = document.createElement("div");
     section.style.cssText = "margin-bottom:12px;";
     const header = document.createElement("div");
@@ -4380,7 +4394,7 @@ function exRenderMesLignes(lignes) {
         style="accent-color:#e94560; width:16px; height:16px; cursor:pointer;"
         onchange="exDrillToggleGroup('${groupId}', this.checked)">
       <label for="${groupId}" style="font-size:0.85rem; font-weight:700; color:#e94560; letter-spacing:1px; text-transform:uppercase; cursor:pointer;">
-        ${group} <span style="color:#556; font-weight:400; font-size:0.75rem;">(${t("exercices.n_lignes", {n: items.length})})</span>
+        ${esc(group)} <span style="color:#556; font-weight:400; font-size:0.75rem;">(${t("exercices.n_lignes", {n: items.length})})</span>
       </label>`;
     section.appendChild(header);
     items.forEach((o, idx) => {
@@ -4398,11 +4412,11 @@ function exRenderMesLignes(lignes) {
             <input type="checkbox" class="ex-drill-check" data-id="${o.id}" data-group="${groupId}"
               style="accent-color:#e94560; width:15px; height:15px;"
               onchange="exDrillUpdateGroupCheck('${groupId}'); exDrillUpdateCount()">
-            <span style="font-weight:600; color:#e0e0e0; font-size:0.88rem;">${lineLabel}</span>
+            <span style="font-weight:600; color:#e0e0e0; font-size:0.88rem;">${esc(lineLabel)}</span>
           </label>
           <span style="font-size:0.75rem; color:#556;">${t("common.n_coups", {n: nb})}${initInfo}</span>
         </div>
-        <div style="font-size:0.78rem; color:#778; margin-bottom:8px;">${_exLineDesc(o)}</div>
+        <div style="font-size:0.78rem; color:#778; margin-bottom:8px;">${esc(_exLineDesc(o))}</div>
         <div style="display:flex; gap:8px;">
           <button class="btn btn-reprendre" style="flex:1; margin-bottom:0; padding:6px; font-size:0.82rem;"
             onclick="event.stopPropagation(); _exColor='white'; exLancer('${o.id}')">${t("exercices.jouer_blancs")}</button>
@@ -4496,7 +4510,7 @@ function exRenderBoard(fen, from, to) {
       const sq = document.getElementById(`ex-sq-${id}`);
       if (!sq) continue;
       const piece = grid[id];
-      sq.innerHTML = piece ? (PIECES[piece] || piece) : "";
+      sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
       sq.className = `square ${(rank + file) % 2 === 1 ? "light" : "dark"}`;
       if (from && id === from) sq.classList.add("last-move-from");
       if (to   && id === to)   sq.classList.add("last-move-to");
@@ -4827,7 +4841,7 @@ socket.on("exercice_free_gameover", (data) => {
   exSetFeedback(reasonMsg, "#e57373", 0);
   const statusEl = document.getElementById("ex-run-status");
   if (statusEl) { statusEl.textContent = t("exercices.partie_terminee"); statusEl.style.color = "#e57373"; }
-  exSetInstructions(`<b>${reasonMsg}</b><br>${t("exercices.recommencer_instruction")}`);
+  exSetInstructions(`<b>${esc(reasonMsg)}</b><br>${t("exercices.recommencer_instruction")}`);
 });
 
 socket.on("exercice_back", () => {
@@ -5309,7 +5323,7 @@ function _renderBasketSelects() {
         `<div class="basket-sel-opt" data-value="${i}"
           style="color:${_basketOptionColor(e.label)};padding:5px 8px;cursor:pointer;font-size:0.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
           onmouseover="this.style.background='#2a3a4a'" onmouseout="this.style.background=''"
-        >${e.label}</div>`
+        >${esc(e.label)}</div>`
       ).join("");
       sel.style.opacity = "1";
       sel.style.pointerEvents = "";
@@ -5490,8 +5504,8 @@ function retransSaveContinue() {
         const moveNum = Math.floor(i / 2) + 1;
         const side = i % 2 === 0 ? "♔" : "♚";
         html += `<label style="display:flex;align-items:center;gap:4px;background:#0a0a1a;border:1px solid #0f3460;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:0.78rem;">
-          <input type="checkbox" data-uci="${uci}" checked style="accent-color:#e94560;">
-          <span style="color:#e94560;font-family:monospace;">${moveNum}${side} ${uci}</span>
+          <input type="checkbox" data-uci="${esc(uci)}" checked style="accent-color:#e94560;">
+          <span style="color:#e94560;font-family:monospace;">${moveNum}${side} ${esc(uci)}</span>
         </label>`;
       });
       html += '</div>';
@@ -5627,7 +5641,7 @@ function retransRenderBoard(fen, from, to) {
       const sq = document.getElementById(`rt-sq-${id}`);
       if (!sq) continue;
       const piece = grid[id];
-      sq.innerHTML = piece ? (PIECES[piece] || piece) : "";
+      sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
       sq.className = `square ${(rank + file) % 2 === 1 ? "light" : "dark"}`;
       if (from && id === from) sq.classList.add("last-move-from");
       if (to   && id === to)   sq.classList.add("last-move-to");
@@ -5693,8 +5707,8 @@ function _retransRenderHistory() {
     const w = _retransMoves[i * 2]     || "";
     const b = _retransMoves[i * 2 + 1] || "";
     html += `<tr><td style="color:#3a5a7a;text-align:right;padding-right:6px;font-size:0.75rem">${i+1}.</td>`;
-    html += w ? `<td><span class="move-chip bon">${w}</span></td>` : `<td></td>`;
-    html += b ? `<td><span class="move-chip bon">${b}</span></td>` : `<td></td>`;
+    html += w ? `<td><span class="move-chip bon">${esc(w)}</span></td>` : `<td></td>`;
+    html += b ? `<td><span class="move-chip bon">${esc(b)}</span></td>` : `<td></td>`;
     html += `</tr>`;
   }
   html += '</table>';
@@ -5868,17 +5882,17 @@ function _outilsPgnRenderPreview(items) {
     if (r.ok) {
       hasOk = true;
       html += `<tr style="background:${bg};">
-        <td style="padding:4px 8px; color:#3a5a7a;">${r.name}</td>
-        <td style="padding:4px 8px; color:#1a2a3a; font-weight:600;">${r.nom}</td>
-        <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${r.eco || "—"}</td>
+        <td style="padding:4px 8px; color:#3a5a7a;">${esc(r.name)}</td>
+        <td style="padding:4px 8px; color:#1a2a3a; font-weight:600;">${esc(r.nom)}</td>
+        <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${esc(r.eco) || "—"}</td>
         <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${r.camp}</td>
         <td style="padding:4px 8px; text-align:center; color:#1a2a3a;">${r.nb_coups}</td>
         <td style="padding:4px 8px; color:#2e7d32;">✓ OK</td>
       </tr>`;
     } else {
       html += `<tr style="background:${bg};">
-        <td style="padding:4px 8px; color:#3a5a7a;">${r.name}</td>
-        <td colspan="4" style="padding:4px 8px; color:#e94560;">${r.error}</td>
+        <td style="padding:4px 8px; color:#3a5a7a;">${esc(r.name)}</td>
+        <td colspan="4" style="padding:4px 8px; color:#e94560;">${esc(r.error)}</td>
         <td style="padding:4px 8px; color:#e94560;">✗ Erreur</td>
       </tr>`;
     }
@@ -5919,7 +5933,7 @@ socket.on("outils_pgn_import_result", (data) => {
     let msg = `<strong style="color:#2e7d32">${t("outils.pgn_import_ok", {n: data.imported, total: data.total})}</strong>`;
     if (data.errors && data.errors.length) {
       msg += `<br><span style="color:#e94560">${data.errors.length} erreur(s) :</span><ul style="margin:4px 0 0 16px;">`;
-      data.errors.forEach(e => { msg += `<li style="color:#e94560">${e.name} — ${e.error}</li>`; });
+      data.errors.forEach(e => { msg += `<li style="color:#e94560">${esc(e.name)} — ${esc(e.error)}</li>`; });
       msg += "</ul>";
     }
     res.style.background = "#e8f5e9";
@@ -5931,7 +5945,7 @@ socket.on("outils_pgn_import_result", (data) => {
     let msg = `<strong style="color:#e94560">${t("outils.pgn_aucune_import")}</strong>`;
     if (data.errors && data.errors.length) {
       msg += `<ul style="margin:4px 0 0 16px;">`;
-      data.errors.forEach(e => { msg += `<li style="color:#e94560">${e.name} — ${e.error}</li>`; });
+      data.errors.forEach(e => { msg += `<li style="color:#e94560">${esc(e.name)} — ${esc(e.error)}</li>`; });
       msg += "</ul>";
     }
     res.style.background = "#ffebee";
@@ -5954,21 +5968,21 @@ function outilsSanToUci() {
 socket.on("outils_san_to_uci_result", (data) => {
   const res = document.getElementById("outils-uci-result");
   if (!data.ok) {
-    res.innerHTML = `<span style="color:#e94560">✗ ${data.error}</span>`;
+    res.innerHTML = `<span style="color:#e94560">✗ ${esc(data.error)}</span>`;
     return;
   }
   let html = '<table style="width:100%; border-collapse:collapse; font-size:0.88rem; margin-bottom:8px;">';
   html += '<tr style="background:#c2d4e8;"><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">SAN</th><th style="padding:4px 8px; text-align:left; color:#1a2a3a;">UCI</th></tr>';
   data.moves.forEach((m, i) => {
     const bg = i % 2 === 0 ? "#f0f4f8" : "#fff";
-    html += `<tr style="background:${bg};"><td style="padding:4px 8px; color:#1a2a3a; font-family:monospace;">${m.san}</td><td style="padding:4px 8px; color:#2e7d32; font-family:monospace;">${m.uci}</td></tr>`;
+    html += `<tr style="background:${bg};"><td style="padding:4px 8px; color:#1a2a3a; font-family:monospace;">${esc(m.san)}</td><td style="padding:4px 8px; color:#2e7d32; font-family:monospace;">${esc(m.uci)}</td></tr>`;
   });
   html += "</table>";
   const uciLine = data.moves.map(m => m.uci).join(" ");
   html += `<div style="background:#f0f4f8; border:1px solid #a0b8d0; border-radius:6px; padding:8px 12px; font-family:monospace; font-size:0.88rem; color:#1a2a3a; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
     <span style="color:#3a5a7a; font-weight:600;">InitMoves :</span>
-    <span id="outils-uci-line">${uciLine}</span>
-    <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="navigator.clipboard.writeText('${uciLine}').then(()=>afficherToast(t('toast.copie'),'success'))">${t("common.copier")}</button>
+    <span id="outils-uci-line">${esc(uciLine)}</span>
+    <button class="btn" style="padding:4px 10px; font-size:0.8rem; background:#c2d4e8; color:#1a2a3a; border:1px solid #a0b8d0;" onclick="navigator.clipboard.writeText('${esc(uciLine)}').then(()=>afficherToast(t('toast.copie'),'success'))">${t("common.copier")}</button>
   </div>`;
   res.innerHTML = html;
   res.style.display = "block";
@@ -6025,7 +6039,7 @@ socket.on("outils_add_verify_result", (data) => {
     html += `<strong style="color:#e94560">${t("outils.erreurs")}</strong><ul style="margin:4px 0 0 16px;">`;
     data.errors.forEach(e => {
       const msg = (e && e.key) ? t(e.key, e.vars || {}) : e;
-      html += `<li style="color:#e94560">${msg}</li>`;
+      html += `<li style="color:#e94560">${esc(msg)}</li>`;
     });
     html += "</ul></div>";
     prev.innerHTML = html;
@@ -6036,11 +6050,11 @@ socket.on("outils_add_verify_result", (data) => {
   let html = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; margin-bottom:10px;">
     <strong style="color:#2e7d32">${t("outils.donnees_valides")}</strong>
     <table style="margin-top:8px; font-size:0.85rem; border-collapse:collapse; width:100%;">
-      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600; white-space:nowrap;">ID</td><td style="font-family:monospace;">${data.id}</td></tr>
-      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.nom").trim()}</td><td>${data.nom}</td></tr>
-      ${data.eco ? `<tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">ECO</td><td>${data.eco}${data.parent_eco ? ` ${t("outils.parent_eco_label", {eco: data.parent_eco})}` : ""}</td></tr>` : ""}
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600; white-space:nowrap;">ID</td><td style="font-family:monospace;">${esc(data.id)}</td></tr>
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.nom").trim()}</td><td>${esc(data.nom)}</td></tr>
+      ${data.eco ? `<tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">ECO</td><td>${esc(data.eco)}${data.parent_eco ? ` ${t("outils.parent_eco_label", {eco: esc(data.parent_eco)})}` : ""}</td></tr>` : ""}
       <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.camp")}</td><td>${campLabel}</td></tr>
-      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.coups")}</td><td style="font-family:monospace;">${data.moves.join(" ")} <span style="color:#888;">${t("outils.n_demi_coups", {n: data.moves.length})}</span></td></tr>
+      <tr><td style="padding:2px 8px 2px 0; color:#3a5a7a; font-weight:600;">${t("outils.label.coups")}</td><td style="font-family:monospace;">${esc(data.moves.join(" "))} <span style="color:#888;">${t("outils.n_demi_coups", {n: data.moves.length})}</span></td></tr>
     </table>
   </div>`;
 
@@ -6054,22 +6068,25 @@ socket.on("outils_add_verify_result", (data) => {
   let bookSelectHtml = "";
   if (data.book_options && data.book_options.length > 0) {
     if (data.book_options.length === 1) {
-      bookSelectHtml = `<input type="hidden" id="add-book-select" value="${data.book_options[0].name}">
-        <div style="font-size:0.85rem; color:#3a5a7a; margin-bottom:10px;">${t("outils.livre_label")} <strong>${data.book_options[0].name}</strong> — ${t("outils.livre_count", {count: data.book_options[0].count, next: data.book_options[0].next})}</div>`;
+      bookSelectHtml = `<input type="hidden" id="add-book-select" value="${esc(data.book_options[0].name)}">
+        <div style="font-size:0.85rem; color:#3a5a7a; margin-bottom:10px;">${t("outils.livre_label")} <strong>${esc(data.book_options[0].name)}</strong> — ${t("outils.livre_count", {count: data.book_options[0].count, next: data.book_options[0].next})}</div>`;
     } else {
       bookSelectHtml = `<div style="font-size:0.85rem; margin-bottom:10px;">
         <label class="add-label" style="margin-bottom:4px; display:block;">${t("outils.choisir_livre")}</label>
         <select id="add-book-select" class="add-input">`;
       data.book_options.forEach(b => {
-        bookSelectHtml += `<option value="${b.name}">${b.name} — ${t("outils.livre_count", {count: b.count, next: b.next})}</option>`;
+        bookSelectHtml += `<option value="${esc(b.name)}">${esc(b.name)} — ${t("outils.livre_count", {count: b.count, next: b.next})}</option>`;
       });
       bookSelectHtml += `</select></div>`;
     }
   } else {
-    bookSelectHtml = `<input type="hidden" id="add-book-select" value="${fallbackBook}">`;
+    bookSelectHtml = `<input type="hidden" id="add-book-select" value="${esc(fallbackBook)}">`;
   }
   html += bookSelectHtml;
-  html += `<button class="btn btn-reprendre" onclick="outilsAddSave(${JSON.stringify(data)})">${t("outils.ajouter_catalogue")}</button>`;
+  // JSON.stringify() échappe déjà guillemets/backslash internes au JSON ;
+  // esc() échappe en plus les guillemets de délimitation pour ne pas sortir
+  // de l'attribut onclick="..." (l'un sans l'autre ne suffit pas).
+  html += `<button class="btn btn-reprendre" onclick="outilsAddSave(${esc(JSON.stringify(data))})">${t("outils.ajouter_catalogue")}</button>`;
   prev.innerHTML = html;
 });
 
@@ -6087,7 +6104,7 @@ socket.on("outils_add_save_result", (data) => {
   const prev   = document.getElementById(prevId);
   if (data.ok) {
     const addMsg = _i18nMsg(data);
-    if (prev) prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${addMsg}</div>`;
+    if (prev) prev.innerHTML = `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:12px 16px; color:#2e7d32; font-weight:600;">✓ ${esc(addMsg)}</div>`;
     afficherToast(addMsg, "success");
     if (_outilsAddContext === "explore") {
       setTimeout(() => { if (prev) prev.style.display = "none"; }, 2500);
@@ -6097,7 +6114,7 @@ socket.on("outils_add_save_result", (data) => {
   } else {
     if (prev) {
       const errDiv = prev.querySelector("div");
-      if (errDiv) errDiv.insertAdjacentHTML("beforeend", `<p style="color:#e94560; margin-top:8px;">✗ ${data.message}</p>`);
+      if (errDiv) errDiv.insertAdjacentHTML("beforeend", `<p style="color:#e94560; margin-top:8px;">✗ ${esc(data.message)}</p>`);
     }
   }
 });
@@ -6220,7 +6237,7 @@ function _exploreRenderBoard(fen, lastFrom, lastTo) {
 socket.on("outils_explore_moves_result", (data) => {
   if (!data.ok) {
     const ml = document.getElementById("explore-moves-list");
-    if (ml) ml.innerHTML = `<span style="color:#e94560">${data.error}</span>`;
+    if (ml) ml.innerHTML = `<span style="color:#e94560">${esc(data.error)}</span>`;
     return;
   }
 
@@ -6261,8 +6278,8 @@ socket.on("outils_explore_moves_result", (data) => {
         const bar  = Math.round(m.pct / 100 * 80);
         const star = m.star ? "★ " : "  ";
         const col  = m.star ? "#2e7d32" : (m.pct >= 15 ? "#e65100" : "#555");
-        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer;" onclick="explorePlay('${m.uci}')">
-          <span style="font-family:monospace;font-size:0.9rem;font-weight:${m.star?700:400};color:${col};min-width:72px;">${star}${m.san}</span>
+        html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer;" onclick="explorePlay('${esc(m.uci)}')">
+          <span style="font-family:monospace;font-size:0.9rem;font-weight:${m.star?700:400};color:${col};min-width:72px;">${star}${esc(m.san)}</span>
           <div style="flex:1;height:10px;background:#e0e8f0;border-radius:4px;overflow:hidden;max-width:120px;">
             <div style="width:${bar}%;height:100%;background:${col};border-radius:4px;"></div>
           </div>
@@ -6363,9 +6380,9 @@ function outilsEditRender(list) {
     const campIcon = o.camp_suggere === "black" ? "⬛" : "⬜";
     html += `<tr style="background:${bg}; cursor:pointer;" onclick="outilsEditSelect('${o.id}')"
                onmouseover="this.style.background='#dce8f4'" onmouseout="this.style.background='${bg}'">
-      <td style="padding:4px 8px; font-family:monospace; color:#1a2a3a; white-space:nowrap;">${o.id}</td>
-      <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${o.eco || "—"}</td>
-      <td style="padding:4px 8px; color:#1a2a3a;">${o.nom || ""}</td>
+      <td style="padding:4px 8px; font-family:monospace; color:#1a2a3a; white-space:nowrap;">${esc(o.id)}</td>
+      <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${esc(o.eco) || "—"}</td>
+      <td style="padding:4px 8px; color:#1a2a3a;">${esc(o.nom)}</td>
       <td style="padding:4px 8px; text-align:center;">${campIcon}</td>
     </tr>`;
   });
@@ -6426,7 +6443,7 @@ socket.on("outils_edit_save_result", (data) => {
     res.style.border     = "1px solid #4caf50";
     res.style.color      = "#2e7d32";
     const okMsg = _i18nMsg(data);
-    res.innerHTML        = `✓ ${okMsg}`;
+    res.innerHTML        = `✓ ${esc(okMsg)}`;
     res.style.display    = "block";
     afficherToast(okMsg, "success");
     // Recharger la liste pour refléter les changements
@@ -6440,7 +6457,7 @@ socket.on("outils_edit_save_result", (data) => {
     res.style.background = "#ffebee";
     res.style.border     = "1px solid #e94560";
     res.style.color      = "#e94560";
-    res.innerHTML        = `✗ ${_i18nMsg(data, "error", "error_key") || _i18nMsg(data)}`;
+    res.innerHTML        = `✗ ${esc(_i18nMsg(data, "error", "error_key") || _i18nMsg(data))}`;
     res.style.display    = "block";
   }
   res.style.borderRadius = "6px";
@@ -6489,14 +6506,14 @@ socket.on("outils_eco_search_result", (data) => {
     const bg       = i % 2 === 0 ? "#f0f4f8" : "#fff";
     const disabled = r.doublon ? "disabled" : "";
     const status   = r.doublon
-      ? `<span style="color:#7b1fa2; font-size:0.78rem;">✓ ${r.doublon}</span>`
+      ? `<span style="color:#7b1fa2; font-size:0.78rem;">✓ ${esc(r.doublon)}</span>`
       : "";
     html += `<tr style="background:${bg};">
       <td style="padding:4px 8px; text-align:center;">
         <input type="checkbox" class="eco-row-check" data-idx="${i}" ${disabled} ${r.doublon ? "" : ""}>
       </td>
-      <td style="padding:4px 8px; font-family:monospace; color:#1a2a3a; white-space:nowrap;">${r.eco}</td>
-      <td style="padding:4px 8px; color:#1a2a3a;">${r.name}</td>
+      <td style="padding:4px 8px; font-family:monospace; color:#1a2a3a; white-space:nowrap;">${esc(r.eco)}</td>
+      <td style="padding:4px 8px; color:#1a2a3a;">${esc(r.name)}</td>
       <td style="padding:4px 8px; text-align:center; color:#3a5a7a;">${r.nb_coups}</td>
       <td style="padding:4px 8px; text-align:center;">${status}</td>
     </tr>`;
@@ -6545,7 +6562,7 @@ socket.on("outils_eco_import_result", (data) => {
     html += `<div style="background:#e8f5e9; border:1px solid #4caf50; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
       <strong style="color:#2e7d32">${t("outils.eco_importees", {n: data.imported.length})}</strong>
       <ul style="margin:4px 0 0 16px; font-size:0.83rem;">`;
-    data.imported.forEach(e => { html += `<li style="color:#1a2a3a;">${e.eco} — ${e.name} <code style="color:#888;">(${e.id})</code></li>`; });
+    data.imported.forEach(e => { html += `<li style="color:#1a2a3a;">${esc(e.eco)} — ${esc(e.name)} <code style="color:#888;">(${esc(e.id)})</code></li>`; });
     html += `</ul></div>`;
     afficherToast(t("outils.eco_importees", {n: data.imported.length}), "success");
     socket.emit("outils_edit_list", {});  // rafraîchir outil 4
@@ -6554,7 +6571,7 @@ socket.on("outils_eco_import_result", (data) => {
     html += `<div style="background:#fff3e0; border:1px solid #ff9800; border-radius:6px; padding:10px 14px;">
       <strong style="color:#e65100">${t("outils.eco_ignorees", {n: data.skipped.length})}</strong>
       <ul style="margin:4px 0 0 16px; font-size:0.83rem;">`;
-    data.skipped.forEach(e => { html += `<li style="color:#888;">${e.name} — ${e.reason}</li>`; });
+    data.skipped.forEach(e => { html += `<li style="color:#888;">${esc(e.name)} — ${esc(e.reason)}</li>`; });
     html += `</ul></div>`;
   }
   if (!html) html = `<div style="color:#888; font-size:0.88rem;">${t("outils.aucune_entree_importee")}</div>`;
@@ -6588,7 +6605,7 @@ socket.on("outils_wiki_done", (data) => {
   if (status) status.textContent = "";
 
   if (!data.ok) {
-    res.innerHTML = `<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px; color:#e94560;">✗ ${data.error}</div>`;
+    res.innerHTML = `<div style="background:#ffebee; border:1px solid #e94560; border-radius:6px; padding:10px 14px; color:#e94560;">✗ ${esc(data.error)}</div>`;
     res.style.display = "block";
     return;
   }
@@ -6607,17 +6624,18 @@ socket.on("outils_wiki_done", (data) => {
       <table style="border-collapse:collapse; width:100%;">`;
     data.preview.forEach((p, i) => {
       const bg = i % 2 === 0 ? "#f0f4f8" : "#e8f5e9";
-      const parent = p.parent ? `<span style="color:#888;">← ${p.parent}</span>` : "";
+      // p.* vient du scraping Wikipedia — texte externe, échapper.
+      const parent = p.parent ? `<span style="color:#888;">← ${esc(p.parent)}</span>` : "";
       html += `<tr style="background:${bg};">
-        <td style="padding:2px 8px; font-family:monospace; font-weight:700; color:#1a2a3a; white-space:nowrap;">${p.code}</td>
-        <td style="padding:2px 8px; color:#1a2a3a;">${p.name}</td>
-        <td style="padding:2px 8px; font-family:monospace; font-size:0.78rem; color:#3a5a7a;">${p.moves}</td>
+        <td style="padding:2px 8px; font-family:monospace; font-weight:700; color:#1a2a3a; white-space:nowrap;">${esc(p.code)}</td>
+        <td style="padding:2px 8px; color:#1a2a3a;">${esc(p.name)}</td>
+        <td style="padding:2px 8px; font-family:monospace; font-size:0.78rem; color:#3a5a7a;">${esc(p.moves)}</td>
         <td style="padding:2px 8px;">${parent}</td>
       </tr>`;
     });
     html += `</table></div>`;
   }
-  html += `<div style="margin-top:8px; font-size:0.78rem; color:#888;">${t("outils.wiki_sauvegarde", {path: data.output})}</div></div>`;
+  html += `<div style="margin-top:8px; font-size:0.78rem; color:#888;">${t("outils.wiki_sauvegarde", {path: esc(data.output)})}</div></div>`;
   res.innerHTML     = html;
   res.style.display = "block";
   afficherToast(t("outils.wiki_maj_toast", {n: data.total}), "success");
@@ -6971,7 +6989,7 @@ function explSpeak(text) {
 
 function markdownToHtml(text) {
   if (!text) return "";
-  let h = text
+  let h = esc(text)
     .replace(/^### (.+)$/gm, "<h4>$1</h4>")
     .replace(/^## (.+)$/gm, "<h3>$1</h3>")
     .replace(/^# (.+)$/gm, "<h3>$1</h3>")
@@ -7152,7 +7170,7 @@ function explRenderBoard(fen, from, to) {
       const sq = document.getElementById(`expl-sq-${id}`);
       if (!sq) continue;
       const piece = grid[id];
-      sq.innerHTML = piece ? (PIECES[piece] || piece) : "";
+      sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
       sq.className = `square ${(rank + file) % 2 === 1 ? "light" : "dark"}`;
       if (from && id === from) sq.classList.add("last-move-from");
       if (to   && id === to)   sq.classList.add("last-move-to");

@@ -25,6 +25,7 @@ Elles te sont injectées automatiquement, avec ton prompt, dans la section CONSI
 - Polling `time.sleep()` ≥ 0.05 s ; threads LED daemon.
 - `on_action` : chaque `sendAction({type:X})` JS a son `elif` Python.
 - i18n : clé ajoutée **simultanément** dans `fr/en/de.json` (`static/i18n/`) ; allemand incertain → valeur anglaise, jamais absente.
+- Tout texte externe (PGN, noms, messages serveur, réponses LLM, futur Lichess) → `esc()` ou `textContent`, jamais brut dans `innerHTML`. Garde : `test_issue303_html_escaping.py`.
 
 ## Conventions
 Début de session : `git status`, branche `master`, `TESTS.md`. Tests : `python -m pytest nicsoft/tests -m "not hardware"`. Commits ciblés. USB (ThinkPad X1 Gen 7) : quirk `/etc/modprobe.d/chessnut.conf` = `options usbhid quirks=0x2d80:0x8003:0x40`, udev `autosuspend=-1`, launcher `/usr/bin/python3` (voir `INSTALLATION_ALCHESS.md`).
