@@ -404,6 +404,8 @@
   "status.board.connecte": "Schachbrett verbunden",
   "status.board.non_detecte": "Schachbrett nicht erkannt — Virtueller Modus verfügbar",
   "status.board.sans_echiquier": "Kein Brett",
+  "banner.board_absent_menu": "⚠️ Board not detected — virtual mode active. Plug in and power on the board, then use the connect button.",
+  "banner.board_absent_session": "⚠️ Board not detected — this session will run on the virtual board. Plug in and power on the board, then use the connect button.",
   "game.undo_remettez_pieces": "Figuren zurückstellen, dann weiterspielen.",
   "game.undo_remettez_piece": "Figur zurückstellen, dann weiterspielen.",
   "game.fin_partie_default": "Partie beendet",

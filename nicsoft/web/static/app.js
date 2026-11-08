@@ -606,8 +606,17 @@ function _applyBoardBadge() {
     header.classList.toggle("header-disconnected", !_boardOk);
     pill.classList.toggle("pill-connected", _boardOk);
     pill.classList.toggle("pill-disconnected", !_boardOk);
+    pill.classList.toggle("pill-board-error", _boardError);
+    pill.title = _boardError ? t("status.board.non_detecte") : "";
     text.textContent = t(_boardOk ? "status.board.connecte" : "status.board.sans_echiquier");
   }
+
+  // Bande d'alerte échiquier absent — menu, choix d'ouverture Exercices,
+  // écrans de préparation des modes utilisant l'échiquier (issue #299).
+  // Disparaît dès que l'échiquier est de nouveau détecté (_boardError=false).
+  document.querySelectorAll(".board-warning-banner").forEach(el => {
+    el.classList.toggle("hidden", !_boardError);
+  });
   const schemaConnected    = document.getElementById("schema-connected");
   const schemaDisconnected = document.getElementById("schema-disconnected");
   const btnConnecter       = document.getElementById("btn-connecter");

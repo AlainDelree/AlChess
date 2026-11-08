@@ -46,6 +46,9 @@
 
 <!-- ── Écran menu ── -->
 <div id="screen-menu">
+  <div id="board-warning-banner-menu" class="board-warning-banner hidden" data-i18n="banner.board_absent_menu">
+    ⚠️ Échiquier non détecté — mode virtuel activé. Branchez et allumez l'échiquier, puis utilisez le bouton de connexion.
+  </div>
   <!-- ── Schéma connexion ordinateur-échiquier ── -->
   <div class="schema-connexion" id="schema-connexion">
     <svg viewBox="0 0 50 200" width="100%" height="100%" aria-hidden="true">
@@ -212,6 +215,10 @@
     <div class="config-title cfg-ped-title" data-i18n="config.titre.pedagogique">🎓 Mode Pédagogique</div>
   </div>
 
+  <div id="board-warning-banner-config" class="board-warning-banner hidden" data-i18n="banner.board_absent_session">
+    ⚠️ Échiquier non détecté — cette session se déroulera sur l'échiquier virtuel. Branchez et allumez l'échiquier, puis utilisez le bouton de connexion.
+  </div>
+
   <!-- Zone scrollable — hauteur contrainte entre titre et boutons -->
   <div class="cfg-ped-scroll">
 
@@ -362,6 +369,10 @@
   <!-- Barre de titre fixe -->
   <div class="cfg-hh-titlebar">
     <div class="config-title cfg-hh-title" data-i18n="config.titre.humain">⚔️ Humain vs Humain</div>
+  </div>
+
+  <div id="board-warning-banner-config-humain" class="board-warning-banner hidden" data-i18n="banner.board_absent_session">
+    ⚠️ Échiquier non détecté — cette session se déroulera sur l'échiquier virtuel. Branchez et allumez l'échiquier, puis utilisez le bouton de connexion.
   </div>
 
   <!-- Zone scrollable -->
@@ -833,6 +844,10 @@
 
   <div class="ex-titre" data-i18n="exercices.titre_ecran">📚 Exercices — Ouvertures</div>
   <div class="ex-soustitre" data-i18n="exercices.sous_titre">Choisissez une ouverture et entraînez-vous avec le livre de GM</div>
+
+  <div id="board-warning-banner-exercices" class="board-warning-banner hidden" data-i18n="banner.board_absent_session">
+    ⚠️ Échiquier non détecté — cette session se déroulera sur l'échiquier virtuel. Branchez et allumez l'échiquier, puis utilisez le bouton de connexion.
+  </div>
 
   <!-- Paramètres compacts -->
   <div id="ex-variete-bar" class="ex-variete-bar">

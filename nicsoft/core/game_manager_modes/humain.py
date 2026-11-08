@@ -12,7 +12,7 @@ import chess
 from nicsoft.core.board_adapter import create_board
 from nicsoft.core.ihm_port import (
     send_event, set_app_state, get_action, set_virtual_board, get_action_queue,
-    check_board_at_startup, set_history, app_state_proxy as web_server,
+    check_board_presence_silent, set_history, app_state_proxy as web_server,
 )
 from nicsoft.core.game_manager_modes.state import (
     logger, get_virtual_mode, set_nl_inst_ref, _wait_initial_position_web,
@@ -47,8 +47,11 @@ def launch_humain(config):
         set_app_state("menu")
     if web_server._app_state == "menu" and not get_virtual_mode():
         # Re-vérifier l'état réel du plateau au retour menu depuis HH
-        # (déconnexion silencieuse pendant la partie non détectée jusqu'ici).
-        threading.Thread(target=check_board_at_startup, daemon=True).start()
+        # (déconnexion silencieuse pendant la partie non détectée jusqu'ici) —
+        # vérification silencieuse (énumération USB), sans reconnexion ni bip
+        # (issue #299 : l'ancienne reconnexion complète faisait bipper le
+        # plateau 2-3s après ce retour au menu).
+        threading.Thread(target=check_board_presence_silent, daemon=True).start()
 
 
 def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
