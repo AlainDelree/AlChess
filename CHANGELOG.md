@@ -1,5 +1,40 @@
 # Changelog — Issue #255
 
+# Changelog — Issue #300
+
+# Issue #300 (suite #299) — Humain contre Humain exige l'échiquier physique, message et bouton de démarrage adaptés, indication de connexion près du bouton « Connecter »
+
+- **Branche de base manquante** : ce worktree a été créé à partir de `master` avant la fusion de la branche `worktree-issue-299` (le travail de l'issue #299 — bandes d'alerte, pill rouge, etc.). Fusion locale de `worktree-issue-299` dans `worktree-issue-300` (merge propre, sans conflit) avant de commencer, pour disposer du mécanisme sur lequel #300 s'appuie.
+- **Bande d'alerte Humain contre Humain** : nouvelle clé `banner.board_absent_hh` (fr/en/de, allemand aligné sur l'anglais) utilisée par `#board-warning-banner-config-humain` à la place de `banner.board_absent_session` — ce mode se joue uniquement sur l'échiquier physique, il n'a pas de repli virtuel du point de vue utilisateur. Les écrans Pédagogique et Exercices gardent `banner.board_absent_session` (mention de l'écran virtuel), inchangés.
+- **Bouton de démarrage HH désactivé sans échiquier** : `#btn-start-hh` (nouvel id sur le bouton « Démarrer la partie » de `screen-config-humain`) est inactif par défaut (`disabled` dans le HTML) et sa désactivation/réactivation est pilotée dans `_applyBoardBadge()` (`nicsoft/web/static/app.js`), la fonction qui applique déjà l'état de l'échiquier aux bandes/pill — `btn-start-hh.disabled = !_boardOk`. Info-bulle `menu.hh.requiert_echiquier` (clé déjà présente dans les trois locales mais inutilisée jusqu'ici) affichée quand désactivé, vidée sinon. Le lanceur serveur (`start_game_hh` côté Python) et le chemin virtuel des tests ne sont pas modifiés.
+- **Indication « Cliquez ici » près du bouton Connecter** : nouvel élément `#connect-hint` dans le schéma de connexion (`schema-connexion`), caché par défaut, affiché uniquement quand `_boardError` est actif (même bascule que les bandes), avec une flèche dessinée en CSS (triangle par bordures, pas d'image) pointant vers `#btn-connecter`. `pointer-events: none` pour ne jamais intercepter les clics ; masqué en `.res-small` pour ne pas chevaucher le menu sur petite largeur. Nouvelle clé `menu.hint.connecter` (fr/en/de — traduction allemande à faire relire).
+- **Test statique** `test_issue300_hh_board_required_ui.py` (sans matériel, sur le modèle de `test_issue299_board_absent_ui.py`) : nouvelles clés présentes et cohérentes dans les 3 locales, bande HH sur la nouvelle clé, Pédagogique/Exercices sur l'ancienne, logique de désactivation du bouton présente en JS, indication de connexion présente/cachée par défaut/pilotée par l'état de l'échiquier/sans captation de clics.
+- `test_issue299_board_absent_ui.py::test_bandes_alerte_utilisent_les_bonnes_cles_i18n` ajusté : ne vérifie plus `board-warning-banner-config-humain` (désormais couvert par le nouveau fichier de test avec la nouvelle clé attendue).
+- Suite complète exécutée (`pytest nicsoft/tests -m "not hardware"`) : 604 passed, 75 skipped.
+
+## Vérification manuelle (matériel requis, à faire par Alain)
+
+1. Échiquier débranché : constater que l'indication avec la flèche apparaît à côté du bloc « Connecter » au menu ; ouvrir Humain contre Humain, lire la bande (nouveau texte « échiquier physique obligatoire ») et constater que le bouton « Démarrer la partie » est inactif (avec info-bulle au survol).
+2. Brancher l'échiquier, cliquer sur « Connecter » : l'indication disparaît, le bouton redevient actif, une partie démarre normalement.
+3. Changer la langue de l'interface en anglais puis en allemand et relire l'indication (`menu.hint.connecter`) et la bande (`banner.board_absent_hh`) — traduction allemande non relue par un germanophone, à vérifier.
+
+# Changelog — Issue #299
+
+# Issue #299 — Ménage 2 : échiquier absent bien visible dans l'interface, relance de ModemManager à toute sortie, vérification silencieuse au retour de Humain contre Humain
+
+- **Visibilité de l'échiquier absent** : l'indicateur d'en-tête (`#board-status-pill`) passe en rouge (classe `.pill-board-error`) avec une info-bulle (`status.board.non_detecte`) quand l'état d'erreur de l'échiquier est actif. Une bande d'alerte courte (`.board-warning-banner`) est ajoutée au menu principal (« mode virtuel activé »), au choix d'ouverture du mode Exercices et aux écrans de préparation Pédagogique/Humain contre Humain (« cette session se déroulera sur l'échiquier virtuel ») ; elle disparaît dès que l'échiquier est de nouveau détecté (`_boardError` → `false`). Nouvelles clés `banner.board_absent_menu` / `banner.board_absent_session` ajoutées simultanément dans `fr/en/de.json` (allemand aligné sur l'anglais, traduction incertaine). La logique existante qui coche automatiquement le mode virtuel n'est pas modifiée.
+- **ModemManager relancé à toute sortie du processus** : `nicsoft/web/alchess.py` enregistre désormais `_ensure_modem_manager_restarted` via `atexit` (couvre l'arrêt normal de l'interpréteur) et installe des handlers `SIGTERM`/`SIGHUP` (`_handle_termination_signal`) qui relancent le service puis terminent proprement. Un verrou+drapeau évite toute double relance entre les chemins de sortie (quitter, Ctrl+C, signal, atexit). Sans effet si `ALCHESS_SKIP_BOARD=1` (comportement existant inchangé). Limite documentée dans le code : un arrêt brutal (SIGKILL, coupure d'alimentation) ne peut être intercepté par aucun code Python.
+- **Retour menu silencieux depuis Humain contre Humain** : `nicsoft/core/game_manager_modes/humain.py` appelle désormais `check_board_presence_silent` (nouvelle fonction du port neutre `ihm_port.py`, implémentée côté web par `nicsoft/web/alchess.py::_check_board_presence_silent`) au lieu de `check_board_at_startup`. Cette vérification lit la présence physique par énumération USB (`hid_backend.check_physically_present`, sans connexion ni bip, cf. issue #295) et envoie les mêmes événements `board_ok`/`board_error` que la vérification de démarrage, qui reste elle-même inchangée. Respecte ARC-001 (le jeu passe par le port neutre, pas d'import de `nicsoft.web`).
+- Tests ajoutés (aucun matériel requis) : `test_issue299_modem_manager_shutdown.py` (relance garantie, signal simulé, pas de double relance, no-op avec `ALCHESS_SKIP_BOARD`), `test_issue299_check_board_presence_silent.py` (événements corrects, aucune création de gestionnaire), `test_issue299_humain_retour_menu_silencieux.py` (fin de partie HH → vérification silencieuse, pas l'ancienne complète), `test_issue299_board_absent_ui.py` (clés i18n présentes/cohérentes, éléments HTML/CSS/JS statiques).
+- `CONTEXTE.md` : retrait du point « indicateur No board discret... » de la section « État actuel » (traité par cette issue).
+
+## Vérification manuelle (matériel requis)
+
+1. Lancer l'application avec l'échiquier débranché : la bande d'alerte doit apparaître au menu, puis au choix d'ouverture des Exercices.
+2. Brancher l'échiquier et utiliser le bouton de connexion : la bande doit disparaître et l'indicateur repasser vert.
+3. Jouer une partie Humain contre Humain, revenir au menu : plus de bip 2-3s après le retour.
+4. Lancer l'application puis l'arrêter avec `kill <PID>` (SIGTERM simple) : vérifier que ModemManager est actif (`systemctl status ModemManager`).
+
 # Issue #298 — Ménage 1 : mode Labo libre, éléments d'interface morts, journal d'abandon, actions GitHub, modèles d'échiquier au README
 
 - Suppression du mode Labo libre, mort depuis #278/#295 : `nicsoft/core/game_manager_modes/labo_libre.py` supprimé, import/export retirés de `game_manager.py`, branche `start_labo_libre` retirée d'`alchess.py`, tests dédiés retirés de `test_issue295_mode_cleanup.py` (modes Humain et Labo conservés).
