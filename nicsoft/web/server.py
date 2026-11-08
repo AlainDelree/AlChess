@@ -70,6 +70,41 @@ def _is_allowed_origin(origin: str) -> bool:
     return bool(origin) and bool(_ALLOWED_ORIGIN_RE.match(origin))
 
 
+# Port d'écoute réel du serveur — fixé par start_server()/set_server_port()
+# (le port est choisi dynamiquement, voir alchess._find_free_port). Utilisé
+# pour valider l'en-tête Host des routes HTTP sensibles : un Host différent
+# de 127.0.0.1/localhost sur ce port indique une attaque par réaffectation de
+# nom de domaine (DNS rebinding) — un domaine public pointé vers 127.0.0.1
+# forcerait le navigateur à envoyer ce domaine-là en Host (issue #304).
+_server_port: int | None = None
+
+
+def set_server_port(port: int) -> None:
+    """API publique — fixe le port utilisé par _is_allowed_host(). Appelée par
+    start_server() ; exposée séparément pour les tests (pas de socket réel)."""
+    global _server_port
+    _server_port = port
+
+
+def _is_allowed_host(host: str) -> bool:
+    return bool(host) and _server_port is not None and host in (
+        f"127.0.0.1:{_server_port}", f"localhost:{_server_port}",
+    )
+
+
+def _require_allowed_origin() -> None:
+    """Pour les routes POST à effet de bord — Origin absent ou non autorisé → 403."""
+    if not _is_allowed_origin(request.headers.get("Origin", "")):
+        abort(403)
+
+
+def _require_allowed_host() -> None:
+    """Pour les routes de lecture sensibles et les routes à effet de bord —
+    Host différent de 127.0.0.1/localhost sur le port du serveur → 403."""
+    if not _is_allowed_host(request.headers.get("Host", "")):
+        abort(403)
+
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = _get_or_create_secret_key()
 socketio = SocketIO(app, cors_allowed_origins=_is_allowed_origin, async_mode="threading", )
@@ -345,6 +380,7 @@ def index():
 @app.route("/logs")
 def get_logs():
     """Sert le fichier de log pour téléchargement/consultation."""
+    _require_allowed_host()
     if LOG_FILE.exists():
         return send_file(str(LOG_FILE), mimetype="text/plain", as_attachment=False)
     return "Aucun log disponible.", 404
@@ -352,6 +388,7 @@ def get_logs():
 @app.route("/debug/mark")
 def debug_mark():
     """Insère un marqueur dans les logs — mode debug uniquement."""
+    _require_allowed_host()
     if not DEBUG_MODE:
         abort(403)
     from datetime import datetime
@@ -368,6 +405,7 @@ def debug_mark():
 @app.route("/debug/mode")
 def debug_mode_status():
     """Retourne si le mode debug est actif — utilisé par le JS au démarrage."""
+    _require_allowed_host()
     from flask import jsonify
     return jsonify({"debug": DEBUG_MODE})
 
@@ -378,6 +416,8 @@ def toggle_autoupdate():
     Bascule via la présence de NO_UPDATE_FILE à la racine du projet,
     lu par 2-Lancer_AlChess.bat au démarrage.
     """
+    _require_allowed_origin()
+    _require_allowed_host()
     from flask import jsonify
     if NO_UPDATE_FILE.exists():
         NO_UPDATE_FILE.unlink()
@@ -392,6 +432,8 @@ TEST_CONFIG_DIR = LOGS_DIR / "Test config"
 @app.route("/test/save-config", methods=["POST"])
 def test_save_config():
     """Sauvegarde la config de test courante dans logs/Test config/test_config_YYYY-MM-DD.log."""
+    _require_allowed_origin()
+    _require_allowed_host()
     from flask import request, jsonify
     from datetime import datetime
     if TEST_MODE != "random":
@@ -911,17 +953,34 @@ def on_pgn_lib_load_game(data):
 
 @socketio.on("config_get")
 def on_config_get(_data):
-    """Retourne la config courante (y compris champs LLM/TTS)."""
+    """Retourne la config courante (champs LLM/TTS) — jamais la clé API elle-
+    même (issue #304) : seulement un indicateur de présence et, si la clé
+    fait au moins 12 caractères, ses 4 derniers caractères comme indice."""
     from nicsoft.core.config_manager import load_config
-    emit("config_data", load_config())
+    cfg = dict(load_config())
+    api_key = cfg.pop("llm_api_key", "")
+    cfg["has_llm_api_key"] = bool(api_key)
+    cfg["llm_api_key_hint"] = api_key[-4:] if len(api_key) >= 12 else ""
+    emit("config_data", cfg)
 
 
 @socketio.on("config_save")
 def on_config_save(data):
-    """Fusionne et sauvegarde la config reçue du navigateur."""
+    """Fusionne et sauvegarde la config reçue du navigateur.
+
+    La clé API n'est jamais renvoyée au navigateur (issue #304) : le champ
+    llm_api_key, laissé vide par la page, ne doit donc pas écraser la clé
+    déjà enregistrée. llm_api_key_delete=True (action explicite "Supprimer
+    la clé") l'efface ; sinon un llm_api_key non vide la remplace.
+    """
     from nicsoft.core.config_manager import save_config
     try:
-        save_config(data or {})
+        data = dict(data or {})
+        if data.pop("llm_api_key_delete", False):
+            data["llm_api_key"] = ""
+        elif not data.get("llm_api_key"):
+            data.pop("llm_api_key", None)
+        save_config(data)
         emit("config_saved", {"ok": True})
     except Exception as e:
         emit("config_saved", {"ok": False, "error": str(e)})
@@ -1316,6 +1375,8 @@ def start_server(host="127.0.0.1", port=5000, debug=False) -> threading.Thread:
     Démarre le serveur Flask-SocketIO dans un thread daemon.
     Retourne le thread pour référence.
     """
+    set_server_port(port)
+
     dispatch_thread = threading.Thread(target=_dispatch_loop, daemon=True)
     dispatch_thread.start()
 

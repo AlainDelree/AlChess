@@ -1538,7 +1538,11 @@
 
       <div class="add-field">
         <label class="add-label" for="param-llm-api-key" data-i18n="parametres.llm.api_key">Clé API</label>
-        <input type="password" id="param-llm-api-key" class="add-input" autocomplete="off">
+        <input type="password" id="param-llm-api-key" class="add-input" autocomplete="off" data-i18n-placeholder="parametres.llm.api_key_placeholder" placeholder="Laisser vide pour conserver la clé actuelle">
+        <div class="parametres-llm-key-row">
+          <span id="param-llm-api-key-hint" class="parametres-llm-key-hint"></span>
+          <button type="button" class="btn btn-warning parametres-llm-key-delete" data-action="parametres_delete_key" data-i18n="parametres.llm.supprimer_cle">🗑 Supprimer la clé</button>
+        </div>
       </div>
 
       <div class="add-field">

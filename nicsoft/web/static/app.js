@@ -137,6 +137,9 @@ document.addEventListener("click", (e) => {
     case "parametres_save":
       parametresSave();
       break;
+    case "parametres_delete_key":
+      parametresSupprimerCle();
+      break;
     case "quit_modal":
       ouvrirModal("quit", t("modal.quitter_alchess"), t("modal.quitter_btn"), "btn-warning");
       break;
@@ -6723,18 +6726,28 @@ socket.on("config_data", (data) => {
   if (!data) return;
   const provider = document.getElementById("param-llm-provider");
   const apiKey   = document.getElementById("param-llm-api-key");
+  const keyHint  = document.getElementById("param-llm-api-key-hint");
   const model    = document.getElementById("param-llm-model");
   const ttsOn    = document.getElementById("param-tts-enabled");
   const ttsRate  = document.getElementById("param-tts-rate");
   const ttsRateVal = document.getElementById("param-tts-rate-val");
   if (provider) provider.value = data.llm_provider || "claude";
-  if (apiKey)   apiKey.value   = data.llm_api_key || "";
+  // Le champ reste toujours vide — la clé n'est jamais renvoyée par le
+  // serveur (issue #304) ; seul un indice (4 derniers caractères) l'est.
+  if (apiKey)   apiKey.value   = "";
+  if (keyHint) {
+    keyHint.textContent = data.llm_api_key_hint
+      ? t("parametres.llm.cle_enregistree", { suffix: data.llm_api_key_hint })
+      : data.has_llm_api_key
+        ? t("parametres.llm.cle_enregistree_sans_indice")
+        : t("parametres.llm.aucune_cle");
+  }
   if (model)    model.value    = data.llm_model || "";
   if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
   if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
   if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;
 
-  _explHasApiKey = !!(data.llm_api_key && data.llm_api_key.trim());
+  _explHasApiKey = !!data.has_llm_api_key;
   explUpdateChatAvailability();
 
   _explTtsEnabled = !!data.tts_enabled;
@@ -6752,6 +6765,7 @@ function parametresSave() {
   const ttsRate  = document.getElementById("param-tts-rate");
   socket.emit("config_save", {
     llm_provider: provider ? provider.value : "claude",
+    // Champ vide = clé inchangée ; valeur saisie = clé remplacée (issue #304).
     llm_api_key:  apiKey ? apiKey.value : "",
     llm_model:    model ? model.value : "",
     tts_enabled:  ttsOn ? ttsOn.checked : false,
@@ -6759,9 +6773,21 @@ function parametresSave() {
   });
 }
 
+let _parametresDeletingKey = false;
+
+function parametresSupprimerCle() {
+  _parametresDeletingKey = true;
+  socket.emit("config_save", { llm_api_key: "", llm_api_key_delete: true });
+}
+
 socket.on("config_saved", (data) => {
+  const wasDeletingKey = _parametresDeletingKey;
+  _parametresDeletingKey = false;
   if (data && data.ok) {
-    afficherToast(t("parametres.toast.enregistre"), "success");
+    afficherToast(t(wasDeletingKey ? "parametres.toast.cle_supprimee" : "parametres.toast.enregistre"), "success");
+    // Rafraîchit l'indice affiché (clé remplacée/supprimée) sans jamais
+    // redemander la clé elle-même.
+    socket.emit("config_get", {});
   } else {
     afficherToast(t("parametres.toast.erreur"), "warning");
   }
