@@ -8,6 +8,8 @@ import subprocess
 import threading
 import webbrowser
 import socket
+import signal
+import atexit
 import logging
 from nicsoft.config import APP_DIR, LOGS_DIR
 from nicsoft.platform_utils import stop_modem_manager, start_modem_manager
@@ -66,6 +68,9 @@ class _WebBackend:
 
     def check_board_at_startup(self):
         _check_board_at_startup()
+
+    def check_board_presence_silent(self):
+        _check_board_presence_silent()
 
 
 ihm_port.register_backend(_WebBackend())
@@ -147,6 +152,51 @@ def _start_modem_manager():
     if os.environ.get("ALCHESS_SKIP_BOARD") == "1":
         return
     start_modem_manager()
+
+
+_modem_restart_lock = threading.Lock()
+_modem_restarted = False
+
+
+def _ensure_modem_manager_restarted():
+    """Relance ModemManager une seule fois, quel que soit le chemin de
+    sortie du processus (quitter, Ctrl+C, signal de terminaison, arrêt
+    normal de l'interpréteur) — le verrou+drapeau évite une double relance
+    quand plusieurs de ces chemins s'exécutent pour la même sortie (ex. le
+    sys.exit() d'un handler de signal déclenche aussi les callbacks atexit).
+    Limite connue, non contournable : un arrêt brutal (SIGKILL/kill -9,
+    coupure d'alimentation) ne peut être intercepté par aucun code Python —
+    le service reste alors arrêté jusqu'au prochain lancement normal de
+    l'application."""
+    global _modem_restarted
+    with _modem_restart_lock:
+        if _modem_restarted:
+            return
+        _modem_restarted = True
+    _start_modem_manager()
+
+
+def _handle_termination_signal(signum, frame):
+    """SIGTERM (arrêt du processus) / SIGHUP (fermeture du terminal) :
+    relance ModemManager puis termine proprement. Enregistré uniquement
+    dans main() — jamais à l'import de ce module (ex. tests, sous-process
+    d'un autre outil)."""
+    logging.getLogger("niclink").info(
+        f"Signal de terminaison reçu ({signum}) — relance ModemManager puis arrêt."
+    )
+    _ensure_modem_manager_restarted()
+    sys.exit(0)
+
+
+def _register_modem_manager_shutdown_handlers():
+    """Garantit la relance de ModemManager à toute sortie normale du
+    processus (hors arrêt brutal — voir _ensure_modem_manager_restarted) :
+    atexit couvre l'arrêt normal de l'interpréteur (fin de main(), exception
+    non gérée...), les handlers de signal couvrent SIGTERM et SIGHUP."""
+    atexit.register(_ensure_modem_manager_restarted)
+    signal.signal(signal.SIGTERM, _handle_termination_signal)
+    if hasattr(signal, "SIGHUP"):
+        signal.signal(signal.SIGHUP, _handle_termination_signal)
 
 
 _board_check_lock = threading.Lock()
@@ -239,6 +289,26 @@ def _check_board_at_startup():
         _board_check_lock.release()
 
 
+def _check_board_presence_silent():
+    """Vérification silencieuse de présence physique du plateau — ni
+    connexion, ni bip (contrairement à _check_board_at_startup, qui crée un
+    NicLinkManager). Depuis #295, la présence physique se lit directement
+    par énumération des périphériques USB (hid_backend.check_physically_present),
+    indépendamment de toute connexion. Utilisée au retour menu depuis
+    Humain contre Humain (issue #299) pour éviter que l'ancienne
+    vérification complète ne fasse bipper le plateau 2-3s après ce retour."""
+    if os.environ.get("ALCHESS_SKIP_BOARD") == "1":
+        return
+    from nicsoft.niclink import hid_backend
+    if hid_backend.check_physically_present():
+        send_event("board_ok", {})
+    else:
+        send_event("board_error", {
+            "message": "Échiquier déconnecté — vérifiez l'USB et reconnectez le plateau.",
+            "message_key": "error.board.deconnecte",
+        })
+
+
 def _board_menu_watcher():
     """
     Surveille la connexion physique du plateau tant que l'app est au menu.
@@ -287,6 +357,7 @@ def _check_retranscription_session():
 
 def main():
     _setup_logging()
+    _register_modem_manager_shutdown_handlers()
     _stop_modem_manager()
     print("=== NicLink ===")
     _port = _find_free_port(5000)
@@ -373,7 +444,7 @@ def main():
                         # entre ce vidage de _led_queue et le thread _led_worker_loop qui consomme
                         # la même queue (task_done() appelé en double, cf. driver.py ~l.234).
                         logger.debug("extinction des LEDs best-effort échouée : %s", e)
-                _start_modem_manager()
+                _ensure_modem_manager_restarted()
                 sys.exit(0)
     except KeyboardInterrupt:
         print("\nAu revoir !")
@@ -385,7 +456,7 @@ def main():
                 # entre ce vidage de _led_queue et le thread _led_worker_loop qui consomme
                 # la même queue (task_done() appelé en double, cf. driver.py ~l.234).
                 logger.debug("extinction des LEDs best-effort échouée : %s", e)
-        _start_modem_manager()
+        _ensure_modem_manager_restarted()
         sys.exit(0)
 
 

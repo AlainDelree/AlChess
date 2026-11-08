@@ -58,6 +58,9 @@ class _NullBackend:
     def check_board_at_startup(self):
         pass
 
+    def check_board_presence_silent(self):
+        pass
+
 
 _backend = _NullBackend()
 
@@ -136,6 +139,14 @@ def set_raw_app_state(state: str) -> None:
 def check_board_at_startup() -> None:
     """Relance la vérification de présence du plateau physique."""
     _backend.check_board_at_startup()
+
+
+def check_board_presence_silent() -> None:
+    """Vérification silencieuse de présence physique du plateau (sans
+    connexion ni bip, cf. hid_backend.check_physically_present) — met à
+    jour l'état de l'échiquier et émet les mêmes événements que
+    check_board_at_startup, sans reconnecter le plateau."""
+    _backend.check_board_presence_silent()
 
 
 class _AppStateProxy:
