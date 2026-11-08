@@ -856,7 +856,6 @@
     .labo-turn-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
     .labo-turn-info { font-size: 0.95rem; font-weight: 600; color: #1a2a3a; }
     .labo-last-move { margin-top: 6px; font-size: 1rem; font-weight: bold; color: #3a5a7a; min-height: 1.2rem; text-align: center; }
-    .labo-feedback-side { margin-top: 4px; padding: 4px 8px; border-radius: 4px; font-size: 0.82rem; display: none; }
     .labo-btn-mb0 { margin-bottom: 0; }
     .labo-acc-card { padding: 0; }
     .labo-acc-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; cursor: pointer; }
@@ -1045,8 +1044,6 @@
     .move-chip.imprecision { color: #cc7700; }
     .move-chip.erreur     { color: #cc2200; }
     .move-chip.blunder    { color: #7b00b0; }
-
-    #countdown { display: none !important; }
 
     .mat-score {
       font-size: 0.75rem;
@@ -1411,7 +1408,6 @@
 .game-pause-actions-card { padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
 .game-btn-pause-continuer { background:#2e7d32; }
 .game-btn-changer-couleur { background:#a0b8d0; color:#1a2a3a; border:1px solid #e94560; }
-.game-pause-hidden-init { display:none; }
 
 /* ── Écran #screen-game — panneau "Fin de partie", début (issue #243 partie 3/4) ── */
 .game-gameover-card { padding:14px 18px; }

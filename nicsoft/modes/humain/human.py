@@ -826,7 +826,10 @@ class GameWeb(threading.Thread):
             move = self.nl_inst.await_move()
             tlog("[TIMING] await_move: %.2fs — move=%s", time.time()-_t_await, move)
         except Exception as exc:
-            logger.error(f"await_move a echoue, coup non detecte: {exc}")
+            if self.nl_inst.kill_switch.is_set():
+                logger.info(f"await_move interrompu (pause/abandon/retour menu): {exc}")
+            else:
+                logger.error(f"await_move a echoue, coup non detecte: {exc}")
         finally:
             watch_stop.set()
             watcher.join(timeout=1.0)

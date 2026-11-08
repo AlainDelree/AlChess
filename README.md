@@ -104,7 +104,7 @@ Engines are set up **automatically by the installer**, with the binary matching 
 | Ubuntu 22.04 / 24.04 (x86_64) | ✅ |
 | Windows 10 / 11 (x86_64) | ✅ |
 
-> ⚠️ The Chessnut Air+ has a different `idProduct` from the Chessnut Air — check with `lsusb | grep 2d80` (Linux) or Device Manager (Windows).
+Boards recognized by the driver (`idProduct`, not all necessarily tested): Chessnut Air, Chessnut Air Plus, Chessnut Go, and two older unnamed models. Check yours with `lsusb | grep 2d80` (Linux) or Device Manager (Windows).
 
 ### Install from source (developers)
 
@@ -234,7 +234,7 @@ Les moteurs sont mis en place **automatiquement par l'installeur**, avec le bina
 | Ubuntu 22.04 / 24.04 (x86_64) | ✅ |
 | Windows 10 / 11 (x86_64) | ✅ |
 
-> ⚠️ Le Chessnut Air+ a un `idProduct` différent du Chessnut Air — vérifiez avec `lsusb | grep 2d80` (Linux) ou le Gestionnaire de périphériques (Windows).
+Échiquiers reconnus par le pilote (`idProduct`, pas tous forcément testés) : Chessnut Air, Chessnut Air Plus, Chessnut Go, et deux anciens modèles sans nom commercial. Vérifiez le vôtre avec `lsusb | grep 2d80` (Linux) ou le Gestionnaire de périphériques (Windows).
 
 ### Installation depuis les sources (développeurs)
 

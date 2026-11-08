@@ -544,7 +544,6 @@ let currentFen       = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 let lastMove         = null;
 let lastMoveColor    = "white";
 let bestMove         = null;
-let countdownTimer   = null;
 let _histMoves       = [];
 let _pendingMove     = null;
 let currentPlayerColor = "white";
@@ -1372,7 +1371,6 @@ socket.on("move", (data) => {
   const [from, to] = uciToCoords(data.uci);
   renderBoard(currentFen, from, to, null, null, null, null);
   hideFeedback();
-  stopCountdown();
 
   // Mettre à jour la barre WDL si présente (coup moteur)
   if (data.wdl) updateWdlBar(data.wdl);
@@ -1490,7 +1488,6 @@ socket.on("popup", (data) => {
 socket.on("game_over", (data) => {
   if (data.skip) return;  // back_menu — on ignore
   hideFeedback();
-  stopCountdown();
   _gameSource = data.source || "externe";
   const gameTitle = data.title_key
     ? t(data.title_key, data.title_vars || {})
@@ -2140,31 +2137,6 @@ function _renderHistory() {
   hist.scrollTop = hist.scrollHeight;
 }
 
-// ── Countdown ─────────────────────────────────────────────────────────────
-
-function startCountdown(seconds) {
-  const el = document.getElementById("countdown");
-  el.style.display = "block";
-  let remaining = seconds;
-  el.textContent = remaining;
-  countdownTimer = setInterval(() => {
-    remaining--;
-    el.textContent = remaining;
-    if (remaining <= 0) {
-      stopCountdown();
-      sendAction({ type: "continuer" });
-    }
-  }, 1000);
-}
-
-function stopCountdown() {
-  if (countdownTimer) {
-    clearInterval(countdownTimer);
-    countdownTimer = null;
-  }
-  document.getElementById("countdown").style.display = "none";
-}
-
 // ── Modal de confirmation ─────────────────────────────────────────────────
 
 function ouvrirModalAbandonner() {
@@ -2292,7 +2264,6 @@ function ouvrirAidePanier() {
 // ── Actions ───────────────────────────────────────────────────────────────
 
 function sendAction(data) {
-  stopCountdown();
   socket.emit("action", data);
 
   if (data.type === "meilleur" && bestMove) {

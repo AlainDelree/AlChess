@@ -353,8 +353,6 @@ def main():
             elif atype in ("exercice_back",):
                 set_app_state("exercices")
                 send_event("exercice_back", {})
-            elif atype == "start_labo_libre":
-                gm.launch_labo_libre(action)
             elif atype == "back":
                 set_app_state("menu")
             elif atype == "start":

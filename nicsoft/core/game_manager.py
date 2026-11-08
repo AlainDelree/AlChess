@@ -20,7 +20,6 @@ from nicsoft.core.game_manager_modes.labo import (
     launch_labo, _poll_board_fen_labo, _make_labo_session,
 )
 from nicsoft.core.game_manager_modes.labo_session import _run_labo_session, _do_copy_to_board
-from nicsoft.core.game_manager_modes.labo_libre import launch_labo_libre, _run_labo_libre
 from nicsoft.core.game_manager_modes.explorer import (
     explorer_get_list, explorer_load, explorer_next, explorer_prev,
     explorer_choose_move, explorer_get_state, explorer_cleanup,
@@ -30,7 +29,7 @@ __all__ = [
     "get_nl_inst_ref", "get_virtual_mode", "set_virtual_mode",
     "launch_pedagogique", "launch_humain", "launch_retranscription",
     "launch_exercices", "start_exercice", "start_drill",
-    "launch_labo", "launch_labo_libre",
+    "launch_labo",
     "explorer_get_list", "explorer_load", "explorer_next", "explorer_prev",
     "explorer_choose_move", "explorer_get_state", "explorer_cleanup",
 ]

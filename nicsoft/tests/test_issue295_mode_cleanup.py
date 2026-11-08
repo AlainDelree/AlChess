@@ -1,12 +1,12 @@
 """
 nicsoft/tests/test_issue295_mode_cleanup.py — NicLink
 Issue #295, point 3 : observation non traitée de l'issue #292 — les modes
-Humain contre Humain, Labo et Labo libre ne fermaient jamais la connexion
-de l'échiquier à la fin de leur session (contrairement aux modes
+Humain contre Humain et Labo ne fermaient jamais la connexion de
+l'échiquier à la fin de leur session (contrairement aux modes
 Pédagogique, Exercices et Explorateur, déjà corrigés), avec le même risque
 de fil de lecture USB (fen_reader) orphelin.
 
-Ces tests vérifient, sans matériel, que chacun de ces trois modes appelle
+Ces tests vérifient, sans matériel, que chacun de ces modes appelle
 désormais nl_inst.disconnect() en fin de session — y compris sur un
 abandon (sortie par exception) et pas seulement en fin de partie normale.
 """
@@ -15,7 +15,6 @@ import pytest
 
 import nicsoft.core.game_manager_modes.humain as humain_launcher
 import nicsoft.core.game_manager_modes.labo as labo_launcher
-import nicsoft.core.game_manager_modes.labo_libre as labo_libre_launcher
 import nicsoft.core.game_manager_modes.labo_session as labo_session_mod
 from nicsoft.core.game_manager_modes.state import set_nl_inst_ref, set_virtual_mode
 
@@ -96,56 +95,6 @@ def test_run_humain_disconnecte_echiquier_sur_abandon(monkeypatch):
 
     _error = {"occurred": False, "toast_key": None}
     humain_launcher._run_humain("Alice", "Bob", "Serious", _error, virtual=False)
-
-    assert nl.disconnected is True
-    assert _error["occurred"] is True
-
-
-# ── Mode Labo libre ──────────────────────────────────────────────────────────
-
-class _FakeLaboSession:
-    def __init__(self, nl_inst, **kwargs):
-        self.nl_inst = nl_inst
-
-    def start(self):
-        pass
-
-
-class _FakeLaboSessionAbandon(_FakeLaboSession):
-    def start(self):
-        raise ConnectionError("Timeout — position non atteinte.")
-
-
-def test_run_labo_libre_disconnecte_echiquier_fin_normale(monkeypatch):
-    nl = _FakeNl()
-    monkeypatch.setattr(labo_libre_launcher, "create_board", lambda **kw: nl)
-    monkeypatch.setattr(labo_libre_launcher, "_wait_position_web", lambda nl_inst, fen: None)
-    import nicsoft.modes.labo.labo as labo_mod
-    monkeypatch.setattr(labo_mod, "LaboSession", _FakeLaboSession)
-
-    _error = {"occurred": False, "toast_key": None}
-    labo_libre_launcher._run_labo_libre(
-        "Alice", True, chess.STARTING_FEN, "blunder", True, False,
-        1500, "", "stockfish", 1500, 1500, "", _error=_error,
-    )
-
-    assert nl.leds_off is True
-    assert nl.disconnected is True
-    assert _error["occurred"] is False
-
-
-def test_run_labo_libre_disconnecte_echiquier_sur_abandon(monkeypatch):
-    nl = _FakeNl()
-    monkeypatch.setattr(labo_libre_launcher, "create_board", lambda **kw: nl)
-    monkeypatch.setattr(labo_libre_launcher, "_wait_position_web", lambda nl_inst, fen: None)
-    import nicsoft.modes.labo.labo as labo_mod
-    monkeypatch.setattr(labo_mod, "LaboSession", _FakeLaboSessionAbandon)
-
-    _error = {"occurred": False, "toast_key": None}
-    labo_libre_launcher._run_labo_libre(
-        "Alice", True, chess.STARTING_FEN, "blunder", True, False,
-        1500, "", "stockfish", 1500, 1500, "", _error=_error,
-    )
 
     assert nl.disconnected is True
     assert _error["occurred"] is True
