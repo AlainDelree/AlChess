@@ -606,7 +606,7 @@ function _applyBoardBadge() {
     header.classList.toggle("header-disconnected", !_boardOk);
     pill.classList.toggle("pill-connected", _boardOk);
     pill.classList.toggle("pill-disconnected", !_boardOk);
-    pill.classList.toggle("pill-board-error", _boardError);
+    pill.classList.toggle("pill-board-absent", _boardError);
     pill.title = _boardError ? t("status.board.non_detecte") : "";
     text.textContent = t(_boardOk ? "status.board.connecte" : "status.board.sans_echiquier");
   }

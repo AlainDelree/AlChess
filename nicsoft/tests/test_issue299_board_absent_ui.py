@@ -1,11 +1,12 @@
 """
 nicsoft/tests/test_issue299_board_absent_ui.py — NicLink
-Issue #299, point 1 : garde-fou SANS NAVIGATEUR (analyse statique, sur le
-modèle de test_css_extraction_hidden_elements.py) verrouillant :
-  (c) les nouvelles clés de traduction (bande d'alerte échiquier absent)
+Issue #299, point 1 (aspect informatif depuis #301) : garde-fou SANS
+NAVIGATEUR (analyse statique, sur le modèle de
+test_css_extraction_hidden_elements.py) verrouillant :
+  (c) les nouvelles clés de traduction (bande d'information échiquier absent)
       existent dans fr.json/en.json/de.json et sont cohérentes entre elles ;
-  (d) les éléments HTML (bandes d'alerte) et les classes CSS (bande +
-      indicateur rouge) ajoutés pour rendre l'absence d'échiquier visible
+  (d) les éléments HTML (bandes d'information) et les classes CSS (bande +
+      indicateur) ajoutés pour rendre l'absence d'échiquier visible
       sont bien présents dans templates/index.html / static/css/main.css /
       static/app.js.
 """
@@ -80,11 +81,11 @@ def test_pill_statut_echiquier_toujours_present():
     assert 'id="board-status-pill"' in html
 
 
-# ── (d) CSS — coloration rouge de l'indicateur + style de la bande ─────────
+# ── (d) CSS — style informatif de l'indicateur + de la bande ───────────────
 
-def test_css_pill_board_error_rouge():
+def test_css_pill_board_absent():
     css = CSS_PATH.read_text(encoding="utf-8")
-    assert ".pill-board-error" in css
+    assert ".pill-board-absent" in css
 
 
 def test_css_board_warning_banner():
@@ -95,9 +96,9 @@ def test_css_board_warning_banner():
 
 # ── (d) JS — bascule effective selon l'état d'erreur de l'échiquier ────────
 
-def test_js_applique_la_classe_erreur_et_le_titre_sur_le_pill():
+def test_js_applique_la_classe_absence_et_le_titre_sur_le_pill():
     js = JS_PATH.read_text(encoding="utf-8")
-    assert 'pill.classList.toggle("pill-board-error", _boardError)' in js
+    assert 'pill.classList.toggle("pill-board-absent", _boardError)' in js
     assert "pill.title" in js
 
 
