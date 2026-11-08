@@ -2,6 +2,11 @@
 
 Briefing CCL. Vérifié 7 nov. 2026 (branche `worktree-issue-296`).
 
+## Règles impératives (agents)
+- **Jamais exécuter** un binaire tiers (`engines/`, `.exe`, `.dll`, `lc0`), ni directement ni sous Wine : lecture seule (chaînes, en-têtes).
+- **Serveur de test ou de vérification** : toujours `ALCHESS_SKIP_BOARD=1` et `ALCHESS_NO_BROWSER=1` (sinon onglet ouvert, échiquier et ModemManager touchés).
+- **Sécurité** : `# noqa`/`# nosec` seulement pour les faux positifs jugés (urlopen constant, subprocess fixe, aléa de jeu), avec ligne de raison (≥ 2 mots) et code précis ; corriger plutôt que supprimer ; ne pas toucher `.audit.json`.
+
 ## Maintenance de ce fichier
 Si ta tâche modifie l'architecture, les dépendances, les conventions ou l'avancement majeur, mets à jour ce CONTEXTE.md dans le même commit.
 
