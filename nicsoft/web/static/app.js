@@ -620,9 +620,20 @@ function _applyBoardBadge() {
   const schemaConnected    = document.getElementById("schema-connected");
   const schemaDisconnected = document.getElementById("schema-disconnected");
   const btnConnecter       = document.getElementById("btn-connecter");
+  const connectHint        = document.getElementById("connect-hint");
   if (schemaConnected)    schemaConnected.style.display    = _boardOk ? "block" : "none";
   if (schemaDisconnected) schemaDisconnected.style.display = _boardOk ? "none"  : "block";
   if (btnConnecter)       btnConnecter.style.display       = _boardOk ? "none"  : "block";
+  if (connectHint)        connectHint.classList.toggle("hidden", !_boardError);
+
+  // Bouton de démarrage Humain contre Humain — ce mode n'existe que sur
+  // l'échiquier physique (pas de repli virtuel) : inactif tant que l'état
+  // d'erreur est actif, réactivé dès que l'échiquier est détecté (issue #300).
+  const btnStartHH = document.getElementById("btn-start-hh");
+  if (btnStartHH) {
+    btnStartHH.disabled = !_boardOk;
+    btnStartHH.title = !_boardOk ? t("menu.hh.requiert_echiquier") : "";
+  }
 
   // Déplace le wrapper HH selon l'état de l'échiquier : en bas de la colonne
   // Jouer (après Exercices) si non connecté, à sa place d'origine (avant Labo) sinon.

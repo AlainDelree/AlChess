@@ -114,6 +114,7 @@
       </g>
     </svg>
     <button class="btn-connecter" id="btn-connecter" data-action="reconnect_board" data-i18n="menu.btn.connecter">⟳ Connecter</button>
+    <div class="connect-hint hidden" id="connect-hint" data-i18n="menu.hint.connecter">Cliquez ici pour tenter de connecter l'échiquier</div>
   </div>
 
   <div class="menu-title"><span class="menu-title-icon">♜</span> AlChess</div>
@@ -371,8 +372,8 @@
     <div class="config-title cfg-hh-title" data-i18n="config.titre.humain">⚔️ Humain vs Humain</div>
   </div>
 
-  <div id="board-warning-banner-config-humain" class="board-warning-banner hidden" data-i18n="banner.board_absent_session">
-    ⚠️ Échiquier non détecté — cette session se déroulera sur l'échiquier virtuel. Branchez et allumez l'échiquier, puis utilisez le bouton de connexion.
+  <div id="board-warning-banner-config-humain" class="board-warning-banner hidden" data-i18n="banner.board_absent_hh">
+    ⚠️ Humain contre Humain se joue uniquement sur l'échiquier physique. Branchez-le, allumez-le, puis utilisez le bouton de connexion.
   </div>
 
   <!-- Zone scrollable -->
@@ -424,7 +425,7 @@
   <!-- Boutons fixes en bas -->
   <div class="cfg-hh-footer">
     <button class="btn btn-continuer cfg-hh-btn-back" data-action="back_menu" data-i18n="common.retour">← Retour</button>
-    <button class="btn btn-reprendre cfg-hh-btn-start" data-action="start_game_hh" data-i18n="common.demarrer">▶ Démarrer la partie</button>
+    <button id="btn-start-hh" class="btn btn-reprendre cfg-hh-btn-start" disabled data-action="start_game_hh" data-i18n="common.demarrer">▶ Démarrer la partie</button>
   </div>
 
 </div>

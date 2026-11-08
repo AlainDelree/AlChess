@@ -64,8 +64,10 @@ def test_bandes_alerte_utilisent_les_bonnes_cles_i18n():
     html = HTML_PATH.read_text(encoding="utf-8")
     bloc_menu = re.search(r'id="board-warning-banner-menu"[^>]*data-i18n="([^"]+)"', html)
     assert bloc_menu and bloc_menu.group(1) == "banner.board_absent_menu"
-    for banner_id in ("board-warning-banner-config", "board-warning-banner-config-humain",
-                      "board-warning-banner-exercices"):
+    # board-warning-banner-config-humain utilise sa propre clé depuis #300
+    # (Humain contre Humain n'a pas de repli virtuel) — cf.
+    # test_issue300_hh_board_required_ui.py::test_bande_hh_utilise_la_nouvelle_cle
+    for banner_id in ("board-warning-banner-config", "board-warning-banner-exercices"):
         bloc = re.search(rf'id="{re.escape(banner_id)}"[^>]*data-i18n="([^"]+)"', html)
         assert bloc and bloc.group(1) == "banner.board_absent_session", (
             f"{banner_id} doit utiliser banner.board_absent_session (mention écran virtuel)"

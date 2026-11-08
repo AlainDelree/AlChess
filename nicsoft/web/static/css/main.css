@@ -303,6 +303,40 @@
     .btn-connecter:hover  { opacity: 0.85; transform: translateX(-50%) scale(1.02); }
     .btn-connecter:active { transform: translateX(-50%) scale(0.98); }
 
+    /* Indication (flèche + texte) pointant vers le bouton Connecter quand
+       l'échiquier est en erreur — ne capte jamais les clics (issue #300) */
+    .connect-hint {
+      position: absolute;
+      top: 48%;
+      left: calc(100% + 10px);
+      transform: translateY(-50%);
+      width: 130px;
+      background: #fbdede;
+      color: #8a1f1f;
+      border: 1px solid #e94560;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      line-height: 1.25;
+      text-align: left;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .connect-hint::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: -7px;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border: 6px solid transparent;
+      border-right-color: #e94560;
+    }
+    .connect-hint.hidden { display: none; }
+    .res-small .connect-hint { display: none !important; }
+
     /* ── Écran menu ── */
     .menu-title {
       font-size: 2.5rem;
