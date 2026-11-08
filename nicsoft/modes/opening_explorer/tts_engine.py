@@ -3,9 +3,7 @@ nicsoft/modes/opening_explorer/tts_engine.py — NicLink
 Synthèse vocale des explications Opening Explorer, hybride :
 si internet est disponible, edge-tts (voix neuronales Microsoft) parle
 côté serveur ; sinon speak() ne fait rien et retourne False, laissant
-le navigateur relayer via Web Speech API (voix système, meilleure
-qu'espeak-ng sur Windows/Mac). espeak-ng reste disponible en dernier
-recours mais n'est plus appelé automatiquement par speak().
+le navigateur relayer via Web Speech API (voix système).
 pyttsx3 abandonné : le GC détruisait l'engine pendant le callback espeak,
 provoquant des ReferenceError après un ou deux mots.
 """
@@ -30,7 +28,6 @@ VOICE_MAP_EDGE = {
     "en": "en-GB-SoniaNeural",
     "de": "de-DE-KatjaNeural",
 }
-VOICE_MAP_ESPEAK = {"fr": "fr", "en": "en", "de": "de"}
 
 PIECES_FR = {
     'N': 'Cavalier', 'C': 'Cavalier',
@@ -151,19 +148,6 @@ def _speak_edge(text: str, rate: int, language: str, volume: int = 80, on_playba
         return False
 
 
-def _speak_espeak(text: str, rate: int, language: str) -> None:
-    """Fallback espeak-ng."""
-    lang = VOICE_MAP_ESPEAK.get(language, "fr")
-    try:
-        subprocess.run(
-            ["espeak-ng", "-v", lang, "-s", str(rate), text],
-            timeout=60,
-            check=False,
-        )
-    except Exception as e:
-        logger.warning(f"[TTS] espeak-ng échoué : {e}")
-
-
 def stop_speaking() -> None:
     """Interrompt immédiatement la lecture mpg123 en cours, si active."""
     global _current_tts_process, _tts_generation
@@ -180,7 +164,7 @@ def speak(text: str, rate: int = 150, enabled: bool = False, language: str = "fr
     thread daemon, jamais depuis le thread principal.
     Retourne True si edge-tts a parlé, False sinon (pas d'internet ou échec
     edge-tts) — dans ce cas l'appelant doit basculer sur le Web Speech API
-    côté navigateur (pas d'espeak-ng comme fallback serveur).
+    côté navigateur.
     """
     text = strip_markdown(text)
     if language == "fr" and text:

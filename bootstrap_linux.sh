@@ -48,7 +48,8 @@ echo "Installation des dépendances..."
 "$INSTALL_DIR/venv/bin/pip" install --upgrade pip --quiet
 "$INSTALL_DIR/venv/bin/pip" install -r "$INSTALL_DIR/requirements.txt" --quiet
 
-# 4. espeak-ng (fallback TTS hors ligne pour Opening Explorer)
+# 4. espeak-ng (plus utilisé par Opening Explorer depuis l'issue #297 —
+#    installation conservée ici par prudence, sujet reporté)
 if ! command -v espeak-ng &>/dev/null; then
     echo "Installation d'espeak-ng (synthèse vocale)..."
     if sudo -n true 2>/dev/null; then

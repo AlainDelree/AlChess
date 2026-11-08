@@ -98,10 +98,12 @@ def find_maia_weights(elo: int) -> str | None:
 
 def _ensure_executable(path: str) -> None:
     """
-    S'assure que le binaire à `path` a le bit exécutable (Linux/Mac).
-    No-op sous Windows et si le bit est déjà positionné. Couvre les
-    installations où l'extraction (zip, clone) n'a pas préservé les
-    permissions d'origine (issue #197).
+    S'assure que le binaire à `path` a le bit exécutable du propriétaire
+    (Linux/Mac). No-op sous Windows et si le bit est déjà positionné.
+    Application locale mono-utilisateur : seul le propriétaire a besoin
+    d'exécuter ces binaires, le droit n'est donc donné ni au groupe ni aux
+    autres. Couvre les installations où l'extraction (zip, clone) n'a pas
+    préservé les permissions d'origine (issue #197).
     """
     if sys.platform == "win32":
         return
@@ -110,7 +112,7 @@ def _ensure_executable(path: str) -> None:
     try:
         mode = os.stat(path).st_mode
         if not (mode & stat.S_IXUSR):
-            os.chmod(path, mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+            os.chmod(path, mode | stat.S_IXUSR)
     except OSError as e:
         logger.warning(f"Impossible de positionner le bit exécutable sur {path} : {e}")
 
