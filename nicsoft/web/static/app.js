@@ -1770,7 +1770,7 @@ socket.on("lichess_init", (data) => {
   const btnQuit = document.getElementById("btn-quit-game");
   if (btnQuit) btnQuit.style.display = "none";
   const btnNulle = document.getElementById("btn-nulle");
-  if (btnNulle) btnNulle.textContent = t("game.btn.nulle");
+  if (btnNulle) { btnNulle.textContent = t("game.btn.nulle"); btnNulle.disabled = false; }
   document.getElementById("turn-info").textContent = t("game.en_attente");
   document.getElementById("historique").innerHTML = "";
   hideFeedback();
@@ -1865,6 +1865,18 @@ socket.on("lichess_move_refused", (data) => {
 
 socket.on("lichess_toast", (data) => {
   afficherToast(data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""), data.type || "info");
+});
+
+socket.on("lichess_draw_proposed", () => {
+  afficherToast(t("toast.lichess_draw_sent"), "info");
+  const btnNulle = document.getElementById("btn-nulle");
+  if (btnNulle) btnNulle.disabled = true;
+});
+
+socket.on("lichess_draw_refused", () => {
+  afficherToast(t("toast.lichess_draw_refused"), "warning");
+  const btnNulle = document.getElementById("btn-nulle");
+  if (btnNulle) btnNulle.disabled = false;
 });
 
 socket.on("swap_color_hh", (data) => {

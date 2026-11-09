@@ -197,6 +197,7 @@ class LichessGame(threading.Thread):
         self._illegal_stable_count = 0
 
         self._draw_offered_by_opponent = False
+        self._my_draw_offer_pending = False
 
         self._clock_white_ms = float(clock_limit_s * 1000)
         self._clock_black_ms = float(clock_limit_s * 1000)
@@ -211,11 +212,20 @@ class LichessGame(threading.Thread):
     def start(self):
         self.run()
 
+    def join(self, timeout=None):
+        # start() exécute run() de façon synchrone : à son retour la partie
+        # est déjà terminée. Le Thread natif n'est jamais démarré (start()
+        # ci-dessus ne fait pas appel à Thread.start()) — Thread.join()
+        # lèverait donc toujours "cannot join thread before it is started"
+        # (issue #310, point 1). No-op défensif : rien à attendre.
+        pass
+
     # ── Boucle principale ────────────────────────────────────────────────
 
     def run(self):
         reader = threading.Thread(target=self._stream_reader_loop, daemon=True)
         reader.start()
+        logger.info("Lichess : flux de partie ouvert (%s).", self.game_id)
         try:
             self._main_loop()
         finally:
@@ -276,7 +286,10 @@ class LichessGame(threading.Thread):
                 if self._request_resign_or_abort():
                     self.game_over = True
             elif atype == "lichess_propose_draw":
-                self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True))
+                if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
+                    self._my_draw_offer_pending = True
+                    logger.info("Lichess : nulle proposée par %s.", self.player_name)
+                    send_event("lichess_draw_proposed", {})
             elif atype == "lichess_draw_accept":
                 self._draw_offered_by_opponent = False
                 self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True))
@@ -307,9 +320,11 @@ class LichessGame(threading.Thread):
         if aborting:
             self._status = "aborted"
             self._aborted = True
+            logger.info("Lichess : partie annulée (%s, moins de 2 coups).", self.game_id)
         else:
             self._status = "resign"
             self._winner = "black" if self.user_color == "white" else "white"
+            logger.info("Lichess : abandon par %s (%s).", self.player_name, self.game_id)
         return True
 
     # ── Événements Lichess ───────────────────────────────────────────────
@@ -319,8 +334,10 @@ class LichessGame(threading.Thread):
         if etype == "_stream_closed":
             self._handle_stream_closed()
         elif etype == "reconnecting":
+            logger.info("Lichess : reconnexion au flux (tentative %s).", event.get("attempt", 1))
             send_event("lichess_reconnecting", {"attempt": event.get("attempt", 1)})
         elif etype == "reconnected":
+            logger.info("Lichess : flux reconnecté.")
             send_event("lichess_reconnected", {})
         elif etype == "gameFull":
             self._apply_game_full(event)
@@ -368,8 +385,17 @@ class LichessGame(threading.Thread):
         opponent_offered = bool(opponent_offered)
         if opponent_offered != self._draw_offered_by_opponent:
             self._draw_offered_by_opponent = opponent_offered
+            if opponent_offered:
+                logger.info("Lichess : nulle proposée par l'adversaire.")
             send_event("lichess_draw_offered", {"offered": opponent_offered})
-        self._check_finished(event.get("status", self._status), event.get("winner", ""))
+        status = event.get("status", self._status)
+        if self._my_draw_offer_pending and not is_game_over(status):
+            my_offered = event.get("wdraw") if self.user_color == "white" else event.get("bdraw")
+            if not bool(my_offered):
+                self._my_draw_offer_pending = False
+                logger.info("Lichess : nulle refusée (proposée par %s).", self.player_name)
+                send_event("lichess_draw_refused", {})
+        self._check_finished(status, event.get("winner", ""))
 
     def _check_finished(self, status: str, winner: str) -> None:
         if self.game_over or not is_game_over(status):
@@ -396,6 +422,7 @@ class LichessGame(threading.Thread):
                 continue
             last_mover_color = mover_color
             if not initial:
+                logger.info("Lichess : coup reçu %s (%s).", uci, mover_color)
                 send_event("lichess_move", {
                     "fen": self.board.board_fen(), "san": san, "uci": uci,
                     "color": mover_color, "level": self.level,
@@ -550,6 +577,7 @@ class LichessGame(threading.Thread):
     def _submit_move(self, uci: str) -> None:
         try:
             self.client.play_move(self.game_id, uci)
+            logger.info("Lichess : coup envoyé %s.", uci)
         except LichessApiError as exc:
             self._reset_target_fen = self.board.board_fen()
             self._awaiting_piece_reset = True
@@ -592,25 +620,40 @@ class LichessGame(threading.Thread):
         final_path = build_final_path("Lichess", "Amicale", headers["White"], headers["Black"])
         try:
             build_and_save_pgn(headers=headers, moves=list(self.board.move_stack), output_path=final_path)
+            logger.info("Lichess : PGN enregistré (%s).", final_path)
         except Exception as exc:
             logger.warning("Sauvegarde PGN Lichess échouée : %s", exc)
 
     def _finalize(self) -> None:
+        """Toujours appelé en fin de partie (quel que soit le chemin de
+        sortie) — chaque étape est isolée dans son propre try/except pour
+        qu'un échec n'empêche jamais les suivantes (issue #310, point 1) :
+        le PGN doit être tenté avant l'envoi de l'état de fin, lui-même
+        avant la libération de l'échiquier (faite par l'appelant)."""
         try:
             self.nl_inst.turn_off_all_leds()
         except Exception as exc:
             logger.debug("Extinction LEDs (fin partie Lichess) échouée : %s", exc)
+
         result = pgn_result(self._status, self._winner)
+        logger.info("Lichess : partie terminée (statut=%s, résultat=%s).", self._status, result)
         if not self._aborted:
-            self._save_pgn(result)
-        title_key, title_vars = self._title_for_status()
-        hist_fens, hist_moves = self._history_from_board()
-        skip = self._back_menu_requested
-        payload = {
-            "title_key": title_key, "title_vars": title_vars,
-            "result": result, "source": "lichess", "skip": skip,
-            "history_fen": hist_fens, "history_moves": hist_moves,
-        }
-        send_event("game_over", payload)
-        if not skip:
-            set_app_state("game_over", payload)
+            try:
+                self._save_pgn(result)
+            except Exception as exc:
+                logger.warning("Sauvegarde PGN Lichess échouée (hors _save_pgn) : %s", exc)
+
+        try:
+            title_key, title_vars = self._title_for_status()
+            hist_fens, hist_moves = self._history_from_board()
+            skip = self._back_menu_requested
+            payload = {
+                "title_key": title_key, "title_vars": title_vars,
+                "result": result, "source": "lichess", "skip": skip,
+                "history_fen": hist_fens, "history_moves": hist_moves,
+            }
+            send_event("game_over", payload)
+            if not skip:
+                set_app_state("game_over", payload)
+        except Exception as exc:
+            logger.error("Lichess : notification de fin de partie échouée : %s", exc)

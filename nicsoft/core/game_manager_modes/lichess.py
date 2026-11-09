@@ -16,7 +16,9 @@ import threading
 import time
 
 from nicsoft.core.board_adapter import create_board
-from nicsoft.core.ihm_port import send_event, set_app_state, app_state_proxy as web_server
+from nicsoft.core.ihm_port import (
+    send_event, set_app_state, check_board_presence_silent, app_state_proxy as web_server,
+)
 from nicsoft.core.game_manager_modes.state import (
     logger, set_nl_inst_ref, _wait_initial_position_web, _menu_toast_data,
 )
@@ -44,11 +46,18 @@ DEFAULT_CLOCK_PRESET = "15+10"
 
 
 def launch_lichess(config: dict) -> None:
+    current_state = web_server._app_state
+    if current_state not in ("menu", "config_lichess"):
+        logger.info(f"Lancement Lichess refusé : mode déjà actif ({current_state}).")
+        send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
+        return
+
     token = (load_config().get("lichess_token") or "").strip()
     if not token:
         web_server._app_state = "menu"
         set_app_state("menu", _menu_toast_data("toast.lichess_no_token"))
         return
+    logger.info("Lichess : jeton présent.")
 
     level = max(1, min(8, int(config.get("level", 1) or 1)))
     cadence = config.get("cadence", DEFAULT_CLOCK_PRESET)
@@ -56,6 +65,10 @@ def launch_lichess(config: dict) -> None:
     color = config.get("color", "random")
     lichess_color = "" if color not in ("white", "black") else color
     player_name = (config.get("player") or "Vous").strip() or "Vous"
+    logger.info(
+        f"Lancement mode Lichess : niveau={level} cadence={clock_limit_s}+{clock_increment_s} "
+        f"couleur={lichess_color or 'random'} joueur={player_name}"
+    )
 
     web_server._app_state = "connecting"
     set_app_state("connecting")
@@ -74,6 +87,13 @@ def launch_lichess(config: dict) -> None:
     elif web_server._app_state != "game_over":
         web_server._app_state = "menu"
         set_app_state("menu")
+    if web_server._app_state == "menu":
+        # Rafraîchit l'état réel du plateau au retour menu (issue #310, point
+        # 5) — même précaution que humain.py : la libération USB par
+        # nl_inst.disconnect() (plus bas) peut être suivie de peu par un
+        # nouveau lancement de mode, mieux vaut que l'état affiché soit à
+        # jour plutôt que celui, potentiellement périmé, d'avant la partie.
+        threading.Thread(target=check_board_presence_silent, daemon=True).start()
 
 
 def _run_lichess(token, level, clock_limit_s, clock_increment_s, color, player_name, _error=None):
@@ -82,7 +102,9 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, color, player_n
     nl_inst = None
     try:
         nl_inst = create_board(virtual=False, logger_name="NicLink_lichess")
+        logger.info("Lichess : échiquier physique ouvert.")
         _wait_initial_position_web(nl_inst)
+        logger.info("Lichess : position de départ confirmée.")
         set_nl_inst_ref(nl_inst)
 
         client = GameClient(token)
@@ -92,6 +114,10 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, color, player_n
         game_id = created.get("id", "")
         if not game_id:
             raise LichessNetworkError("réponse Lichess sans identifiant de partie")
+        logger.info(
+            f"Lichess : partie créée ({game_id}), niveau={level} "
+            f"cadence={clock_limit_s}+{clock_increment_s} couleur={color or 'random'}"
+        )
 
         game = LichessGame(
             nl_inst, client, game_id, level=level, player_name=player_name,
@@ -100,8 +126,14 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, color, player_n
         web_server._app_state = "playing"
         set_app_state("playing")
         logger.info(f"Partie Lichess : {player_name} vs IA niveau {level} ({game_id})")
+        # LichessGame.start() exécute toute la partie de façon synchrone (le
+        # vrai threading vit dans ce thread-ci, voir modes/lichess/game.py) :
+        # à son retour la partie est déjà terminée et finalisée (PGN, état
+        # game_over). Ne JAMAIS appeler game.join() ensuite — le Thread
+        # natif n'a jamais été démarré (start() est surchargée), join()
+        # lèverait inconditionnellement "cannot join thread before it is
+        # started" (issue #310, point 1).
         game.start()
-        game.join()
 
     except LichessAuthError as e:
         logger_lichess.error(f"Jeton Lichess refusé (HTTP {e.status_code}).")
@@ -148,6 +180,7 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, color, player_n
                 logger.debug(f"Extinction LEDs (fin Lichess) échouée : {e}")
             try:
                 nl_inst.disconnect()
+                logger.info("Lichess : échiquier physique libéré.")
             except Exception as e:
                 logger.warning(f"Déconnexion échiquier échouée (Lichess) : {e}")
         if web_server._app_state not in ("game_over", "menu"):
