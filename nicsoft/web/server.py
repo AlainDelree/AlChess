@@ -953,14 +953,18 @@ def on_pgn_lib_load_game(data):
 
 @socketio.on("config_get")
 def on_config_get(_data):
-    """Retourne la config courante (champs LLM/TTS) — jamais la clé API elle-
-    même (issue #304) : seulement un indicateur de présence et, si la clé
-    fait au moins 12 caractères, ses 4 derniers caractères comme indice."""
+    """Retourne la config courante (champs LLM/Lichess/TTS) — jamais la clé
+    API ni le jeton Lichess eux-mêmes (issues #304/#306) : seulement un
+    indicateur de présence et, si la valeur fait au moins 12 caractères,
+    ses 4 derniers caractères comme indice."""
     from nicsoft.core.config_manager import load_config
     cfg = dict(load_config())
     api_key = cfg.pop("llm_api_key", "")
     cfg["has_llm_api_key"] = bool(api_key)
     cfg["llm_api_key_hint"] = api_key[-4:] if len(api_key) >= 12 else ""
+    token = cfg.pop("lichess_token", "")
+    cfg["has_lichess_token"] = bool(token)
+    cfg["lichess_token_hint"] = token[-4:] if len(token) >= 12 else ""
     emit("config_data", cfg)
 
 
@@ -968,10 +972,11 @@ def on_config_get(_data):
 def on_config_save(data):
     """Fusionne et sauvegarde la config reçue du navigateur.
 
-    La clé API n'est jamais renvoyée au navigateur (issue #304) : le champ
-    llm_api_key, laissé vide par la page, ne doit donc pas écraser la clé
-    déjà enregistrée. llm_api_key_delete=True (action explicite "Supprimer
-    la clé") l'efface ; sinon un llm_api_key non vide la remplace.
+    La clé API et le jeton Lichess ne sont jamais renvoyés au navigateur
+    (issues #304/#306) : un champ laissé vide par la page ne doit donc pas
+    écraser la valeur déjà enregistrée. *_delete=True (action explicite
+    "Supprimer") l'efface ; sinon une valeur non vide la remplace (jeton
+    Lichess : espaces autour retirés avant comparaison/remplacement).
     """
     from nicsoft.core.config_manager import save_config
     try:
@@ -980,10 +985,43 @@ def on_config_save(data):
             data["llm_api_key"] = ""
         elif not data.get("llm_api_key"):
             data.pop("llm_api_key", None)
+        if "lichess_token" in data:
+            data["lichess_token"] = str(data["lichess_token"] or "").strip()
+        if data.pop("lichess_token_delete", False):
+            data["lichess_token"] = ""
+        elif not data.get("lichess_token"):
+            data.pop("lichess_token", None)
         save_config(data)
         emit("config_saved", {"ok": True})
     except Exception as e:
         emit("config_saved", {"ok": False, "error": str(e)})
+
+
+@socketio.on("lichess_test_connection")
+def on_lichess_test_connection(data):
+    """Teste la validité d'un jeton Lichess (issue #306, étape L0) : utilise
+    le jeton fourni par la page s'il vient d'être saisi (pas encore
+    enregistré), sinon celui déjà enregistré dans la config. Le jeton
+    n'apparaît jamais dans les journaux ni dans le résultat émis."""
+    from nicsoft.core.config_manager import load_config
+    sid = request.sid
+    typed = ((data or {}).get("token") or "").strip()
+    token = typed or load_config().get("lichess_token", "")
+    if not token:
+        socketio.emit("lichess_test_result", {"status": "invalid"}, to=sid)
+        return
+
+    def run():
+        from nicsoft.modes.lichess.client import test_token
+        try:
+            result = test_token(token)
+        except Exception as exc:
+            # Jamais le jeton ni le détail de l'exception dans les journaux.
+            logger.warning(f"Échec du test de connexion Lichess ({type(exc).__name__})")
+            result = {"status": "network_error"}
+        socketio.emit("lichess_test_result", result, to=sid)
+
+    threading.Thread(target=run, daemon=True).start()
 
 
 # ── Opening Explorer ──────────────────────────────────────────────────────────

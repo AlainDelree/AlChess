@@ -1552,6 +1552,32 @@
     </div>
   </div>
 
+  <!-- Lichess -->
+  <div class="outil-card parametres-card">
+    <div class="outil-card-header">
+      <span class="outil-title" data-i18n="parametres.lichess.titre">♞ Lichess</span>
+    </div>
+    <p class="outil-desc" data-i18n="parametres.lichess.aide1">Créez un jeton personnel sur lichess.org (page des jetons d'accès API).</p>
+    <p class="outil-desc" data-i18n="parametres.lichess.aide2">Donnez-lui au minimum le droit de jouer avec l'interface des échiquiers (board:play), puis collez-le ici.</p>
+    <p class="outil-desc" data-i18n="parametres.lichess.aide3">Ne le partagez jamais.</p>
+
+    <div class="parametres-llm-fields">
+      <div class="add-field">
+        <label class="add-label" for="param-lichess-token" data-i18n="parametres.lichess.token">Jeton personnel</label>
+        <input type="password" id="param-lichess-token" class="add-input" autocomplete="off" data-i18n-placeholder="parametres.lichess.token_placeholder" placeholder="Laisser vide pour conserver le jeton actuel">
+        <div class="parametres-llm-key-row">
+          <span id="param-lichess-token-hint" class="parametres-llm-key-hint"></span>
+          <button type="button" class="btn btn-warning parametres-llm-key-delete" data-action="parametres_delete_lichess_token" data-i18n="parametres.lichess.supprimer_jeton">🗑 Supprimer le jeton</button>
+        </div>
+      </div>
+
+      <div class="parametres-lichess-test-row">
+        <button type="button" id="lichess-test-btn" class="btn btn-continuer" data-action="parametres_test_lichess" data-i18n="parametres.lichess.tester">Tester la connexion</button>
+      </div>
+      <div id="lichess-test-result" class="parametres-lichess-result"></div>
+    </div>
+  </div>
+
   <!-- Synthèse vocale (TTS) -->
   <div class="outil-card parametres-card">
     <div class="outil-card-header">

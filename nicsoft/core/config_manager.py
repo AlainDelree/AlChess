@@ -30,6 +30,7 @@ DEFAULT_CONFIG = {
     "llm_provider": "claude",   # "claude" | "openai"
     "llm_api_key": "",
     "llm_model": "",            # optionnel, laisser vide = modèle par défaut
+    "lichess_token": "",        # jeton personnel Lichess (issue #306) — même mécanisme que llm_api_key
     "tts_enabled": False,
     "tts_rate": 150,            # débit pyttsx3, mots par minute
     "tts_volume": 80,           # volume mpg123, 0-100

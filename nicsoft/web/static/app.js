@@ -140,6 +140,12 @@ document.addEventListener("click", (e) => {
     case "parametres_delete_key":
       parametresSupprimerCle();
       break;
+    case "parametres_delete_lichess_token":
+      parametresSupprimerJetonLichess();
+      break;
+    case "parametres_test_lichess":
+      lichessTesterConnexion();
+      break;
     case "quit_modal":
       ouvrirModal("quit", t("modal.quitter_alchess"), t("modal.quitter_btn"), "btn-warning");
       break;
@@ -6728,6 +6734,8 @@ socket.on("config_data", (data) => {
   const apiKey   = document.getElementById("param-llm-api-key");
   const keyHint  = document.getElementById("param-llm-api-key-hint");
   const model    = document.getElementById("param-llm-model");
+  const lichessToken = document.getElementById("param-lichess-token");
+  const lichessHint  = document.getElementById("param-lichess-token-hint");
   const ttsOn    = document.getElementById("param-tts-enabled");
   const ttsRate  = document.getElementById("param-tts-rate");
   const ttsRateVal = document.getElementById("param-tts-rate-val");
@@ -6743,6 +6751,16 @@ socket.on("config_data", (data) => {
         : t("parametres.llm.aucune_cle");
   }
   if (model)    model.value    = data.llm_model || "";
+  // Même mécanisme que la clé API LLM (issue #306) : le jeton Lichess
+  // n'est jamais renvoyé par le serveur, seul un indice l'est.
+  if (lichessToken) lichessToken.value = "";
+  if (lichessHint) {
+    lichessHint.textContent = data.lichess_token_hint
+      ? t("parametres.lichess.jeton_enregistre", { suffix: data.lichess_token_hint })
+      : data.has_lichess_token
+        ? t("parametres.lichess.jeton_enregistre_sans_indice")
+        : t("parametres.lichess.aucun_jeton");
+  }
   if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
   if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
   if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;
@@ -6761,35 +6779,98 @@ function parametresSave() {
   const provider = document.getElementById("param-llm-provider");
   const apiKey   = document.getElementById("param-llm-api-key");
   const model    = document.getElementById("param-llm-model");
+  const lichessToken = document.getElementById("param-lichess-token");
   const ttsOn    = document.getElementById("param-tts-enabled");
   const ttsRate  = document.getElementById("param-tts-rate");
   socket.emit("config_save", {
     llm_provider: provider ? provider.value : "claude",
-    // Champ vide = clé inchangée ; valeur saisie = clé remplacée (issue #304).
+    // Champ vide = clé/jeton inchangé ; valeur saisie = remplacé (issue #304/#306).
     llm_api_key:  apiKey ? apiKey.value : "",
     llm_model:    model ? model.value : "",
+    lichess_token: lichessToken ? lichessToken.value : "",
     tts_enabled:  ttsOn ? ttsOn.checked : false,
     tts_rate:     ttsRate ? parseInt(ttsRate.value, 10) : 150,
   });
 }
 
 let _parametresDeletingKey = false;
+let _parametresDeletingLichessToken = false;
 
 function parametresSupprimerCle() {
   _parametresDeletingKey = true;
   socket.emit("config_save", { llm_api_key: "", llm_api_key_delete: true });
 }
 
+function parametresSupprimerJetonLichess() {
+  _parametresDeletingLichessToken = true;
+  socket.emit("config_save", { lichess_token: "", lichess_token_delete: true });
+}
+
 socket.on("config_saved", (data) => {
   const wasDeletingKey = _parametresDeletingKey;
+  const wasDeletingLichessToken = _parametresDeletingLichessToken;
   _parametresDeletingKey = false;
+  _parametresDeletingLichessToken = false;
   if (data && data.ok) {
-    afficherToast(t(wasDeletingKey ? "parametres.toast.cle_supprimee" : "parametres.toast.enregistre"), "success");
-    // Rafraîchit l'indice affiché (clé remplacée/supprimée) sans jamais
-    // redemander la clé elle-même.
+    const toastKey = wasDeletingLichessToken
+      ? "parametres.lichess.toast.jeton_supprime"
+      : wasDeletingKey
+        ? "parametres.toast.cle_supprimee"
+        : "parametres.toast.enregistre";
+    afficherToast(t(toastKey), "success");
+    // Rafraîchit l'indice affiché (clé/jeton remplacé ou supprimé) sans
+    // jamais redemander la clé/le jeton eux-mêmes.
     socket.emit("config_get", {});
   } else {
     afficherToast(t("parametres.toast.erreur"), "warning");
+  }
+});
+
+// ── Lichess — test de connexion (issue #306, étape L0) ──────────────────────
+
+let _lichessTestEnCours = false;
+
+function lichessTesterConnexion() {
+  if (_lichessTestEnCours) return;
+  const btn   = document.getElementById("lichess-test-btn");
+  const input = document.getElementById("param-lichess-token");
+  const result = document.getElementById("lichess-test-result");
+  _lichessTestEnCours = true;
+  if (btn) { btn.disabled = true; btn.textContent = t("common.chargement"); }
+  if (result) { result.className = "parametres-lichess-result"; result.textContent = ""; }
+  socket.emit("lichess_test_connection", { token: input ? input.value : "" });
+}
+
+socket.on("lichess_test_result", (data) => {
+  _lichessTestEnCours = false;
+  const btn = document.getElementById("lichess-test-btn");
+  const result = document.getElementById("lichess-test-result");
+  if (btn) { btn.disabled = false; btn.textContent = t("parametres.lichess.tester"); }
+  if (!result) return;
+
+  const status = data && data.status;
+  if (status === "ok") {
+    result.className = "parametres-lichess-result " + (data.has_board_play ? "is-success" : "is-warning");
+    const lignes = [t("parametres.lichess.resultat.compte", { compte: data.account || "" })];
+    lignes.push(data.has_board_play
+      ? t("parametres.lichess.resultat.board_play_ok")
+      : t("parametres.lichess.resultat.board_play_manquant"));
+    const autres = (data.scopes || []).filter((s) => s !== "board:play");
+    if (autres.length) {
+      lignes.push(t("parametres.lichess.resultat.autres_droits", { droits: autres.join(", ") }));
+    }
+    // data.account/data.scopes viennent de Lichess (externe) — textContent
+    // échappe automatiquement (issue #303), pas d'innerHTML ici.
+    result.textContent = lignes.join(" — ");
+  } else if (status === "rate_limited") {
+    result.className = "parametres-lichess-result is-warning";
+    result.textContent = t("parametres.lichess.resultat.limite");
+  } else if (status === "network_error") {
+    result.className = "parametres-lichess-result is-error";
+    result.textContent = t("parametres.lichess.resultat.reseau");
+  } else {
+    result.className = "parametres-lichess-result is-error";
+    result.textContent = t("parametres.lichess.resultat.invalide");
   }
 });
 
