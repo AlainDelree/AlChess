@@ -27,7 +27,7 @@ Elles te sont injectées automatiquement, avec ton prompt, dans la section CONSI
 - i18n : clé ajoutée **simultanément** dans `fr/en/de.json` (`static/i18n/`) ; allemand incertain → valeur anglaise, jamais absente.
 - Tout texte externe (PGN, noms, messages serveur, réponses LLM, Lichess) → `esc()` ou `textContent`, jamais brut dans `innerHTML`. Garde : `test_issue303_html_escaping.py`.
 - Aucun secret n'est envoyé au navigateur (clé LLM, jeton Lichess) : le serveur ne renvoie qu'un indicateur de présence (+ indice 4 derniers caractères si valeur ≥ 12). Garde : `test_issue304_security.py`.
-- Lichess (`modes/lichess/client.py`, issue #306, étape L0 — jeton seulement) : jeton toujours côté serveur, jamais envoyé au navigateur ni journalisé ; aucun moteur/aide/livre d'ouvertures ne doit tourner pendant une partie Lichess (fair-play Lichess, pour les étapes suivantes).
+- Lichess (`modes/lichess/`, issue #306 étape L0 jeton, issue #307 étape L1 client de partie) : jeton toujours côté serveur, jamais envoyé au navigateur ni journalisé ; client de partie (`game_client.py`, `transport.py`, `errors.py`) à transport réseau injectable (tests sans réseau), une requête ordinaire à la fois par verrou (jamais bloquant pour la lecture du flux), aucun moteur/aide/livre d'ouvertures ne doit tourner pendant une partie Lichess (fair-play Lichess) ; aucun mode de jeu ni écran de partie encore ajouté.
 
 ## Conventions
 Début de session : `git status`, branche `master`, `TESTS.md`. Tests : `python -m pytest nicsoft/tests -m "not hardware"`. Commits ciblés. USB (ThinkPad X1 Gen 7) : quirk `/etc/modprobe.d/chessnut.conf` = `options usbhid quirks=0x2d80:0x8003:0x40`, udev `autosuspend=-1`, launcher `/usr/bin/python3` (voir `INSTALLATION_ALCHESS.md`).

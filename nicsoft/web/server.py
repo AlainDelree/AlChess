@@ -1024,6 +1024,43 @@ def on_lichess_test_connection(data):
     threading.Thread(target=run, daemon=True).start()
 
 
+_lichess_test_game_running = threading.Lock()
+
+
+@socketio.on("lichess_test_game")
+def on_lichess_test_game(_data):
+    """Teste une vraie partie contre l'IA Lichess niveau 1 (issue #307,
+    étape L1) : crée une partie amicale (niveau 1, 15 min sans incrément,
+    couleur aléatoire), lit le premier gameFull, puis l'annule (abandon si
+    l'annulation est refusée). Utilise uniquement le jeton déjà enregistré
+    (bouton désactivé côté page sans jeton). Un seul test de partie à la
+    fois ; le jeton n'apparaît jamais dans le résultat émis ni dans les
+    journaux."""
+    from nicsoft.core.config_manager import load_config
+    sid = request.sid
+    token = load_config().get("lichess_token", "")
+    if not token:
+        socketio.emit("lichess_test_game_result", {"status": "invalid"}, to=sid)
+        return
+
+    if not _lichess_test_game_running.acquire(blocking=False):
+        return  # un test de partie est déjà en cours
+
+    def run():
+        from nicsoft.modes.lichess.client import test_ai_game
+        try:
+            result = test_ai_game(token)
+        except Exception as exc:
+            # Jamais le jeton ni le détail de l'exception dans les journaux.
+            logger.warning(f"Échec du test de partie Lichess ({type(exc).__name__})")
+            result = {"status": "network_error"}
+        finally:
+            _lichess_test_game_running.release()
+        socketio.emit("lichess_test_game_result", result, to=sid)
+
+    threading.Thread(target=run, daemon=True).start()
+
+
 # ── Opening Explorer ──────────────────────────────────────────────────────────
 
 @socketio.on("explorer_get_list")

@@ -146,6 +146,9 @@ document.addEventListener("click", (e) => {
     case "parametres_test_lichess":
       lichessTesterConnexion();
       break;
+    case "parametres_test_lichess_partie":
+      lichessTesterPartie();
+      break;
     case "quit_modal":
       ouvrirModal("quit", t("modal.quitter_alchess"), t("modal.quitter_btn"), "btn-warning");
       break;
@@ -6761,6 +6764,13 @@ socket.on("config_data", (data) => {
         ? t("parametres.lichess.jeton_enregistre_sans_indice")
         : t("parametres.lichess.aucun_jeton");
   }
+  // Bouton "Tester une partie" (issue #307, étape L1) : désactivé et
+  // expliqué sans jeton enregistré.
+  _lichessHasToken = !!data.has_lichess_token;
+  const lichessTestGameBtn  = document.getElementById("lichess-test-game-btn");
+  const lichessTestGameHint = document.getElementById("lichess-test-game-hint");
+  if (lichessTestGameBtn) lichessTestGameBtn.disabled = !_lichessHasToken || _lichessTestGameEnCours;
+  if (lichessTestGameHint) lichessTestGameHint.style.display = _lichessHasToken ? "none" : "";
   if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
   if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
   if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;
@@ -6829,14 +6839,18 @@ socket.on("config_saved", (data) => {
 // ── Lichess — test de connexion (issue #306, étape L0) ──────────────────────
 
 let _lichessTestEnCours = false;
+let _lichessTestGameEnCours = false;
+let _lichessHasToken = false;
 
 function lichessTesterConnexion() {
-  if (_lichessTestEnCours) return;
+  if (_lichessTestEnCours || _lichessTestGameEnCours) return;
   const btn   = document.getElementById("lichess-test-btn");
+  const gameBtn = document.getElementById("lichess-test-game-btn");
   const input = document.getElementById("param-lichess-token");
   const result = document.getElementById("lichess-test-result");
   _lichessTestEnCours = true;
   if (btn) { btn.disabled = true; btn.textContent = t("common.chargement"); }
+  if (gameBtn) gameBtn.disabled = true;
   if (result) { result.className = "parametres-lichess-result"; result.textContent = ""; }
   socket.emit("lichess_test_connection", { token: input ? input.value : "" });
 }
@@ -6844,8 +6858,10 @@ function lichessTesterConnexion() {
 socket.on("lichess_test_result", (data) => {
   _lichessTestEnCours = false;
   const btn = document.getElementById("lichess-test-btn");
+  const gameBtn = document.getElementById("lichess-test-game-btn");
   const result = document.getElementById("lichess-test-result");
   if (btn) { btn.disabled = false; btn.textContent = t("parametres.lichess.tester"); }
+  if (gameBtn) gameBtn.disabled = !_lichessHasToken;
   if (!result) return;
 
   const status = data && data.status;
@@ -6862,6 +6878,56 @@ socket.on("lichess_test_result", (data) => {
     // data.account/data.scopes viennent de Lichess (externe) — textContent
     // échappe automatiquement (issue #303), pas d'innerHTML ici.
     result.textContent = lignes.join(" — ");
+  } else if (status === "rate_limited") {
+    result.className = "parametres-lichess-result is-warning";
+    result.textContent = t("parametres.lichess.resultat.limite");
+  } else if (status === "network_error") {
+    result.className = "parametres-lichess-result is-error";
+    result.textContent = t("parametres.lichess.resultat.reseau");
+  } else {
+    result.className = "parametres-lichess-result is-error";
+    result.textContent = t("parametres.lichess.resultat.invalide");
+  }
+});
+
+// ── Lichess — test d'une vraie partie (issue #307, étape L1) ────────────────
+
+function lichessTesterPartie() {
+  if (_lichessTestEnCours || _lichessTestGameEnCours || !_lichessHasToken) return;
+  const btn    = document.getElementById("lichess-test-game-btn");
+  const tokenBtn = document.getElementById("lichess-test-btn");
+  const result = document.getElementById("lichess-test-result");
+  _lichessTestGameEnCours = true;
+  if (btn) { btn.disabled = true; btn.textContent = t("common.chargement"); }
+  if (tokenBtn) tokenBtn.disabled = true;
+  if (result) { result.className = "parametres-lichess-result"; result.textContent = ""; }
+  socket.emit("lichess_test_game", {});
+}
+
+socket.on("lichess_test_game_result", (data) => {
+  _lichessTestGameEnCours = false;
+  const btn    = document.getElementById("lichess-test-game-btn");
+  const tokenBtn = document.getElementById("lichess-test-btn");
+  const result = document.getElementById("lichess-test-result");
+  if (btn) { btn.disabled = !_lichessHasToken; btn.textContent = t("parametres.lichess.test_partie.bouton"); }
+  if (tokenBtn) tokenBtn.disabled = false;
+  if (!result) return;
+
+  const status = data && data.status;
+  if (status === "ok") {
+    result.className = "parametres-lichess-result is-success";
+    const couleur = data.color === "white"
+      ? t("parametres.lichess.couleur.blancs")
+      : t("parametres.lichess.couleur.noirs");
+    // data.opponent vient de Lichess (externe) — textContent échappe
+    // automatiquement (issue #303), pas d'innerHTML ici.
+    result.textContent = t("parametres.lichess.test_partie.resultat.ok", {
+      adversaire: data.opponent || "",
+      couleur,
+    });
+  } else if (status === "missing_scope") {
+    result.className = "parametres-lichess-result is-warning";
+    result.textContent = t("parametres.lichess.test_partie.resultat.droit_manquant");
   } else if (status === "rate_limited") {
     result.className = "parametres-lichess-result is-warning";
     result.textContent = t("parametres.lichess.resultat.limite");
