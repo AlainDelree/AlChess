@@ -1,0 +1,616 @@
+"""
+nicsoft/modes/lichess/game.py — AlChess
+
+Issue #309 (étape L2a) : boucle de jeu d'une partie amicale contre l'IA de
+Lichess, jouée sur l'échiquier physique. Aucun moteur, aucune aide : ce
+module n'importe jamais nicsoft.engine.engine_manager ni aucun moteur UCI
+(règle de fair-play Lichess — voir CLAUDE.md).
+
+État de la partie : l'état de vérité vient de Lichess (liste de coups UCI
+du flux de jeu) ; `self.board` est reconstruit à partir de cette liste à
+chaque événement, jamais poussé de façon optimiste depuis un coup physique
+avant confirmation.
+
+Deux threads par partie :
+  - celui qui exécute `run()` (boucle principale, non bloquante : actions
+    navigateur, événements Lichess, lecture plateau physique) ;
+  - un thread de lecture du flux (`_stream_reader_loop`), qui alimente une
+    file d'événements — jamais de blocage réseau pendant que l'utilisateur
+    réfléchit à son coup (aucune limite de temps côté AlChess).
+"""
+
+import datetime
+import logging
+import queue
+import threading
+import time
+
+import chess
+
+from nicsoft.core.ihm_port import send_event, get_action, set_app_state
+from nicsoft.engine.board_utils import san_ep
+from nicsoft.engine.pgn_manager import build_and_save_pgn, build_final_path
+from nicsoft.modes.lichess.errors import (
+    LichessApiError,
+    LichessAuthError,
+    LichessNetworkError,
+    LichessRateLimitError,
+)
+from nicsoft.modes.lichess.game_client import is_game_over, moves_from_state, side_to_move
+
+logger = logging.getLogger("niclink.lichess")
+
+_FINISHED_WITH_WINNER = frozenset({
+    "mate", "resign", "timeout", "outoftime", "cheat", "variantEnd", "unknownFinish",
+})
+_FINISHED_DRAW = frozenset({"draw", "stalemate", "insufficientMaterialClaim"})
+
+_OTHER_MODE_ACTIONS = frozenset({
+    "mode", "start", "start_humain", "start_retranscription", "start_lichess",
+    "start_exercice", "start_drill",
+})
+
+
+# ── Fonctions pures ──────────────────────────────────────────────────────────
+
+def legal_move_for_hardware(board: chess.Board, hardware_board_fen: str):
+    """Coup légal (hors promotion) dont la position d'arrivée correspond à
+    `hardware_board_fen`, ou None. Les promotions sont gérées séparément
+    (choix explicite de la pièce côté navigateur — voir pending_promotion_move)."""
+    for move in board.legal_moves:
+        if move.promotion is not None:
+            continue
+        test = board.copy(stack=False)
+        test.push(move)
+        if test.board_fen() == hardware_board_fen:
+            return move
+    return None
+
+
+def pending_promotion_move(board: chess.Board, hardware_board_fen: str):
+    """Retourne (from_square, to_square) si la position physique correspond
+    à une promotion en attente de choix de pièce : toutes les cases hors
+    départ/arrivée correspondent, le départ est vide côté physique, et
+    l'arrivée porte n'importe quelle pièce du bon camp (le plateau physique
+    ne permet pas de distinguer la pièce choisie — on la demande à l'écran).
+    None si aucune promotion en attente."""
+    try:
+        hw = chess.Board(hardware_board_fen + " w - - 0 1")
+    except ValueError:
+        return None
+    promotion_from_to = set()
+    for move in board.legal_moves:
+        if move.promotion is not None:
+            promotion_from_to.add((move.from_square, move.to_square))
+    for from_sq, to_sq in promotion_from_to:
+        matches = True
+        for sq in chess.SQUARES:
+            if sq in (from_sq, to_sq):
+                continue
+            if board.piece_at(sq) != hw.piece_at(sq):
+                matches = False
+                break
+        if not matches:
+            continue
+        if hw.piece_at(from_sq) is not None:
+            continue
+        dest_piece = hw.piece_at(to_sq)
+        mover_color = board.piece_at(from_sq).color
+        if dest_piece is None or dest_piece.color != mover_color:
+            continue
+        return from_sq, to_sq
+    return None
+
+
+def compute_clock_ms(white_ms: float, black_ms: float, turn_color: str, elapsed_s: float) -> tuple:
+    """Temps restant (ms) pour chaque camp, `elapsed_s` secondes après le
+    dernier recalage reçu de Lichess — déduit du seul camp au trait.
+    Fonction pure : l'affichage se recalcule à partir d'heures, jamais par
+    accumulation d'un minuteur JS (issue #309, point 4)."""
+    elapsed_ms = max(0.0, elapsed_s) * 1000.0
+    if turn_color == "black":
+        return white_ms, max(0.0, black_ms - elapsed_ms)
+    return max(0.0, white_ms - elapsed_ms), black_ms
+
+
+def pgn_result(status: str, winner: str) -> str:
+    """Score PGN ("1-0"/"0-1"/"1/2-1/2"/"*") déduit du statut Lichess."""
+    if status in _FINISHED_WITH_WINNER and winner:
+        return "1-0" if winner == "white" else "0-1"
+    if status in _FINISHED_DRAW:
+        return "1/2-1/2"
+    return "*"
+
+
+def pgn_time_control(clock_limit_s: int, clock_increment_s: int) -> str:
+    return f"{clock_limit_s}+{clock_increment_s}"
+
+
+def opponent_pgn_name(level: int) -> str:
+    """Nom de l'adversaire pour les en-têtes PGN — convention Lichess,
+    jamais vide ni « None » (issue #309, point 2)."""
+    return f"Lichess AI level {level}"
+
+
+def build_pgn_headers(game_id: str, user_name: str, user_color: str, level: int,
+                       clock_limit_s: int, clock_increment_s: int, result: str,
+                       date_utc: str) -> dict:
+    ai_name = opponent_pgn_name(level)
+    user_name = user_name or "Vous"
+    white = user_name if user_color == "white" else ai_name
+    black = ai_name if user_color == "white" else user_name
+    return {
+        "Event": f"Lichess, amicale contre l'IA niveau {level}",
+        "Site": f"https://lichess.org/{game_id}",
+        "Date": date_utc,
+        "White": white,
+        "Black": black,
+        "Result": result,
+        "TimeControl": pgn_time_control(clock_limit_s, clock_increment_s),
+    }
+
+
+# ── Boucle de jeu ────────────────────────────────────────────────────────────
+
+class LichessGame(threading.Thread):
+    """Partie amicale contre l'IA de Lichess sur l'échiquier physique.
+    `start()` exécute `run()` de façon synchrone (comme GameWeb — le vrai
+    threading vit dans le lanceur, voir game_manager_modes/lichess.py)."""
+
+    POLL_DELAY_S = 0.05
+    CLOCK_PUSH_INTERVAL_S = 1.0
+    BOARD_LOST_STRIKES = 40           # ~2s de lectures en échec consécutives
+    POSITION_ERROR_THROTTLE_S = 1.0
+    ILLEGAL_STABLE_READS_REQUIRED = 8
+
+    def __init__(self, nl_inst, client, game_id: str, level: int, player_name: str,
+                 clock_limit_s: int, clock_increment_s: int, **kwargs):
+        super().__init__(daemon=True, **kwargs)
+        self.nl_inst = nl_inst
+        self.client = client
+        self.game_id = game_id
+        self.level = level
+        self.player_name = player_name or "Vous"
+        self.clock_limit_s = clock_limit_s
+        self.clock_increment_s = clock_increment_s
+
+        self.board = chess.Board()
+        self.user_color = None
+        self.game_over = False
+
+        self._moves_applied = 0
+        self._status = "created"
+        self._winner = ""
+        self._aborted = False
+        self._back_menu_requested = False
+
+        self._board_lost = False
+        self._board_lost_strikes = 0
+
+        self._awaiting_physical_replication = False
+        self._replication_target_fen = None
+        self._awaiting_piece_reset = False
+        self._reset_target_fen = None
+        self._pending_promotion = None
+        self._last_position_error_ts = 0.0
+        self._last_illegal_fen = None
+        self._illegal_stable_count = 0
+
+        self._draw_offered_by_opponent = False
+
+        self._clock_white_ms = float(clock_limit_s * 1000)
+        self._clock_black_ms = float(clock_limit_s * 1000)
+        self._clock_turn = "white"
+        self._clock_ref_monotonic = time.monotonic()
+        self._last_clock_push_ts = 0.0
+
+        self._stream_event_queue = queue.Queue()
+        self._stream_stop = threading.Event()
+        self._stream_error = None
+
+    def start(self):
+        self.run()
+
+    # ── Boucle principale ────────────────────────────────────────────────
+
+    def run(self):
+        reader = threading.Thread(target=self._stream_reader_loop, daemon=True)
+        reader.start()
+        try:
+            self._main_loop()
+        finally:
+            self._stream_stop.set()
+            self._finalize()
+            try:
+                reader.join(timeout=2.0)
+            except RuntimeError:
+                pass  # jointure best-effort — le thread est daemon de toute façon
+
+    def _main_loop(self):
+        while not self.game_over:
+            self._process_browser_actions()
+            if self.game_over:
+                break
+            try:
+                event = self._stream_event_queue.get(timeout=self.POLL_DELAY_S)
+            except queue.Empty:
+                event = None
+            if event is not None:
+                self._handle_stream_event(event)
+                if self.game_over:
+                    break
+            self._tick_physical()
+            self._maybe_push_clock()
+
+    def _stream_reader_loop(self):
+        try:
+            for event in self.client.stream_game(self.game_id):
+                self._stream_event_queue.put(event)
+                if self._stream_stop.is_set():
+                    return
+        except (LichessApiError, LichessAuthError, LichessNetworkError, LichessRateLimitError) as exc:
+            self._stream_error = exc
+        finally:
+            self._stream_event_queue.put({"type": "_stream_closed"})
+
+    # ── Actions navigateur ───────────────────────────────────────────────
+
+    def _process_browser_actions(self):
+        while True:
+            action = get_action(timeout=0.0)
+            if action is None:
+                return
+            atype = action.get("type", "")
+            if atype in _OTHER_MODE_ACTIONS:
+                send_event("lichess_toast", {"message_key": "lichess.menu_verrouille", "type": "warning"})
+                continue
+            if atype == "back_menu":
+                self._back_menu_requested = True
+                if not self.game_over:
+                    self._request_resign_or_abort()
+                self.game_over = True
+                continue
+            if self.game_over:
+                continue
+            if atype == "lichess_resign":
+                if self._request_resign_or_abort():
+                    self.game_over = True
+            elif atype == "lichess_propose_draw":
+                self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True))
+            elif atype == "lichess_draw_accept":
+                self._draw_offered_by_opponent = False
+                self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True))
+            elif atype == "lichess_draw_refuse":
+                self._draw_offered_by_opponent = False
+                self._safe_client_call(lambda: self.client.answer_draw(self.game_id, False))
+            elif atype == "lichess_promotion_choice" and self._pending_promotion is not None:
+                self._submit_promotion(action.get("piece", "q"))
+
+    def _safe_client_call(self, fn) -> bool:
+        try:
+            fn()
+            return True
+        except LichessApiError as exc:
+            send_event("lichess_move_refused", {"message": exc.api_message or str(exc)})
+        except (LichessNetworkError, LichessRateLimitError):
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        return False
+
+    def _request_resign_or_abort(self) -> bool:
+        aborting = len(self.board.move_stack) < 2
+        if aborting:
+            ok = self._safe_client_call(lambda: self.client.abort(self.game_id))
+        else:
+            ok = self._safe_client_call(lambda: self.client.resign(self.game_id))
+        if not ok:
+            return False
+        if aborting:
+            self._status = "aborted"
+            self._aborted = True
+        else:
+            self._status = "resign"
+            self._winner = "black" if self.user_color == "white" else "white"
+        return True
+
+    # ── Événements Lichess ───────────────────────────────────────────────
+
+    def _handle_stream_event(self, event: dict) -> None:
+        etype = event.get("type")
+        if etype == "_stream_closed":
+            self._handle_stream_closed()
+        elif etype == "reconnecting":
+            send_event("lichess_reconnecting", {"attempt": event.get("attempt", 1)})
+        elif etype == "reconnected":
+            send_event("lichess_reconnected", {})
+        elif etype == "gameFull":
+            self._apply_game_full(event)
+        elif etype == "gameState":
+            self._apply_game_state(event)
+        # chatLine / opponentGone : rien à afficher à cette étape.
+
+    def _handle_stream_closed(self) -> None:
+        if self.game_over:
+            return
+        if self._stream_error is not None:
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        if self._status in ("created", "started"):
+            self._status = "unknownFinish"
+        self.game_over = True
+
+    def _apply_game_full(self, event: dict) -> None:
+        white = event.get("white") or {}
+        black = event.get("black") or {}
+        if white.get("aiLevel") is not None:
+            self.user_color = "black"
+            self.level = white.get("aiLevel", self.level)
+        else:
+            self.user_color = "white"
+            self.level = black.get("aiLevel", self.level)
+        state = event.get("state") or {}
+        self.board = chess.Board()
+        self._moves_applied = 0
+        self._apply_new_moves(state, initial=True)
+        send_event("lichess_init", {
+            "fen": self.board.board_fen(),
+            "color": self.user_color,
+            "player": self.player_name,
+            "level": self.level,
+            "clock_limit_s": self.clock_limit_s,
+            "clock_increment_s": self.clock_increment_s,
+        })
+        self._reset_clock_from_state(state)
+        self._check_finished(state.get("status", "started"), state.get("winner", ""))
+
+    def _apply_game_state(self, event: dict) -> None:
+        self._apply_new_moves(event)
+        self._reset_clock_from_state(event)
+        opponent_offered = event.get("bdraw") if self.user_color == "white" else event.get("wdraw")
+        opponent_offered = bool(opponent_offered)
+        if opponent_offered != self._draw_offered_by_opponent:
+            self._draw_offered_by_opponent = opponent_offered
+            send_event("lichess_draw_offered", {"offered": opponent_offered})
+        self._check_finished(event.get("status", self._status), event.get("winner", ""))
+
+    def _check_finished(self, status: str, winner: str) -> None:
+        if self.game_over or not is_game_over(status):
+            return
+        self._status = status
+        self._winner = winner
+        self._aborted = status == "aborted"
+        self.game_over = True
+
+    def _apply_new_moves(self, state: dict, initial: bool = False) -> None:
+        moves = moves_from_state(state)
+        if len(moves) <= self._moves_applied:
+            return
+        new_moves = moves[self._moves_applied:]
+        last_mover_color = None
+        for idx, uci in enumerate(new_moves, start=self._moves_applied):
+            mover_color = "white" if idx % 2 == 0 else "black"
+            try:
+                move = chess.Move.from_uci(uci)
+                san = san_ep(self.board, move) if move in self.board.legal_moves else uci
+                self.board.push(move)
+            except (ValueError, AssertionError) as exc:
+                logger.warning("Coup Lichess inattendu (%s) ignoré : %s", uci, exc)
+                continue
+            last_mover_color = mover_color
+            if not initial:
+                send_event("lichess_move", {
+                    "fen": self.board.board_fen(), "san": san, "uci": uci,
+                    "color": mover_color, "level": self.level,
+                    "opponent_move": mover_color != self.user_color,
+                })
+        self._moves_applied = len(moves)
+        if last_mover_color is None:
+            return
+        if last_mover_color != self.user_color:
+            self._start_opponent_replication_wait(new_moves[-1])
+        else:
+            self._awaiting_piece_reset = False
+
+    def _reset_clock_from_state(self, state: dict) -> None:
+        wtime = state.get("wtime")
+        btime = state.get("btime")
+        if wtime is None or btime is None:
+            return
+        self._clock_white_ms = float(wtime)
+        self._clock_black_ms = float(btime)
+        self._clock_turn = side_to_move(state)
+        self._clock_ref_monotonic = time.monotonic()
+        self._maybe_push_clock(force=True)
+
+    def _maybe_push_clock(self, force: bool = False) -> None:
+        now = time.monotonic()
+        if not force and (now - self._last_clock_push_ts) < self.CLOCK_PUSH_INTERVAL_S:
+            return
+        self._last_clock_push_ts = now
+        elapsed_s = 0.0 if self.game_over else max(0.0, now - self._clock_ref_monotonic)
+        white_ms, black_ms = compute_clock_ms(self._clock_white_ms, self._clock_black_ms,
+                                               self._clock_turn, elapsed_s)
+        send_event("lichess_clock", {"white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn})
+
+    # ── Plateau physique ─────────────────────────────────────────────────
+
+    def _read_hardware_fen(self):
+        try:
+            raw = self.nl_inst.current_fen
+        except Exception as exc:
+            logger.debug("Lecture current_fen échouée (Lichess) : %s", exc)
+            return None
+        if not raw:
+            return None
+        parts = raw.strip().split()
+        return parts[0] if parts else None
+
+    def _register_board_lost(self) -> None:
+        self._board_lost_strikes += 1
+        if self._board_lost_strikes >= self.BOARD_LOST_STRIKES and not self._board_lost:
+            self._board_lost = True
+            send_event("lichess_board_lost", {})
+
+    def _register_board_present(self) -> None:
+        if self._board_lost_strikes or self._board_lost:
+            self._board_lost_strikes = 0
+            if self._board_lost:
+                self._board_lost = False
+                send_event("lichess_board_ok", {})
+
+    def _tick_physical(self) -> None:
+        if self.user_color is None or self.game_over:
+            return
+        hardware_fen = self._read_hardware_fen()
+        if hardware_fen is None:
+            self._register_board_lost()
+            return
+        self._register_board_present()
+        if self._board_lost:
+            return
+        if self._awaiting_physical_replication:
+            self._check_replication(hardware_fen)
+            return
+        if self._awaiting_piece_reset:
+            self._check_piece_reset(hardware_fen)
+            return
+        if self._pending_promotion is not None:
+            return
+        user_is_white = self.user_color == "white"
+        if self.board.turn != (chess.WHITE if user_is_white else chess.BLACK):
+            return
+        self._check_user_move(hardware_fen)
+
+    def _start_opponent_replication_wait(self, uci: str) -> None:
+        self._awaiting_physical_replication = True
+        self._replication_target_fen = self.board.board_fen()
+        try:
+            self.nl_inst.set_led(uci[:2], True)
+            self.nl_inst.set_led(uci[2:4], True)
+        except (ValueError, IndexError) as exc:
+            logger.debug("LED coup adverse (Lichess) échouée : %s", exc)
+
+    def _check_replication(self, hardware_fen: str) -> None:
+        if hardware_fen == self._replication_target_fen:
+            self._awaiting_physical_replication = False
+            self._replication_target_fen = None
+            try:
+                self.nl_inst.turn_off_all_leds()
+            except Exception as exc:
+                logger.debug("Extinction LEDs (réplication) échouée : %s", exc)
+            send_event("lichess_position_ok", {})
+            return
+        self._throttled_position_wait(hardware_fen, self._replication_target_fen)
+
+    def _check_piece_reset(self, hardware_fen: str) -> None:
+        if hardware_fen == self._reset_target_fen:
+            self._awaiting_piece_reset = False
+            self._reset_target_fen = None
+            send_event("lichess_position_ok", {})
+            return
+        self._throttled_position_wait(hardware_fen, self._reset_target_fen)
+
+    def _throttled_position_wait(self, hardware_fen: str, expected_fen: str) -> None:
+        now = time.monotonic()
+        if now - self._last_position_error_ts < self.POSITION_ERROR_THROTTLE_S:
+            return
+        self._last_position_error_ts = now
+        send_event("lichess_position_wait", {"expected_fen": expected_fen, "physical_fen": hardware_fen})
+
+    def _check_user_move(self, hardware_fen: str) -> None:
+        expected = self.board.board_fen()
+        if hardware_fen == expected:
+            self._illegal_stable_count = 0
+            return
+        promo = pending_promotion_move(self.board, hardware_fen)
+        if promo is not None:
+            self._pending_promotion = promo
+            send_event("lichess_promotion_needed", {
+                "from": chess.square_name(promo[0]), "to": chess.square_name(promo[1]),
+            })
+            return
+        move = legal_move_for_hardware(self.board, hardware_fen)
+        if move is not None:
+            self._illegal_stable_count = 0
+            self._submit_move(move.uci())
+            return
+        if hardware_fen == self._last_illegal_fen:
+            self._illegal_stable_count += 1
+        else:
+            self._last_illegal_fen = hardware_fen
+            self._illegal_stable_count = 1
+        if self._illegal_stable_count >= self.ILLEGAL_STABLE_READS_REQUIRED:
+            self._throttled_position_wait(hardware_fen, expected)
+
+    def _submit_promotion(self, piece_letter: str) -> None:
+        from_sq, to_sq = self._pending_promotion
+        piece_letter = piece_letter if piece_letter in ("q", "r", "b", "n") else "q"
+        uci = chess.square_name(from_sq) + chess.square_name(to_sq) + piece_letter
+        self._pending_promotion = None
+        self._submit_move(uci)
+
+    def _submit_move(self, uci: str) -> None:
+        try:
+            self.client.play_move(self.game_id, uci)
+        except LichessApiError as exc:
+            self._reset_target_fen = self.board.board_fen()
+            self._awaiting_piece_reset = True
+            send_event("lichess_move_refused", {"message": exc.api_message or str(exc)})
+        except (LichessNetworkError, LichessRateLimitError):
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        # Le coup confirmé revient par le flux (gameState) et sera appliqué
+        # par _apply_new_moves — jamais de mise à jour optimiste ici.
+
+    # ── Fin de partie ────────────────────────────────────────────────────
+
+    def _title_for_status(self):
+        if self._aborted:
+            return "game.titre_annulee", {}
+        if self._status in _FINISHED_WITH_WINNER and self._winner:
+            won = self._winner == self.user_color
+            return ("game.titre_victoire" if won else "game.titre_defaite"), {}
+        if self._status in _FINISHED_DRAW:
+            return "game.titre_nulle", {}
+        return "game.fin_partie_default", {}
+
+    def _history_from_board(self):
+        b = chess.Board()
+        fens = [b.board_fen()]
+        moves = []
+        for mv in self.board.move_stack:
+            san = san_ep(b, mv)
+            col = "white" if b.turn == chess.WHITE else "black"
+            b.push(mv)
+            fens.append(b.board_fen())
+            moves.append({"san": san, "uci": mv.uci(), "color": col, "qualite": None})
+        return fens, moves
+
+    def _save_pgn(self, result: str) -> None:
+        date_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y.%m.%d")
+        headers = build_pgn_headers(
+            self.game_id, self.player_name, self.user_color or "white", self.level,
+            self.clock_limit_s, self.clock_increment_s, result, date_utc,
+        )
+        final_path = build_final_path("Lichess", "Amicale", headers["White"], headers["Black"])
+        try:
+            build_and_save_pgn(headers=headers, moves=list(self.board.move_stack), output_path=final_path)
+        except Exception as exc:
+            logger.warning("Sauvegarde PGN Lichess échouée : %s", exc)
+
+    def _finalize(self) -> None:
+        try:
+            self.nl_inst.turn_off_all_leds()
+        except Exception as exc:
+            logger.debug("Extinction LEDs (fin partie Lichess) échouée : %s", exc)
+        result = pgn_result(self._status, self._winner)
+        if not self._aborted:
+            self._save_pgn(result)
+        title_key, title_vars = self._title_for_status()
+        hist_fens, hist_moves = self._history_from_board()
+        skip = self._back_menu_requested
+        payload = {
+            "title_key": title_key, "title_vars": title_vars,
+            "result": result, "source": "lichess", "skip": skip,
+            "history_fen": hist_fens, "history_moves": hist_moves,
+        }
+        send_event("game_over", payload)
+        if not skip:
+            set_app_state("game_over", payload)

@@ -24,7 +24,11 @@ import urllib.request
 from nicsoft.utils.net_safety import ensure_https
 
 REQUEST_TIMEOUT_S = 10
-STREAM_READ_TIMEOUT_S = 20
+# Lichess envoie une ligne vide de maintien toutes les ~9s, mais une partie
+# amicale longue (ex. 90+30, réflexions de 15-20 min) peut rester silencieuse
+# plus longtemps sans que la connexion soit réellement coupée — 90s de
+# tolérance avant de considérer la lecture comme interrompue (issue #309).
+STREAM_READ_TIMEOUT_S = 90
 
 
 def _user_agent() -> str:

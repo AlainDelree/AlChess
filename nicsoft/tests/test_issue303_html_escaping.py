@@ -305,6 +305,10 @@ SAFE_IDENTIFIERS = {
     # Table de couleurs interne (_COLORS) avec repli sur un littéral figé ;
     # cat est restreint à coups/alertes/analyse/config (voir _journalFiltres).
     '_COLORS[cat] || "#aaa"',
+    # _lichessFormatClock() (issue #309) : mm/ss sont des entiers calculés
+    # par Math.floor/modulo à partir d'une durée en ms reçue de Lichess —
+    # jamais du texte libre.
+    "mm", "ss",
 }
 
 # Préfixes d'appel équivalents à esc( : _pgnLibEsc délègue littéralement à

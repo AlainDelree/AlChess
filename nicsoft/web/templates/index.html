@@ -145,6 +145,11 @@
         <div class="menu-btn-desc" id="desc-humain" data-i18n="menu.desc.humain">Deux joueurs s'affrontent sur l'échiquier physique. L'ordinateur vérifie la légalité des coups et enregistre la partie pour analyse ultérieure.</div>
       </div>
 
+      <div class="menu-btn-wrap" id="wrap-lichess">
+        <button class="menu-btn menu-btn-lichess" data-needs-board data-physical-only disabled data-action="send_mode" data-mode="lichess" data-i18n="menu.btn.lichess">♞ Lichess</button>
+        <div class="menu-btn-desc" id="desc-lichess" data-i18n="menu.desc.lichess">Jouez une partie amicale contre l'IA de Lichess sur votre échiquier physique. Coups, pendules et résultat sont synchronisés avec lichess.org — aucune aide pendant la partie.</div>
+      </div>
+
       <div class="menu-btn-wrap" id="wrap-labo">
         <div class="menu-card menu-card-secondary">
           <div class="menu-card-head" data-action="menu_card_launch" data-mode="labo">♟ <span data-i18n="menu.btn.labo">🔬 Laboratoire</span></div>
@@ -430,6 +435,78 @@
 
 </div>
 
+<div id="screen-config-lichess">
+
+  <!-- Barre de titre fixe -->
+  <div class="cfg-hh-titlebar">
+    <div class="config-title cfg-hh-title" data-i18n="config.titre.lichess">♞ Lichess — partie amicale</div>
+  </div>
+
+  <div id="board-warning-banner-config-lichess" class="board-warning-banner hidden" data-i18n="banner.board_absent_lichess">
+    Lichess se joue sur l'échiquier physique. Branchez-le, allumez-le, puis cliquez sur « Connecter ».
+  </div>
+
+  <!-- Zone scrollable -->
+  <div class="cfg-hh-scroll">
+
+    <p class="lichess-cfg-disclaimer" data-i18n="config.lichess.disclaimer">Partie amicale, sans classement — toutes les aides (moteur, analyse, coups suggérés) sont désactivées pendant la partie.</p>
+
+    <div class="cfg-hh-players-grid">
+
+      <!-- Niveau IA -->
+      <div class="card cfg-hh-card">
+        <h2 data-i18n="config.h2.niveau_ia">Niveau de l'IA Lichess</h2>
+        <div class="cfg-elo-row">
+          <button class="cfg-elo-btn" data-action="lichess_adjust_level" data-delta="-1">-1</button>
+          <input id="cfg-lichess-level" class="cfg-input cfg-elo-input" type="number" min="1" max="8" value="1" oninput="lichessClampLevel()">
+          <button class="cfg-elo-btn" data-action="lichess_adjust_level" data-delta="1">+1</button>
+        </div>
+        <div class="cfg-elo-caption" data-i18n="config.lichess.niveau_desc">Niveau 1 (facile) à 8 (fort)</div>
+      </div>
+
+      <!-- Cadence -->
+      <div class="card cfg-hh-card">
+        <h2 data-i18n="config.h2.cadence">Cadence</h2>
+        <select id="cfg-lichess-cadence" class="cfg-input">
+          <option value="10+0">10 + 0</option>
+          <option value="15+10" selected>15 + 10</option>
+          <option value="30+0">30 + 0</option>
+          <option value="60+0">60 + 0</option>
+          <option value="90+30">90 + 30</option>
+        </select>
+      </div>
+
+    </div>
+
+    <!-- Couleur + Nom -->
+    <div class="cfg-hh-options-col">
+
+      <div class="card cfg-hh-card">
+        <h2 data-i18n="config.h2.couleur">Couleur</h2>
+        <div class="color-btns">
+          <button class="color-btn"          id="cfg-lichess-white"  data-action="select_color_lichess" data-color="white"  data-i18n="config.color.blancs">♔ Blancs</button>
+          <button class="color-btn"          id="cfg-lichess-black"  data-action="select_color_lichess" data-color="black"  data-i18n="config.color.noirs">♚ Noirs</button>
+          <button class="color-btn selected" id="cfg-lichess-random" data-action="select_color_lichess" data-color="random" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
+        </div>
+      </div>
+
+      <div class="card cfg-hh-card">
+        <h2 data-i18n="config.label.nom">Nom</h2>
+        <input id="cfg-lichess-player" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom" placeholder="Votre nom">
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Boutons fixes en bas -->
+  <div class="cfg-hh-footer">
+    <button class="btn btn-continuer cfg-hh-btn-back" data-action="back_menu" data-i18n="common.retour">← Retour</button>
+    <button id="btn-start-lichess" class="btn btn-reprendre cfg-hh-btn-start" disabled data-action="start_game_lichess" data-i18n="common.demarrer">▶ Démarrer la partie</button>
+  </div>
+
+</div>
+
 <div id="screen-retranscription">
   <div class="config-title" data-i18n="retrans.titre">📝 Retranscrire</div>
 
@@ -560,6 +637,7 @@
       <div class="player-row" id="player-row-top">
         <span id="player-top-name">—</span>
         <span id="material-top"></span>
+        <span id="clock-top" class="lichess-clock" style="display:none;"></span>
       </div>
       <div id="board-wrapper">
         <div class="coord-rank" id="coord-rank"></div>
@@ -584,6 +662,7 @@
       <div class="player-row" id="player-row-bottom">
         <span id="player-bottom-name">—</span>
         <span id="material-bottom"></span>
+        <span id="clock-bottom" class="lichess-clock" style="display:none;"></span>
         <button id="btn-flip" data-action="flip_board" class="game-btn-flip" title="Noirs en bas">⇅</button>
       </div>
     </div>
@@ -610,6 +689,23 @@
       <div class="card">
         <h2 data-i18n="game.h2.tour">Tour en cours</h2>
         <div id="turn-info">En attente...</div>
+        <div id="lichess-position-wait" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reproduisez_coup">Reproduisez le coup sur l'échiquier physique.</div>
+      </div>
+      <div class="card" id="lichess-status-card" style="display:none;">
+        <div id="lichess-reconnecting-banner" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reconnexion">Connexion à Lichess perdue, reconnexion…</div>
+        <div id="lichess-board-lost-banner" class="lichess-info-banner" style="display:none;" data-i18n="lichess.echiquier_perdu">Échiquier perdu — la partie continue sur lichess.org. Reconnectez l'échiquier ou abandonnez.</div>
+        <div id="lichess-draw-offer-banner" class="lichess-draw-offer-banner" style="display:none;">
+          <span data-i18n="lichess.nulle_proposee">L'adversaire propose la nulle.</span>
+          <button class="btn btn-reprendre" data-action="lichess_draw_accept" data-i18n="lichess.accepter">Accepter</button>
+          <button class="btn btn-warning" data-action="lichess_draw_refuse" data-i18n="lichess.refuser">Refuser</button>
+        </div>
+        <div id="lichess-promotion-row" class="lichess-promotion-row" style="display:none;">
+          <span data-i18n="lichess.choisir_promotion">Promotion — choisissez la pièce :</span>
+          <button class="btn btn-reprendre" data-action="lichess_promotion" data-piece="q" data-i18n="lichess.promotion.dame">Dame</button>
+          <button class="btn" data-action="lichess_promotion" data-piece="r" data-i18n="lichess.promotion.tour">Tour</button>
+          <button class="btn" data-action="lichess_promotion" data-piece="b" data-i18n="lichess.promotion.fou">Fou</button>
+          <button class="btn" data-action="lichess_promotion" data-piece="n" data-i18n="lichess.promotion.cavalier">Cavalier</button>
+        </div>
       </div>
       <div class="card" id="feedback-card" style="display:none">
         <h2 data-i18n="game.h2.analyse">Analyse</h2>
@@ -626,7 +722,7 @@
         <button class="btn game-btn-pause" id="btn-pause" data-action="pause" data-i18n="game.btn.pause">⏸ Pause</button>
         <button class="btn btn-warning" data-action="ouvrir_modal_abandonner" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
         <button class="btn game-btn-nulle" id="btn-nulle" data-action="ouvrir_modal_nulle" data-i18n="game.btn.nulle">🤝 Partie Nulle</button>
-        <button class="btn game-btn-quitter" data-action="quit_modal_moteur" data-i18n="common.retour_menu">← Retour au menu</button>
+        <button class="btn game-btn-quitter" id="btn-quit-game" data-action="quit_modal_moteur" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
     </div>
     <!-- ── Pause ── -->

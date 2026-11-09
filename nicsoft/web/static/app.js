@@ -134,6 +134,24 @@ document.addEventListener("click", (e) => {
     case "start_game_hh":
       startGameHH();
       break;
+    case "select_color_lichess":
+      selectColorLichess(el.dataset.color);
+      break;
+    case "lichess_adjust_level":
+      lichessAdjustLevel(parseInt(el.dataset.delta, 10));
+      break;
+    case "start_game_lichess":
+      startGameLichess();
+      break;
+    case "lichess_draw_accept":
+      sendAction({ type: "lichess_draw_accept" });
+      break;
+    case "lichess_draw_refuse":
+      sendAction({ type: "lichess_draw_refuse" });
+      break;
+    case "lichess_promotion":
+      lichessSubmitPromotion(el.dataset.piece);
+      break;
     case "parametres_save":
       parametresSave();
       break;
@@ -669,6 +687,20 @@ function _applyBoardBadge() {
     if (_boardOk) colJouer.insertBefore(wrapHH, wrapLabo);
     else          colJouer.appendChild(wrapHH);
   }
+  _applyLichessCardState();
+}
+
+// Carte menu Lichess — comme Humain contre Humain (échiquier physique requis,
+// pas de repli virtuel), avec en plus l'exigence d'un jeton personnel enregistré
+// (issue #309, point 1).
+function _applyLichessCardState() {
+  const btn = document.querySelector('.menu-btn-lichess[data-mode="lichess"]');
+  if (!btn) return;
+  const ok = _boardOk && _lichessHasToken;
+  btn.disabled = !ok;
+  if (!_boardOk) btn.title = t("menu.hh.requiert_echiquier");
+  else if (!_lichessHasToken) btn.title = t("menu.lichess.requiert_jeton");
+  else btn.title = "";
 }
 
 
@@ -1193,6 +1225,8 @@ socket.on("app_state", (data) => {
   document.getElementById("screen-config").style.display                = data.state === "config"                ? "flex" : "none";
   const cfgHH = document.getElementById("screen-config-humain");
   if (cfgHH) cfgHH.style.display = data.state === "config_humain" ? "flex" : "none";
+  const cfgLichess = document.getElementById("screen-config-lichess");
+  if (cfgLichess) cfgLichess.style.display = data.state === "config_lichess" ? "flex" : "none";
   document.getElementById("screen-retranscription").style.display          = data.state === "retranscription"      ? "flex" : "none";
   document.getElementById("screen-retrans-game").style.display             = data.state === "retrans_playing"      ? "grid" : "none";
 
@@ -1271,6 +1305,9 @@ socket.on("app_state", (data) => {
   }
   if (data.state === "config_humain" && _testMode) {
     _randomizeConfigHH();
+  }
+  if (data.state === "config_lichess") {
+    socket.emit("config_get", {});
   }
 
   if (data.state === "game_over" && !data.skip) {
@@ -1354,6 +1391,10 @@ socket.on("app_state", (data) => {
       document.querySelectorAll("[data-needs-board]")
         .forEach(btn => { btn.disabled = false; });
     }
+    // Rafraîchir la présence d'un jeton Lichess (carte menu + écran config) —
+    // config_data n'est sinon connu qu'après une visite de l'écran Paramètres.
+    socket.emit("config_get", {});
+    _applyLichessCardState();
     // Retour menu forcé par une erreur (plateau perdu, moteur KO, timeout...) → toast explicatif
     if (data.toast_message_key || data.toast_message) {
       const msg = data.toast_message_key ? t(data.toast_message_key) : data.toast_message;
@@ -1534,6 +1575,7 @@ socket.on("game_over", (data) => {
   if (data.skip) return;  // back_menu — on ignore
   hideFeedback();
   _gameSource = data.source || "externe";
+  if (data.source === "lichess") { _lichessSetClocksVisible(false); _lichessHideStatusBanners(); }
   const gameTitle = data.title_key
     ? t(data.title_key, data.title_vars || {})
     : data.title;
@@ -1593,6 +1635,9 @@ socket.on("init", (data) => {
   if (pauseRow) pauseRow.style.display = data.analyse === false ? "none" : "flex";
   const btnPause = document.getElementById("btn-pause");
   if (btnPause) { btnPause.style.display = ""; }
+  const btnQuitPed = document.getElementById("btn-quit-game");
+  if (btnQuitPed) btnQuitPed.style.display = "";
+  _lichessSetClocksVisible(false);
   const btnNulle = document.getElementById("btn-nulle");
   if (btnNulle) btnNulle.textContent = t("game.btn.nulle");
   document.getElementById("turn-info").textContent = t("game.en_attente");
@@ -1631,12 +1676,195 @@ socket.on("init_hh", (data) => {
   if (pauseRowHH) pauseRowHH.style.display = "none";
   const btnPauseHH = document.getElementById("btn-pause");
   if (btnPauseHH) { btnPauseHH.style.display = ""; }
+  const btnQuitHH = document.getElementById("btn-quit-game");
+  if (btnQuitHH) btnQuitHH.style.display = "";
+  _lichessSetClocksVisible(false);
   const btnNulleHH = document.getElementById("btn-nulle");
   if (btnNulleHH) btnNulleHH.textContent = t("game.btn.nulle");
   document.getElementById("turn-info").textContent = t("game.en_attente");
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
   document.getElementById("historique").innerHTML = "";
+});
+
+// ── LICHESS — partie amicale contre l'IA (issue #309) ─────
+
+let _lichessLevel = 1;
+
+function _lichessSetClocksVisible(visible) {
+  const clockTop = document.getElementById("clock-top");
+  const clockBottom = document.getElementById("clock-bottom");
+  if (clockTop) clockTop.style.display = visible ? "" : "none";
+  if (clockBottom) clockBottom.style.display = visible ? "" : "none";
+}
+
+function _lichessHideStatusBanners() {
+  const statusCard = document.getElementById("lichess-status-card");
+  if (statusCard) statusCard.style.display = "none";
+  ["lichess-reconnecting-banner", "lichess-board-lost-banner",
+   "lichess-draw-offer-banner", "lichess-promotion-row"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+  const waitBanner = document.getElementById("lichess-position-wait");
+  if (waitBanner) waitBanner.style.display = "none";
+}
+
+function _lichessShowBanner(id, show) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = show ? "" : "none";
+  const statusCard = document.getElementById("lichess-status-card");
+  if (!statusCard) return;
+  const anyVisible = ["lichess-reconnecting-banner", "lichess-board-lost-banner",
+    "lichess-draw-offer-banner", "lichess-promotion-row"]
+    .some(bid => { const e = document.getElementById(bid); return e && e.style.display !== "none"; });
+  statusCard.style.display = anyVisible ? "flex" : "none";
+}
+
+function lichessSubmitPromotion(piece) {
+  sendAction({ type: "lichess_promotion_choice", piece: piece || "q" });
+  _lichessShowBanner("lichess-promotion-row", false);
+}
+
+function _lichessFormatClock(ms) {
+  const totalSeconds = Math.max(0, Math.round((ms || 0) / 1000));
+  const mm = Math.floor(totalSeconds / 60);
+  const ss = totalSeconds % 60;
+  return `${mm}:${ss < 10 ? "0" : ""}${ss}`;
+}
+
+socket.on("lichess_init", (data) => {
+  _gameMode = "lichess";
+  _basketSource = "Lichess";
+  currentPlayerColor = data.color || "white";
+  _lichessLevel = data.level || 1;
+  _pendingMove = null;
+  reviewFens  = [data.fen || currentFen];
+  reviewMoves = [];
+  reviewIdx   = 0;
+  currentFen  = data.fen || currentFen;
+  const isWhite = data.color === "white";
+  const playerLabel   = _localPlayerName(data.player, "lichess.vous");
+  const opponentLabel = t("lichess.ia_niveau", { level: _lichessLevel });
+  const topName = document.getElementById("player-top-name");
+  const botName = document.getElementById("player-bottom-name");
+  topName.textContent = isWhite ? opponentLabel : playerLabel;
+  botName.textContent = isWhite ? playerLabel : opponentLabel;
+  topName.style.color = "#3a5a7a";
+  botName.style.color = "#1a2a3a";
+  document.body.setAttribute("style", "background: #d8e4f0 !important;");
+  renderBoard(currentFen, null, null, null, null, null, null);
+  document.getElementById("game-subtitle").textContent = isWhite
+    ? `${playerLabel} ${t("game.contre")} ${opponentLabel}`
+    : `${opponentLabel} ${t("game.contre")} ${playerLabel}`;
+  updateWdlBar(null);
+  const wdlBar = document.getElementById("wdl-bar-container");
+  if (wdlBar) wdlBar.style.display = "none";
+  _panelPlayingTitleKey = "config.titre.lichess";
+  const titleEl = document.getElementById("panel-playing-title");
+  if (titleEl) titleEl.textContent = t(_panelPlayingTitleKey);
+  const pauseRow = document.getElementById("pause-select-row");
+  if (pauseRow) pauseRow.style.display = "none";
+  const btnPause = document.getElementById("btn-pause");
+  if (btnPause) btnPause.style.display = "none";
+  const btnQuit = document.getElementById("btn-quit-game");
+  if (btnQuit) btnQuit.style.display = "none";
+  const btnNulle = document.getElementById("btn-nulle");
+  if (btnNulle) btnNulle.textContent = t("game.btn.nulle");
+  document.getElementById("turn-info").textContent = t("game.en_attente");
+  document.getElementById("historique").innerHTML = "";
+  hideFeedback();
+  _lichessSetClocksVisible(true);
+  _lichessHideStatusBanners();
+});
+
+socket.on("lichess_move", (data) => {
+  currentFen    = data.fen;
+  lastMove      = data.uci;
+  lastMoveColor = data.color;
+  reviewFens.push(data.fen);
+  reviewMoves.push({ san: data.san, color: data.color, qualite: null, uci: data.uci });
+  reviewIdx = reviewFens.length - 1;
+  _renderHistory();
+  const [from, to] = uciToCoords(data.uci);
+  renderBoard(currentFen, from, to, null, null, null, null);
+  hideFeedback();
+  updateMaterial(currentFen);
+  const playerLabel = data.opponent_move
+    ? t("lichess.ia_niveau", { level: data.level || _lichessLevel })
+    : _localPlayerName(null, "lichess.vous");
+  const turnInfo = document.getElementById("turn-info");
+  turnInfo.textContent = t("game.a_joue", {
+    player: playerLabel,
+    color: t(data.color === "white" ? "config.blancs" : "config.noirs"),
+    san: data.san,
+  });
+  turnInfo.className = data.color;
+  const waitBanner = document.getElementById("lichess-position-wait");
+  if (waitBanner) waitBanner.style.display = data.opponent_move ? "" : "none";
+});
+
+socket.on("lichess_position_wait", () => {
+  const waitBanner = document.getElementById("lichess-position-wait");
+  if (waitBanner) waitBanner.style.display = "";
+});
+
+socket.on("lichess_position_ok", () => {
+  const waitBanner = document.getElementById("lichess-position-wait");
+  if (waitBanner) waitBanner.style.display = "none";
+});
+
+socket.on("lichess_clock", (data) => {
+  const clockTop = document.getElementById("clock-top");
+  const clockBottom = document.getElementById("clock-bottom");
+  // player-row-top montre toujours l'adversaire et player-row-bottom
+  // l'utilisateur (voir lichess_init) — indépendant de _boardFlipped,
+  // qui ne retourne que le dessin de l'échiquier lui-même.
+  const whiteMs = data.white_ms, blackMs = data.black_ms;
+  const topMs    = currentPlayerColor === "white" ? blackMs : whiteMs;
+  const bottomMs = currentPlayerColor === "white" ? whiteMs : blackMs;
+  if (clockTop) {
+    clockTop.textContent = _lichessFormatClock(topMs);
+    clockTop.classList.toggle("is-turn", data.turn !== currentPlayerColor);
+    clockTop.classList.toggle("is-low", topMs < 20000);
+  }
+  if (clockBottom) {
+    clockBottom.textContent = _lichessFormatClock(bottomMs);
+    clockBottom.classList.toggle("is-turn", data.turn === currentPlayerColor);
+    clockBottom.classList.toggle("is-low", bottomMs < 20000);
+  }
+});
+
+socket.on("lichess_reconnecting", () => {
+  _lichessShowBanner("lichess-reconnecting-banner", true);
+});
+
+socket.on("lichess_reconnected", () => {
+  _lichessShowBanner("lichess-reconnecting-banner", false);
+});
+
+socket.on("lichess_board_lost", () => {
+  _lichessShowBanner("lichess-board-lost-banner", true);
+});
+
+socket.on("lichess_board_ok", () => {
+  _lichessShowBanner("lichess-board-lost-banner", false);
+});
+
+socket.on("lichess_draw_offered", (data) => {
+  _lichessShowBanner("lichess-draw-offer-banner", !!data.offered);
+});
+
+socket.on("lichess_promotion_needed", () => {
+  _lichessShowBanner("lichess-promotion-row", true);
+});
+
+socket.on("lichess_move_refused", (data) => {
+  afficherToast(data.message ? t("lichess.coup_refuse_detail", { detail: data.message }) : t("lichess.coup_refuse"), "warning");
+});
+
+socket.on("lichess_toast", (data) => {
+  afficherToast(data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""), data.type || "info");
 });
 
 socket.on("swap_color_hh", (data) => {
@@ -2187,6 +2415,17 @@ function _renderHistory() {
 function ouvrirModalAbandonner() {
   const std  = document.getElementById("modal-btns-standard");
   const coul = document.getElementById("modal-btns-couleur");
+  if (_gameMode === "lichess") {
+    document.getElementById("modal-title").textContent = t("modal.abandonner_titre");
+    const btn = document.getElementById("modal-confirm");
+    btn.textContent = t("modal.confirmer_abandon");
+    btn.className   = "btn btn-warning";
+    btn.onclick = () => { fermerModal(); sendAction({ type: "lichess_resign" }); };
+    if (std)  std.style.display  = "flex";
+    if (coul) coul.style.display = "none";
+    document.getElementById("modal-overlay").classList.add("open");
+    return;
+  }
   if (_gameMode === "humain") {
     document.getElementById("modal-title").textContent = t("modal.qui_abandonne");
     // Mettre les vrais noms sur les boutons
@@ -2216,6 +2455,14 @@ function ouvrirModalNulle() {
   if (std)  std.style.display  = "flex";
   if (coul) coul.style.display = "none";
   const btn = document.getElementById("modal-confirm");
+  if (_gameMode === "lichess") {
+    document.getElementById("modal-title").textContent = t("lichess.proposer_nulle_titre");
+    btn.textContent = t("modal.proposer_nulle");
+    btn.className   = "btn";
+    btn.onclick = () => { fermerModal(); sendAction({ type: "lichess_propose_draw" }); };
+    document.getElementById("modal-overlay").classList.add("open");
+    return;
+  }
   if (_gameMode === "humain") {
     document.getElementById("modal-title").textContent = t("modal.nulle_hh_titre");
     btn.textContent = t("modal.confirmer_nulle");
@@ -2438,6 +2685,40 @@ function startGameHH() {
   const type  = document.getElementById("cfg-hh-type")?.value || "Serious";
   _basketSource = "HH";
   sendAction({ type: "start_humain", white, black, color: _hhColor, game_type: type });
+}
+
+// ── CONFIG LICHESS (issue #309) ───────────────────────────
+
+let _lichessColor = "random";
+
+function selectColorLichess(c) {
+  _lichessColor = c;
+  document.getElementById("cfg-lichess-white") ?.classList.toggle("selected", c === "white");
+  document.getElementById("cfg-lichess-black") ?.classList.toggle("selected", c === "black");
+  document.getElementById("cfg-lichess-random")?.classList.toggle("selected", c === "random");
+}
+
+function lichessClampLevel() {
+  const el = document.getElementById("cfg-lichess-level");
+  if (!el) return;
+  let v = parseInt(el.value, 10);
+  if (isNaN(v)) v = 1;
+  el.value = Math.min(8, Math.max(1, v));
+}
+
+function lichessAdjustLevel(delta) {
+  const el = document.getElementById("cfg-lichess-level");
+  if (!el) return;
+  el.value = Math.min(8, Math.max(1, (parseInt(el.value, 10) || 1) + delta));
+}
+
+function startGameLichess() {
+  const level   = parseInt(document.getElementById("cfg-lichess-level")?.value, 10) || 1;
+  const cadence = document.getElementById("cfg-lichess-cadence")?.value || "15+10";
+  const player  = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
+  _basketSource = "Lichess";
+  _gameMode = "lichess";
+  sendAction({ type: "start_lichess", level, cadence, color: _lichessColor, player });
 }
 
 function _stopAutoPlay() {
@@ -6771,6 +7052,11 @@ socket.on("config_data", (data) => {
   const lichessTestGameHint = document.getElementById("lichess-test-game-hint");
   if (lichessTestGameBtn) lichessTestGameBtn.disabled = !_lichessHasToken || _lichessTestGameEnCours;
   if (lichessTestGameHint) lichessTestGameHint.style.display = _lichessHasToken ? "none" : "";
+  _applyLichessCardState();
+  const banner = document.getElementById("board-warning-banner-config-lichess");
+  if (banner) banner.classList.toggle("hidden", _boardOk);
+  const btnStartLichess = document.getElementById("btn-start-lichess");
+  if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken;
   if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
   if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
   if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;

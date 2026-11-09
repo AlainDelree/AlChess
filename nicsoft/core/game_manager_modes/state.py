@@ -68,6 +68,12 @@ _TOAST_MESSAGES = {
     "toast.board_not_found":  "Échiquier non détecté au démarrage.",
     "toast.position_timeout": "Position initiale non atteinte (timeout).",
     "toast.engine_error":     "Moteur d'échecs indisponible.",
+    "toast.lichess_no_token":       "Aucun jeton Lichess enregistré — configurez-le dans Paramètres.",
+    "toast.lichess_invalid_token":  "Jeton Lichess refusé — vérifiez-le dans Paramètres.",
+    "toast.lichess_missing_scope":  "Le jeton Lichess n'a pas le droit de jouer (board:play).",
+    "toast.lichess_rate_limited":   "Limite de requêtes Lichess atteinte — réessayez dans un instant.",
+    "toast.lichess_network_error":  "Connexion à Lichess impossible — vérifiez le réseau.",
+    "toast.lichess_error":          "Une erreur est survenue avec Lichess.",
 }
 
 

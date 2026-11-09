@@ -381,6 +381,8 @@ def main():
                 set_app_state("config")
             elif atype == "mode" and action.get("value") == "humain":
                 set_app_state("config_humain")
+            elif atype == "mode" and action.get("value") == "lichess":
+                set_app_state("config_lichess")
             elif atype == "mode" and action.get("value") == "retranscription":
                 set_app_state("retranscription")
                 _check_retranscription_session()
@@ -430,6 +432,8 @@ def main():
                 gm.launch_pedagogique(action)
             elif atype == "start_humain":
                 gm.launch_humain(action)
+            elif atype == "start_lichess":
+                gm.launch_lichess(action)
             elif atype == "start_retranscription":
                 gm.launch_retranscription(action)
             elif atype == "back_menu":
