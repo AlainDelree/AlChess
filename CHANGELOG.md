@@ -1,5 +1,52 @@
 # Changelog — Issue #255
 
+# Changelog — Issue #310
+
+# Issue #310 — Lichess L2a, correctifs après essai réel : fin de partie sans erreur, textes manquants, retour sur la nulle, traces dans le journal et test navigateur
+
+- **Contexte** : premier essai réel de #309 (mode Lichess) sur le vrai échiquier. Le cœur fonctionne (écran de config, création de partie, détection des coups, roque) mais plusieurs défauts sont apparus en conditions réelles, invisibles aux tests existants (sans réseau ni matériel ni navigateur).
+
+- **Cause racine de l'erreur de fin de partie** (« Erreur inattendue mode Lichess : cannot join thread before it is started ») : `LichessGame.start()` exécute `run()` de façon **synchrone** (le vrai threading vit dans le lanceur) sans jamais appeler `threading.Thread.start()` natif — le lanceur (`core/game_manager_modes/lichess.py`) appelait pourtant `game.join()` juste après `game.start()`, ce qui lève inconditionnellement `RuntimeError("cannot join thread before it is started")` à la fin de **toute** partie (pas seulement à l'abandon — c'était simplement la première fin de partie atteinte lors de l'essai). Cette exception, capturée par le `except Exception` générique, écrasait ensuite l'état `game_over` déjà posé par `_finalize()` (PGN tenté, historique prêt) en forçant un retour menu avec toast d'erreur — d'où partie finie « en erreur », sans écran de résultat ni analyse. Corrigé : suppression de l'appel `game.join()` (devenu inutile, `game.start()` bloque déjà jusqu'à la fin réelle de la partie) **et** `LichessGame.join()` surchargée en no-op défensif, pour qu'un futur appel (ex. lors d'une prochaine refonte) ne puisse plus jamais lever cette erreur.
+
+- **`_finalize()` (`modes/lichess/game.py`) endurcie** : chaque étape (extinction LED, sauvegarde PGN, construction/envoi de l'état de fin) est désormais isolée dans son propre `try/except` — un échec sur une étape n'empêche plus les suivantes. La sauvegarde PGN reste tentée **avant** l'envoi de l'état de fin, lui-même avant la libération de l'échiquier (faite par l'appelant, dans tous les chemins : fin normale, abandon, erreur, échiquier perdu) — jamais sur une annulation (<2 coups).
+
+- **Lancement refusé proprement si un autre mode est actif** : `launch_lichess()` vérifie l'état d'application au tout début (`menu`/`config_lichess` sinon refus avec toast `toast.lichess_mode_actif`), sans toucher à l'échiquier ni à l'état en cours.
+
+- **Libération de l'échiquier** : `launch_lichess()` relance désormais une vérification silencieuse de présence du plateau (`check_board_presence_silent`, même précaution que `humain.py`) au retour menu, pour que l'état affiché ne soit pas périmé juste avant un nouveau lancement de mode.
+
+- **Nulle avec retour** (`modes/lichess/game.py` + `app.js`) : « Proposer nulle » envoie désormais un événement `lichess_draw_proposed` (toast « Proposition de nulle envoyée », bouton « Nulle » désactivé jusqu'à la réponse) ; si l'adversaire joue un coup sans accepter, ou si le statut ne passe pas à nulle (`wdraw`/`bdraw` de Lichess repassant à faux sans fin de partie), un événement `lichess_draw_refused` réactive le bouton avec un toast « Nulle refusée ». Si elle est acceptée, la fin de partie normale s'applique (aucun changement nécessaire, le statut Lichess passe directement à `draw`).
+
+- **Textes manquants** : 6 clés `toast.lichess_*` (jeton absent/refusé/droit manquant/limite atteinte/réseau/erreur générique — utilisées par le lanceur depuis #309 mais jamais ajoutées aux fichiers i18n) + `pgn.mode.Lichess` (bibliothèque PGN, affichait la clé brute pour les parties Lichess) + 2 nouvelles clés pour le retour sur la nulle, ajoutées dans `fr.json`/`en.json`/`de.json` (allemand à relire par un germanophone, comme pour #306/#307/#309).
+
+- **Journal** : une ligne `logger.info` à chaque étape du mode Lichess (lancement, jeton présent, échiquier ouvert, position confirmée, partie créée avec id/niveau/cadence/couleur, flux ouvert, chaque coup reçu/envoyé en UCI, nulle proposée/reçue/refusée, abandon/annulation, reconnexion, fin de partie avec statut/résultat, PGN enregistré avec son chemin, échiquier libéré) — jamais le jeton. Les temps de pendule restent sans journalisation (comme avant).
+
+- **Nom du joueur / adversaire** : déjà corrects (vérifiés, non modifiés) — `(config.get("player") or "Vous").strip() or "Vous"` dans le lanceur, affichage adversaire toujours « IA de Lichess (niveau N) » (`lichess.ia_niveau`).
+
+- **Écran de configuration Lichess** : `#screen-config-lichess` était absent des règles de mise en page de `main.css` (contenu rejeté hors écran, scrollbar horizontale) — déjà corrigé à la main par l'utilisateur (ajouté au groupement `#screen-menu, #screen-config, #screen-config-humain, #screen-config-lichess, ...` et à la règle individuelle `#screen-config-humain, #screen-config-lichess`), vérifié présent, non retouché.
+
+- **Nouveaux tests** :
+  - `nicsoft/tests/conftest.py` (fixture autouse `_isolate_games_dir`, toute la suite en process) : redirige `GAMES_DIR` (et ses alias liés à l'import dans `pgn_manager.py`, `web/server.py`, `modes/humain/human.py`, `modes/retranscription/retranscription.py`) vers un répertoire temporaire par test — plus aucun test ne peut écrire dans le vrai dossier de parties de l'utilisateur (deux fichiers factices y avaient fui lors des tests de #309).
+  - `nicsoft/tests/test_issue310_lichess_corrections.py` : régression directe du bug « cannot join thread » (partie complète jusqu'au mat via le lanceur réel, sans exception, état final `game_over`) ; `LichessGame.join()` ne lève jamais ; lancement refusé si mode déjà actif (3 états testés) ; enchaînement Humain (faux échiquier) puis Lichess dans la même instance avec libération vérifiée des deux échiquiers ; nulle proposée puis refusée ; garde d'isolation (confirme que `pgn_manager.GAMES_DIR` est bien redirigé, et qu'une partie complète avec sauvegarde PGN n'écrit rien dans le vrai dossier) ; extraction programmatique (regex, pas une liste figée) de toutes les clés i18n liées à Lichess utilisées dans `nicsoft/` (Python) et `app.js`, vérifiées présentes dans les 3 langues — ce test aurait détecté les 6 clés manquantes découvertes par cet essai réel.
+  - `nicsoft/tests/test_issue310_css_layout_guard.py` : extrait de `app.js` tous les écrans/panneaux (`#screen-*`/`#panel-*`) basculés en `display:flex`/`grid`, et vérifie que chacun a au moins une règle de mise en page dans `main.css` (sur son id ou une classe portée dans `index.html`) — validé qu'il aurait détecté le défaut original de `#screen-config-lichess` (vérifié en simulant sa suppression).
+  - `nicsoft/tests/e2e/test_issue310_lichess_e2e.py` (Playwright, vrai navigateur Chromium headless, serveur lancé avec `ALCHESS_SKIP_BOARD=1`/`BROWSER=/bin/true`, arrêté par son PID exact — réutilise le conftest e2e existant) : écran de configuration Lichess atteint sans échiquier ni jeton (`sendAction({type:'mode', value:'lichess'})`, qui ne fait que changer d'écran côté serveur) — vérifie niveau, cadence, couleur, nom, bouton Retour et bouton Démarrer tous visibles et dans la fenêtre, et l'absence de défilement horizontal (reproduction directe du bug #310). Écran de partie atteint sans réseau ni échiquier en invoquant directement, depuis Playwright, les callbacks déjà enregistrés par `socket.on(...)` dans app.js via la méthode publique `socket.listeners(event)` du client Socket.IO (aucun crochet de test ajouté en production) — vérifie plateau, deux pendules, bouton Abandonner et bouton Proposer nulle (activé) tous visibles. 17 tests, tous passés.
+
+- **Hors périmètre, non touché** : `driver.py`, `.audit.json`, `requirements.txt` ; aucune nouvelle dépendance ; aucune suppression d'outil de sécurité ; aucun moteur d'échecs importé ou lancé par ce mode (garde existante toujours verte).
+
+- **Garde d'isolation vérifiée manuellement** : avant/après l'exécution de la suite complète, le vrai dossier `~/NicLink/games/Lichess/Amicale/` n'a reçu aucun nouveau fichier (le seul fichier présent, `2026-11-09_Alain_vs_LichessAIlevel1_01.pgn`, date d'avant cette session — fichier factice que l'utilisateur retire lui-même, non supprimé par cette tâche).
+
+- Suite complète exécutée (`pytest nicsoft/tests -m "not hardware"`, e2e inclus) : 833 passed, 81 skipped (aucune régression). `py_compile` sur les fichiers Python modifiés/ajoutés : OK. Syntaxe JS vérifiée (`node --check app.js`) : OK.
+
+## Vérification manuelle restant à faire par Alain (nécessite l'échiquier physique et un vrai jeton Lichess)
+
+1. Lancer une partie contre l'IA niveau 1 en 15+10.
+2. Jouer quelques coups.
+3. Proposer la nulle et lire le retour affiché (« Proposition de nulle envoyée », bouton désactivé ; « Nulle refusée » si l'IA ne l'accepte pas).
+4. Abandonner : résultat lisible, PGN enregistré dans le dossier des parties, écran d'analyse.
+5. Relancer une seconde partie sans redémarrer l'application.
+6. Lire le journal (`niclink.log` ou console) et vérifier la présence des étapes listées ci-dessus, sans jamais le jeton.
+7. Vérifier l'affichage en anglais et en allemand des nouveaux textes, et signaler toute formulation allemande à corriger.
+8. Supprimer soi-même le fichier factice restant dans `games/Lichess/Amicale/` si souhaité (non touché par cette tâche).
+
 # Changelog — Issue #309
 
 # Issue #309 — Lichess L2a : jouer une partie amicale contre l'IA de Lichess sur l'échiquier physique, aides coupées, pendules, abandon et nulle
