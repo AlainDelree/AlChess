@@ -593,6 +593,7 @@ let currentPlayerColor = "white";
 let _selectedColor   = "white";
 let _boardOk         = false;
 let _boardError      = false;
+let _boardReconnecting = false; // module de lecture perdu, périphérique encore présent (issue #314)
 let _virtualMode     = false;
 let _panelPlayingTitleKey = null;
 let _socketConnected = false;
@@ -650,8 +651,10 @@ function _applyBoardBadge() {
     pill.classList.toggle("pill-connected", _boardOk);
     pill.classList.toggle("pill-disconnected", !_boardOk);
     pill.classList.toggle("pill-board-absent", _boardError);
+    pill.classList.toggle("pill-reconnecting", _boardReconnecting);
     pill.title = _boardError ? t("status.board.non_detecte") : "";
-    text.textContent = t(_boardOk ? "status.board.connecte" : "status.board.sans_echiquier");
+    text.textContent = t(_boardReconnecting ? "status.board.a_reconnecter"
+      : (_boardOk ? "status.board.connecte" : "status.board.sans_echiquier"));
   }
 
   // Bande d'alerte échiquier absent — menu, choix d'ouverture Exercices,
@@ -1154,8 +1157,9 @@ function updateWdlBar(wdl) {
 const socket = io();
 
 socket.on("board_error", (data) => {
-  _boardOk    = false;
-  _boardError = true;
+  _boardOk          = false;
+  _boardError       = true;
+  _boardReconnecting = false;
   _syncVirtualCheckboxes();
   // Appel direct si locale déjà chargée, puis via promise pour garantir le bon locale
   _refreshDynamicLabels();
@@ -1164,14 +1168,29 @@ socket.on("board_error", (data) => {
 });
 
 socket.on("board_ok", () => {
-  _boardOk    = true;
-  _boardError = false;
+  _boardOk          = true;
+  _boardError       = false;
+  _boardReconnecting = false;
   _syncVirtualCheckboxes();
   document.querySelectorAll("[data-needs-board]")
     .forEach(btn => {
       if (_virtualMode && btn.hasAttribute("data-physical-only")) return;
       btn.disabled = false;
     });
+  _refreshDynamicLabels();
+  _applyBoardBadge();
+  (window.i18nReady || Promise.resolve()).then(() => { _refreshDynamicLabels(); _applyBoardBadge(); });
+});
+
+// Module de lecture perdu alors que le périphérique reste visible sur le bus
+// USB (ex. erreur de lecture logicielle) — état informatif distinct d'une
+// absence confirmée, reconnexion automatique déjà en cours côté serveur
+// (issue #314, point 4).
+socket.on("board_reconnecting", () => {
+  _boardOk          = false;
+  _boardError       = false;
+  _boardReconnecting = true;
+  _syncVirtualCheckboxes();
   _refreshDynamicLabels();
   _applyBoardBadge();
   (window.i18nReady || Promise.resolve()).then(() => { _refreshDynamicLabels(); _applyBoardBadge(); });
@@ -1876,6 +1895,25 @@ socket.on("lichess_board_lost", () => {
 
 socket.on("lichess_board_ok", () => {
   _lichessShowBanner("lichess-board-lost-banner", false);
+});
+
+// Échiquier perdu pendant l'attente de la position initiale ou du premier
+// coup — aucune partie Lichess n'existe encore à ce stade (issue #314,
+// point 2). Les deux écrans d'attente ont chacun leur propre bannière,
+// basculées ensemble (un seul des deux est visible à la fois).
+function _lichessWaitBoardLost(show) {
+  ["lichess-wait-board-lost-posinit", "lichess-wait-board-lost-firstmove"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? "" : "none";
+  });
+}
+
+socket.on("lichess_wait_board_lost", () => {
+  _lichessWaitBoardLost(true);
+});
+
+socket.on("lichess_wait_board_ok", () => {
+  _lichessWaitBoardLost(false);
 });
 
 socket.on("lichess_draw_offered", (data) => {

@@ -142,7 +142,9 @@ _app_state: str = "menu"
 menu_queue: queue.Queue = queue.Queue()
 
 # Statut de la connexion échiquier — renvoyé au navigateur qui se connecte
-# None = pas encore vérifié, "ok" = connecté, "error" = non détecté
+# None = pas encore vérifié, "ok" = connecté, "error" = non détecté,
+# "reconnecting" = périphérique présent sur le bus USB mais module de
+# lecture perdu, reconnexion automatique en cours (issue #314, point 4).
 _board_status: str | None = None
 _board_error_message: str = ""
 
@@ -499,6 +501,8 @@ def on_connect():
         emit("board_ok", {})
     elif board_status == "error":
         emit("board_error", {"message": board_error_message})
+    elif board_status == "reconnecting":
+        emit("board_reconnecting", {"message": board_error_message})
     # Renvoyer l'état courant au navigateur qui arrive/rafraîchit —
     # instantané sous verrou pour que fen/history/move/turn/feedback
     # restent cohérents entre eux même si send_event() mute _game_state
@@ -1327,6 +1331,9 @@ def send_event(event_type: str, data: dict) -> None:
         elif event_type == "board_error":
             _board_status = "error"
             _board_error_message = data.get("message", "")
+        elif event_type == "board_reconnecting":
+            _board_status = "reconnecting"
+            _board_error_message = data.get("message", "")
     # Mettre à jour l'état courant — sous verrou : chaque branche est une
     # séquence composée (setdefault+append, pop conditionnel, lecture de
     # hist[-1] avant mutation) qui doit s'exécuter sans entrelacement avec
@@ -1434,6 +1441,8 @@ def set_app_state(state: str, data: dict = None) -> None:
             socketio.emit("board_ok", {})
         elif board_status == "error":
             socketio.emit("board_error", {"message": board_error_message})
+        elif board_status == "reconnecting":
+            socketio.emit("board_reconnecting", {"message": board_error_message})
 
 
 def get_menu_action(timeout: float = 1.0):

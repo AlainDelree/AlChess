@@ -5,6 +5,7 @@ set_all_leds, lights_out, set_led, beep, gameover_lights.
 """
 
 import hid
+import inspect
 import logging
 import threading
 import time
@@ -44,6 +45,58 @@ _connected: bool = False  # True entre un connect() réussi et une erreur de lec
 # bloquantes) et ne touchent la variable partagée que sous ce verrou, le temps
 # d'une affectation — jamais pendant un appel USB.
 _state_lock = threading.Lock()
+
+# Sérialise les essais de connexion : si une reconnexion automatique (mode
+# Lichess, issue #314) et un clic manuel sur "Connecter" tombent au même
+# instant, un seul connect() s'exécute à la fois — le second attend son tour
+# plutôt que de fermer un handle que l'autre vient juste d'ouvrir (#292).
+_connect_lock = threading.Lock()
+
+# Diagnostic des erreurs de lecture répétées (issue #314) : un même incident
+# (plusieurs fils de lecture en échec sur le même périphérique, ou plusieurs
+# échecs avant qu'un connect() ne le remplace) ne produit qu'un seul
+# avertissement — les répétitions sont comptées et rapportées à la
+# reconnexion suivante.
+_read_error_lock = threading.Lock()
+_read_error_active_dev: "hid.device | None" = None
+_read_error_count: int = 0
+
+
+def _caller_info(depth: int = 2) -> str:
+    """Nom "module.fonction" de l'appelant de la fonction appelant ce
+    helper — utilisé pour journaliser l'origine des ouvertures, fermetures
+    et remises à zéro de la connexion (issue #314, diagnostic de la cause
+    d'une déconnexion). `depth=2` cible l'appelant de la fonction qui a
+    elle-même appelé `_caller_info()` directement."""
+    try:
+        frame = inspect.stack()[depth]
+        module = inspect.getmodule(frame.frame)
+        module_name = module.__name__ if module else frame.filename
+        return f"{module_name}.{frame.function}"
+    except (IndexError, ValueError):
+        return "?"
+
+
+def _log_read_error(dev: "hid.device | None", exc: Exception) -> None:
+    """Journalise une erreur de lecture USB une seule fois par incident.
+
+    Deux fils de lecture (ex. le fen_reader de driver.py et une attente
+    Lichess qui appelle get_fen() directement) peuvent échouer au même
+    instant sur le même périphérique — un seul avertissement est émis, les
+    échecs suivants du même incident sont comptés silencieusement et
+    rapportés à la prochaine connexion réussie (voir connect())."""
+    global _read_error_active_dev, _read_error_count
+    with _read_error_lock:
+        if _read_error_active_dev is dev:
+            _read_error_count += 1
+            return
+        _read_error_active_dev = dev
+        _read_error_count = 1
+    err_code = getattr(exc, "errno", None)
+    logger.warning(
+        "get_fen: erreur de lecture USB (plateau déconnecté ?) : %s [%s, code=%s]",
+        exc, type(exc).__name__, err_code,
+    )
 
 
 def _list_paths() -> list[tuple[bytes, int]]:
@@ -97,60 +150,74 @@ def connect() -> None:
     cours — elle ne lit/écrit `dev` qu'après l'avoir publiée dans l'état partagé,
     une fois la connexion établie (issue #292 : plus d'AttributeError sur un
     _dev redevenu None pendant l'attente du premier paquet).
+
+    Sérialisée par `_connect_lock` (issue #314) : une reconnexion automatique
+    (mode Lichess) et un clic manuel sur "Connecter" ne peuvent jamais
+    s'exécuter en même temps — un seul essai de connexion à la fois.
     """
-    global _dev, _current_fen, _connected_product_id, _connected
-    paths = _list_paths()
-    if not paths:
-        raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
-    path, product_id = paths[0]
-    # Fermer la connexion déjà ouverte (ex. vérification du démarrage) avant d'en ouvrir une
-    # nouvelle : le périphérique n'accepte qu'un seul handle à la fois (OSError « open failed »).
-    with _state_lock:
-        old_dev = _dev
-        _dev = None
-        _connected = False
-    if old_dev is not None:
+    global _dev, _current_fen, _connected_product_id, _connected, _read_error_count
+    caller = _caller_info()
+    with _connect_lock:
+        logger.info("connect: ouverture demandée (appelant=%s)", caller)
+        paths = _list_paths()
+        if not paths:
+            raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
+        path, product_id = paths[0]
+        # Fermer la connexion déjà ouverte (ex. vérification du démarrage) avant d'en ouvrir une
+        # nouvelle : le périphérique n'accepte qu'un seul handle à la fois (OSError « open failed »).
+        with _state_lock:
+            old_dev = _dev
+            _dev = None
+            _connected = False
+        if old_dev is not None:
+            logger.info("connect: fermeture de l'ancien handle avant nouvelle ouverture (appelant=%s)", caller)
+            try:
+                old_dev.close()
+            except (OSError, IOError, ValueError) as e:
+                logger.debug("connect: fermeture de l'ancien handle échouée : %s", e)
+        dev = hid.device()
         try:
-            old_dev.close()
+            dev.open_path(path)
+
+            time.sleep(2)  # attente initialisation hardware (identique C++)
+            _write_to(dev, bytes([0x0b, 0x04, 0x02, 0x58, 0x00, 0xc8]))  # beep (600Hz, 200ms)
+            _write_to(dev, bytes([0x21, 0x01, 0x00]))  # realtime mode — le plateau envoie sa position en continu
+
+            # Attendre le premier paquet FEN valide (le plateau peut prendre ~600ms)
+            # pour que driver.py lise un FEN non-vide dès la première tentative.
+            fen = ""
+            for _ in range(30):  # jusqu'à 3s (30 × 100ms)
+                buf = dev.read(256, timeout_ms=100)
+                if buf and len(buf) > 1:
+                    decoded = _decode_fen(bytes(buf))
+                    if decoded:
+                        fen = decoded
+                        break
         except (OSError, IOError, ValueError) as e:
-            logger.debug("connect: fermeture de l'ancien handle échouée : %s", e)
-    dev = hid.device()
-    try:
-        dev.open_path(path)
+            # Connexion perdue pendant l'établissement (plateau débranché juste après
+            # l'ouverture, ou pendant le handshake) — jamais d'AttributeError, toujours
+            # l'exception que les lanceurs de mode savent déjà afficher comme
+            # "échiquier non détecté" (NicLinkManager.__init__ attrape RuntimeError).
+            try:
+                dev.close()
+            except (OSError, IOError, ValueError):
+                pass  # best-effort — le plateau peut déjà être débranché
+            _reset_state()
+            raise RuntimeError("Chessnut Air déconnecté pendant la connexion") from e
 
-        time.sleep(2)  # attente initialisation hardware (identique C++)
-        _write_to(dev, bytes([0x0b, 0x04, 0x02, 0x58, 0x00, 0xc8]))  # beep (600Hz, 200ms)
-        _write_to(dev, bytes([0x21, 0x01, 0x00]))  # realtime mode — le plateau envoie sa position en continu
-
-        # Attendre le premier paquet FEN valide (le plateau peut prendre ~600ms)
-        # pour que driver.py lise un FEN non-vide dès la première tentative.
-        fen = ""
-        for _ in range(30):  # jusqu'à 3s (30 × 100ms)
-            buf = dev.read(256, timeout_ms=100)
-            if buf and len(buf) > 1:
-                decoded = _decode_fen(bytes(buf))
-                if decoded:
-                    fen = decoded
-                    break
-    except (OSError, IOError, ValueError) as e:
-        # Connexion perdue pendant l'établissement (plateau débranché juste après
-        # l'ouverture, ou pendant le handshake) — jamais d'AttributeError, toujours
-        # l'exception que les lanceurs de mode savent déjà afficher comme
-        # "échiquier non détecté" (NicLinkManager.__init__ attrape RuntimeError).
-        try:
-            dev.close()
-        except (OSError, IOError, ValueError):
-            pass  # best-effort — le plateau peut déjà être débranché
-        _reset_state()
-        raise RuntimeError("Chessnut Air déconnecté pendant la connexion") from e
-
-    with _state_lock:
-        _dev = dev
-        _current_fen = fen
-        _connected_product_id = product_id
-        _connected = True
-    name = _PRODUCT_NAMES.get(product_id, "modèle inconnu")
-    logger.info("Chessnut connecté : PID=0x%04x (%s)", product_id, name)
+        with _state_lock:
+            _dev = dev
+            _current_fen = fen
+            _connected_product_id = product_id
+            _connected = True
+        name = _PRODUCT_NAMES.get(product_id, "modèle inconnu")
+        if _read_error_count > 1:
+            logger.info(
+                "connect: reconnexion après %d échecs de lecture consécutifs (appelant=%s)",
+                _read_error_count, caller,
+            )
+        _read_error_count = 0
+        logger.info("connect: Chessnut connecté : PID=0x%04x (%s), appelant=%s", product_id, name, caller)
 
 
 def _reset_state() -> None:
@@ -158,6 +225,7 @@ def _reset_state() -> None:
     pour qu'un nouvel essai (y compris via le bouton de reconnexion) reparte
     d'un état propre sans redémarrer l'application."""
     global _dev, _current_fen, _connected_product_id, _connected
+    logger.info("_reset_state: remise à zéro de la connexion (appelant=%s)", _caller_info())
     with _state_lock:
         _dev = None
         _current_fen = ""
@@ -173,6 +241,8 @@ def disconnect() -> None:
     concurrent ne peut plus jamais voir une référence à moitié fermée.
     """
     global _dev, _connected
+    caller = _caller_info()
+    logger.info("disconnect: fermeture demandée (appelant=%s)", caller)
     with _state_lock:
         dev = _dev
         _dev = None
@@ -181,6 +251,7 @@ def disconnect() -> None:
         try:
             _write_to(dev, bytes([0x21, 0x01, 0x01]))  # upload mode avant fermeture
             dev.close()
+            logger.info("disconnect: connexion fermée (appelant=%s)", caller)
         except (OSError, IOError, ValueError):
             pass  # best-effort avant déconnexion — le plateau peut déjà être débranché
             # (ValueError('not open') : hidapi/hid.pyx lève ValueError, pas OSError,
@@ -237,7 +308,7 @@ def get_fen() -> str:
     except (OSError, IOError, ValueError) as e:
         # ValueError('not open') : hidapi/hid.pyx lève ValueError, pas OSError,
         # quand le handle a déjà été fermé par un autre thread (course avec disconnect()).
-        logger.warning("get_fen: erreur de lecture USB (plateau déconnecté ?) : %s", e)
+        _log_read_error(dev, e)
         _reset_state_if_current(dev)
         _current_fen = ""
         return ""
@@ -256,10 +327,18 @@ def _reset_state_if_current(dev: "hid.device | None") -> None:
     récente établie entre-temps par connect().
     """
     global _dev, _connected
+    caller = _caller_info()
     with _state_lock:
         if _dev is dev:
             _dev = None
             _connected = False
+            is_current = True
+        else:
+            is_current = False
+    if is_current:
+        logger.info("_reset_state_if_current: remise à zéro (périphérique courant, appelant=%s)", caller)
+    else:
+        logger.debug("_reset_state_if_current: ignoré (périphérique déjà remplacé, appelant=%s)", caller)
 
 
 def _decode_fen(data: bytes) -> str:

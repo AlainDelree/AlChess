@@ -18,13 +18,27 @@ def create_board(virtual: bool = False, logger_name: str = "NicLink"):
         return VirtualBoard()
 
     from nicsoft.niclink import NicLinkManager
+    from nicsoft.niclink import hid_backend
     from nicsoft.core.ihm_port import send_event
     _logger = logging.getLogger(logger_name)
     manager = NicLinkManager(refresh_delay=0.1, logger=_logger, thread_sleep_delay=0.1)
-    # Notifie le navigateur si le plateau est perdu en cours de session
-    # (5 lectures USB en échec consécutives — voir NicLinkManager._fen_reader_loop).
-    manager._board_lost_cb = lambda: send_event(
-        "board_error",
-        {"message": "Échiquier déconnecté — vérifiez l'USB et reconnectez le plateau."},
-    )
+
+    def _on_board_lost():
+        # Notifie le navigateur si le module de lecture est perdu en cours de
+        # session (5 lectures USB en échec consécutives — voir
+        # NicLinkManager._fen_reader_loop). Distingue (issue #314, point 4) :
+        # le périphérique est encore visible sur le bus USB (débranchement
+        # pas encore détecté par l'OS, ou erreur de lecture logicielle) →
+        # état informatif "à reconnecter" ; sinon, absence confirmée →
+        # état d'erreur existant.
+        if hid_backend.check_physically_present():
+            send_event("board_reconnecting", {
+                "message": "Lecture de l'échiquier perdue — reconnexion en cours.",
+            })
+        else:
+            send_event("board_error", {
+                "message": "Échiquier déconnecté — vérifiez l'USB et reconnectez le plateau.",
+            })
+
+    manager._board_lost_cb = _on_board_lost
     return manager

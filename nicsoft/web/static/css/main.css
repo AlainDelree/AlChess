@@ -122,6 +122,12 @@
     .pill-disconnected.pill-board-absent { background: #c2d4e8; color: #1a2a3a; }
     .pill-disconnected.pill-board-absent .status-pill-dot { background: #2a5a8a; }
 
+    /* Module de lecture perdu, périphérique encore présent sur le bus USB —
+       reconnexion automatique en cours (issue #314, point 4). Aspect
+       informatif (teinte ambrée), distinct de l'absence confirmée. */
+    .pill-disconnected.pill-reconnecting { background: #f5e3b8; color: #5a4a1a; }
+    .pill-disconnected.pill-reconnecting .status-pill-dot { background: #c99a2a; }
+
     /* Bande d'information échiquier absent — menu, choix d'ouverture Exercices,
        écrans de préparation des modes utilisant l'échiquier (issue #299,
        aspect informatif depuis #301) */

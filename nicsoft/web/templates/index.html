@@ -935,6 +935,10 @@
         <div class="pos-init-spinner"></div>
         <span data-i18n="pos_init.attente">En attente…</span>
       </div>
+      <!-- Lichess uniquement : échiquier perdu pendant l'attente de la
+           position — reconnexion automatique en cours (issue #314, point 2). -->
+      <div id="lichess-wait-board-lost-posinit" class="lichess-info-banner" style="display:none; margin-top:16px;"
+           data-i18n="lichess.reconnexion_echiquier">Reconnexion de l'échiquier…</div>
       <!-- Lichess uniquement : aucune limite de temps avant la confirmation
            de la position, donc un bouton de retour explicite (issue #311,
            point 1) — masqué pour les autres modes (comportement inchangé). -->
@@ -1866,6 +1870,10 @@
     Jouez-le sur l'échiquier physique quand vous êtes prêt.
   </div>
   <div class="connecting-spinner"></div>
+  <!-- Échiquier perdu pendant l'attente du premier coup — reconnexion
+       automatique en cours (issue #314, point 2). -->
+  <div id="lichess-wait-board-lost-firstmove" class="lichess-info-banner" style="display:none; margin-top:12px;"
+       data-i18n="lichess.reconnexion_echiquier">Reconnexion de l'échiquier…</div>
   <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:20px;">← Retour au menu</button>
 </div>
 

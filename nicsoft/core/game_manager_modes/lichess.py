@@ -72,31 +72,127 @@ class _BackMenuDuringWait(Exception):
     d'autre à annuler côté Lichess."""
 
 
+class _ResumeToPositionSetup(Exception):
+    """Après une reconnexion de l'échiquier pendant l'attente du premier
+    coup (blancs), la position relue n'est ni la position de départ ni un
+    premier coup légal — retour à l'écran de mise en place (issue #314,
+    point 2)."""
+
+
+# Seuil (secondes) de lectures vides consécutives avant de considérer
+# l'échiquier perdu pendant une attente Lichess sans partie encore créée
+# (issue #314, point 2) — distinct du seuil en cours de partie (game.py).
+_BOARD_LOST_EMPTY_S = 1.5
+_RECONNECT_FAST_INTERVAL_S = 2.0
+_RECONNECT_FAST_DURATION_S = 30.0
+_RECONNECT_SLOW_INTERVAL_S = 5.0
+_RECONNECT_POLL_STEP_S = 0.2
+# Délai de stabilisation avant d'afficher "coup non reconnu" (issue #314,
+# point 3) — laisse le temps à l'utilisateur de finir de poser sa pièce.
+_UNRECOGNIZED_MOVE_DELAY_S = 3.0
+
+
+def _board_module_connected(nl_inst) -> bool:
+    """True si le module de lecture se déclare connecté — toujours True si
+    l'échiquier (réel ou double de test) n'expose pas cette information,
+    pour ne jamais bloquer sur un simple attribut manquant."""
+    nl_interface = getattr(nl_inst, "nl_interface", None)
+    is_conn = getattr(nl_interface, "is_connected", None)
+    if is_conn is None:
+        return True
+    try:
+        return bool(is_conn())
+    except Exception:
+        return True
+
+
+def _read_board_fen_once(nl_inst) -> str:
+    """Lecture ponctuelle du FEN (partie plateau seule), chaîne vide en cas
+    d'erreur ou d'absence de données — jamais d'exception propagée."""
+    try:
+        raw = nl_inst.get_fen()
+    except Exception:
+        return ""
+    return raw.strip().split()[0] if raw else ""
+
+
+def _squares_differing(board_fen_a: str, board_fen_b: str) -> list:
+    """Cases dont la pièce diffère entre deux FEN board-only — utilisé pour
+    signaler les cases en cause d'un coup non reconnu (issue #314, point 3)."""
+    try:
+        a = chess.Board(board_fen_a + " w - - 0 1")
+        b = chess.Board(board_fen_b + " w - - 0 1")
+    except ValueError:
+        return []
+    return [chess.square_name(sq) for sq in chess.SQUARES if a.piece_at(sq) != b.piece_at(sq)]
+
+
+def _reconnect_board_or_menu(nl_inst) -> None:
+    """Affiche la bannière « Reconnexion de l'échiquier… », journalise, puis
+    tente de rouvrir la connexion USB toutes les 2s pendant 30s puis toutes
+    les 5s, jusqu'au succès ou au retour au menu demandé par l'utilisateur
+    (issue #314, point 2). `nl_inst.connect()` applique déjà les protections
+    de #292 (fermeture de l'ancien handle avant la nouvelle ouverture,
+    sérialisée par un verrou dans hid_backend — un seul essai à la fois).
+    Ne lève jamais d'exception de renoncement : seul _BackMenuDuringWait
+    interrompt cette attente."""
+    logger_lichess.warning("Lichess : échiquier perdu pendant l'attente — tentative de reconnexion.")
+    send_event("lichess_wait_board_lost", {})
+    start = time.monotonic()
+    try:
+        while True:
+            if get_app_state() == "menu":
+                raise _BackMenuDuringWait()
+            try:
+                nl_inst.connect()
+                restart = getattr(nl_inst, "_start_fen_reader", None)
+                if restart is not None:
+                    restart()
+            except Exception as e:
+                logger_lichess.debug(f"Lichess : tentative de reconnexion échiquier échouée : {e}")
+            else:
+                if _board_module_connected(nl_inst):
+                    logger_lichess.info("Lichess : échiquier reconnecté.")
+                    return
+            elapsed = time.monotonic() - start
+            interval = (_RECONNECT_FAST_INTERVAL_S if elapsed < _RECONNECT_FAST_DURATION_S
+                        else _RECONNECT_SLOW_INTERVAL_S)
+            waited = 0.0
+            while waited < interval:
+                if get_app_state() == "menu":
+                    raise _BackMenuDuringWait()
+                time.sleep(_RECONNECT_POLL_STEP_S)
+                waited += _RECONNECT_POLL_STEP_S
+    finally:
+        send_event("lichess_wait_board_ok", {})
+
+
 def _wait_initial_position_lichess(nl_inst) -> None:
     """Variante de _wait_initial_position_web (state.py) sans limite de
-    temps et annulable par "back_menu" (issue #311, point 1)."""
+    temps et annulable par "back_menu" (issue #311, point 1). Une lecture
+    vide prolongée (>1.5s) ou un module qui ne se déclare plus connecté
+    déclenche une reconnexion automatique plutôt qu'un abandon silencieux
+    (issue #314, point 2) : jamais de partie créée avant que l'échiquier
+    ne soit de nouveau lisible."""
     initial_fen = chess.Board().board_fen()
     first_check = True
-    consecutive_errors = 0
+    empty_since = None
     while True:
         if get_app_state() == "menu":
             raise _BackMenuDuringWait()
-        try:
-            raw_fen = nl_inst.get_fen()
-            consecutive_errors = 0
-        except Exception:
-            consecutive_errors += 1
-            if consecutive_errors >= 5:
-                raise ConnectionError("Échiquier non détecté.")
-            time.sleep(0.2)
+        board_fen = _read_board_fen_once(nl_inst)
+        board_lost = not board_fen or not _board_module_connected(nl_inst)
+        if board_lost:
+            if empty_since is None:
+                empty_since = time.monotonic()
+            elif time.monotonic() - empty_since >= _BOARD_LOST_EMPTY_S:
+                _reconnect_board_or_menu(nl_inst)
+                empty_since = None
+                first_check = True
+            else:
+                time.sleep(0.2)
             continue
-        board_fen = raw_fen.strip().split()[0] if raw_fen else ""
-        if not board_fen:
-            consecutive_errors += 1
-            if consecutive_errors >= 5:
-                raise ConnectionError("Échiquier non détecté.")
-            time.sleep(0.2)
-            continue
+        empty_since = None
         if board_fen == initial_fen:
             nl_inst.turn_off_all_leds()
             set_app_state("connecting")
@@ -118,22 +214,68 @@ def _wait_first_move_white_lichess(nl_inst, legal_move_for_hardware) -> str:
     l'utilisateur (blancs) — aucune partie Lichess n'existe encore à ce
     stade, donc aucune contrainte de temps Lichess ne s'applique (issue
     #311, point 1). Annulable par "back_menu" (voir
-    _wait_initial_position_lichess). Retourne le coup détecté en UCI."""
+    _wait_initial_position_lichess). Reconnexion automatique de l'échiquier
+    en cas de lecture vide prolongée (issue #314, point 2) ; message « coup
+    non reconnu » si la position diffère de la position de départ sans
+    correspondre à un premier coup légal (issue #314, point 3). Retourne le
+    coup détecté en UCI, ou lève _ResumeToPositionSetup si la reprise après
+    reconnexion montre une position qu'il faut remettre en place."""
     set_app_state("lichess_wait_first_move")
     start_board = chess.Board()
+    empty_since = None
+    unrecognized_since = None
+    unrecognized_notified = False
+    last_unrecognized_fen = None
     while True:
         if get_app_state() == "menu":
             raise _BackMenuDuringWait()
-        try:
-            raw_fen = nl_inst.get_fen()
-        except Exception:
-            time.sleep(0.2)
+        hw_fen = _read_board_fen_once(nl_inst)
+        board_lost = not hw_fen or not _board_module_connected(nl_inst)
+        if board_lost:
+            if empty_since is None:
+                empty_since = time.monotonic()
+            elif time.monotonic() - empty_since >= _BOARD_LOST_EMPTY_S:
+                _reconnect_board_or_menu(nl_inst)
+                resumed_fen = _read_board_fen_once(nl_inst)
+                if resumed_fen == start_board.board_fen():
+                    empty_since = None
+                    unrecognized_since = None
+                    unrecognized_notified = False
+                    last_unrecognized_fen = None
+                    time.sleep(0.05)
+                    continue
+                resumed_move = legal_move_for_hardware(start_board, resumed_fen) if resumed_fen else None
+                if resumed_move is not None:
+                    logger_lichess.info(f"Lichess : premier coup déjà présent après reconnexion ({resumed_move.uci()}).")
+                    return resumed_move.uci()
+                logger_lichess.info("Lichess : position illisible après reconnexion — retour à la mise en place.")
+                raise _ResumeToPositionSetup()
+            else:
+                time.sleep(0.2)
             continue
-        hw_fen = raw_fen.strip().split()[0] if raw_fen else ""
-        if hw_fen and hw_fen != start_board.board_fen():
-            move = legal_move_for_hardware(start_board, hw_fen)
-            if move is not None:
-                return move.uci()
+        empty_since = None
+        if hw_fen == start_board.board_fen():
+            unrecognized_since = None
+            unrecognized_notified = False
+            last_unrecognized_fen = None
+            time.sleep(0.05)
+            continue
+        move = legal_move_for_hardware(start_board, hw_fen)
+        if move is not None:
+            return move.uci()
+        if hw_fen != last_unrecognized_fen:
+            last_unrecognized_fen = hw_fen
+            unrecognized_since = time.monotonic()
+            unrecognized_notified = False
+        elif not unrecognized_notified and time.monotonic() - unrecognized_since >= _UNRECOGNIZED_MOVE_DELAY_S:
+            squares = _squares_differing(start_board.board_fen(), hw_fen)
+            send_event("lichess_toast", {
+                "message_key": "lichess.coup_non_reconnu",
+                "vars": {"squares": ", ".join(squares) if squares else "?"},
+                "type": "warning",
+            })
+            logger_lichess.info(f"Lichess : coup non reconnu pendant l'attente du premier coup (cases : {squares}).")
+            unrecognized_notified = True
         time.sleep(0.05)
 
 
@@ -204,7 +346,15 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
 
         first_move_uci = None
         if resolved_color == "white":
-            first_move_uci = _wait_first_move_white_lichess(nl_inst, legal_move_for_hardware)
+            while True:
+                try:
+                    first_move_uci = _wait_first_move_white_lichess(nl_inst, legal_move_for_hardware)
+                    break
+                except _ResumeToPositionSetup:
+                    logger_lichess.info(
+                        "Lichess : position illisible après reconnexion — retour à l'écran de mise en place."
+                    )
+                    _wait_initial_position_lichess(nl_inst)
             logger_lichess.info(f"Lichess : premier coup physique détecté ({first_move_uci}), création de la partie.")
 
         client = GameClient(token)

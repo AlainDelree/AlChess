@@ -183,6 +183,11 @@ class LichessGame(threading.Thread):
     BOARD_LOST_STRIKES = 40           # ~2s de lectures en échec consécutives
     POSITION_ERROR_THROTTLE_S = 1.0
     ILLEGAL_STABLE_READS_REQUIRED = 8
+    # Reconnexion automatique en cours de partie (issue #314, point 2) :
+    # jamais d'abandon automatique, cadence 2s pendant 30s puis 5s.
+    RECONNECT_FAST_INTERVAL_S = 2.0
+    RECONNECT_FAST_DURATION_S = 30.0
+    RECONNECT_SLOW_INTERVAL_S = 5.0
 
     def __init__(self, nl_inst, client, game_id: str, level: int, player_name: str,
                  clock_limit_s: int, clock_increment_s: int,
@@ -214,6 +219,9 @@ class LichessGame(threading.Thread):
 
         self._board_lost = False
         self._board_lost_strikes = 0
+        self._board_lost_since = None
+        self._next_reconnect_attempt_ts = 0.0
+        self._reconnecting_in_progress = False
 
         self._awaiting_physical_replication = False
         self._replication_target_fen = None
@@ -546,6 +554,9 @@ class LichessGame(threading.Thread):
         self._board_lost_strikes += 1
         if self._board_lost_strikes >= self.BOARD_LOST_STRIKES and not self._board_lost:
             self._board_lost = True
+            self._board_lost_since = time.monotonic()
+            self._next_reconnect_attempt_ts = self._board_lost_since
+            logger.warning("Lichess : échiquier perdu en cours de partie (%s).", self.game_id)
             send_event("lichess_board_lost", {})
 
     def _register_board_present(self) -> None:
@@ -553,7 +564,48 @@ class LichessGame(threading.Thread):
             self._board_lost_strikes = 0
             if self._board_lost:
                 self._board_lost = False
+                self._board_lost_since = None
                 send_event("lichess_board_ok", {})
+
+    def _maybe_attempt_reconnect(self) -> None:
+        """Lance une tentative de reconnexion en arrière-plan (jamais dans
+        le fil principal — nl_inst.connect() peut bloquer plusieurs
+        secondes), espacée selon la cadence 2s/30s puis 5s. Un seul essai à
+        la fois (`_reconnecting_in_progress`, et le verrou de hid_backend
+        en dessous — protections de #292). Ne résigne et n'abandonne
+        jamais : la partie continue sur Lichess, la position est recalée
+        à la reprise (issue #314, point 2)."""
+        if self._reconnecting_in_progress or not self._board_lost:
+            return
+        now = time.monotonic()
+        if now < self._next_reconnect_attempt_ts:
+            return
+        self._reconnecting_in_progress = True
+        threading.Thread(target=self._attempt_reconnect_once, daemon=True).start()
+
+    def _attempt_reconnect_once(self) -> None:
+        try:
+            self.nl_inst.connect()
+            restart = getattr(self.nl_inst, "_start_fen_reader", None)
+            if restart is not None:
+                restart()
+        except Exception as e:
+            logger.debug("Lichess : tentative de reconnexion échiquier échouée (%s) : %s", self.game_id, e)
+            elapsed = time.monotonic() - (self._board_lost_since or time.monotonic())
+            interval = (self.RECONNECT_FAST_INTERVAL_S if elapsed < self.RECONNECT_FAST_DURATION_S
+                        else self.RECONNECT_SLOW_INTERVAL_S)
+            self._next_reconnect_attempt_ts = time.monotonic() + interval
+        else:
+            logger.info("Lichess : échiquier reconnecté en cours de partie (%s).", self.game_id)
+            # Recale la position physique sur celle de Lichess (celle du jeu,
+            # pas celle lue avant la coupure) via l'affichage existant
+            # "cases à corriger" (issue #314, point 2).
+            self._awaiting_physical_replication = False
+            self._awaiting_piece_reset = True
+            self._reset_target_fen = self.board.board_fen()
+            self._register_board_present()
+        finally:
+            self._reconnecting_in_progress = False
 
     def _tick_physical(self) -> None:
         if self.user_color is None or self.game_over:
@@ -561,6 +613,8 @@ class LichessGame(threading.Thread):
         hardware_fen = self._read_hardware_fen()
         if hardware_fen is None:
             self._register_board_lost()
+            if self._board_lost:
+                self._maybe_attempt_reconnect()
             return
         self._register_board_present()
         if self._board_lost:
