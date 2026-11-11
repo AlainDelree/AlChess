@@ -1460,5 +1460,11 @@ def start_server(host="127.0.0.1", port=5000, debug=False) -> threading.Thread:
         daemon=True,
     )
     server_thread.start()
+
+    # Ligne garantie, indépendante de la configuration de journalisation
+    # (niveau des loggers, destination de la sortie) et du comportement de
+    # Werkzeug — toujours affichée, contrairement à logger.info() ci-dessous
+    # qui dépend du niveau du logger "niclink.server" (issue #312).
+    print(f"[NicLink] Interface disponible sur http://{host}:{port}", flush=True)
     logger.info(f"[WEB] Serveur démarré sur http://{host}:{port}")
     return server_thread

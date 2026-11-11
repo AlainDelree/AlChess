@@ -210,7 +210,12 @@ def test_game_lichess_aborted_affiche_message_explicite_et_deux_boutons(at_game_
     at_game_lichess.wait_for_selector("#lichess-aborted-overlay", state="visible", timeout=5000)
     assert at_game_lichess.locator("#lichess-aborted-overlay").is_visible()
     message = at_game_lichess.locator("#lichess-aborted-message").text_content()
-    assert message and "annul" in message.lower()
+    # "annul" n'apparaît qu'en français — la page démarre sans cookie de
+    # locale, donc en anglais (DEFAULT_LOCALE de i18n.js) : on vérifie sur
+    # "lichess", présent dans les 3 traductions de cette clé (issue #312 —
+    # ce test, ajouté par #311, n'avait encore jamais tourné : le serveur
+    # e2e restait bloqué avant d'atteindre le navigateur).
+    assert message and "lichess" in message.lower()
     assert _dans_la_fenetre(at_game_lichess, "#lichess-aborted-replay-btn")
 
 

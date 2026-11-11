@@ -116,6 +116,24 @@ def _setup_logging():
     logging.getLogger("niclink.lichess").setLevel(logging.INFO)
     file_handler.setLevel(logging.INFO)
 
+    # Effet de bord introduit par l'abaissement ci-dessus (issue #312) :
+    # Werkzeug (werkzeug._internal._log) n'ajoute son propre handler console
+    # que s'il ne trouve, en remontant de son logger "werkzeug" vers ses
+    # parents, AUCUN handler dont l'attribut .level numérique couvre déjà son
+    # niveau — un test purement numérique, sans simulation des filtres. Le
+    # file_handler du root logger étant désormais à INFO, ce test est
+    # satisfait à tort et Werkzeug n'affiche plus "Running on http://...",
+    # l'avertissement serveur de développement ni "Press CTRL+C to quit" —
+    # déjà en usage interactif (pas seulement en sortie redirigée, confirmé
+    # par un test sous pseudo-terminal). On attache donc explicitement un
+    # handler console à "werkzeug" pour garantir ces lignes quel que soit
+    # l'état des autres handlers.
+    werkzeug_logger = logging.getLogger("werkzeug")
+    werkzeug_console = logging.StreamHandler()
+    werkzeug_console.setFormatter(logging.Formatter("%(message)s"))
+    werkzeug_logger.addHandler(werkzeug_console)
+    werkzeug_logger.setLevel(logging.INFO)
+
     import sys, traceback
     def _excepthook(exc_type, exc_value, exc_tb):
         if issubclass(exc_type, KeyboardInterrupt):
