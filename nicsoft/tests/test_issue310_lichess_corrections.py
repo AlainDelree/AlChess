@@ -98,7 +98,7 @@ def test_launch_lichess_partie_terminee_normalement_sans_exception(monkeypatch, 
 
     monkeypatch.setattr(lichess_launcher, "load_config", lambda: {"lichess_token": "lip_test"})
     monkeypatch.setattr(lichess_launcher, "create_board", lambda **kw: board)
-    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_web", lambda nl_inst: None)
+    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst: None)
     monkeypatch.setattr(lichess_launcher, "GameClient", _Client)
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "menu", raising=False)
 
@@ -107,7 +107,10 @@ def test_launch_lichess_partie_terminee_normalement_sans_exception(monkeypatch, 
     monkeypatch.setattr(game_mod, "build_and_save_pgn",
                          lambda headers=None, moves=None, output_path=None: saved_pgn.append(output_path))
 
-    lichess_launcher.launch_lichess({"level": 1, "cadence": "15+10", "color": "random", "player": "Alain"})
+    # Couleur explicite "black" (issue #311) : la partie se crée
+    # immédiatement après la position, sans attendre un premier coup
+    # physique — ce chemin blancs a son propre test dédié.
+    lichess_launcher.launch_lichess({"level": 1, "cadence": "15+10", "color": "black", "player": "Alain"})
 
     assert lichess_launcher.web_server._app_state == "game_over"
     assert saved_pgn == [str(final_path)]
@@ -195,11 +198,11 @@ def test_enchainement_humain_puis_lichess_libere_l_echiquier(monkeypatch, tmp_pa
 
     monkeypatch.setattr(lichess_launcher, "load_config", lambda: {"lichess_token": "lip_test"})
     monkeypatch.setattr(lichess_launcher, "create_board", lambda **kw: nl_lichess)
-    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_web", lambda nl_inst: None)
+    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst: None)
     monkeypatch.setattr(lichess_launcher, "GameClient", _Client)
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "menu", raising=False)
 
-    lichess_launcher.launch_lichess({"level": 1, "cadence": "15+10", "color": "random", "player": "Alain"})
+    lichess_launcher.launch_lichess({"level": 1, "cadence": "15+10", "color": "black", "player": "Alain"})
 
     assert nl_lichess.disconnected is True, "l'échiquier du mode Lichess doit lui aussi être libéré en fin de partie"
 

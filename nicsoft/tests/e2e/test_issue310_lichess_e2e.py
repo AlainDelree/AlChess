@@ -191,3 +191,51 @@ def test_game_lichess_bouton_nulle_visible(at_game_lichess):
     btn = at_game_lichess.locator("#btn-nulle")
     assert _dans_la_fenetre(at_game_lichess, "#btn-nulle")
     assert not btn.is_disabled()
+
+
+# ── Partie C — jamais de fin silencieuse + compte à rebours (issue #311) ──────
+
+def test_game_lichess_aborted_affiche_message_explicite_et_deux_boutons(at_game_lichess):
+    """Une fin de partie inattendue (ex. premier coup non joué à temps)
+    affiche une fenêtre persistante avec un message traduit et les deux
+    boutons "Rejouer avec les mêmes réglages" / "Retour au menu" — jamais
+    de retour silencieux au menu (issue #311, point 3)."""
+    _declencher_evenement_socket_client(
+        at_game_lichess, "lichess_aborted",
+        {
+            "message_key": "lichess.annulee_premier_coup_trop_tard",
+            "replay_settings": {"level": 3, "cadence": "15+10", "color": "black", "player": "Testeur e2e"},
+        },
+    )
+    at_game_lichess.wait_for_selector("#lichess-aborted-overlay", state="visible", timeout=5000)
+    assert at_game_lichess.locator("#lichess-aborted-overlay").is_visible()
+    message = at_game_lichess.locator("#lichess-aborted-message").text_content()
+    assert message and "annul" in message.lower()
+    assert _dans_la_fenetre(at_game_lichess, "#lichess-aborted-replay-btn")
+
+
+def test_game_lichess_aborted_retour_menu_ferme_la_fenetre(at_game_lichess):
+    """Le bouton "Retour au menu" de la fenêtre d'annulation la referme."""
+    _declencher_evenement_socket_client(
+        at_game_lichess, "lichess_aborted",
+        {"message_key": "lichess.annulee_cause_inconnue", "replay_settings": None},
+    )
+    at_game_lichess.wait_for_selector("#lichess-aborted-overlay", state="visible", timeout=5000)
+    at_game_lichess.evaluate("lichessAbortedBackMenu()")
+    assert not at_game_lichess.locator("#lichess-aborted-overlay").is_visible()
+
+
+def test_game_lichess_premier_coup_decompte_apparait_puis_disparait(at_game_lichess):
+    """Le compte à rebours du premier coup (noirs) apparaît avec le nombre
+    de secondes reçu puis disparaît dès qu'un coup est joué (issue #311,
+    point 2)."""
+    _declencher_evenement_socket_client(
+        at_game_lichess, "lichess_first_move_deadline", {"active": True, "seconds": 18},
+    )
+    at_game_lichess.wait_for_selector("#lichess-first-move-deadline", state="visible", timeout=5000)
+    texte = at_game_lichess.locator("#lichess-first-move-deadline").text_content()
+    assert "18" in texte
+    _declencher_evenement_socket_client(
+        at_game_lichess, "lichess_first_move_deadline", {"active": False},
+    )
+    assert not at_game_lichess.locator("#lichess-first-move-deadline").is_visible()

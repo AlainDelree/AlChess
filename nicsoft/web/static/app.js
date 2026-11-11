@@ -1287,6 +1287,10 @@ socket.on("app_state", (data) => {
   if (data.state === "position_initiale" && data.fen) {
     renderBoardPosInit(data.fen);
   }
+  const posInitLichessBackBtn = document.getElementById("pos-init-lichess-back-btn");
+  if (posInitLichessBackBtn) posInitLichessBackBtn.style.display = (data.state === "position_initiale" && _gameMode === "lichess") ? "" : "none";
+  const screenLichessWaitFirstMove = document.getElementById("screen-lichess-wait-first-move");
+  if (screenLichessWaitFirstMove) screenLichessWaitFirstMove.style.display = data.state === "lichess_wait_first_move" ? "flex" : "none";
   const isGame = data.state === "playing" || (data.state === "game_over" && !data.skip) || data.state === "paused";
   if (isGame) _analyseEmpty = false;
   document.getElementById("screen-game").style.display = isGame ? "grid" : "none";
@@ -1308,6 +1312,13 @@ socket.on("app_state", (data) => {
   }
   if (data.state === "config_lichess") {
     socket.emit("config_get", {});
+    // Retour à l'écran de configuration forcé par un échec de création de
+    // partie après le premier coup physique (issue #311, point 1) — les
+    // réglages déjà saisis restent dans les champs (SPA, rien à restaurer).
+    if (data.toast_message_key || data.toast_message) {
+      const msg = data.toast_message_key ? t(data.toast_message_key) : data.toast_message;
+      afficherToast(msg, data.toast_type || "warning");
+    }
   }
 
   if (data.state === "game_over" && !data.skip) {
@@ -1364,6 +1375,12 @@ socket.on("app_state", (data) => {
     _lastTurnInfo = null;
     _retransPlayerData = null;
     _gameSource = "externe";
+    // Remis à neutre ici : repris par chaque mode avant sa propre attente de
+    // position (Lichess dès le clic "start_lichess" ; pédagogique/HH à leur
+    // "init"/"init_hh") — évite qu'un _gameMode="lichess" résiduel affiche à
+    // tort le bouton retour menu de l'écran "Position incorrecte" (réservé à
+    // Lichess, issue #311, point 1) pendant la partie suivante d'un autre mode.
+    _gameMode = "";
     _viderAnalyse();
     pgnLibSelectTab("alchess"); // l'écran Analyse rouvre toujours sur « Mes parties AlChess » par défaut
     _virtDeactivateBoard();
@@ -1690,6 +1707,8 @@ socket.on("init_hh", (data) => {
 // ── LICHESS — partie amicale contre l'IA (issue #309) ─────
 
 let _lichessLevel = 1;
+let _lichessFirstMoveDeadlineSeconds = null;
+let _lichessReplaySettings = null;
 
 function _lichessSetClocksVisible(visible) {
   const clockTop = document.getElementById("clock-top");
@@ -1698,16 +1717,23 @@ function _lichessSetClocksVisible(visible) {
   if (clockBottom) clockBottom.style.display = visible ? "" : "none";
 }
 
+const LICHESS_STATUS_BANNER_IDS = [
+  "lichess-reconnecting-banner", "lichess-board-lost-banner",
+  "lichess-draw-offer-banner", "lichess-promotion-row", "lichess-first-move-deadline",
+];
+
 function _lichessHideStatusBanners() {
   const statusCard = document.getElementById("lichess-status-card");
   if (statusCard) statusCard.style.display = "none";
-  ["lichess-reconnecting-banner", "lichess-board-lost-banner",
-   "lichess-draw-offer-banner", "lichess-promotion-row"].forEach(id => {
+  LICHESS_STATUS_BANNER_IDS.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = "none";
   });
   const waitBanner = document.getElementById("lichess-position-wait");
   if (waitBanner) waitBanner.style.display = "none";
+  const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
+  if (drawWaitMsg) drawWaitMsg.style.display = "none";
+  _lichessFirstMoveDeadlineSeconds = null;
 }
 
 function _lichessShowBanner(id, show) {
@@ -1715,8 +1741,7 @@ function _lichessShowBanner(id, show) {
   if (el) el.style.display = show ? "" : "none";
   const statusCard = document.getElementById("lichess-status-card");
   if (!statusCard) return;
-  const anyVisible = ["lichess-reconnecting-banner", "lichess-board-lost-banner",
-    "lichess-draw-offer-banner", "lichess-promotion-row"]
+  const anyVisible = LICHESS_STATUS_BANNER_IDS
     .some(bid => { const e = document.getElementById(bid); return e && e.style.display !== "none"; });
   statusCard.style.display = anyVisible ? "flex" : "none";
 }
@@ -1776,6 +1801,8 @@ socket.on("lichess_init", (data) => {
   hideFeedback();
   _lichessSetClocksVisible(true);
   _lichessHideStatusBanners();
+  const abortedOverlay = document.getElementById("lichess-aborted-overlay");
+  if (abortedOverlay) abortedOverlay.style.display = "none";
 });
 
 socket.on("lichess_move", (data) => {
@@ -1871,13 +1898,65 @@ socket.on("lichess_draw_proposed", () => {
   afficherToast(t("toast.lichess_draw_sent"), "info");
   const btnNulle = document.getElementById("btn-nulle");
   if (btnNulle) btnNulle.disabled = true;
+  const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
+  if (drawWaitMsg) drawWaitMsg.style.display = "";
 });
 
 socket.on("lichess_draw_refused", () => {
   afficherToast(t("toast.lichess_draw_refused"), "warning");
   const btnNulle = document.getElementById("btn-nulle");
   if (btnNulle) btnNulle.disabled = false;
+  const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
+  if (drawWaitMsg) drawWaitMsg.style.display = "none";
 });
+
+// ── Compte à rebours du premier coup (noirs) — issue #311, point 2 ───────
+
+function _lichessRenderFirstMoveDeadline() {
+  const el = document.getElementById("lichess-first-move-deadline");
+  if (!el) return;
+  el.textContent = (_lichessFirstMoveDeadlineSeconds === null || _lichessFirstMoveDeadlineSeconds === undefined)
+    ? t("lichess.premier_coup_sans_decompte")
+    : t("lichess.premier_coup_decompte", { seconds: Math.max(0, Math.round(_lichessFirstMoveDeadlineSeconds)) });
+}
+
+socket.on("lichess_first_move_deadline", (data) => {
+  const active = !!data.active;
+  _lichessFirstMoveDeadlineSeconds = active ? (data.seconds ?? null) : null;
+  if (active) _lichessRenderFirstMoveDeadline();
+  _lichessShowBanner("lichess-first-move-deadline", active);
+});
+
+// ── Fin de partie inattendue — jamais silencieuse (issue #311, point 3) ──
+
+socket.on("lichess_aborted", (data) => {
+  const msgEl = document.getElementById("lichess-aborted-message");
+  if (msgEl) msgEl.textContent = t(data.message_key || "lichess.annulee_cause_inconnue");
+  _lichessReplaySettings = data.replay_settings || null;
+  const overlay = document.getElementById("lichess-aborted-overlay");
+  if (overlay) overlay.style.display = "flex";
+});
+
+function lichessAbortedBackMenu() {
+  const overlay = document.getElementById("lichess-aborted-overlay");
+  if (overlay) overlay.style.display = "none";
+}
+
+function lichessAbortedReplay() {
+  const overlay = document.getElementById("lichess-aborted-overlay");
+  if (overlay) overlay.style.display = "none";
+  const rs = _lichessReplaySettings;
+  if (!rs) return;
+  _basketSource = "Lichess";
+  _gameMode = "lichess";
+  sendAction({
+    type: "start_lichess",
+    level: rs.level || 1,
+    cadence: rs.cadence || "15+10",
+    color: rs.color || "random",
+    player: rs.player || "Vous",
+  });
+}
 
 socket.on("swap_color_hh", (data) => {
   const topName = document.getElementById("player-top-name");

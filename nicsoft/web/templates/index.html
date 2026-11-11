@@ -694,6 +694,7 @@
       <div class="card" id="lichess-status-card" style="display:none;">
         <div id="lichess-reconnecting-banner" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reconnexion">Connexion à Lichess perdue, reconnexion…</div>
         <div id="lichess-board-lost-banner" class="lichess-info-banner" style="display:none;" data-i18n="lichess.echiquier_perdu">Échiquier perdu — la partie continue sur lichess.org. Reconnectez l'échiquier ou abandonnez.</div>
+        <div id="lichess-first-move-deadline" class="lichess-info-banner" style="display:none;"></div>
         <div id="lichess-draw-offer-banner" class="lichess-draw-offer-banner" style="display:none;">
           <span data-i18n="lichess.nulle_proposee">L'adversaire propose la nulle.</span>
           <button class="btn btn-reprendre" data-action="lichess_draw_accept" data-i18n="lichess.accepter">Accepter</button>
@@ -722,6 +723,7 @@
         <button class="btn game-btn-pause" id="btn-pause" data-action="pause" data-i18n="game.btn.pause">⏸ Pause</button>
         <button class="btn btn-warning" data-action="ouvrir_modal_abandonner" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
         <button class="btn game-btn-nulle" id="btn-nulle" data-action="ouvrir_modal_nulle" data-i18n="game.btn.nulle">🤝 Partie Nulle</button>
+        <span id="lichess-draw-wait-msg" class="lichess-info-banner" style="display:none;" data-i18n="lichess.nulle_attente_reponse">Proposition envoyée, réponse au prochain coup de l'adversaire.</span>
         <button class="btn game-btn-quitter" id="btn-quit-game" data-action="quit_modal_moteur" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
     </div>
@@ -933,6 +935,11 @@
         <div class="pos-init-spinner"></div>
         <span data-i18n="pos_init.attente">En attente…</span>
       </div>
+      <!-- Lichess uniquement : aucune limite de temps avant la confirmation
+           de la position, donc un bouton de retour explicite (issue #311,
+           point 1) — masqué pour les autres modes (comportement inchangé). -->
+      <button id="pos-init-lichess-back-btn" class="btn btn-continuer" data-action="back_menu"
+              data-i18n="common.retour_menu" style="display:none; margin-top:16px;">← Retour au menu</button>
     </div>
   </div>
 </div>
@@ -1847,6 +1854,31 @@
   <div id="connecting-msg" class="connecting-msg" data-i18n="connecting.msg">Connexion à l'échiquier…</div>
   <div id="connecting-sub" class="connecting-sub" data-i18n="connecting.sub">Vérifiez que le plateau est allumé et en position initiale.</div>
   <div class="connecting-spinner"></div>
+</div>
+
+<!-- ── Lichess (blancs) : attente du premier coup physique avant création de la partie — issue #311, point 1 ── -->
+<div id="screen-lichess-wait-first-move" class="screen-connecting" style="display:none;">
+  <div class="connecting-icon">♟</div>
+  <div class="connecting-msg" data-i18n="lichess.attente_premier_coup.titre">Vos pièces sont en place</div>
+  <div class="connecting-sub" data-i18n-html="lichess.attente_premier_coup.texte_html">
+    Vous jouez les Blancs — prenez votre temps.<br>
+    La partie ne sera créée chez Lichess qu'après votre premier coup.<br>
+    Jouez-le sur l'échiquier physique quand vous êtes prêt.
+  </div>
+  <div class="connecting-spinner"></div>
+  <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:20px;">← Retour au menu</button>
+</div>
+
+<!-- ── Lichess : fin de partie inattendue (annulation, etc.) — jamais silencieuse (issue #311, point 3) ── -->
+<div id="lichess-aborted-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:200; align-items:center; justify-content:center;">
+  <div style="background:#c2d4e8; border:1px solid #e94560; border-radius:10px; padding:28px 32px; min-width:300px; max-width:480px; text-align:center;">
+    <div style="font-size:1.1rem; color:#1a2a3a; margin-bottom:8px; font-weight:bold;" data-i18n="lichess.annulee_titre">Partie annulée</div>
+    <div id="lichess-aborted-message" style="font-size:0.9rem; color:#3a5a7a; margin-bottom:20px;"></div>
+    <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+      <button id="lichess-aborted-replay-btn" class="btn" style="min-width:240px;" onclick="lichessAbortedReplay()" data-i18n="lichess.rejouer_memes_reglages">Rejouer avec les mêmes réglages</button>
+      <button class="btn btn-continuer" style="min-width:240px;" onclick="lichessAbortedBackMenu()" data-i18n="common.retour_menu">← Retour au menu</button>
+    </div>
+  </div>
 </div>
 
 

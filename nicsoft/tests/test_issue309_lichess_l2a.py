@@ -644,12 +644,16 @@ def test_run_lichess_traduit_les_erreurs_client_en_toast(monkeypatch, exc, expec
 
     monkeypatch.setattr(lichess_launcher, "GameClient", _FakeClient)
     monkeypatch.setattr(lichess_launcher, "create_board", lambda **kw: FakeBoard())
-    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_web", lambda nl_inst: None)
+    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst: None)
     monkeypatch.setattr(lichess_launcher, "set_nl_inst_ref", lambda nl_inst: None)
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "connecting", raising=False)
 
-    _error = {"occurred": False, "toast_key": None}
-    lichess_launcher._run_lichess("lip_x", 1, 900, 10, "", "Alain", _error)
+    # Couleur explicite "black" : crée la partie immédiatement après la
+    # position (comme avant #311) — l'erreur testée ici vient de
+    # create_ai_game(), pas de la branche blancs (attente du premier coup
+    # physique), qui a son propre test dédié.
+    _error = {"occurred": False, "toast_key": None, "return_to": "menu"}
+    lichess_launcher._run_lichess("lip_x", 1, 900, 10, "black", "15+10", "Alain", _error)
     assert _error["occurred"] is True
     assert _error["toast_key"] == expected_key
 
@@ -670,6 +674,11 @@ NEW_I18N_KEYS = [
     "lichess.promotion.fou", "lichess.promotion.cavalier", "lichess.proposer_nulle_titre",
     "lichess.menu_verrouille", "lichess.erreur_reseau", "lichess.coup_refuse",
     "lichess.coup_refuse_detail", "game.titre_victoire", "game.titre_defaite", "game.titre_annulee",
+    "lichess.attente_premier_coup.titre", "lichess.attente_premier_coup.texte_html",
+    "lichess.premier_coup_decompte", "lichess.premier_coup_sans_decompte",
+    "lichess.nulle_attente_reponse", "lichess.annulee_titre",
+    "lichess.annulee_premier_coup_trop_tard", "lichess.annulee_cause_inconnue",
+    "lichess.rejouer_memes_reglages",
 ]
 
 

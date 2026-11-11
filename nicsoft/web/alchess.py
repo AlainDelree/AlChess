@@ -106,6 +106,16 @@ def _setup_logging():
     # engine_manager.py via le logger "niclink" (cf. issue #265).
     logging.getLogger("chess.engine").setLevel(logging.ERROR)
 
+    # Lignes d'information du mode Lichess (lancement, position confirmée,
+    # partie créée, coups envoyés/reçus, nulle, fin, PGN, échiquier libéré)
+    # visibles dans le journal sans activer NICLINK_LOG=DEBUG (issue #311,
+    # point 5) — jamais le jeton, qui n'est de toute façon jamais journalisé
+    # (voir modes/lichess/errors.py). Les autres loggers restent au niveau
+    # WARNING du root_logger ci-dessus : seul "niclink.lichess" reçoit un
+    # niveau explicite, donc seul lui franchit le file_handler abaissé.
+    logging.getLogger("niclink.lichess").setLevel(logging.INFO)
+    file_handler.setLevel(logging.INFO)
+
     import sys, traceback
     def _excepthook(exc_type, exc_value, exc_tb):
         if issubclass(exc_type, KeyboardInterrupt):

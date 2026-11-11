@@ -50,6 +50,15 @@ _OTHER_MODE_ACTIONS = frozenset({
     "start_exercice", "start_drill",
 })
 
+# Statuts de fin de partie non demandés par l'utilisateur et jamais
+# silencieux (issue #311, point 3) — _request_resign_or_abort() (abandon/
+# annulation voulus par l'utilisateur) en est exclu via _user_initiated_end.
+_UNEXPECTED_END_STATUSES = frozenset({"aborted", "noStart", "unknownFinish"})
+_ABORT_CAUSE_KEYS = {
+    "aborted": "lichess.annulee_premier_coup_trop_tard",
+}
+_ABORT_CAUSE_DEFAULT_KEY = "lichess.annulee_cause_inconnue"
+
 
 # ── Fonctions pures ──────────────────────────────────────────────────────────
 
@@ -126,6 +135,18 @@ def pgn_time_control(clock_limit_s: int, clock_increment_s: int) -> str:
     return f"{clock_limit_s}+{clock_increment_s}"
 
 
+def first_move_deadline_s(expiration: dict, elapsed_s: float):
+    """Secondes restantes avant l'annulation Lichess du premier coup,
+    lues dans le champ `expiration` (idleMillis/millisToMove) d'un message
+    de partie — None si absent (issue #311, point 2)."""
+    if not expiration:
+        return None
+    millis = expiration.get("millisToMove")
+    if millis is None:
+        return None
+    return max(0.0, millis / 1000.0 - max(0.0, elapsed_s))
+
+
 def opponent_pgn_name(level: int) -> str:
     """Nom de l'adversaire pour les en-têtes PGN — convention Lichess,
     jamais vide ni « None » (issue #309, point 2)."""
@@ -164,7 +185,8 @@ class LichessGame(threading.Thread):
     ILLEGAL_STABLE_READS_REQUIRED = 8
 
     def __init__(self, nl_inst, client, game_id: str, level: int, player_name: str,
-                 clock_limit_s: int, clock_increment_s: int, **kwargs):
+                 clock_limit_s: int, clock_increment_s: int,
+                 chosen_color_setting: str = "random", cadence_key: str = "", **kwargs):
         super().__init__(daemon=True, **kwargs)
         self.nl_inst = nl_inst
         self.client = client
@@ -173,6 +195,11 @@ class LichessGame(threading.Thread):
         self.player_name = player_name or "Vous"
         self.clock_limit_s = clock_limit_s
         self.clock_increment_s = clock_increment_s
+        # Réglages d'origine (avant résolution de la couleur aléatoire) —
+        # réutilisés par "Rejouer avec les mêmes réglages" (issue #311,
+        # point 3), jamais pour la logique de la partie elle-même.
+        self.chosen_color_setting = chosen_color_setting or "random"
+        self.cadence_key = cadence_key
 
         self.board = chess.Board()
         self.user_color = None
@@ -182,6 +209,7 @@ class LichessGame(threading.Thread):
         self._status = "created"
         self._winner = ""
         self._aborted = False
+        self._user_initiated_end = False
         self._back_menu_requested = False
 
         self._board_lost = False
@@ -198,6 +226,11 @@ class LichessGame(threading.Thread):
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
+
+        self._first_move_expiration = None
+        self._first_move_expiration_ref = time.monotonic()
+        self._first_move_deadline_active = False
+        self._last_move_event_ts = time.monotonic()
 
         self._clock_white_ms = float(clock_limit_s * 1000)
         self._clock_black_ms = float(clock_limit_s * 1000)
@@ -317,6 +350,7 @@ class LichessGame(threading.Thread):
             ok = self._safe_client_call(lambda: self.client.resign(self.game_id))
         if not ok:
             return False
+        self._user_initiated_end = True
         if aborting:
             self._status = "aborted"
             self._aborted = True
@@ -376,11 +410,21 @@ class LichessGame(threading.Thread):
             "clock_increment_s": self.clock_increment_s,
         })
         self._reset_clock_from_state(state)
+        if self.user_color == "black" and self._moves_applied >= 1:
+            # L'IA (blancs) a déjà joué son premier coup dès la création de
+            # la partie — signal sonore de l'échiquier en plus des LED du
+            # coup et du compte à rebours (issue #311, point 1).
+            try:
+                self.nl_inst.beep()
+            except Exception as exc:
+                logger.debug("Signal sonore (premier coup IA, Lichess) échoué : %s", exc)
+        self._maybe_activate_first_move_deadline(state)
         self._check_finished(state.get("status", "started"), state.get("winner", ""))
 
     def _apply_game_state(self, event: dict) -> None:
         self._apply_new_moves(event)
         self._reset_clock_from_state(event)
+        self._maybe_activate_first_move_deadline(event)
         opponent_offered = event.get("bdraw") if self.user_color == "white" else event.get("wdraw")
         opponent_offered = bool(opponent_offered)
         if opponent_offered != self._draw_offered_by_opponent:
@@ -422,7 +466,10 @@ class LichessGame(threading.Thread):
                 continue
             last_mover_color = mover_color
             if not initial:
-                logger.info("Lichess : coup reçu %s (%s).", uci, mover_color)
+                now = time.monotonic()
+                elapsed_ms = int((now - self._last_move_event_ts) * 1000)
+                self._last_move_event_ts = now
+                logger.info("Lichess : coup reçu %s (%s, délai %d ms).", uci, mover_color, elapsed_ms)
                 send_event("lichess_move", {
                     "fen": self.board.board_fen(), "san": san, "uci": uci,
                     "color": mover_color, "level": self.level,
@@ -435,6 +482,25 @@ class LichessGame(threading.Thread):
             self._start_opponent_replication_wait(new_moves[-1])
         else:
             self._awaiting_piece_reset = False
+            if self._first_move_deadline_active:
+                self._first_move_deadline_active = False
+                send_event("lichess_first_move_deadline", {"active": False})
+
+    def _maybe_activate_first_move_deadline(self, state: dict) -> None:
+        """Compte à rebours du premier coup de l'utilisateur (noirs) après
+        création de la partie — lu dans le champ `expiration` de Lichess,
+        affiché sans décompte s'il est absent (issue #311, point 2)."""
+        if self._first_move_deadline_active or self.game_over:
+            return
+        if self.user_color != "black" or self._moves_applied != 1:
+            return
+        expiration = (state or {}).get("expiration")
+        self._first_move_expiration = expiration
+        self._first_move_expiration_ref = time.monotonic()
+        self._first_move_deadline_active = True
+        send_event("lichess_first_move_deadline", {
+            "active": True, "seconds": first_move_deadline_s(expiration, 0.0),
+        })
 
     def _reset_clock_from_state(self, state: dict) -> None:
         wtime = state.get("wtime")
@@ -456,6 +522,12 @@ class LichessGame(threading.Thread):
         white_ms, black_ms = compute_clock_ms(self._clock_white_ms, self._clock_black_ms,
                                                self._clock_turn, elapsed_s)
         send_event("lichess_clock", {"white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn})
+        if self._first_move_deadline_active:
+            deadline_elapsed_s = max(0.0, now - self._first_move_expiration_ref)
+            send_event("lichess_first_move_deadline", {
+                "active": True,
+                "seconds": first_move_deadline_s(self._first_move_expiration, deadline_elapsed_s),
+            })
 
     # ── Plateau physique ─────────────────────────────────────────────────
 
@@ -577,7 +649,10 @@ class LichessGame(threading.Thread):
     def _submit_move(self, uci: str) -> None:
         try:
             self.client.play_move(self.game_id, uci)
-            logger.info("Lichess : coup envoyé %s.", uci)
+            now = time.monotonic()
+            elapsed_ms = int((now - self._last_move_event_ts) * 1000)
+            self._last_move_event_ts = now
+            logger.info("Lichess : coup envoyé %s (délai %d ms).", uci, elapsed_ms)
         except LichessApiError as exc:
             self._reset_target_fen = self.board.board_fen()
             self._awaiting_piece_reset = True
@@ -643,10 +718,11 @@ class LichessGame(threading.Thread):
             except Exception as exc:
                 logger.warning("Sauvegarde PGN Lichess échouée (hors _save_pgn) : %s", exc)
 
+        unexpected = self._is_unexpected_end()
         try:
             title_key, title_vars = self._title_for_status()
             hist_fens, hist_moves = self._history_from_board()
-            skip = self._back_menu_requested
+            skip = self._back_menu_requested or unexpected
             payload = {
                 "title_key": title_key, "title_vars": title_vars,
                 "result": result, "source": "lichess", "skip": skip,
@@ -655,5 +731,29 @@ class LichessGame(threading.Thread):
             send_event("game_over", payload)
             if not skip:
                 set_app_state("game_over", payload)
+            if unexpected:
+                self._notify_unexpected_end()
         except Exception as exc:
             logger.error("Lichess : notification de fin de partie échouée : %s", exc)
+
+    def _is_unexpected_end(self) -> bool:
+        """Vrai pour un statut de fin ni demandé par l'utilisateur
+        (abandon/annulation via _request_resign_or_abort) ni par un retour
+        menu explicite — jamais de fin silencieuse (issue #311, point 3)."""
+        return (
+            not self._back_menu_requested
+            and not self._user_initiated_end
+            and self._status in _UNEXPECTED_END_STATUSES
+        )
+
+    def _notify_unexpected_end(self) -> None:
+        logger.warning("Lichess : fin de partie inattendue (statut=%s).", self._status)
+        send_event("lichess_aborted", {
+            "message_key": _ABORT_CAUSE_KEYS.get(self._status, _ABORT_CAUSE_DEFAULT_KEY),
+            "replay_settings": {
+                "level": self.level,
+                "cadence": self.cadence_key,
+                "color": self.chosen_color_setting,
+                "player": self.player_name,
+            },
+        })
