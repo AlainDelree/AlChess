@@ -167,13 +167,15 @@ def _reconnect_board_or_menu(nl_inst) -> None:
         send_event("lichess_wait_board_ok", {})
 
 
-def _wait_initial_position_lichess(nl_inst) -> None:
+def _wait_initial_position_lichess(nl_inst, color: str) -> None:
     """Variante de _wait_initial_position_web (state.py) sans limite de
     temps et annulable par "back_menu" (issue #311, point 1). Une lecture
     vide prolongée (>1.5s) ou un module qui ne se déclare plus connecté
     déclenche une reconnexion automatique plutôt qu'un abandon silencieux
     (issue #314, point 2) : jamais de partie créée avant que l'échiquier
-    ne soit de nouveau lisible."""
+    ne soit de nouveau lisible. `color` (déjà résolue, jamais "random" à ce
+    stade) est transmise à l'écran de mise en place pour qu'il s'oriente du
+    point de vue de l'utilisateur (issue #315, point 3)."""
     initial_fen = chess.Board().board_fen()
     first_check = True
     empty_since = None
@@ -205,7 +207,7 @@ def _wait_initial_position_lichess(nl_inst) -> None:
             except Exception as e:
                 # signal LED cosmétique — best-effort, voir state.py::_wait_initial_position_web.
                 logger.debug(f"signal_lights cosmétique a échoué (Lichess) : {e}")
-        set_app_state("position_initiale", {"fen": board_fen})
+        set_app_state("position_initiale", {"fen": board_fen, "color": color})
         time.sleep(0.5)
 
 
@@ -340,7 +342,7 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
     try:
         nl_inst = create_board(virtual=False, logger_name="NicLink_lichess")
         logger_lichess.info("Lichess : échiquier physique ouvert.")
-        _wait_initial_position_lichess(nl_inst)
+        _wait_initial_position_lichess(nl_inst, resolved_color)
         logger_lichess.info("Lichess : position de départ confirmée.")
         set_nl_inst_ref(nl_inst)
 
@@ -354,7 +356,7 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
                     logger_lichess.info(
                         "Lichess : position illisible après reconnexion — retour à l'écran de mise en place."
                     )
-                    _wait_initial_position_lichess(nl_inst)
+                    _wait_initial_position_lichess(nl_inst, resolved_color)
             logger_lichess.info(f"Lichess : premier coup physique détecté ({first_move_uci}), création de la partie.")
 
         client = GameClient(token)

@@ -98,7 +98,7 @@ def test_launch_lichess_partie_terminee_normalement_sans_exception(monkeypatch, 
 
     monkeypatch.setattr(lichess_launcher, "load_config", lambda: {"lichess_token": "lip_test"})
     monkeypatch.setattr(lichess_launcher, "create_board", lambda **kw: board)
-    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst: None)
+    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst, color: None)
     monkeypatch.setattr(lichess_launcher, "GameClient", _Client)
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "menu", raising=False)
 
@@ -198,7 +198,7 @@ def test_enchainement_humain_puis_lichess_libere_l_echiquier(monkeypatch, tmp_pa
 
     monkeypatch.setattr(lichess_launcher, "load_config", lambda: {"lichess_token": "lip_test"})
     monkeypatch.setattr(lichess_launcher, "create_board", lambda **kw: nl_lichess)
-    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst: None)
+    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst, color: None)
     monkeypatch.setattr(lichess_launcher, "GameClient", _Client)
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "menu", raising=False)
 

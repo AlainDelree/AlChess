@@ -15,6 +15,13 @@ function esc(str) {
 
 let _boardFlipped = false;  // true = noirs en bas
 
+// Orientation échiquier selon la couleur jouée par l'utilisateur (Lichess
+// #315 ; réutilisée par la future reprise de partie en cours) : pièces de
+// l'utilisateur en bas → noirs en bas si l'utilisateur joue les noirs.
+function orientationIsFlipped(color) {
+  return color === "black";
+}
+
 // Normalise les noms de joueurs reçus du backend : "Blancs"/"Noirs" sont des
 // valeurs par défaut Python — les remplace par la traduction courante.
 function _localPlayerName(name, defaultKey) {
@@ -1304,6 +1311,10 @@ socket.on("app_state", (data) => {
   document.getElementById("screen-connecting").style.display = data.state === "connecting" ? "flex" : "none";
   document.getElementById("screen-pos-init").style.display = data.state === "position_initiale" ? "flex" : "none";
   if (data.state === "position_initiale" && data.fen) {
+    // Orienté du point de vue de l'utilisateur pour Lichess (data.color,
+    // déjà résolue côté serveur — issue #315, point 3) ; blancs en bas par
+    // défaut pour les autres modes qui partagent cet écran.
+    _buildBoardPosInit(orientationIsFlipped(data.color));
     renderBoardPosInit(data.fen);
   }
   const posInitLichessBackBtn = document.getElementById("pos-init-lichess-back-btn");
@@ -1790,10 +1801,18 @@ socket.on("lichess_init", (data) => {
   const isWhite = data.color === "white";
   const playerLabel   = _localPlayerName(data.player, "lichess.vous");
   const opponentLabel = t("lichess.ia_niveau", { level: _lichessLevel });
+  // L'échiquier de l'écran est orienté du point de vue de l'utilisateur
+  // (issue #315, point 1) : la rangée du haut montre toujours l'adversaire
+  // et celle du bas l'utilisateur, pour les deux couleurs (point 2) — voir
+  // le commentaire de lichess_clock, qui suppose cette même convention.
+  _boardFlipped = orientationIsFlipped(data.color);
+  buildBoard();
+  const flipBtn = document.getElementById("btn-flip");
+  if (flipBtn) flipBtn.title = t(_boardFlipped ? "game.flip_blancs" : "game.flip_noirs");
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
-  topName.textContent = isWhite ? opponentLabel : playerLabel;
-  botName.textContent = isWhite ? playerLabel : opponentLabel;
+  topName.textContent = opponentLabel;
+  botName.textContent = playerLabel;
   topName.style.color = "#3a5a7a";
   botName.style.color = "#1a2a3a";
   document.body.setAttribute("style", "background: #d8e4f0 !important;");
@@ -2261,12 +2280,19 @@ function _viderAnalyse() {
   if (fi) fi.value = "";
 }
 
-function _buildBoardPosInit() {
+// Construit l'écran de mise en place (issue #315, point 3) — `flipped`
+// (blancs en bas par défaut, comme pour tous les modes qui partagent cet
+// écran) ne reconstruit que l'ordre des cases dans le DOM, pas leur
+// contenu : renderBoardPosInit() peint toujours par id `pi-{file}-{rank}`,
+// indépendamment de l'orientation.
+function _buildBoardPosInit(flipped) {
   const board = document.getElementById("board-pos-init");
   if (!board) return;
   board.innerHTML = "";
-  for (let rank = 7; rank >= 0; rank--) {
-    for (let file = 0; file < 8; file++) {
+  const rankOrder = flipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
+  const fileOrder = flipped ? [7,6,5,4,3,2,1,0] : [0,1,2,3,4,5,6,7];
+  for (const rank of rankOrder) {
+    for (const file of fileOrder) {
       const sq = document.createElement("div");
       sq.className = `square ${(rank + file) % 2 === 1 ? 'light' : 'dark'}`;
       sq.id = `pi-${file}-${rank}`;
@@ -6228,7 +6254,7 @@ socket.on("retranscription_saved", (data) => {
 });
 
 buildBoard();
-_buildBoardPosInit();
+_buildBoardPosInit(false);
 renderBoard(currentFen, null, null, null, null, null, null);
 // Griser les contrôles nav au démarrage (pas de partie chargée)
 _setNavControls(false);

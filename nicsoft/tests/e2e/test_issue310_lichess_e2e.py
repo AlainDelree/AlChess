@@ -244,3 +244,111 @@ def test_game_lichess_premier_coup_decompte_apparait_puis_disparait(at_game_lich
         at_game_lichess, "lichess_first_move_deadline", {"active": False},
     )
     assert not at_game_lichess.locator("#lichess-first-move-deadline").is_visible()
+
+
+# ── Partie D — orientation de l'échiquier selon la couleur (issue #315) ───────
+
+def _case_box(page, prefix, file, rank):
+    """Bounding box de la case `file-rank` (0-indexée) de l'échiquier
+    identifié par `prefix` ("sq" pour #board, "pi" pour #board-pos-init)."""
+    return page.locator(f"#{prefix}-{file}-{rank}").bounding_box()
+
+
+def _a1_en_haut_a_droite_de_h8(page, prefix):
+    """True si a1 (file=0,rank=0) est visuellement au-dessus et à droite de
+    h8 (file=7,rank=7) — signe d'un échiquier retourné (noirs en bas) ;
+    False si c'est l'inverse (orientation normale, blancs en bas)."""
+    a1 = _case_box(page, prefix, 0, 0)
+    h8 = _case_box(page, prefix, 7, 7)
+    assert a1 and h8, f"case(s) introuvable(s) pour le préfixe {prefix!r}"
+    return a1["y"] < h8["y"] and a1["x"] > h8["x"]
+
+
+@pytest.fixture
+def game_lichess_noirs(at_menu):
+    """Écran de partie Lichess simulé avec l'utilisateur aux noirs (mêmes
+    événements simulés que `at_game_lichess`, couleur différente)."""
+    _declencher_evenement_socket_client(at_menu, "app_state", {"state": "playing"})
+    at_menu.wait_for_selector("#screen-game", state="visible", timeout=5000)
+    _declencher_evenement_socket_client(
+        at_menu, "lichess_init",
+        {"fen": FEN_DEPART, "color": "black", "level": 3, "player": "Testeur e2e noirs"},
+    )
+    return at_menu
+
+
+@pytest.fixture
+def game_lichess_blancs(at_menu):
+    _declencher_evenement_socket_client(at_menu, "app_state", {"state": "playing"})
+    at_menu.wait_for_selector("#screen-game", state="visible", timeout=5000)
+    _declencher_evenement_socket_client(
+        at_menu, "lichess_init",
+        {"fen": FEN_DEPART, "color": "white", "level": 3, "player": "Testeur e2e blancs"},
+    )
+    return at_menu
+
+
+def test_lichess_noirs_echiquier_retourne(game_lichess_noirs):
+    """Issue #315, point 1 : en jouant les noirs, l'échiquier de l'écran de
+    jeu est retourné — a1 se retrouve en haut à droite."""
+    assert _a1_en_haut_a_droite_de_h8(game_lichess_noirs, "sq")
+
+
+def test_lichess_noirs_rangee_haut_montre_l_adversaire(game_lichess_noirs):
+    """Issue #315, point 2 : la rangée du haut montre toujours l'adversaire
+    (nom), celle du bas l'utilisateur — y compris pour les noirs, alors que
+    lichess_clock suppose déjà cette convention."""
+    top = game_lichess_noirs.locator("#player-top-name").text_content()
+    bottom = game_lichess_noirs.locator("#player-bottom-name").text_content()
+    assert bottom == "Testeur e2e noirs"
+    assert top == "Lichess AI (level 3)"
+
+
+def test_lichess_noirs_pendules_coherentes_avec_les_rangees(game_lichess_noirs):
+    """Issue #315, point 2 : la pendule du haut montre le temps de
+    l'adversaire (blancs ici), celle du bas celui de l'utilisateur (noirs)."""
+    _declencher_evenement_socket_client(
+        game_lichess_noirs, "lichess_clock",
+        {"white_ms": 50000, "black_ms": 80000, "turn": "black"},
+    )
+    assert game_lichess_noirs.locator("#clock-top").text_content() == "0:50"
+    assert game_lichess_noirs.locator("#clock-bottom").text_content() == "1:20"
+
+
+def test_lichess_noirs_bouton_flip_inverse_l_orientation(game_lichess_noirs):
+    """Le bouton de retournement manuel continue de fonctionner par-dessus
+    l'orientation automatique."""
+    assert _a1_en_haut_a_droite_de_h8(game_lichess_noirs, "sq")
+    game_lichess_noirs.evaluate("flipBoard()")
+    assert not _a1_en_haut_a_droite_de_h8(game_lichess_noirs, "sq")
+
+
+def test_lichess_blancs_echiquier_et_rangees_inchanges(game_lichess_blancs):
+    """Issue #315 : pour les blancs, rien ne change par rapport au
+    comportement d'avant #315 — échiquier normal, noms non inversés."""
+    assert not _a1_en_haut_a_droite_de_h8(game_lichess_blancs, "sq")
+    top = game_lichess_blancs.locator("#player-top-name").text_content()
+    bottom = game_lichess_blancs.locator("#player-bottom-name").text_content()
+    assert bottom == "Testeur e2e blancs"
+    assert top == "Lichess AI (level 3)"
+
+
+def test_lichess_mise_en_place_orientee_pour_les_noirs(at_menu):
+    """Issue #315, point 3 : l'écran de mise en place (cases à corriger en
+    rouge) s'oriente aussi du point de vue de l'utilisateur."""
+    _declencher_evenement_socket_client(
+        at_menu, "app_state",
+        {"state": "position_initiale", "fen": FEN_DEPART, "color": "black"},
+    )
+    at_menu.wait_for_selector("#screen-pos-init", state="visible", timeout=5000)
+    assert _a1_en_haut_a_droite_de_h8(at_menu, "pi")
+
+
+def test_lichess_mise_en_place_normale_pour_les_blancs(at_menu):
+    """Même écran, inchangé pour les blancs."""
+    _declencher_evenement_socket_client(
+        at_menu, "app_state",
+        {"state": "position_initiale", "fen": FEN_DEPART, "color": "white"},
+    )
+    at_menu.wait_for_selector("#screen-pos-init", state="visible", timeout=5000)
+    assert not _a1_en_haut_a_droite_de_h8(at_menu, "pi")

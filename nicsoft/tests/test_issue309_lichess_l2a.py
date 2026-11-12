@@ -644,7 +644,7 @@ def test_run_lichess_traduit_les_erreurs_client_en_toast(monkeypatch, exc, expec
 
     monkeypatch.setattr(lichess_launcher, "GameClient", _FakeClient)
     monkeypatch.setattr(lichess_launcher, "create_board", lambda **kw: FakeBoard())
-    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst: None)
+    monkeypatch.setattr(lichess_launcher, "_wait_initial_position_lichess", lambda nl_inst, color: None)
     monkeypatch.setattr(lichess_launcher, "set_nl_inst_ref", lambda nl_inst: None)
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "connecting", raising=False)
 
