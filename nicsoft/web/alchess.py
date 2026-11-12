@@ -114,6 +114,12 @@ def _setup_logging():
     # WARNING du root_logger ci-dessus : seul "niclink.lichess" reçoit un
     # niveau explicite, donc seul lui franchit le file_handler abaissé.
     logging.getLogger("niclink.lichess").setLevel(logging.INFO)
+    # Détail de chaque ouverture/fermeture USB (heure, appelant, succès ou
+    # échec) — déjà journalisé en INFO par hid_backend.py mais invisible
+    # jusqu'ici car ce logger restait au niveau WARNING du root. Nécessaire
+    # pour diagnostiquer un échec "échiquier non détecté" lors d'une relance
+    # rapide après un retour au menu (issue #317, point 2).
+    logging.getLogger("nicsoft.niclink.hid_backend").setLevel(logging.INFO)
     file_handler.setLevel(logging.INFO)
 
     # Effet de bord introduit par l'abaissement ci-dessus (issue #312) :

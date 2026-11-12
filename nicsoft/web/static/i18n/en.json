@@ -730,7 +730,7 @@
   "lichess.erreur_reseau": "Could not reach Lichess right now.",
   "lichess.coup_refuse": "Lichess rejected this move — put the piece back.",
   "lichess.coup_refuse_detail": "Lichess rejected this move ({detail}) — put the piece back.",
-  "lichess.attente_premier_coup.titre": "Your pieces are in place",
+  "lichess.attente_premier_coup.titre": "Your move!",
   "lichess.attente_premier_coup.texte_html": "You are playing White — take your time.<br>The game will only be created on Lichess after your first move.<br>Play it on the physical board whenever you're ready.",
   "lichess.attente_premier_coup.en_attente": "Play your first move on the board.",
   "lichess.premier_coup_decompte": "Play your first move — the game will be cancelled in {seconds} seconds.",

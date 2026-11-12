@@ -1271,6 +1271,14 @@
 .pos-init-attente { display:flex; align-items:center; gap:10px; color:#2a3a4a; font-size:0.85rem; }
 .pos-init-spinner { width:14px; height:14px; border:2px solid #e94560; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
 
+/* ── Lichess : écran "à vous de jouer" (blancs, avant création de la partie)
+   — carte verte pour un contraste immédiat avec la carte bleue "Position
+   incorrecte" voisine (issue #317, point 1). Même palette que
+   #feedback-box.bon (vert "succès" déjà utilisé ailleurs dans l'app). ── */
+.card-lichess-ready { background:#1b5e20; border-color:#4caf50; }
+.card-lichess-ready h2.card-title-lg { color:#e8f5e9; }
+.lichess-ready-message { color:#e8f5e9; font-size:1.3rem; font-weight:800; line-height:1.4; margin:0; }
+
 /* ── Écran "Paramètres" ── */
 .screen-parametres { display:none; flex-direction:column; align-items:center; padding:24px; gap:20px; overflow-y:auto; width:100%; }
 .parametres-header { width:100%; max-width:860px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }

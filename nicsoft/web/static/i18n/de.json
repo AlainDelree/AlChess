@@ -730,7 +730,7 @@
   "lichess.erreur_reseau": "Verbindung zu Lichess derzeit nicht möglich.",
   "lichess.coup_refuse": "Lichess hat diesen Zug abgelehnt — stellen Sie die Figur zurück.",
   "lichess.coup_refuse_detail": "Lichess hat diesen Zug abgelehnt ({detail}) — stellen Sie die Figur zurück.",
-  "lichess.attente_premier_coup.titre": "Ihre Figuren stehen bereit",
+  "lichess.attente_premier_coup.titre": "Sie sind am Zug!",
   "lichess.attente_premier_coup.texte_html": "Sie spielen Weiß — lassen Sie sich Zeit.<br>Die Partie wird bei Lichess erst nach Ihrem ersten Zug erstellt.<br>Spielen Sie ihn auf dem physischen Brett, wenn Sie bereit sind.",
   "lichess.attente_premier_coup.en_attente": "Spielen Sie Ihren ersten Zug auf dem Brett.",
   "lichess.premier_coup_decompte": "Spielen Sie Ihren ersten Zug — die Partie wird in {seconds} Sekunden abgebrochen.",

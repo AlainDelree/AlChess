@@ -157,10 +157,18 @@ def connect() -> None:
     """
     global _dev, _current_fen, _connected_product_id, _connected, _read_error_count
     caller = _caller_info()
+    _t_start = time.time()
     with _connect_lock:
         logger.info("connect: ouverture demandée (appelant=%s)", caller)
         paths = _list_paths()
         if not paths:
+            # Diagnostic (issue #317, point 2) : permet de distinguer, dans le
+            # journal, une absence confirmée sur le bus USB (ce cas) d'un
+            # échec plus tardif (open_path, handshake) ci-dessous.
+            logger.warning(
+                "connect: aucun Chessnut Air trouvé par hid.enumerate() (appelant=%s, %.2fs écoulées)",
+                caller, time.time() - _t_start,
+            )
             raise RuntimeError("Chessnut Air introuvable (VID=0x2d80)")
         path, product_id = paths[0]
         # Fermer la connexion déjà ouverte (ex. vérification du démarrage) avant d'en ouvrir une
@@ -198,6 +206,10 @@ def connect() -> None:
             # l'ouverture, ou pendant le handshake) — jamais d'AttributeError, toujours
             # l'exception que les lanceurs de mode savent déjà afficher comme
             # "échiquier non détecté" (NicLinkManager.__init__ attrape RuntimeError).
+            logger.warning(
+                "connect: échec pendant open_path/handshake (appelant=%s, %.2fs écoulées) : %s",
+                caller, time.time() - _t_start, e,
+            )
             try:
                 dev.close()
             except (OSError, IOError, ValueError):
@@ -217,7 +229,10 @@ def connect() -> None:
                 _read_error_count, caller,
             )
         _read_error_count = 0
-        logger.info("connect: Chessnut connecté : PID=0x%04x (%s), appelant=%s", product_id, name, caller)
+        logger.info(
+            "connect: Chessnut connecté : PID=0x%04x (%s), appelant=%s, %.2fs écoulées, FEN lu au premier paquet : %s",
+            product_id, name, caller, time.time() - _t_start, fen or "(aucun)",
+        )
 
 
 def _reset_state() -> None:

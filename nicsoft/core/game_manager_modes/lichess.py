@@ -91,6 +91,64 @@ _RECONNECT_POLL_STEP_S = 0.2
 # point 3) — laisse le temps à l'utilisateur de finir de poser sa pièce.
 _UNRECOGNIZED_MOVE_DELAY_S = 3.0
 
+# Délai total de réessai d'ouverture de l'échiquier physique avant de
+# conclure à son absence (issue #317, point 2). Essai réel d'Alain : une
+# relance quelques secondes après un retour au menu depuis l'écran
+# d'attente échouait avec "échiquier non détecté" alors que le plateau
+# était bien présent et qu'une relance faite plus tard fonctionnait — un
+# seul essai immédiat, sans aucun délai de grâce après la libération
+# précédente. Cause probable (non vérifiable sans matériel) : rien ne
+# garantit que le plateau Chessnut ait fini de se réinitialiser côté
+# firmware/USB juste après le "upload mode" envoyé par disconnect()
+# (hid_backend.py) — connect() peut alors ne pas (encore) le retrouver via
+# hid.enumerate(). Retenter pendant quelques secondes couvre ce cas sans
+# modifier driver.py ni la règle d'accès USB unique : chaque essai crée un
+# nouveau NicLinkManager, dont connect() (hid_backend.py) ferme déjà tout
+# handle existant avant d'en ouvrir un nouveau, sérialisé par son propre
+# verrou — jamais deux essais d'ouverture en même temps.
+_BOARD_OPEN_RETRY_TOTAL_S = 5.0
+_BOARD_OPEN_RETRY_INTERVAL_S = 1.0
+
+
+def _open_board_with_retry(logger_name: str):
+    """Ouvre l'échiquier physique (create_board) en retentant pendant
+    _BOARD_OPEN_RETRY_TOTAL_S si create_board lève SystemExit("board
+    connection error.") — jamais pour une autre cause, qui remonte
+    immédiatement (issue #317, point 2). Journalise l'heure (via le
+    formateur de log existant) et le résultat de chaque essai, pour que la
+    cause d'un échec soit lisible dans niclink.log la prochaine fois sans
+    avoir à relancer NICLINK_LOG=DEBUG. Ne relit jamais le FEN elle-même
+    après un essai réussi (hid_backend.py::connect() journalise déjà le FEN
+    lu pendant la poignée de main) : un appel get_fen() de plus ici
+    consommerait une lecture USB inutile — négligeable sur le vrai
+    plateau, mais un vrai piège pour les doubles de test scriptés dont
+    get_fen() avance un index à chaque appel."""
+    start = time.monotonic()
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            nl_inst = create_board(virtual=False, logger_name=logger_name)
+        except SystemExit as e:
+            if "board connection error" not in str(e):
+                raise
+            elapsed = time.monotonic() - start
+            if elapsed >= _BOARD_OPEN_RETRY_TOTAL_S:
+                logger_lichess.error(
+                    f"Lichess : échiquier introuvable après {attempt} essai(s) "
+                    f"d'ouverture sur {elapsed:.1f}s — abandon."
+                )
+                raise
+            logger_lichess.warning(
+                f"Lichess : ouverture échiquier échouée (essai {attempt}, "
+                f"{elapsed:.1f}s écoulées depuis le premier essai) — "
+                f"nouvel essai dans {_BOARD_OPEN_RETRY_INTERVAL_S:.0f}s."
+            )
+            time.sleep(_BOARD_OPEN_RETRY_INTERVAL_S)
+            continue
+        logger_lichess.info(f"Lichess : échiquier physique ouvert (essai {attempt}).")
+        return nl_inst
+
 
 def _board_module_connected(nl_inst) -> bool:
     """True si le module de lecture se déclare connecté — toujours True si
@@ -340,8 +398,7 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
 
     nl_inst = None
     try:
-        nl_inst = create_board(virtual=False, logger_name="NicLink_lichess")
-        logger_lichess.info("Lichess : échiquier physique ouvert.")
+        nl_inst = _open_board_with_retry("NicLink_lichess")
         _wait_initial_position_lichess(nl_inst, resolved_color)
         logger_lichess.info("Lichess : position de départ confirmée.")
         set_nl_inst_ref(nl_inst)
@@ -456,9 +513,12 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
                 nl_inst.turn_off_all_leds()
             except Exception as e:
                 logger.debug(f"Extinction LEDs (fin Lichess) échouée : {e}")
+            _disconnect_start = time.monotonic()
             try:
                 nl_inst.disconnect()
-                logger_lichess.info("Lichess : échiquier physique libéré.")
+                logger_lichess.info(
+                    f"Lichess : échiquier physique libéré ({time.monotonic() - _disconnect_start:.2f}s)."
+                )
             except Exception as e:
                 logger.warning(f"Déconnexion échiquier échouée (Lichess) : {e}")
         if web_server._app_state not in ("game_over", "menu"):

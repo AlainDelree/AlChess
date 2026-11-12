@@ -730,7 +730,7 @@
   "lichess.erreur_reseau": "Connexion à Lichess impossible pour le moment.",
   "lichess.coup_refuse": "Lichess a refusé ce coup — remettez la pièce à sa place.",
   "lichess.coup_refuse_detail": "Lichess a refusé ce coup ({detail}) — remettez la pièce à sa place.",
-  "lichess.attente_premier_coup.titre": "Vos pièces sont en place",
+  "lichess.attente_premier_coup.titre": "À vous de jouer !",
   "lichess.attente_premier_coup.texte_html": "Vous jouez les Blancs — prenez votre temps.<br>La partie ne sera créée chez Lichess qu'après votre premier coup.<br>Jouez-le sur l'échiquier physique quand vous êtes prêt.",
   "lichess.attente_premier_coup.en_attente": "Jouez votre premier coup sur l'échiquier.",
   "lichess.premier_coup_decompte": "Jouez votre premier coup — la partie sera annulée dans {seconds} secondes.",

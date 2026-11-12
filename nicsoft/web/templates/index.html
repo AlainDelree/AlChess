@@ -1876,17 +1876,9 @@
   </div>
   <!-- Panel droit -->
   <div class="pos-init-panel">
-    <div class="card">
-      <h2 class="card-title-lg" data-i18n="lichess.attente_premier_coup.titre">Vos pièces sont en place</h2>
-      <div class="pos-init-texte" data-i18n-html="lichess.attente_premier_coup.texte_html">
-        Vous jouez les Blancs — prenez votre temps.<br>
-        La partie ne sera créée chez Lichess qu'après votre premier coup.<br>
-        Jouez-le sur l'échiquier physique quand vous êtes prêt.
-      </div>
-      <div class="pos-init-attente">
-        <div class="pos-init-spinner"></div>
-        <span data-i18n="lichess.attente_premier_coup.en_attente">Jouez votre premier coup sur l'échiquier.</span>
-      </div>
+    <div class="card card-lichess-ready">
+      <h2 class="card-title-lg" data-i18n="lichess.attente_premier_coup.titre">À vous de jouer !</h2>
+      <p class="lichess-ready-message" data-i18n="lichess.attente_premier_coup.en_attente">Jouez votre premier coup sur l'échiquier.</p>
       <!-- Échiquier perdu pendant l'attente du premier coup — reconnexion
            automatique en cours (issue #314, point 2). -->
       <div id="lichess-wait-board-lost-firstmove" class="lichess-info-banner" style="display:none; margin-top:12px;"
