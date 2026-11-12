@@ -827,6 +827,11 @@ function flipBoard() {
     const tmp = topName.textContent; topName.textContent = botName.textContent; botName.textContent = tmp;
     const tmpC = topName.style.color; topName.style.color = botName.style.color; botName.style.color = tmpC;
   }
+  // Les pendules Lichess doivent rester sur la ligne de leur joueur,
+  // comme les noms qui viennent d'être échangés ci-dessus (issue #316,
+  // point 3).
+  _lichessClockRowsSwapped = !_lichessClockRowsSwapped;
+  if (_lichessLastClockData) _lichessRenderClock(_lichessLastClockData);
   // material est géré par updateMaterial() qui tient compte de _boardFlipped
   // Re-rendre la position courante
   const fen = currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -1321,6 +1326,13 @@ socket.on("app_state", (data) => {
   if (posInitLichessBackBtn) posInitLichessBackBtn.style.display = (data.state === "position_initiale" && _gameMode === "lichess") ? "" : "none";
   const screenLichessWaitFirstMove = document.getElementById("screen-lichess-wait-first-move");
   if (screenLichessWaitFirstMove) screenLichessWaitFirstMove.style.display = data.state === "lichess_wait_first_move" ? "flex" : "none";
+  if (data.state === "lichess_wait_first_move") {
+    // L'utilisateur est toujours blanc à ce stade (voir
+    // _wait_first_move_white_lichess) — échiquier en position de départ,
+    // blancs en bas, comme le reste de la partie (issue #316, point 2).
+    _buildBoardPosInit(false, "board-lichess-wait-first-move", "lwfm");
+    renderBoardPosInit("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", "lwfm");
+  }
   const isGame = data.state === "playing" || (data.state === "game_over" && !data.skip) || data.state === "paused";
   if (isGame) _analyseEmpty = false;
   document.getElementById("screen-game").style.display = isGame ? "grid" : "none";
@@ -1739,6 +1751,11 @@ socket.on("init_hh", (data) => {
 let _lichessLevel = 1;
 let _lichessFirstMoveDeadlineSeconds = null;
 let _lichessReplaySettings = null;
+// Vrai quand un retournement manuel (flipBoard) a échangé les rangées de
+// noms haut/bas par rapport à la convention initiale (haut=adversaire,
+// bas=utilisateur) — les pendules doivent suivre (issue #316, point 3).
+let _lichessClockRowsSwapped = false;
+let _lichessLastClockData = null;
 
 function _lichessSetClocksVisible(visible) {
   const clockTop = document.getElementById("clock-top");
@@ -1793,6 +1810,8 @@ socket.on("lichess_init", (data) => {
   _basketSource = "Lichess";
   currentPlayerColor = data.color || "white";
   _lichessLevel = data.level || 1;
+  _lichessClockRowsSwapped = false;
+  _lichessLastClockData = null;
   _pendingMove = null;
   reviewFens  = [data.fen || currentFen];
   reviewMoves = [];
@@ -1879,25 +1898,37 @@ socket.on("lichess_position_ok", () => {
   if (waitBanner) waitBanner.style.display = "none";
 });
 
-socket.on("lichess_clock", (data) => {
+// player-row-top montre l'adversaire et player-row-bottom l'utilisateur
+// (voir lichess_init), sauf retournement manuel des noms via flipBoard()
+// (_lichessClockRowsSwapped) — indépendant de _boardFlipped, qui ne
+// retourne que le dessin de l'échiquier lui-même (issue #316, point 3).
+function _lichessRenderClock(data) {
   const clockTop = document.getElementById("clock-top");
   const clockBottom = document.getElementById("clock-bottom");
-  // player-row-top montre toujours l'adversaire et player-row-bottom
-  // l'utilisateur (voir lichess_init) — indépendant de _boardFlipped,
-  // qui ne retourne que le dessin de l'échiquier lui-même.
   const whiteMs = data.white_ms, blackMs = data.black_ms;
-  const topMs    = currentPlayerColor === "white" ? blackMs : whiteMs;
-  const bottomMs = currentPlayerColor === "white" ? whiteMs : blackMs;
+  const opponentMs = currentPlayerColor === "white" ? blackMs : whiteMs;
+  const userMs     = currentPlayerColor === "white" ? whiteMs : blackMs;
+  const topMs    = _lichessClockRowsSwapped ? userMs : opponentMs;
+  const bottomMs = _lichessClockRowsSwapped ? opponentMs : userMs;
+  // Vrai si c'est le tour du joueur actuellement affiché en haut.
+  const topIsTurn = _lichessClockRowsSwapped
+    ? (data.turn === currentPlayerColor)
+    : (data.turn !== currentPlayerColor);
   if (clockTop) {
     clockTop.textContent = _lichessFormatClock(topMs);
-    clockTop.classList.toggle("is-turn", data.turn !== currentPlayerColor);
+    clockTop.classList.toggle("is-turn", topIsTurn);
     clockTop.classList.toggle("is-low", topMs < 20000);
   }
   if (clockBottom) {
     clockBottom.textContent = _lichessFormatClock(bottomMs);
-    clockBottom.classList.toggle("is-turn", data.turn === currentPlayerColor);
+    clockBottom.classList.toggle("is-turn", !topIsTurn);
     clockBottom.classList.toggle("is-low", bottomMs < 20000);
   }
+}
+
+socket.on("lichess_clock", (data) => {
+  _lichessLastClockData = data;
+  _lichessRenderClock(data);
 });
 
 socket.on("lichess_reconnecting", () => {
@@ -1963,6 +1994,12 @@ socket.on("lichess_draw_refused", () => {
   afficherToast(t("toast.lichess_draw_refused"), "warning");
   const btnNulle = document.getElementById("btn-nulle");
   if (btnNulle) btnNulle.disabled = false;
+  const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
+  if (drawWaitMsg) drawWaitMsg.style.display = "none";
+});
+
+socket.on("lichess_draw_accepted", () => {
+  afficherToast(t("toast.lichess_draw_accepted"), "info");
   const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
   if (drawWaitMsg) drawWaitMsg.style.display = "none";
 });
@@ -2285,8 +2322,8 @@ function _viderAnalyse() {
 // écran) ne reconstruit que l'ordre des cases dans le DOM, pas leur
 // contenu : renderBoardPosInit() peint toujours par id `pi-{file}-{rank}`,
 // indépendamment de l'orientation.
-function _buildBoardPosInit(flipped) {
-  const board = document.getElementById("board-pos-init");
+function _buildBoardPosInit(flipped, boardId = "board-pos-init", cellPrefix = "pi") {
+  const board = document.getElementById(boardId);
   if (!board) return;
   board.innerHTML = "";
   const rankOrder = flipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
@@ -2295,20 +2332,20 @@ function _buildBoardPosInit(flipped) {
     for (const file of fileOrder) {
       const sq = document.createElement("div");
       sq.className = `square ${(rank + file) % 2 === 1 ? 'light' : 'dark'}`;
-      sq.id = `pi-${file}-${rank}`;
+      sq.id = `${cellPrefix}-${file}-${rank}`;
       board.appendChild(sq);
     }
   }
 }
 
-function renderBoardPosInit(fen) {
+function renderBoardPosInit(fen, cellPrefix = "pi") {
   const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
   const grid        = fenToBoard(fen);
   const gridInit    = fenToBoard(INITIAL_FEN);
   for (let rank = 7; rank >= 0; rank--) {
     for (let file = 0; file < 8; file++) {
       const id  = `${file}-${rank}`;
-      const sq  = document.getElementById(`pi-${id}`);
+      const sq  = document.getElementById(`${cellPrefix}-${id}`);
       if (!sq) continue;
       const piece = grid[id];
       sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";

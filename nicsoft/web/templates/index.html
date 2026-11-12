@@ -1860,21 +1860,40 @@
   <div class="connecting-spinner"></div>
 </div>
 
-<!-- ── Lichess (blancs) : attente du premier coup physique avant création de la partie — issue #311, point 1 ── -->
-<div id="screen-lichess-wait-first-move" class="screen-connecting" style="display:none;">
-  <div class="connecting-icon">♟</div>
-  <div class="connecting-msg" data-i18n="lichess.attente_premier_coup.titre">Vos pièces sont en place</div>
-  <div class="connecting-sub" data-i18n-html="lichess.attente_premier_coup.texte_html">
-    Vous jouez les Blancs — prenez votre temps.<br>
-    La partie ne sera créée chez Lichess qu'après votre premier coup.<br>
-    Jouez-le sur l'échiquier physique quand vous êtes prêt.
+<!-- ── Lichess (blancs) : attente du premier coup physique avant création de la partie — issue #311, point 1 ; échiquier visible en position de départ, orienté comme le reste de la partie (l'utilisateur est toujours blanc à ce stade), contraste du titre — issue #316, point 2 ── -->
+<div id="screen-lichess-wait-first-move" class="screen-board-layout" style="display:none;">
+  <!-- Colonne gauche vide -->
+  <div></div>
+  <!-- Échiquier centré, position de départ, blancs en bas -->
+  <div class="pos-init-board-col">
+    <div class="pos-init-label">
+      <span>♟</span><span data-i18n="pos_init.adversaire">Adversaire</span>
+    </div>
+    <div id="board-lichess-wait-first-move"></div>
+    <div class="pos-init-label">
+      <span>♙</span><span data-i18n="pos_init.joueur">Joueur</span>
+    </div>
   </div>
-  <div class="connecting-spinner"></div>
-  <!-- Échiquier perdu pendant l'attente du premier coup — reconnexion
-       automatique en cours (issue #314, point 2). -->
-  <div id="lichess-wait-board-lost-firstmove" class="lichess-info-banner" style="display:none; margin-top:12px;"
-       data-i18n="lichess.reconnexion_echiquier">Reconnexion de l'échiquier…</div>
-  <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:20px;">← Retour au menu</button>
+  <!-- Panel droit -->
+  <div class="pos-init-panel">
+    <div class="card">
+      <h2 class="card-title-lg" data-i18n="lichess.attente_premier_coup.titre">Vos pièces sont en place</h2>
+      <div class="pos-init-texte" data-i18n-html="lichess.attente_premier_coup.texte_html">
+        Vous jouez les Blancs — prenez votre temps.<br>
+        La partie ne sera créée chez Lichess qu'après votre premier coup.<br>
+        Jouez-le sur l'échiquier physique quand vous êtes prêt.
+      </div>
+      <div class="pos-init-attente">
+        <div class="pos-init-spinner"></div>
+        <span data-i18n="lichess.attente_premier_coup.en_attente">Jouez votre premier coup sur l'échiquier.</span>
+      </div>
+      <!-- Échiquier perdu pendant l'attente du premier coup — reconnexion
+           automatique en cours (issue #314, point 2). -->
+      <div id="lichess-wait-board-lost-firstmove" class="lichess-info-banner" style="display:none; margin-top:12px;"
+           data-i18n="lichess.reconnexion_echiquier">Reconnexion de l'échiquier…</div>
+      <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:20px;">← Retour au menu</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── Lichess : fin de partie inattendue (annulation, etc.) — jamais silencieuse (issue #311, point 3) ── -->

@@ -809,7 +809,7 @@
       color: #1a2a3a;
     }
 
-    #board, #rv-board, #board-pos-init, #retrans-board, #ex-board, #labo-board, #expl-board {
+    #board, #rv-board, #board-pos-init, #board-lichess-wait-first-move, #retrans-board, #ex-board, #labo-board, #expl-board {
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       overflow: hidden;

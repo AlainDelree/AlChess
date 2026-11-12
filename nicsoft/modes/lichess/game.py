@@ -452,6 +452,13 @@ class LichessGame(threading.Thread):
     def _check_finished(self, status: str, winner: str) -> None:
         if self.game_over or not is_game_over(status):
             return
+        if self._my_draw_offer_pending and status in _FINISHED_DRAW:
+            # Notre propre offre a mené à la nulle (acceptée par
+            # l'adversaire) — état distinct du refus, affiché avant l'écran
+            # de fin de partie (issue #316, point 1).
+            self._my_draw_offer_pending = False
+            logger.info("Lichess : nulle acceptée (proposée par %s).", self.player_name)
+            send_event("lichess_draw_accepted", {})
         self._status = status
         self._winner = winner
         self._aborted = status == "aborted"
@@ -702,7 +709,13 @@ class LichessGame(threading.Thread):
 
     def _submit_move(self, uci: str) -> None:
         try:
-            self.client.play_move(self.game_id, uci)
+            # Une offre de nulle en attente doit partir AVEC ce coup
+            # (paramètre offeringDraw) pour rester valable : sans lui,
+            # Lichess annule silencieusement notre propre offre dès que
+            # nous jouons, et le prochain gameState (wdraw/bdraw à False)
+            # serait alors interprété à tort comme un refus de l'adversaire
+            # (issue #316, point 1).
+            self.client.play_move(self.game_id, uci, offer_draw=self._my_draw_offer_pending)
             now = time.monotonic()
             elapsed_ms = int((now - self._last_move_event_ts) * 1000)
             self._last_move_event_ts = now
