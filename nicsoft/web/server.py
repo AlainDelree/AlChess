@@ -411,6 +411,15 @@ def debug_mode_status():
     from flask import jsonify
     return jsonify({"debug": DEBUG_MODE})
 
+@app.route("/instance_status")
+def instance_status():
+    """Statut minimal de cette instance — interrogé en local par une
+    nouvelle instance qui démarre (issue #320), pour décider si une partie
+    est en cours ici avant de la remplacer. Aucun secret exposé."""
+    _require_allowed_host()
+    from flask import jsonify
+    return jsonify({"pid": os.getpid(), "port": _server_port, "state": _app_state})
+
 @app.route("/toggle-autoupdate", methods=["POST"])
 def toggle_autoupdate():
     """Active/désactive les mises à jour automatiques du launcher (issue #91).

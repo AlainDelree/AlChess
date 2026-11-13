@@ -11,10 +11,12 @@ import socket
 import signal
 import atexit
 import logging
+from datetime import datetime
 from nicsoft.config import APP_DIR, LOGS_DIR
 from nicsoft.platform_utils import stop_modem_manager, start_modem_manager
 from nicsoft.web.server import start_server, set_app_state, get_menu_action, send_event, set_virtual_board
 from nicsoft.web import server as web_server
+from nicsoft.web import single_instance
 import nicsoft.core.game_manager as gm
 from nicsoft.core.board_adapter import create_board
 from nicsoft.core import ihm_port
@@ -163,7 +165,6 @@ def _setup_logging():
     else:
         _timing_logger.setLevel(logging.CRITICAL)
 
-    from datetime import datetime
     debug_tag = " [DEBUG]" if level == "DEBUG" else ""
     marker = f"\n{'='*60}\n=== DÉMARRAGE{debug_tag} — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n{'='*60}\n"
     with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -391,10 +392,20 @@ def _check_retranscription_session():
 
 def main():
     _setup_logging()
+    can_start, abort_message = single_instance.resolve_startup()
+    if not can_start:
+        print(abort_message, flush=True)
+        logging.getLogger("niclink").warning(abort_message)
+        return
     _register_modem_manager_shutdown_handlers()
     _stop_modem_manager()
     print("=== NicLink ===")
     _port = _find_free_port(5000)
+    _pid = os.getpid()
+    single_instance.write_marker(_pid, _port, datetime.now().isoformat())
+    atexit.register(single_instance.remove_marker, _pid)
+    print(f"[NicLink] PID {_pid} — port {_port}", flush=True)
+    logging.getLogger("niclink").info(f"[NicLink] PID {_pid} — port {_port}")
     threading.Thread(target=start_server, kwargs={"host": "127.0.0.1", "port": _port}, daemon=True).start()
     time.sleep(0.5)  # laisser Flask démarrer
     _maybe_open_browser(f"http://127.0.0.1:{_port}")
