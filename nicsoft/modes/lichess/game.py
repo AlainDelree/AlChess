@@ -147,6 +147,47 @@ def first_move_deadline_s(expiration: dict, elapsed_s: float):
     return max(0.0, millis / 1000.0 - max(0.0, elapsed_s))
 
 
+# Reproduction de modules/game/src/main/Game.scala::timeForFirstMove (lila,
+# branche master lue le 2026-11-13 via `gh search code`/`curl raw.githubusercontent.com`)
+# — délai (hors tournoi, variante standard) avant annulation automatique du
+# premier coup, selon la cadence déduite de chess.Speed (scalachess,
+# core/src/main/scala/Speed.scala::byTime, bornes en secondes). Utilisé
+# UNIQUEMENT quand Lichess n'envoie pas le champ `expiration` (issue #321,
+# point 6) : l'estimation reste approximative (dépend du code Lichess au
+# moment de la lecture, non versionné ici) — jamais présentée comme exacte
+# côté interface (voir app.js, "premier_coup_decompte_estime").
+_FIRST_MOVE_TIMEOUT_BY_SPEED = {
+    "ultraBullet": 15.0, "bullet": 20.0, "blitz": 25.0, "rapid": 30.0,
+}
+_FIRST_MOVE_TIMEOUT_DEFAULT_S = 35.0  # classical / correspondence
+
+
+def speed_key_for_clock(clock_limit_s: int, clock_increment_s: int) -> str:
+    """Catégorie de cadence Lichess (chess.Speed::byTime) déduite du temps
+    total estimé (limite + 40 × incrément, comme Clock.Config::
+    estimateTotalSeconds côté scalachess)."""
+    estimate_s = clock_limit_s + 40 * clock_increment_s
+    if estimate_s < 30:
+        return "ultraBullet"
+    if estimate_s < 180:
+        return "bullet"
+    if estimate_s < 480:
+        return "blitz"
+    if estimate_s < 1500:
+        return "rapid"
+    return "classical"
+
+
+def estimated_first_move_deadline_s(clock_limit_s: int, clock_increment_s: int) -> float:
+    """Estimation locale (jamais envoyée par Lichess) du délai avant
+    annulation automatique du premier coup — voir _FIRST_MOVE_TIMEOUT_BY_SPEED
+    ci-dessus pour la source. Toujours présentée comme approximative côté
+    interface (issue #321, point 6)."""
+    return _FIRST_MOVE_TIMEOUT_BY_SPEED.get(
+        speed_key_for_clock(clock_limit_s, clock_increment_s), _FIRST_MOVE_TIMEOUT_DEFAULT_S,
+    )
+
+
 def opponent_pgn_name(level: int) -> str:
     """Nom de l'adversaire pour les en-têtes PGN — convention Lichess,
     jamais vide ni « None » (issue #309, point 2)."""
@@ -229,8 +270,16 @@ class LichessGame(threading.Thread):
         self._reset_target_fen = None
         self._pending_promotion = None
         self._last_position_error_ts = 0.0
+        self._last_position_wait_kind = None
         self._last_illegal_fen = None
         self._illegal_stable_count = 0
+        self._illegal_position_active = False
+
+        # Tour utilisateur prêt à agir (issue #321, point 1) : trait de
+        # l'utilisateur ET position physique alignée — condition
+        # d'activation des boutons Abandonner/Proposer nulle côté
+        # interface, poussée par _sync_turn_ready() à chaque changement.
+        self._turn_ready = False
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
@@ -325,6 +374,7 @@ class LichessGame(threading.Thread):
                 if not self.game_over:
                     self._request_resign_or_abort(reason="retour au menu demandé par l'utilisateur")
                 self.game_over = True
+                self._sync_turn_ready()
                 continue
             if self.game_over:
                 continue
@@ -335,6 +385,7 @@ class LichessGame(threading.Thread):
                 )
                 if self._request_resign_or_abort(reason="bouton Abandonner demandé par l'utilisateur"):
                     self.game_over = True
+                    self._sync_turn_ready()
             elif atype == "lichess_propose_draw":
                 if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
                     self._my_draw_offer_pending = True
@@ -414,18 +465,23 @@ class LichessGame(threading.Thread):
         if self._status in ("created", "started"):
             self._status = "unknownFinish"
         self.game_over = True
+        self._sync_turn_ready()
 
     def _log_game_state_received(self, state: dict) -> None:
         """Journal de diagnostic (issue #318) : rien de secret ici — statut,
         nombre de coups et les deux indicateurs de nulle bruts envoyés par
         Lichess, pour pouvoir confirmer a posteriori ce qu'il envoie
-        réellement juste après notre propre coup."""
+        réellement juste après notre propre coup. `expiration` (issue #321,
+        point 6) est journalisé brut, présent ou non, pour savoir si/quand
+        Lichess l'envoie réellement — observé absent lors de l'essai réel
+        d'Alain du 13/11/2026 ayant motivé l'estimation locale de repli."""
         logger.info(
-            "Lichess : état reçu (coups=%d, statut=%s, wdraw=%s, bdraw=%s).",
+            "Lichess : état reçu (coups=%d, statut=%s, wdraw=%s, bdraw=%s, expiration=%s).",
             len(moves_from_state(state)),
             state.get("status", self._status),
             bool(state.get("wdraw")),
             bool(state.get("bdraw")),
+            state.get("expiration"),
         )
 
     def _apply_game_full(self, event: dict) -> None:
