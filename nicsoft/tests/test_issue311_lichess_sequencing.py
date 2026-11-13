@@ -338,6 +338,12 @@ def test_decompte_premier_coup_apparait_avec_expiration(monkeypatch):
 
 
 def test_decompte_premier_coup_sans_champ_expiration(monkeypatch):
+    """Depuis l'issue #321 (point 6) : en l'absence du champ `expiration`,
+    le décompte utilise une estimation locale déduite de la cadence (ici
+    900s+10 => "rapid" => 30s, voir _FIRST_MOVE_TIMEOUT_BY_SPEED dans
+    nicsoft/modes/lichess/game.py, vérifié contre lila/scalachess master),
+    jamais plus un décompte absent (comportement de l'issue #311 avant
+    #321)."""
     game, events, _, _ = _make_bare_game(monkeypatch)
     game._apply_game_full({
         "white": {"aiLevel": 1}, "black": {"id": "alain"},
@@ -345,7 +351,8 @@ def test_decompte_premier_coup_sans_champ_expiration(monkeypatch):
     })
     deadline_events = [d for t, d in events if t == "lichess_first_move_deadline"]
     assert deadline_events and deadline_events[-1]["active"] is True
-    assert deadline_events[-1]["seconds"] is None
+    assert deadline_events[-1]["seconds"] == 30.0
+    assert deadline_events[-1]["estimated"] is True
 
 
 def test_decompte_premier_coup_disparait_apres_le_coup_utilisateur(monkeypatch):

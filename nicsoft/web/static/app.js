@@ -1706,6 +1706,11 @@ socket.on("init", (data) => {
   }
   document.getElementById("historique").innerHTML = "";
   hideFeedback();
+  // Toujours actifs hors Lichess (issue #321, point 1 ne s'applique qu'au
+  // mode Lichess) — repli explicite si une partie Lichess précédente les
+  // avait laissés désactivés (ex. abandon via "Retour au menu", qui ne
+  // déclenche pas toujours _lichessHideStatusBanners()).
+  _lichessSetActionButtons(true, true, false);
 });
 
 socket.on("init_hh", (data) => {
@@ -1744,12 +1749,26 @@ socket.on("init_hh", (data) => {
   renderBoard(currentFen, null, null, null, null, null, null);
   hideFeedback();
   document.getElementById("historique").innerHTML = "";
+  _lichessSetActionButtons(true, true, false);
 });
 
 // ── LICHESS — partie amicale contre l'IA (issue #309) ─────
 
 let _lichessLevel = 1;
 let _lichessFirstMoveDeadlineSeconds = null;
+// Vrai quand le compte à rebours affiché est une estimation locale (issue
+// #321, point 6 — Lichess n'envoie pas toujours `expiration`), jamais
+// présenté comme exact dans ce cas (texte "environ").
+let _lichessFirstMoveDeadlineEstimated = false;
+let _lichessFirstMoveDeadlineBannerActive = false;
+// Position physique ni attendue ni un coup légal pendant le tour de
+// l'utilisateur (issue #321, point 5) — remplace la phrase du premier
+// coup tant qu'elle est active, et pilote les cases rouges sur l'échiquier.
+let _lichessIllegalPositionActive = false;
+// Vrai entre une offre de nulle refusée par l'adversaire et le coup
+// suivant de l'utilisateur (issue #321, point 3) — le bandeau doit rester
+// visible au moins jusque-là, pas seulement quelques secondes.
+let _lichessDrawBannerPendingClearOnOwnMove = false;
 let _lichessReplaySettings = null;
 // Vrai quand un retournement manuel (flipBoard) a échangé les rangées de
 // noms haut/bas par rapport à la convention initiale (haut=adversaire,
@@ -1778,10 +1797,37 @@ function _lichessHideStatusBanners() {
   });
   const waitBanner = document.getElementById("lichess-position-wait");
   if (waitBanner) waitBanner.style.display = "none";
+  const illegalBanner = document.getElementById("lichess-illegal-position");
+  if (illegalBanner) illegalBanner.style.display = "none";
   const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
   if (drawWaitMsg) drawWaitMsg.style.display = "none";
   _lichessFirstMoveDeadlineSeconds = null;
+  _lichessFirstMoveDeadlineEstimated = false;
+  _lichessFirstMoveDeadlineBannerActive = false;
+  _lichessIllegalPositionActive = false;
+  _lichessDrawBannerPendingClearOnOwnMove = false;
+  _lichessSetActionButtons(true, true, false);
 }
+
+// Boutons Abandonner/Proposer nulle (issue #321, points 1 et 2) — l'état
+// (activé/désactivé) vient toujours du serveur (lichess_action_buttons,
+// seule source de vérité du déroulement de la partie) ; jamais recalculé
+// ici à partir d'autres signaux, pour que les exceptions de sécurité
+// restent cohérentes avec LichessGame._compute_action_buttons().
+function _lichessSetActionButtons(resignEnabled, drawEnabled, showHint) {
+  const btnResign = document.getElementById("btn-resign");
+  const btnNulle = document.getElementById("btn-nulle");
+  if (btnResign) btnResign.disabled = !resignEnabled;
+  if (btnNulle) btnNulle.disabled = !drawEnabled;
+  const hint = document.getElementById("lichess-actions-hint");
+  if (hint) hint.style.display = showHint ? "" : "none";
+}
+
+socket.on("lichess_action_buttons", (data) => {
+  const resignEnabled = !!data.resign_enabled;
+  const drawEnabled = !!data.draw_enabled;
+  _lichessSetActionButtons(resignEnabled, drawEnabled, !resignEnabled || !drawEnabled);
+});
 
 function _lichessShowBanner(id, show) {
   const el = document.getElementById(id);
@@ -1852,12 +1898,18 @@ socket.on("lichess_init", (data) => {
   const btnQuit = document.getElementById("btn-quit-game");
   if (btnQuit) btnQuit.style.display = "none";
   const btnNulle = document.getElementById("btn-nulle");
-  if (btnNulle) { btnNulle.textContent = t("game.btn.nulle"); btnNulle.disabled = false; }
+  if (btnNulle) btnNulle.textContent = t("game.btn.nulle");
   document.getElementById("turn-info").textContent = t("game.en_attente");
   document.getElementById("historique").innerHTML = "";
   hideFeedback();
   _lichessSetClocksVisible(true);
   _lichessHideStatusBanners();
+  // Désactivés par défaut (issue #321, point 1), même au tout début de
+  // partie — le premier lichess_action_buttons envoyé juste après par le
+  // serveur (dans la même fonction Python _apply_game_full) corrige
+  // immédiatement vers l'état réel (tour + position physique), pour les
+  // noirs comme pour les blancs.
+  _lichessSetActionButtons(false, false, true);
   const abortedOverlay = document.getElementById("lichess-aborted-overlay");
   if (abortedOverlay) abortedOverlay.style.display = "none";
 });
@@ -1886,6 +1938,14 @@ socket.on("lichess_move", (data) => {
   turnInfo.className = data.color;
   const waitBanner = document.getElementById("lichess-position-wait");
   if (waitBanner) waitBanner.style.display = data.opponent_move ? "" : "none";
+  // Le message de nulle refusée (issue #321, point 3) doit rester visible
+  // au moins jusqu'au coup suivant DE L'UTILISATEUR — pas jusqu'au premier
+  // coup venu (qui serait celui de l'adversaire qu'on vient de reproduire).
+  if (_lichessDrawBannerPendingClearOnOwnMove && !data.opponent_move) {
+    _lichessDrawBannerPendingClearOnOwnMove = false;
+    const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
+    if (drawWaitMsg) drawWaitMsg.style.display = "none";
+  }
 });
 
 socket.on("lichess_position_wait", () => {
@@ -1896,6 +1956,27 @@ socket.on("lichess_position_wait", () => {
 socket.on("lichess_position_ok", () => {
   const waitBanner = document.getElementById("lichess-position-wait");
   if (waitBanner) waitBanner.style.display = "none";
+});
+
+// Position physique ni attendue ni un coup légal pendant le tour de
+// l'utilisateur (issue #321, point 5) — message dédié (jamais le texte
+// générique de lichess_position_wait, pensé pour reproduire le coup
+// adverse) et cases à corriger en rouge sur l'échiquier, en réutilisant
+// l'affichage existant renderBoardWithErrors() (déjà utilisé par la pause
+// auto et le labo pour le même besoin).
+socket.on("lichess_illegal_position", (data) => {
+  _lichessIllegalPositionActive = !!data.active;
+  const el = document.getElementById("lichess-illegal-position");
+  if (el) {
+    el.textContent = t("lichess.position_incorrecte");
+    el.style.display = _lichessIllegalPositionActive ? "" : "none";
+  }
+  if (_lichessIllegalPositionActive) {
+    renderBoardWithErrors(data.expected_fen, data.physical_fen);
+  } else if (currentFen) {
+    renderBoard(currentFen, null, null, null, null, null, null);
+  }
+  _lichessShowBanner("lichess-first-move-deadline", _lichessFirstMoveDeadlineBannerActive && !_lichessIllegalPositionActive);
 });
 
 // player-row-top montre l'adversaire et player-row-bottom l'utilisateur
@@ -1982,43 +2063,71 @@ socket.on("lichess_toast", (data) => {
   afficherToast(data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""), data.type || "info");
 });
 
+// ── Nulle : message persistant près de « Tour en cours » (issue #321,
+// point 3) — remplace les anciens messages éphémères, reste affiché
+// jusqu'au coup suivant de l'utilisateur ou la fin de partie, jamais
+// seulement quelques secondes. Un seul bandeau (#lichess-draw-wait-msg)
+// réutilisé pour les 3 états plutôt qu'un second élément.
+function _lichessShowDrawBanner(key, danger) {
+  const el = document.getElementById("lichess-draw-wait-msg");
+  if (!el) return;
+  el.textContent = t(key);
+  el.classList.toggle("lichess-banner-danger", !!danger);
+  el.style.display = "";
+}
+
 socket.on("lichess_draw_proposed", () => {
   afficherToast(t("toast.lichess_draw_sent"), "info");
-  const btnNulle = document.getElementById("btn-nulle");
-  if (btnNulle) btnNulle.disabled = true;
-  const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
-  if (drawWaitMsg) drawWaitMsg.style.display = "";
+  // Le texte dit explicitement que la réponse vient APRÈS le coup de
+  // l'utilisateur, pas avant (confusion réelle d'Alain le 13/11/2026 : il
+  // croyait que le coup adverse à reproduire juste après avoir proposé
+  // était déjà la réponse).
+  _lichessShowDrawBanner("lichess.nulle_attente_reponse", false);
 });
 
 socket.on("lichess_draw_refused", () => {
   afficherToast(t("toast.lichess_draw_refused"), "warning");
-  const btnNulle = document.getElementById("btn-nulle");
-  if (btnNulle) btnNulle.disabled = false;
-  const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
-  if (drawWaitMsg) drawWaitMsg.style.display = "none";
+  _lichessShowDrawBanner("lichess.nulle_refusee_banner", true);
+  _lichessDrawBannerPendingClearOnOwnMove = true;
 });
 
 socket.on("lichess_draw_accepted", () => {
   afficherToast(t("toast.lichess_draw_accepted"), "info");
-  const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
-  if (drawWaitMsg) drawWaitMsg.style.display = "none";
+  _lichessShowDrawBanner("lichess.nulle_acceptee_banner", false);
 });
 
 // ── Compte à rebours du premier coup (noirs) — issue #311, point 2 ───────
+// Issue #321, point 6 : estimation locale (jamais présentée comme exacte,
+// texte "environ") quand Lichess n'envoie pas `expiration` ; en rouge à
+// environ 5 secondes, exact ou estimé.
 
 function _lichessRenderFirstMoveDeadline() {
   const el = document.getElementById("lichess-first-move-deadline");
   if (!el) return;
-  el.textContent = (_lichessFirstMoveDeadlineSeconds === null || _lichessFirstMoveDeadlineSeconds === undefined)
-    ? t("lichess.premier_coup_sans_decompte")
-    : t("lichess.premier_coup_decompte", { seconds: Math.max(0, Math.round(_lichessFirstMoveDeadlineSeconds)) });
+  const seconds = _lichessFirstMoveDeadlineSeconds;
+  if (seconds === null || seconds === undefined) {
+    el.textContent = t("lichess.premier_coup_sans_decompte");
+    el.classList.remove("lichess-banner-danger");
+    return;
+  }
+  const key = _lichessFirstMoveDeadlineEstimated
+    ? "lichess.premier_coup_decompte_estime"
+    : "lichess.premier_coup_decompte";
+  el.textContent = t(key, { seconds: Math.max(0, Math.round(seconds)) });
+  el.classList.toggle("lichess-banner-danger", seconds <= 5);
 }
 
 socket.on("lichess_first_move_deadline", (data) => {
   const active = !!data.active;
   _lichessFirstMoveDeadlineSeconds = active ? (data.seconds ?? null) : null;
+  _lichessFirstMoveDeadlineEstimated = active ? !!data.estimated : false;
+  _lichessFirstMoveDeadlineBannerActive = active;
   if (active) _lichessRenderFirstMoveDeadline();
-  _lichessShowBanner("lichess-first-move-deadline", active);
+  // Remplacée par le message de position incorrecte tant qu'il est actif
+  // (issue #321, point 5 : Alain n'a vu, lors de son coup noir illégal,
+  // que cette phrase de premier coup — jamais d'indication claire sur ce
+  // qui n'allait pas sur l'échiquier).
+  _lichessShowBanner("lichess-first-move-deadline", active && !_lichessIllegalPositionActive);
 });
 
 // ── Fin de partie inattendue — jamais silencieuse (issue #311, point 3) ──

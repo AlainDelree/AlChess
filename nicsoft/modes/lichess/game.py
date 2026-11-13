@@ -270,16 +270,18 @@ class LichessGame(threading.Thread):
         self._reset_target_fen = None
         self._pending_promotion = None
         self._last_position_error_ts = 0.0
-        self._last_position_wait_kind = None
         self._last_illegal_fen = None
         self._illegal_stable_count = 0
         self._illegal_position_active = False
+        self._last_illegal_position_sent_fen = None
 
-        # Tour utilisateur prêt à agir (issue #321, point 1) : trait de
-        # l'utilisateur ET position physique alignée — condition
-        # d'activation des boutons Abandonner/Proposer nulle côté
-        # interface, poussée par _sync_turn_ready() à chaque changement.
-        self._turn_ready = False
+        # Boutons Abandonner/Proposer nulle (issue #321, point 1) : état
+        # (resign_enabled, draw_enabled) poussé côté interface par
+        # _sync_turn_ready() à chaque changement — jamais recalculé côté
+        # navigateur, pour que les exceptions de sécurité (point 2) restent
+        # cohérentes avec la seule source de vérité du déroulement de la
+        # partie (ce thread).
+        self._action_buttons_state = (False, False)
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
@@ -287,6 +289,9 @@ class LichessGame(threading.Thread):
         self._first_move_expiration = None
         self._first_move_expiration_ref = time.monotonic()
         self._first_move_deadline_active = False
+        # Non None seulement quand Lichess n'envoie pas `expiration` (issue
+        # #321, point 6) — estimation locale, jamais présentée comme exacte.
+        self._first_move_deadline_estimate_total_s = None
         self._last_move_event_ts = time.monotonic()
 
         self._clock_white_ms = float(clock_limit_s * 1000)
@@ -517,6 +522,7 @@ class LichessGame(threading.Thread):
                 logger.debug("Signal sonore (premier coup IA, Lichess) échoué : %s", exc)
         self._maybe_activate_first_move_deadline(state)
         self._check_finished(state.get("status", "started"), state.get("winner", ""))
+        self._sync_turn_ready()
 
     def _apply_game_state(self, event: dict) -> None:
         self._log_game_state_received(event)
@@ -552,6 +558,7 @@ class LichessGame(threading.Thread):
                 )
                 send_event("lichess_draw_refused", {})
         self._check_finished(status, event.get("winner", ""))
+        self._sync_turn_ready()
 
     def _check_finished(self, status: str, winner: str) -> None:
         if self.game_over or not is_game_over(status):
@@ -567,6 +574,7 @@ class LichessGame(threading.Thread):
         self._winner = winner
         self._aborted = status == "aborted"
         self.game_over = True
+        self._sync_turn_ready()
 
     def _apply_new_moves(self, state: dict, initial: bool = False):
         """Applique les coups non encore vus. Retourne la couleur de
@@ -607,13 +615,28 @@ class LichessGame(threading.Thread):
             self._awaiting_piece_reset = False
             if self._first_move_deadline_active:
                 self._first_move_deadline_active = False
+                self._first_move_deadline_estimate_total_s = None
                 send_event("lichess_first_move_deadline", {"active": False})
         return last_mover_color
+
+    def _first_move_deadline_seconds_and_estimated(self, elapsed_s: float):
+        """Secondes restantes et indicateur « estimation » (issue #321,
+        point 6) — exact si Lichess envoie `expiration`, sinon déduit de
+        `_FIRST_MOVE_TIMEOUT_BY_SPEED` (voir estimated_first_move_deadline_s,
+        jamais présenté comme exact côté interface)."""
+        seconds = first_move_deadline_s(self._first_move_expiration, elapsed_s)
+        if seconds is not None:
+            return seconds, False
+        if self._first_move_deadline_estimate_total_s is None:
+            return None, False
+        return max(0.0, self._first_move_deadline_estimate_total_s - elapsed_s), True
 
     def _maybe_activate_first_move_deadline(self, state: dict) -> None:
         """Compte à rebours du premier coup de l'utilisateur (noirs) après
         création de la partie — lu dans le champ `expiration` de Lichess,
-        affiché sans décompte s'il est absent (issue #311, point 2)."""
+        ou, en son absence, estimé localement depuis la cadence (issue
+        #321, point 6 — observé absent lors de l'essai réel d'Alain du
+        13/11/2026 ayant motivé cette estimation de repli)."""
         if self._first_move_deadline_active or self.game_over:
             return
         if self.user_color != "black" or self._moves_applied != 1:
@@ -621,9 +644,17 @@ class LichessGame(threading.Thread):
         expiration = (state or {}).get("expiration")
         self._first_move_expiration = expiration
         self._first_move_expiration_ref = time.monotonic()
+        self._first_move_deadline_estimate_total_s = (
+            None if expiration else estimated_first_move_deadline_s(self.clock_limit_s, self.clock_increment_s)
+        )
         self._first_move_deadline_active = True
+        seconds, estimated = self._first_move_deadline_seconds_and_estimated(0.0)
+        logger.info(
+            "Lichess : compte à rebours premier coup activé (expiration=%s, estimation=%s, secondes≈%s).",
+            expiration, estimated, seconds,
+        )
         send_event("lichess_first_move_deadline", {
-            "active": True, "seconds": first_move_deadline_s(expiration, 0.0),
+            "active": True, "seconds": seconds, "estimated": estimated,
         })
 
     def _reset_clock_from_state(self, state: dict) -> None:
@@ -648,9 +679,9 @@ class LichessGame(threading.Thread):
         send_event("lichess_clock", {"white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn})
         if self._first_move_deadline_active:
             deadline_elapsed_s = max(0.0, now - self._first_move_expiration_ref)
+            seconds, estimated = self._first_move_deadline_seconds_and_estimated(deadline_elapsed_s)
             send_event("lichess_first_move_deadline", {
-                "active": True,
-                "seconds": first_move_deadline_s(self._first_move_expiration, deadline_elapsed_s),
+                "active": True, "seconds": seconds, "estimated": estimated,
             })
 
     # ── Plateau physique ─────────────────────────────────────────────────
@@ -723,9 +754,51 @@ class LichessGame(threading.Thread):
         finally:
             self._reconnecting_in_progress = False
 
+    def _compute_action_buttons(self):
+        """(resign_enabled, draw_enabled) — issue #321, points 1 et 2.
+        Abandonner/Proposer nulle ne sont actifs que trait de l'utilisateur
+        ET position physique alignée (ni réplication/recalage/promotion en
+        attente, ni position illégale, ni échiquier perdu). Exceptions de
+        sécurité : Abandonner reste actif si l'échiquier est perdu (jamais
+        bloquer l'utilisateur), Proposer nulle reste inactif tant qu'une
+        offre de l'utilisateur est déjà en attente de réponse."""
+        if self.game_over or self.user_color is None:
+            return False, False
+        user_turn = self.board.turn == (chess.WHITE if self.user_color == "white" else chess.BLACK)
+        position_ok = not (
+            self._awaiting_physical_replication
+            or self._awaiting_piece_reset
+            or self._pending_promotion is not None
+            or self._illegal_position_active
+            or self._board_lost
+        )
+        turn_ready = user_turn and position_ok
+        resign_enabled = turn_ready or self._board_lost
+        draw_enabled = turn_ready and not self._my_draw_offer_pending
+        return resign_enabled, draw_enabled
+
+    def _sync_turn_ready(self) -> None:
+        state = self._compute_action_buttons()
+        if state == self._action_buttons_state:
+            return
+        self._action_buttons_state = state
+        resign_enabled, draw_enabled = state
+        send_event("lichess_action_buttons", {
+            "resign_enabled": resign_enabled, "draw_enabled": draw_enabled,
+        })
+
     def _tick_physical(self) -> None:
         if self.user_color is None or self.game_over:
             return
+        self._tick_physical_inner()
+        # Recalcule systématiquement l'état des boutons Abandonner/Proposer
+        # nulle (issue #321, point 1) — quelle que soit la branche prise
+        # ci-dessus (échiquier perdu, réplication en attente, position
+        # illégale, tour adverse...), jamais seulement sur les transitions
+        # explicites, pour rester vrai à chaque tick (~50ms).
+        self._sync_turn_ready()
+
+    def _tick_physical_inner(self) -> None:
         hardware_fen = self._read_hardware_fen()
         if hardware_fen is None:
             self._register_board_lost()
@@ -788,9 +861,12 @@ class LichessGame(threading.Thread):
         expected = self.board.board_fen()
         if hardware_fen == expected:
             self._illegal_stable_count = 0
+            self._clear_illegal_position()
             return
         promo = pending_promotion_move(self.board, hardware_fen)
         if promo is not None:
+            self._illegal_stable_count = 0
+            self._clear_illegal_position()
             self._pending_promotion = promo
             send_event("lichess_promotion_needed", {
                 "from": chess.square_name(promo[0]), "to": chess.square_name(promo[1]),
@@ -799,6 +875,7 @@ class LichessGame(threading.Thread):
         move = legal_move_for_hardware(self.board, hardware_fen)
         if move is not None:
             self._illegal_stable_count = 0
+            self._clear_illegal_position()
             self._submit_move(move.uci())
             return
         if hardware_fen == self._last_illegal_fen:
@@ -807,7 +884,36 @@ class LichessGame(threading.Thread):
             self._last_illegal_fen = hardware_fen
             self._illegal_stable_count = 1
         if self._illegal_stable_count >= self.ILLEGAL_STABLE_READS_REQUIRED:
-            self._throttled_position_wait(hardware_fen, expected)
+            self._activate_illegal_position(hardware_fen, expected)
+
+    def _activate_illegal_position(self, hardware_fen: str, expected_fen: str) -> None:
+        """Position physique ni attendue ni un coup légal pendant le tour de
+        l'utilisateur — jamais le même message que l'attente de réplication
+        du coup adverse (issue #321, point 5 : Alain a joué d4 au lieu de
+        son coup noir, et n'a vu que la bannière générique « reproduisez le
+        coup », sans savoir quelles cases corriger). Réémis (au même débit
+        que les autres attentes de position) si les cases en erreur
+        changent pendant que l'état reste actif, pour suivre les tentatives
+        de correction de l'utilisateur."""
+        now = time.monotonic()
+        became_active = not self._illegal_position_active
+        changed_fen = hardware_fen != self._last_illegal_position_sent_fen
+        if not became_active and not changed_fen:
+            return
+        if not became_active and now - self._last_position_error_ts < self.POSITION_ERROR_THROTTLE_S:
+            return
+        self._last_position_error_ts = now
+        self._illegal_position_active = True
+        self._last_illegal_position_sent_fen = hardware_fen
+        send_event("lichess_illegal_position", {
+            "active": True, "expected_fen": expected_fen, "physical_fen": hardware_fen,
+        })
+
+    def _clear_illegal_position(self) -> None:
+        if self._illegal_position_active:
+            self._illegal_position_active = False
+            self._last_illegal_position_sent_fen = None
+            send_event("lichess_illegal_position", {"active": False})
 
     def _submit_promotion(self, piece_letter: str) -> None:
         from_sq, to_sq = self._pending_promotion

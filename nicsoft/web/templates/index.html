@@ -690,6 +690,8 @@
         <h2 data-i18n="game.h2.tour">Tour en cours</h2>
         <div id="turn-info">En attente...</div>
         <div id="lichess-position-wait" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reproduisez_coup">Reproduisez le coup sur l'échiquier physique.</div>
+        <div id="lichess-illegal-position" class="lichess-info-banner lichess-banner-danger" style="display:none;"></div>
+        <div id="lichess-draw-wait-msg" class="lichess-info-banner lichess-draw-status-banner" style="display:none;"></div>
       </div>
       <div class="card" id="lichess-status-card" style="display:none;">
         <div id="lichess-reconnecting-banner" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reconnexion">Connexion à Lichess perdue, reconnexion…</div>
@@ -721,9 +723,9 @@
       <div class="card game-actions-card" id="card-actions" style="display:flex;">
         <h2 data-i18n="game.h2.actions">Actions</h2>
         <button class="btn game-btn-pause" id="btn-pause" data-action="pause" data-i18n="game.btn.pause">⏸ Pause</button>
-        <button class="btn btn-warning" data-action="ouvrir_modal_abandonner" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
+        <button class="btn btn-warning" id="btn-resign" data-action="ouvrir_modal_abandonner" data-i18n="game.btn.abandonner">⚐ Abandonner</button>
         <button class="btn game-btn-nulle" id="btn-nulle" data-action="ouvrir_modal_nulle" data-i18n="game.btn.nulle">🤝 Partie Nulle</button>
-        <span id="lichess-draw-wait-msg" class="lichess-info-banner" style="display:none;" data-i18n="lichess.nulle_attente_reponse">Proposition envoyée, réponse au prochain coup de l'adversaire.</span>
+        <span id="lichess-actions-hint" class="lichess-actions-hint" style="display:none;" data-i18n="lichess.boutons_actifs_a_votre_tour">Disponibles à votre tour, une fois la position physique alignée.</span>
         <button class="btn game-btn-quitter" id="btn-quit-game" data-action="quit_modal_moteur" data-i18n="common.retour_menu">← Retour au menu</button>
       </div>
     </div>

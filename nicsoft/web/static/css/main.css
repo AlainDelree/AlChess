@@ -1657,4 +1657,12 @@
 .lichess-clock.is-low { background:#7b1a1a; }
 .lichess-cfg-disclaimer { color:#3a5a7a; font-size:0.9rem; margin:0 0 14px; }
 .lichess-draw-offer-banner, .lichess-promotion-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; }
+/* Messages de nulle persistants (issue #321, point 3) — en gros caractères,
+   près de « Tour en cours », jusqu'au prochain coup ou la fin de partie. */
+.lichess-draw-status-banner { font-size:1.05rem; font-weight:700; }
+/* Variante rouge (position incorrecte, nulle refusée, décompte premier
+   coup < 5s — issue #321, points 3/5/6) — jamais la seule différence
+   visible entre deux états : le texte change aussi. */
+.lichess-info-banner.lichess-banner-danger { background:#e8c2c2; color:#5a1a1a; border-color:#c89090; }
+.lichess-actions-hint { display:block; font-size:0.75rem; color:#5a6b7a; text-align:center; margin-top:6px; }
 .outils-wiki-result { display:none; margin-top:12px; }

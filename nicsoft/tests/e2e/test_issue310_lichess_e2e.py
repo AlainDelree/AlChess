@@ -157,6 +157,15 @@ def at_game_lichess(at_menu):
             "player": "Testeur e2e",
         },
     )
+    # Dans une vraie partie, ce second événement suit lichess_init dans la
+    # même fonction Python (_apply_game_full appelle _sync_turn_ready() en
+    # dernier) : les blancs, à leur tour dès le début, position physique
+    # supposée alignée (issue #321, point 1) — Abandonner/Proposer nulle
+    # actifs. Simulé ici puisque ce test n'exécute pas de vraie boucle
+    # LichessGame côté Python.
+    _declencher_evenement_socket_client(
+        at_menu, "lichess_action_buttons", {"resign_enabled": True, "draw_enabled": True},
+    )
     return at_menu
 
 
@@ -186,8 +195,9 @@ def test_game_lichess_bouton_abandonner_visible(at_game_lichess):
 
 
 def test_game_lichess_bouton_nulle_visible(at_game_lichess):
-    """Le bouton Proposer nulle est visible et activé (lichess_init
-    l'active explicitement : `btnNulle.disabled = false`)."""
+    """Le bouton Proposer nulle est visible et activé une fois le signal
+    serveur lichess_action_buttons reçu (issue #321, point 1 : désactivé
+    par défaut dès lichess_init, jusqu'à ce signal)."""
     btn = at_game_lichess.locator("#btn-nulle")
     assert _dans_la_fenetre(at_game_lichess, "#btn-nulle")
     assert not btn.is_disabled()
