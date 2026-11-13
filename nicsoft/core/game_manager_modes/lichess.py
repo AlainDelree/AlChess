@@ -48,7 +48,7 @@ from nicsoft.modes.lichess.errors import (
     LichessNetworkError,
     LichessRateLimitError,
 )
-from nicsoft.modes.lichess.game_client import GameClient
+from nicsoft.modes.lichess.game_client import GameClient, is_game_over, moves_from_state
 
 logger_lichess = logging.getLogger("niclink.lichess")
 
@@ -62,6 +62,46 @@ CLOCK_PRESETS = {
     "90+30": (5400, 30),
 }
 DEFAULT_CLOCK_PRESET = "15+10"
+
+
+def check_lichess_resumable() -> None:
+    """Détecte une partie Lichess en cours à reprendre (issue #323, point
+    1) — appelée une seule fois à l'ouverture du menu Lichess (jamais en
+    boucle), jamais bloquante pour l'écran (délai court côté
+    get_ongoing_games). Jamais de message alarmant si pas de jeton, pas de
+    réseau ou erreur : simplement aucune proposition de reprise."""
+    token = (load_config().get("lichess_token") or "").strip()
+    if not token:
+        send_event("lichess_resumable", {"available": False})
+        return
+    from nicsoft.modes.lichess.client import get_ongoing_games
+    try:
+        result = get_ongoing_games(token)
+    except Exception as exc:
+        logger_lichess.warning(
+            "Lichess : détection de partie en cours échouée (%s).", type(exc).__name__,
+        )
+        send_event("lichess_resumable", {"available": False})
+        return
+
+    if result.get("status") != "ok" or not result.get("game"):
+        logger_lichess.info(
+            "Lichess : aucune partie en cours proposée à la reprise (statut=%s).",
+            result.get("status"),
+        )
+        send_event("lichess_resumable", {"available": False})
+        return
+
+    game = result["game"]
+    total = result.get("total_candidates", 1)
+    if total > 1:
+        logger_lichess.info(
+            "Lichess : %d partie(s) reprenable(s) détectée(s) — la plus urgente proposée (%s).",
+            total, game["game_id"],
+        )
+    else:
+        logger_lichess.info("Lichess : partie en cours détectée (%s).", game["game_id"])
+    send_event("lichess_resumable", {"available": True, "game": game})
 
 
 class _BackMenuDuringWait(Exception):
@@ -591,5 +631,189 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
                 )
             except Exception as e:
                 logger.warning(f"Déconnexion échiquier échouée (Lichess) : {e}")
+        if web_server._app_state not in ("game_over", "menu"):
+            web_server._app_state = "menu"
+
+
+# ── Reprise d'une partie en cours (issue #323, étape L2b) ───────────────────
+#
+# Livraison limitée au cas le plus simple, comme permis par la consigne en
+# repli (« si la tâche est trop grosse, livrer d'abord la reprise pour une
+# partie contre l'IA ») : seules les parties amicales contre l'IA Lichess,
+# variante standard, sont proposées (voir client.get_ongoing_games). Le
+# mode jouable existant (LichessGame) est réutilisé tel quel pour la partie
+# elle-même — seul l'écran de mise en place (reconstruction de la position
+# physique) est nouveau, porté par LichessGame(resuming=True) et son
+# _tick_resume_setup() (voir modes/lichess/game.py).
+
+
+def _peek_game_full(client: GameClient, game_id: str):
+    """Ouvre le flux de la partie juste le temps de lire le premier
+    gameFull (couleur, niveau IA, cadence, coups déjà joués, statut) —
+    referme explicitement cette connexion avant que LichessGame n'ouvre la
+    sienne pour jouer la partie (deux connexions courtes plutôt qu'une
+    tentative de partage d'un même flux entre ce module et game.py, pour
+    rester simple et robuste). None si le flux se ferme sans jamais envoyer
+    de gameFull (réponse Lichess inattendue)."""
+    stream = client.stream_game(game_id)
+    try:
+        for event in stream:
+            if event.get("type") == "gameFull":
+                return event
+    finally:
+        stream.close()
+    return None
+
+
+def launch_lichess_resume(action: dict) -> None:
+    """Reprend la partie Lichess en cours proposée par check_lichess_resumable()
+    (issue #323, point 3) — même garde d'état et même schéma d'erreurs que
+    launch_lichess()."""
+    current_state = web_server._app_state
+    if current_state not in ("menu", "config_lichess"):
+        logger.info(f"Reprise Lichess refusée : mode déjà actif ({current_state}).")
+        send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
+        return
+
+    game_id = (action.get("game_id") or "").strip()
+    if not game_id:
+        logger.warning("Lichess : reprise demandée sans identifiant de partie — ignorée.")
+        return
+
+    token = (load_config().get("lichess_token") or "").strip()
+    if not token:
+        web_server._app_state = "menu"
+        set_app_state("menu", _menu_toast_data("toast.lichess_no_token"))
+        return
+
+    player_name = (action.get("player") or "Vous").strip() or "Vous"
+    logger_lichess.info(f"Lichess : reprise demandée ({game_id}).")
+
+    web_server._app_state = "connecting"
+    set_app_state("connecting")
+    _error = {"occurred": False, "toast_key": None, "return_to": "menu"}
+    t = threading.Thread(
+        target=_run_lichess_resume, args=(token, game_id, player_name, _error), daemon=True,
+    )
+    t.start()
+    t.join()
+    if _error["occurred"]:
+        time.sleep(1.0)
+        target_state = _error.get("return_to") or "menu"
+        web_server._app_state = target_state
+        set_app_state(target_state, _menu_toast_data(_error["toast_key"] or "toast.lichess_error"))
+    elif web_server._app_state != "game_over":
+        web_server._app_state = "menu"
+        set_app_state("menu")
+    if web_server._app_state == "menu":
+        threading.Thread(target=check_board_presence_silent, daemon=True).start()
+
+
+def _run_lichess_resume(token, game_id, player_name, _error=None):
+    from nicsoft.modes.lichess.game import LichessGame
+
+    nl_inst = None
+    try:
+        client = GameClient(token)
+        full_event = _peek_game_full(client, game_id)
+        if full_event is None:
+            raise LichessNetworkError("réponse Lichess sans état de partie")
+
+        white = full_event.get("white") or {}
+        black = full_event.get("black") or {}
+        user_color = "black" if white.get("aiLevel") is not None else "white"
+        level = (white.get("aiLevel") if user_color == "black" else black.get("aiLevel")) or 1
+        clock = full_event.get("clock") or {}
+        clock_limit_s = int(clock.get("initial") or 0) // 1000
+        clock_increment_s = int(clock.get("increment") or 0) // 1000
+        state = full_event.get("state") or {}
+        status = state.get("status", "started")
+        already_over = is_game_over(status)
+        logger_lichess.info(
+            "Lichess : reprise (%s) — état reçu (couleur=%s, statut=%s, coups=%d).",
+            game_id, user_color, status, len(moves_from_state(state)),
+        )
+
+        nl_inst = _open_board_with_retry("NicLink_lichess")
+        set_nl_inst_ref(nl_inst)
+
+        game = LichessGame(
+            nl_inst, client, game_id, level=level, player_name=player_name,
+            clock_limit_s=clock_limit_s, clock_increment_s=clock_increment_s,
+            chosen_color_setting=user_color, cadence_key="",
+            resuming=not already_over,
+        )
+
+        if already_over:
+            logger_lichess.info(
+                "Lichess : reprise (%s) — partie déjà terminée (statut=%s), enregistrement du PGN final.",
+                game_id, status,
+            )
+        else:
+            logger_lichess.info(
+                "Lichess : reprise (%s) — écran de mise en place (position cible à reconstruire).",
+                game_id,
+            )
+
+        _discard_stale_browser_actions()
+        web_server._app_state = "playing"
+        set_app_state("playing")
+        logger_lichess.info(f"Lichess : reprise démarrée ({game_id}), couleur={user_color}, niveau={level}.")
+        game.start()
+        logger_lichess.info("Lichess : reprise (%s) — jeu normal repris après mise en place.", game_id)
+
+    except _BackMenuDuringWait:
+        pass
+    except LichessAuthError as e:
+        logger_lichess.error(f"Jeton Lichess refusé pendant la reprise (HTTP {e.status_code}).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = ("toast.lichess_missing_scope" if e.status_code == 403
+                                    else "toast.lichess_invalid_token")
+    except LichessRateLimitError:
+        logger_lichess.warning("Limite de requêtes Lichess atteinte (reprise).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_rate_limited"
+    except (LichessNetworkError, LichessApiError) as e:
+        logger_lichess.error(f"Erreur Lichess pendant la reprise de partie : {e}")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_network_error"
+    except SystemExit as e:
+        if "board connection error" in str(e):
+            logger.error("Erreur reprise Lichess : échiquier non détecté.")
+            if _error is not None:
+                _error["occurred"] = True
+                _error["toast_key"] = "toast.board_not_found"
+            send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+    except ConnectionError as e:
+        logger.error(f"Erreur de connexion échiquier (reprise Lichess) : {e}")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.position_timeout" if "Timeout" in str(e) else "toast.board_not_found"
+        send_event("board_error", {"message": str(e)})
+    except Exception as e:
+        logger.error(f"Erreur inattendue pendant la reprise Lichess : {e}")
+        import traceback
+        traceback.print_exc()
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_error"
+        send_event("popup", {"message": f"Erreur : {e}"})
+    finally:
+        if nl_inst:
+            try:
+                nl_inst.turn_off_all_leds()
+            except Exception as e:
+                logger.debug(f"Extinction LEDs (fin reprise Lichess) échouée : {e}")
+            _disconnect_start = time.monotonic()
+            try:
+                nl_inst.disconnect()
+                logger_lichess.info(
+                    f"Lichess : échiquier physique libéré ({time.monotonic() - _disconnect_start:.2f}s)."
+                )
+            except Exception as e:
+                logger.warning(f"Déconnexion échiquier échouée (reprise Lichess) : {e}")
         if web_server._app_state not in ("game_over", "menu"):
             web_server._app_state = "menu"

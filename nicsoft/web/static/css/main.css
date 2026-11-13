@@ -1665,4 +1665,9 @@
    visible entre deux états : le texte change aussi. */
 .lichess-info-banner.lichess-banner-danger { background:#e8c2c2; color:#5a1a1a; border-color:#c89090; }
 .lichess-actions-hint { display:block; font-size:0.75rem; color:#5a6b7a; text-align:center; margin-top:6px; }
+/* Proposition de reprise d'une partie en cours (issue #323, point 2) —
+   « bien en évidence » : fond contrasté, en tête de l'écran Lichess. */
+.lichess-resume-banner { background:#fff3c4; border:2px solid #d9a500; margin-bottom:16px; text-align:center; }
+.lichess-resume-banner h2 { margin-top:0; }
+.lichess-resume-detail { font-size:0.95rem; color:#5a4a1a; margin:6px 0 14px; }
 .outils-wiki-result { display:none; margin-top:12px; }

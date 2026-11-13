@@ -150,6 +150,9 @@ document.addEventListener("click", (e) => {
     case "start_game_lichess":
       startGameLichess();
       break;
+    case "lichess_resume_game":
+      lichessResumeGame();
+      break;
     case "lichess_draw_accept":
       sendAction({ type: "lichess_draw_accept" });
       break;
@@ -2077,22 +2080,23 @@ function _lichessShowDrawBanner(key, danger) {
 }
 
 socket.on("lichess_draw_proposed", () => {
-  afficherToast(t("toast.lichess_draw_sent"), "info");
-  // Le texte dit explicitement que la réponse vient APRÈS le coup de
-  // l'utilisateur, pas avant (confusion réelle d'Alain le 13/11/2026 : il
-  // croyait que le coup adverse à reproduire juste après avoir proposé
-  // était déjà la réponse).
+  // Bandeau persistant seul (issue #323, point 7) — le message éphémère
+  // faisait doublon avec lui (il restait affiché en plus, en bas de
+  // l'écran, après la disparition du toast). Le texte dit explicitement que
+  // la réponse vient APRÈS le coup de l'utilisateur, pas avant (confusion
+  // réelle d'Alain le 13/11/2026 : il croyait que le coup adverse à
+  // reproduire juste après avoir proposé était déjà la réponse).
   _lichessShowDrawBanner("lichess.nulle_attente_reponse", false);
 });
 
 socket.on("lichess_draw_refused", () => {
-  afficherToast(t("toast.lichess_draw_refused"), "warning");
+  // Bandeau persistant seul (issue #323, point 7) — voir lichess_draw_proposed.
   _lichessShowDrawBanner("lichess.nulle_refusee_banner", true);
   _lichessDrawBannerPendingClearOnOwnMove = true;
 });
 
 socket.on("lichess_draw_accepted", () => {
-  afficherToast(t("toast.lichess_draw_accepted"), "info");
+  // Bandeau persistant seul (issue #323, point 7) — voir lichess_draw_proposed.
   _lichessShowDrawBanner("lichess.nulle_acceptee_banner", false);
 });
 
@@ -3021,6 +3025,69 @@ function startGameLichess() {
   _gameMode = "lichess";
   sendAction({ type: "start_lichess", level, cadence, color: _lichessColor, player });
 }
+
+// ── Reprise d'une partie Lichess en cours (issue #323) ────────────────────
+
+let _lichessResumableGameId = null;
+
+// Vitesse Lichess (speed) → clé i18n de cadence approximative affichée dans
+// le bandeau de reprise — /api/account/playing ne renvoie pas la cadence
+// exacte (initial+increment), seulement cette catégorie (voir rapport de
+// clôture de l'issue #323).
+const _LICHESS_SPEED_KEYS = {
+  ultraBullet: "lichess.vitesse.ultraBullet", bullet: "lichess.vitesse.bullet",
+  blitz: "lichess.vitesse.blitz", rapid: "lichess.vitesse.rapid",
+  classical: "lichess.vitesse.classical", correspondence: "lichess.vitesse.correspondence",
+};
+
+socket.on("lichess_resumable", (data) => {
+  const banner = document.getElementById("lichess-resume-banner");
+  if (!banner) return;
+  const game = data && data.available ? (data.game || null) : null;
+  _lichessResumableGameId = game ? game.game_id : null;
+  banner.style.display = game ? "" : "none";
+  if (!game) return;
+  const detail = document.getElementById("lichess-resume-detail");
+  if (!detail) return;
+  const colorKey  = game.color === "black" ? "config.color.noirs" : "config.color.blancs";
+  const speedKey  = _LICHESS_SPEED_KEYS[game.speed] || "lichess.vitesse.inconnue";
+  const turnKey   = game.is_my_turn ? "lichess.reprise_mon_tour" : "lichess.reprise_tour_adverse";
+  const seconds   = Number.isFinite(game.seconds_left) ? game.seconds_left : null;
+  const minutes   = seconds !== null ? Math.max(0, Math.round(seconds / 60)) : null;
+  // Nom de l'adversaire : uniquement via textContent (jamais interpolé dans
+  // une clé i18n injectée en innerHTML) — vient de Lichess, non fiable.
+  detail.textContent = "";
+  const parts = [t(colorKey), t(speedKey), t(turnKey)];
+  if (minutes !== null) parts.push(t("lichess.reprise_minutes_restantes", { minutes }));
+  detail.textContent = parts.join(" — ") + " — ";
+  const opponentSpan = document.createElement("strong");
+  opponentSpan.textContent = game.opponent || t("lichess.ia_niveau", { level: game.ai_level || "?" });
+  detail.appendChild(opponentSpan);
+});
+
+function lichessResumeGame() {
+  if (!_lichessResumableGameId) return;
+  const player = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
+  _basketSource = "Lichess";
+  _gameMode = "lichess";
+  sendAction({ type: "start_lichess_resume", game_id: _lichessResumableGameId, player });
+}
+
+// Écran de mise en place d'une partie reprise (issue #323, point 3) — même
+// rendu que lichess_illegal_position (cases rouges sur #board, réutilise
+// renderBoardWithErrors) mais message et bandeau dédiés : la cause n'est
+// pas un coup illégal pendant le tour de l'utilisateur, mais la
+// reconstruction initiale de la position après une reprise.
+socket.on("lichess_resume_setup", (data) => {
+  const active = !!data.active;
+  const el = document.getElementById("lichess-resume-setup");
+  if (el) el.style.display = active ? "" : "none";
+  if (active) {
+    renderBoardWithErrors(data.expected_fen, data.physical_fen);
+  } else if (currentFen) {
+    renderBoard(currentFen, null, null, null, null, null, null);
+  }
+});
 
 function _stopAutoPlay() {
   if (_autoPlayTimer) { clearInterval(_autoPlayTimer); _autoPlayTimer = null; }

@@ -446,6 +446,14 @@
     Lichess se joue sur l'échiquier physique. Branchez-le, allumez-le, puis cliquez sur « Connecter ».
   </div>
 
+  <!-- Reprise d'une partie en cours (issue #323) — masqué par défaut, affiché
+       uniquement si check_lichess_resumable() détecte une partie reprenable. -->
+  <div id="lichess-resume-banner" class="card cfg-hh-card lichess-resume-banner" style="display:none;">
+    <h2 data-i18n="lichess.reprise_titre">⏱️ Une partie Lichess est en cours : la reprendre</h2>
+    <p id="lichess-resume-detail" class="lichess-resume-detail"></p>
+    <button class="btn btn-reprendre" data-action="lichess_resume_game" id="lichess-resume-btn" data-i18n="lichess.reprise_bouton">▶ Reprendre cette partie</button>
+  </div>
+
   <!-- Zone scrollable -->
   <div class="cfg-hh-scroll">
 
@@ -690,6 +698,7 @@
         <h2 data-i18n="game.h2.tour">Tour en cours</h2>
         <div id="turn-info">En attente...</div>
         <div id="lichess-position-wait" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reproduisez_coup">Reproduisez le coup sur l'échiquier physique.</div>
+        <div id="lichess-resume-setup" class="lichess-info-banner lichess-banner-danger" style="display:none;" data-i18n="lichess.reprise_mise_en_place">Partie en cours — reconstruisez la position physique (cases rouges) ; la pendule tourne.</div>
         <div id="lichess-illegal-position" class="lichess-info-banner lichess-banner-danger" style="display:none;"></div>
         <div id="lichess-draw-wait-msg" class="lichess-info-banner lichess-draw-status-banner" style="display:none;"></div>
       </div>

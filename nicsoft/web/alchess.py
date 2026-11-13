@@ -428,6 +428,10 @@ def main():
                 set_app_state("config_humain")
             elif atype == "mode" and action.get("value") == "lichess":
                 set_app_state("config_lichess")
+                # Détection de partie en cours (issue #323, point 1) — une
+                # seule fois à l'ouverture de ce menu, jamais en boucle ;
+                # en arrière-plan pour ne jamais retarder l'affichage.
+                threading.Thread(target=gm.check_lichess_resumable, daemon=True).start()
             elif atype == "mode" and action.get("value") == "retranscription":
                 set_app_state("retranscription")
                 _check_retranscription_session()
@@ -479,6 +483,8 @@ def main():
                 gm.launch_humain(action)
             elif atype == "start_lichess":
                 gm.launch_lichess(action)
+            elif atype == "start_lichess_resume":
+                gm.launch_lichess_resume(action)
             elif atype == "start_retranscription":
                 gm.launch_retranscription(action)
             elif atype == "back_menu":

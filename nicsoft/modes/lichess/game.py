@@ -192,6 +192,21 @@ def estimated_first_move_deadline_s(clock_limit_s: int, clock_increment_s: int) 
     )
 
 
+def _differing_squares(fen_a: str, fen_b: str) -> list:
+    """Cases (algébriques) où la pièce diffère entre deux FEN board-only —
+    utilisé pour guider par LED la reconstruction de position d'une partie
+    reprise (issue #323, point 3). Variante locale de ce que
+    game_manager_modes/lichess.py appelle _squares_differing — dupliquée
+    plutôt qu'importée pour éviter un import circulaire (ce module-ci est
+    déjà importé par game_manager_modes/lichess.py)."""
+    try:
+        a = chess.Board(fen_a + " w - - 0 1")
+        b = chess.Board(fen_b + " w - - 0 1")
+    except ValueError:
+        return []
+    return [chess.square_name(sq) for sq in chess.SQUARES if a.piece_at(sq) != b.piece_at(sq)]
+
+
 def opponent_pgn_name(level: int) -> str:
     """Nom de l'adversaire pour les en-têtes PGN — convention Lichess,
     jamais vide ni « None » (issue #309, point 2)."""
@@ -236,7 +251,8 @@ class LichessGame(threading.Thread):
 
     def __init__(self, nl_inst, client, game_id: str, level: int, player_name: str,
                  clock_limit_s: int, clock_increment_s: int,
-                 chosen_color_setting: str = "random", cadence_key: str = "", **kwargs):
+                 chosen_color_setting: str = "random", cadence_key: str = "",
+                 resuming: bool = False, **kwargs):
         super().__init__(daemon=True, **kwargs)
         self.nl_inst = nl_inst
         self.client = client
@@ -289,6 +305,18 @@ class LichessGame(threading.Thread):
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
+
+        # Reprise d'une partie en cours (issue #323) : tant que
+        # _resume_pending est vrai, _tick_physical() n'attend ni coup
+        # adverse à reproduire ni coup utilisateur — il affiche l'écran de
+        # mise en place (cases rouges + LED) jusqu'à ce que la position
+        # physique corresponde à self.board (recalculée à chaque tick, donc
+        # toujours à jour même si l'adversaire joue pendant la
+        # reconstruction — voir _tick_resume_setup). Jamais vrai pour une
+        # partie lancée normalement (launch_lichess).
+        self._resume_pending = resuming
+        self._resume_setup_active = False
+        self._resume_led_squares = []
 
         # Déduit de la présence d'`aiLevel` (voir _apply_game_full) — vrai
         # dans toute partie lancée par AlChess aujourd'hui (seul "contre
@@ -822,6 +850,7 @@ class LichessGame(threading.Thread):
             or self._pending_promotion is not None
             or self._illegal_position_active
             or self._board_lost
+            or self._resume_pending
         )
         turn_ready = user_turn and position_ok
         resign_enabled = turn_ready or self._board_lost
@@ -841,13 +870,92 @@ class LichessGame(threading.Thread):
     def _tick_physical(self) -> None:
         if self.user_color is None or self.game_over:
             return
-        self._tick_physical_inner()
+        if self._resume_pending:
+            self._tick_resume_setup()
+        else:
+            self._tick_physical_inner()
         # Recalcule systématiquement l'état des boutons Abandonner/Proposer
         # nulle (issue #321, point 1) — quelle que soit la branche prise
         # ci-dessus (échiquier perdu, réplication en attente, position
         # illégale, tour adverse...), jamais seulement sur les transitions
         # explicites, pour rester vrai à chaque tick (~50ms).
         self._sync_turn_ready()
+
+    def _tick_resume_setup(self) -> None:
+        """Écran de mise en place d'une partie reprise (issue #323, point
+        3) : compare la position physique à self.board.board_fen(), qui
+        reste la cible à jour même si l'adversaire joue pendant que
+        l'utilisateur reconstruit la position (les événements de flux sont
+        appliqués par _handle_stream_event dans la même boucle, voir
+        _main_loop — case (d) du rapport de clôture). Jamais d'abandon
+        automatique si l'échiquier est perdu ici : réutilise la même
+        reconnexion que le reste de la partie (issue #314)."""
+        hardware_fen = self._read_hardware_fen()
+        if hardware_fen is None:
+            self._register_board_lost()
+            if self._board_lost:
+                self._maybe_attempt_reconnect()
+            return
+        self._register_board_present()
+        if self._board_lost:
+            return
+        target_fen = self.board.board_fen()
+        if hardware_fen == target_fen:
+            self._resume_pending = False
+            self._resume_setup_active = False
+            self._resume_led_squares = []
+            # La position complète (y compris le dernier coup déjà appliqué
+            # à self.board, voir _apply_game_full/_apply_new_moves) vient
+            # d'être confirmée physiquement : neutralise les attentes
+            # normales de début de partie (réplication du premier coup
+            # adverse), qui ont pu être positionnées par _apply_new_moves
+            # avant même l'écran de mise en place — sans quoi le tick
+            # suivant attendrait à tort une réplication déjà satisfaite.
+            self._awaiting_physical_replication = False
+            self._replication_target_fen = None
+            self._awaiting_piece_reset = False
+            self._reset_target_fen = None
+            try:
+                self.nl_inst.turn_off_all_leds()
+            except Exception as exc:
+                logger.debug(
+                    "Extinction LEDs (fin mise en place reprise, %s) échouée : %s",
+                    self.game_id, exc,
+                )
+            logger.info(
+                "Lichess : reprise (%s) — position physique reconstruite, jeu normal repris.",
+                self.game_id,
+            )
+            send_event("lichess_resume_setup", {"active": False})
+            return
+        now = time.monotonic()
+        if not self._resume_setup_active:
+            self._resume_setup_active = True
+            self._last_position_error_ts = 0.0  # envoi immédiat du premier état
+        if now - self._last_position_error_ts < self.POSITION_ERROR_THROTTLE_S:
+            return
+        self._last_position_error_ts = now
+        self._update_resume_setup_leds(hardware_fen, target_fen)
+        send_event("lichess_resume_setup", {
+            "active": True, "expected_fen": target_fen, "physical_fen": hardware_fen,
+        })
+
+    def _update_resume_setup_leds(self, hardware_fen: str, target_fen: str) -> None:
+        """Allume les LED des cases qui diffèrent entre la position physique
+        et la cible — jamais testé sur le vrai plateau (aucun matériel
+        disponible pour cette issue), voir rapport de clôture."""
+        squares = _differing_squares(target_fen, hardware_fen)
+        if squares == self._resume_led_squares:
+            return
+        self._resume_led_squares = squares
+        try:
+            self.nl_inst.turn_off_all_leds()
+            for sq in squares:
+                self.nl_inst.set_led(sq, True)
+        except Exception as exc:
+            logger.debug(
+                "LED mise en place (reprise, %s) échouée : %s", self.game_id, exc,
+            )
 
     def _tick_physical_inner(self) -> None:
         hardware_fen = self._read_hardware_fen()

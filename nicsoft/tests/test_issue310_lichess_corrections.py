@@ -314,7 +314,7 @@ def test_extraction_cles_lichess_trouve_bien_des_cles_connues():
     elle a régressé silencieusement (toujours verte à tort)."""
     keys = _lichess_i18n_keys_used_in_source()
     for attendu in ("toast.lichess_error", "toast.lichess_no_token", "lichess.proposer_nulle_titre",
-                    "config.titre.lichess", "toast.lichess_draw_sent", "toast.lichess_draw_refused"):
+                    "config.titre.lichess", "lichess.nulle_attente_reponse", "lichess.nulle_refusee_banner"):
         assert attendu in keys, f"extraction incomplète : {attendu!r} non trouvée"
 
 
