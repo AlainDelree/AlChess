@@ -153,9 +153,13 @@ def first_move_deadline_s(expiration: dict, elapsed_s: float):
 # premier coup, selon la cadence déduite de chess.Speed (scalachess,
 # core/src/main/scala/Speed.scala::byTime, bornes en secondes). Utilisé
 # UNIQUEMENT quand Lichess n'envoie pas le champ `expiration` (issue #321,
-# point 6) : l'estimation reste approximative (dépend du code Lichess au
-# moment de la lecture, non versionné ici) — jamais présentée comme exacte
-# côté interface (voir app.js, "premier_coup_decompte_estime").
+# point 6) ET pour une partie contre un humain seulement (issue #322, point
+# 1 : contre son IA, Lichess ne menace jamais d'annulation du premier coup
+# ni n'en affiche de décompte — confirmé par l'essai réel d'Alain du
+# 13/11/2026, partie non annulée après plus de 28s) : l'estimation reste
+# approximative (dépend du code Lichess au moment de la lecture, non
+# versionné ici) — jamais présentée comme exacte côté interface (voir
+# app.js, "premier_coup_decompte_estime").
 _FIRST_MOVE_TIMEOUT_BY_SPEED = {
     "ultraBullet": 15.0, "bullet": 20.0, "blitz": 25.0, "rapid": 30.0,
 }
@@ -286,11 +290,21 @@ class LichessGame(threading.Thread):
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
 
+        # Déduit de la présence d'`aiLevel` (voir _apply_game_full) — vrai
+        # dans toute partie lancée par AlChess aujourd'hui (seul "contre
+        # l'IA" existe), prêt pour un futur mode contre un humain (issue
+        # #322, point 1) : Lichess n'affiche ni menace d'annulation ni
+        # décompte du premier coup contre son IA, contrairement à une
+        # partie contre un humain.
+        self._opponent_is_ai = True
+
         self._first_move_expiration = None
         self._first_move_expiration_ref = time.monotonic()
         self._first_move_deadline_active = False
-        # Non None seulement quand Lichess n'envoie pas `expiration` (issue
-        # #321, point 6) — estimation locale, jamais présentée comme exacte.
+        # Non None seulement quand Lichess n'envoie pas `expiration` ET que
+        # l'adversaire n'est pas l'IA (issue #321 point 6, restreint par
+        # l'issue #322 point 1) — estimation locale, jamais présentée comme
+        # exacte.
         self._first_move_deadline_estimate_total_s = None
         self._last_move_event_ts = time.monotonic()
 
@@ -299,6 +313,10 @@ class LichessGame(threading.Thread):
         self._clock_turn = "white"
         self._clock_ref_monotonic = time.monotonic()
         self._last_clock_push_ts = 0.0
+        # Les pendules Lichess restent figées à leur valeur de départ tant
+        # que les deux camps n'ont pas chacun joué leur premier coup — jamais
+        # décomptées par une minuterie locale avant ça (issue #322, point 2).
+        self._clock_running = False
 
         self._stream_event_queue = queue.Queue()
         self._stream_stop = threading.Event()
@@ -498,6 +516,11 @@ class LichessGame(threading.Thread):
         else:
             self.user_color = "white"
             self.level = black.get("aiLevel", self.level)
+        # issue #322, point 1 : seule l'absence totale d'`aiLevel` des deux
+        # côtés (futur mode contre un humain) désactive la menace
+        # d'annulation/le décompte du premier coup propres à Lichess contre
+        # un humain — toute partie AlChess actuelle en a un.
+        self._opponent_is_ai = white.get("aiLevel") is not None or black.get("aiLevel") is not None
         state = event.get("state") or {}
         self._log_game_state_received(state)
         self.board = chess.Board()
@@ -634,9 +657,14 @@ class LichessGame(threading.Thread):
     def _maybe_activate_first_move_deadline(self, state: dict) -> None:
         """Compte à rebours du premier coup de l'utilisateur (noirs) après
         création de la partie — lu dans le champ `expiration` de Lichess,
-        ou, en son absence, estimé localement depuis la cadence (issue
-        #321, point 6 — observé absent lors de l'essai réel d'Alain du
-        13/11/2026 ayant motivé cette estimation de repli)."""
+        ou, en son absence, estimé localement depuis la cadence pour une
+        partie contre un humain seulement (issue #321, point 6 — observé
+        absent lors de l'essai réel d'Alain du 13/11/2026 ayant motivé
+        cette estimation de repli). Contre l'IA de Lichess, sans
+        `expiration` explicite, aucune estimation locale n'est faite :
+        Lichess n'y menace jamais d'annulation ni n'y affiche de décompte
+        (issue #322, point 1 — confirmé par l'essai réel d'Alain du
+        13/11/2026, partie non annulée après plus de 28s contre l'IA)."""
         if self._first_move_deadline_active or self.game_over:
             return
         if self.user_color != "black" or self._moves_applied != 1:
@@ -644,14 +672,18 @@ class LichessGame(threading.Thread):
         expiration = (state or {}).get("expiration")
         self._first_move_expiration = expiration
         self._first_move_expiration_ref = time.monotonic()
-        self._first_move_deadline_estimate_total_s = (
-            None if expiration else estimated_first_move_deadline_s(self.clock_limit_s, self.clock_increment_s)
-        )
+        if expiration or self._opponent_is_ai:
+            self._first_move_deadline_estimate_total_s = None
+        else:
+            self._first_move_deadline_estimate_total_s = estimated_first_move_deadline_s(
+                self.clock_limit_s, self.clock_increment_s,
+            )
         self._first_move_deadline_active = True
         seconds, estimated = self._first_move_deadline_seconds_and_estimated(0.0)
         logger.info(
-            "Lichess : compte à rebours premier coup activé (expiration=%s, estimation=%s, secondes≈%s).",
-            expiration, estimated, seconds,
+            "Lichess : compte à rebours premier coup activé (adversaire_ia=%s, expiration=%s, "
+            "estimation=%s, secondes≈%s).",
+            self._opponent_is_ai, expiration, estimated, seconds,
         )
         send_event("lichess_first_move_deadline", {
             "active": True, "seconds": seconds, "estimated": estimated,
@@ -666,6 +698,25 @@ class LichessGame(threading.Thread):
         self._clock_black_ms = float(btime)
         self._clock_turn = side_to_move(state)
         self._clock_ref_monotonic = time.monotonic()
+        # Lichess laisse les deux pendules figées à leur valeur de départ
+        # jusqu'à ce que chaque camp ait joué son propre premier coup (le
+        # champ `expiration`/`millisToMove` ci-dessus régit ce premier coup
+        # à part, hors de wtime/btime — confirmé par l'essai réel d'Alain du
+        # 13/11/2026 : 15:00 encore figé côté noirs juste après 1.e4, pour
+        # une partie comme pour une IA) — jamais de décompte local avant la
+        # 2e paire de coups (issue #322, point 2).
+        was_running = self._clock_running
+        self._clock_running = self._moves_applied >= 2
+        if self._clock_running and not was_running:
+            logger.info(
+                "Lichess : pendules commencent à décompter après les premiers coups des "
+                "deux camps (blancs=%s, noirs=%s, trait=%s).",
+                self._clock_white_ms, self._clock_black_ms, self._clock_turn,
+            )
+        logger.info(
+            "Lichess : pendules (blancs=%s, noirs=%s, trait=%s, decompte=%s).",
+            self._clock_white_ms, self._clock_black_ms, self._clock_turn, self._clock_running,
+        )
         self._maybe_push_clock(force=True)
 
     def _maybe_push_clock(self, force: bool = False) -> None:
@@ -673,7 +724,7 @@ class LichessGame(threading.Thread):
         if not force and (now - self._last_clock_push_ts) < self.CLOCK_PUSH_INTERVAL_S:
             return
         self._last_clock_push_ts = now
-        elapsed_s = 0.0 if self.game_over else max(0.0, now - self._clock_ref_monotonic)
+        elapsed_s = 0.0 if (self.game_over or not self._clock_running) else max(0.0, now - self._clock_ref_monotonic)
         white_ms, black_ms = compute_clock_ms(self._clock_white_ms, self._clock_black_ms,
                                                self._clock_turn, elapsed_s)
         send_event("lichess_clock", {"white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn})

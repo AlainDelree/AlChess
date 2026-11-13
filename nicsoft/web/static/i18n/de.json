@@ -735,7 +735,7 @@
   "lichess.attente_premier_coup.en_attente": "Spielen Sie Ihren ersten Zug auf dem Brett.",
   "lichess.premier_coup_decompte": "Spielen Sie Ihren ersten Zug — die Partie wird in {seconds} Sekunden abgebrochen.",
   "lichess.premier_coup_decompte_estime": "Spielen Sie Ihren ersten Zug — die Partie wird in etwa {seconds} Sekunden abgebrochen.",
-  "lichess.premier_coup_sans_decompte": "Spielen Sie Ihren ersten Zug, sonst bricht Lichess die Partie ab.",
+  "lichess.premier_coup_sans_decompte": "Spielen Sie Ihren ersten Zug.",
   "lichess.position_incorrecte": "Falsche Position: korrigieren Sie die rot markierten Felder auf dem Brett.",
   "lichess.boutons_actifs_a_votre_tour": "Verfügbar, wenn Sie am Zug sind und die Stellung übereinstimmt.",
   "lichess.nulle_attente_reponse": "Remis angeboten: der Gegner antwortet mit seinem nächsten Zug, nach Ihrem.",

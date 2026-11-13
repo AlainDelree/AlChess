@@ -337,18 +337,46 @@ def test_decompte_premier_coup_apparait_avec_expiration(monkeypatch):
     assert deadline_events[-1]["seconds"] == 20.0
 
 
-def test_decompte_premier_coup_sans_champ_expiration(monkeypatch):
-    """Depuis l'issue #321 (point 6) : en l'absence du champ `expiration`,
-    le décompte utilise une estimation locale déduite de la cadence (ici
-    900s+10 => "rapid" => 30s, voir _FIRST_MOVE_TIMEOUT_BY_SPEED dans
-    nicsoft/modes/lichess/game.py, vérifié contre lila/scalachess master),
-    jamais plus un décompte absent (comportement de l'issue #311 avant
-    #321)."""
+def test_decompte_premier_coup_sans_champ_expiration_contre_ia_reste_informatif(monkeypatch):
+    """Depuis l'issue #322 (point 1) : contre l'IA de Lichess, en l'absence
+    du champ `expiration`, aucune estimation locale n'est faite (Lichess ne
+    menace jamais d'annulation ni n'affiche de décompte dans ce cas précis
+    — confirmé par l'essai réel d'Alain du 13/11/2026, partie non annulée
+    après plus de 28s). Avant l'issue #321 (point 6) ce cas produisait déjà
+    `seconds=None` ; l'issue #321 avait introduit à tort une estimation
+    locale même contre l'IA, corrigée ici."""
     game, events, _, _ = _make_bare_game(monkeypatch)
     game._apply_game_full({
         "white": {"aiLevel": 1}, "black": {"id": "alain"},
         "state": {"status": "started", "moves": "e2e4"},
     })
+    deadline_events = [d for t, d in events if t == "lichess_first_move_deadline"]
+    assert deadline_events and deadline_events[-1]["active"] is True
+    assert deadline_events[-1]["seconds"] is None
+    assert deadline_events[-1]["estimated"] is False
+
+
+def test_decompte_premier_coup_sans_champ_expiration_contre_humain_estime(monkeypatch):
+    """Depuis l'issue #321 (point 6), restreint à une partie contre un
+    humain par l'issue #322 (point 1) : en l'absence du champ `expiration`
+    ET d'adversaire IA, le décompte utilise une estimation locale déduite
+    de la cadence (ici 900s+10 => "rapid" => 30s, voir
+    _FIRST_MOVE_TIMEOUT_BY_SPEED dans nicsoft/modes/lichess/game.py, vérifié
+    contre lila/scalachess master).
+
+    Aucun mode "contre un humain" n'existe encore côté lanceur AlChess
+    (voir CLAUDE.md) — `_apply_game_full()` déduit aujourd'hui la couleur de
+    l'utilisateur de la seule présence d'`aiLevel`, ce qui ne permet pas de
+    produire `user_color == "black"` avec un adversaire non-IA. Ce test
+    positionne donc directement `_opponent_is_ai`/`user_color`/
+    `_moves_applied` avant d'appeler `_maybe_activate_first_move_deadline()`,
+    pour vérifier que la logique de décompte elle-même est prête pour ce
+    mode futur, indépendamment de ce futur lanceur."""
+    game, events, _, _ = _make_bare_game(monkeypatch)
+    game._opponent_is_ai = False
+    game.user_color = "black"
+    game._moves_applied = 1
+    game._maybe_activate_first_move_deadline({"status": "started", "moves": "e2e4"})
     deadline_events = [d for t, d in events if t == "lichess_first_move_deadline"]
     assert deadline_events and deadline_events[-1]["active"] is True
     assert deadline_events[-1]["seconds"] == 30.0
@@ -376,6 +404,74 @@ def test_signal_sonore_premier_coup_ia_pour_les_noirs(monkeypatch):
         "state": {"status": "started", "moves": "e2e4"},
     })
     assert board.beeped == 1
+
+
+# ── 6e. Pendules figées avant les premiers coups des deux camps (#322) ───────
+# Issue #322, point 2 : sur lichess.org, aucune pendule ne décompte avant que
+# chaque camp ait joué son propre premier coup (le champ `expiration` gère ce
+# premier coup à part, hors de wtime/btime) — jamais un minuteur local qui
+# parte de lui-même dès qu'un camp a le trait.
+
+def test_pendule_noire_figee_juste_apres_le_premier_coup_blanc(monkeypatch, caplog):
+    """Utilisateur aux noirs : l'IA (blancs) a joué son premier coup, c'est
+    au tour des noirs (utilisateur) — scénario réel d'Alain du 13/11/2026.
+    Avant le propre premier coup des noirs, la pendule ne doit pas décompter
+    même si du temps réel s'écoule."""
+    game, events, _, _ = _make_bare_game(monkeypatch)
+    with caplog.at_level("INFO", logger="niclink.lichess"):
+        game._apply_game_full({
+            "white": {"aiLevel": 1}, "black": {"id": "alain"},
+            "state": {"status": "started", "moves": "e2e4", "wtime": 900000, "btime": 900000},
+        })
+    assert game._clock_running is False
+    assert game._clock_turn == "black"
+    assert "pendules commencent à décompter" not in caplog.text
+    game._clock_ref_monotonic -= 5.0  # 5s d'horloge réelle, simulées sans nouvel événement Lichess
+    game._maybe_push_clock(force=True)
+    clock_events = [d for t, d in events if t == "lichess_clock"]
+    assert clock_events[-1]["black_ms"] == 900000.0
+    assert clock_events[-1]["white_ms"] == 900000.0
+
+
+def test_pendule_blanche_figee_avant_le_tout_premier_coup(monkeypatch):
+    """Utilisateur aux blancs (aucun `aiLevel` côté blancs) : avant même le
+    tout premier coup de la partie, la pendule blanche ne doit pas
+    décompter non plus (les deux couleurs sont concernées)."""
+    game, events, _, _ = _make_bare_game(monkeypatch)
+    game._apply_game_full({
+        "white": {"id": "alain"}, "black": {"aiLevel": 1},
+        "state": {"status": "started", "moves": "", "wtime": 900000, "btime": 900000},
+    })
+    assert game._clock_running is False
+    assert game._clock_turn == "white"
+    game._clock_ref_monotonic -= 5.0
+    game._maybe_push_clock(force=True)
+    clock_events = [d for t, d in events if t == "lichess_clock"]
+    assert clock_events[-1]["white_ms"] == 900000.0
+
+
+def test_pendules_decomptent_normalement_apres_les_deux_premiers_coups(monkeypatch, caplog):
+    """Une fois que chaque camp a joué son propre premier coup, la pendule
+    du camp au trait décompte normalement (log explicite du moment où elles
+    démarrent — issue #322, point 3)."""
+    game, events, _, _ = _make_bare_game(monkeypatch)
+    game._apply_game_full({
+        "white": {"aiLevel": 1}, "black": {"id": "alain"},
+        "state": {"status": "started", "moves": "e2e4", "wtime": 900000, "btime": 900000},
+    })
+    assert game._clock_running is False
+    with caplog.at_level("INFO", logger="niclink.lichess"):
+        game._apply_game_state({
+            "status": "started", "moves": "e2e4 e7e5", "wtime": 900000, "btime": 900000,
+        })
+    assert game._clock_running is True
+    assert game._clock_turn == "white"  # 2e coup des blancs, désormais décompté
+    assert "pendules commencent à décompter" in caplog.text
+    game._clock_ref_monotonic -= 5.0
+    game._maybe_push_clock(force=True)
+    clock_events = [d for t, d in events if t == "lichess_clock"]
+    assert clock_events[-1]["white_ms"] == pytest.approx(895000.0, abs=50.0)
+    assert clock_events[-1]["black_ms"] == 900000.0
 
 
 def test_pas_de_signal_sonore_pour_les_blancs(monkeypatch):

@@ -735,7 +735,7 @@
   "lichess.attente_premier_coup.en_attente": "Jouez votre premier coup sur l'échiquier.",
   "lichess.premier_coup_decompte": "Jouez votre premier coup — la partie sera annulée dans {seconds} secondes.",
   "lichess.premier_coup_decompte_estime": "Jouez votre premier coup — la partie sera annulée dans environ {seconds} secondes.",
-  "lichess.premier_coup_sans_decompte": "Jouez votre premier coup, sinon la partie sera annulée par Lichess.",
+  "lichess.premier_coup_sans_decompte": "Jouez votre premier coup.",
   "lichess.position_incorrecte": "Position incorrecte : corrigez les cases en rouge sur l'échiquier.",
   "lichess.boutons_actifs_a_votre_tour": "Disponibles à votre tour, une fois la position physique alignée.",
   "lichess.nulle_attente_reponse": "Nulle proposée : l'adversaire répondra à son prochain coup, après le vôtre.",

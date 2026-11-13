@@ -735,7 +735,7 @@
   "lichess.attente_premier_coup.en_attente": "Play your first move on the board.",
   "lichess.premier_coup_decompte": "Play your first move — the game will be cancelled in {seconds} seconds.",
   "lichess.premier_coup_decompte_estime": "Play your first move — the game will be cancelled in approximately {seconds} seconds.",
-  "lichess.premier_coup_sans_decompte": "Play your first move, otherwise Lichess will cancel the game.",
+  "lichess.premier_coup_sans_decompte": "Play your first move.",
   "lichess.position_incorrecte": "Incorrect position: fix the squares shown in red on the board.",
   "lichess.boutons_actifs_a_votre_tour": "Available on your turn, once the physical position matches.",
   "lichess.nulle_attente_reponse": "Draw offered: the opponent will answer on their next move, after yours.",
