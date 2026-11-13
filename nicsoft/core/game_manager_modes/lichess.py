@@ -26,6 +26,7 @@ aucun moteur d'échecs n'est importé ici ni dans nicsoft.modes.lichess.game
 """
 
 import logging
+import queue
 import random
 import threading
 import time
@@ -35,7 +36,7 @@ import chess
 from nicsoft.core.board_adapter import create_board
 from nicsoft.core.ihm_port import (
     send_event, set_app_state, get_app_state, check_board_presence_silent,
-    app_state_proxy as web_server,
+    get_action_queue, app_state_proxy as web_server,
 )
 from nicsoft.core.game_manager_modes.state import (
     logger, set_nl_inst_ref, _menu_toast_data,
@@ -109,6 +110,28 @@ _UNRECOGNIZED_MOVE_DELAY_S = 3.0
 _BOARD_OPEN_RETRY_TOTAL_S = 5.0
 _BOARD_OPEN_RETRY_INTERVAL_S = 1.0
 
+# Essai réel d'Alain (13/11/2026, 09:20:14, issue #319, point 4) : le tout
+# premier essai d'ouverture échoue avec "board connection error." alors que
+# hid_backend.connect() (la poignée de main USB elle-même, journalisée
+# depuis #317) a bien réussi en 2,2s — établi par lecture du code (sans
+# matériel pour le rejouer) : NicLinkManager.connect() (driver.py, non
+# modifié ici) ne laisse ensuite que 2×thread_sleep_delay pour qu'un
+# premier get_fen() renvoie un FEN non vide avant de lever RuntimeError
+# (→ ce SystemExit) ; create_board() (board_adapter.py) construit ce
+# NicLinkManager avec thread_sleep_delay=0.1, donc ~0,2s de grâce après une
+# poignée de main qui a déjà pris 2,2s — probablement trop court pour que le
+# firmware du plateau ait fini de démarrer l'envoi des paquets de position.
+# Signal envoyé à l'interface par cet échec : AUCUN — _open_board_with_retry()
+# (ci-dessous) l'avale silencieusement et retente ; aucun send_event ni
+# set_app_state n'est déclenché avant l'épuisement de
+# _BOARD_OPEN_RETRY_TOTAL_S (atteint ici au second essai, 09:20:18). Ce
+# premier échec est donc indépendant de l'annulation observée à 09:20:37
+# (voir _discard_stale_browser_actions ci-dessous pour cette dernière).
+# Non corrigé ici (documentation seule, conformément à la consigne « ne pas
+# toucher driver.py ») : élargir le délai de grâce changerait
+# thread_sleep_delay pour tous les modes (humain, pédagogique, exercices...),
+# pas seulement Lichess, sans pouvoir le vérifier sans l'échiquier réel.
+
 
 def _open_board_with_retry(logger_name: str):
     """Ouvre l'échiquier physique (create_board) en retentant pendant
@@ -162,6 +185,46 @@ def _board_module_connected(nl_inst) -> bool:
         return bool(is_conn())
     except Exception:
         return True
+
+
+def _discard_stale_browser_actions() -> None:
+    """Vide action_queue juste avant de démarrer la boucle de jeu Lichess
+    (issue #319, point 2) — même geste déjà fait par les autres modes
+    (humain.py, pedagogique.py : « vidage de la queue avant le début de
+    partie »), jusqu'ici absent du lanceur Lichess.
+
+    action_queue est globale et partagée par tous les modes. on_action()
+    (server.py) y met un "back_menu" dès qu'il est cliqué pendant
+    "connecting"/"playing"/"game_over"/... — y compris depuis l'écran de
+    fin de la partie PRÉCÉDENTE, où plus personne ne lit la queue (cette
+    partie-là est déjà finalisée). Sans ce vidage, c'est
+    LichessGame._process_browser_actions() de la partie SUIVANTE qui le lit,
+    dès son tout premier passage, avant même le premier événement de flux —
+    exactement le scénario constaté par Alain le 13/11/2026 à 09:20:37
+    (« partie annulée, moins de 2 coups ») sans qu'il ait rien demandé lui-même
+    pour CETTE partie. Établi par lecture du code (le code ne permet pas
+    d'identifier laquelle des deux fenêtres — écran de fin de partie
+    précédente, ou clic pendant l'attente de CETTE partie — a produit l'action
+    trouvée ce jour-là ; les deux sont possibles et corrigées par ce vidage).
+
+    Une vraie action reçue APRÈS ce point (donc après le tout début réel de
+    la partie, puisque c'est l'appel juste suivant) est seule prise en compte
+    par LichessGame — voir game.py::_process_browser_actions()."""
+    _aq = get_action_queue()
+    discarded_types = []
+    while True:
+        try:
+            stale = _aq.get_nowait()
+        except queue.Empty:
+            break
+        discarded_types.append(stale.get("type", "?"))
+    if discarded_types:
+        logger_lichess.info(
+            "Lichess : %d action(s) périmée(s) écartée(s) avant le début de la "
+            "partie (%s) — laissée(s) par l'écran précédent, non demandée(s) "
+            "pour cette partie.",
+            len(discarded_types), ", ".join(discarded_types),
+        )
 
 
 def _read_board_fen_once(nl_inst) -> str:
@@ -456,6 +519,13 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
             clock_limit_s=clock_limit_s, clock_increment_s=clock_increment_s,
             chosen_color_setting=chosen_color, cadence_key=cadence_key,
         )
+        # Vidage juste avant le tout début réel de la partie (issue #319,
+        # point 2) : voir _discard_stale_browser_actions ci-dessus — place
+        # le vidage au plus près de game.start() pour laisser le moins de
+        # place possible à une action réellement concurrente de la création
+        # de partie (fenêtre résiduelle, déjà présente dans ce même ordre
+        # chez humain.py/pedagogique.py).
+        _discard_stale_browser_actions()
         web_server._app_state = "playing"
         set_app_state("playing")
         logger_lichess.info(f"Partie Lichess : {player_name} vs IA niveau {level} ({game_id}), couleur={resolved_color}")

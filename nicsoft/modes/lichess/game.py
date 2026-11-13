@@ -316,15 +316,24 @@ class LichessGame(threading.Thread):
                 send_event("lichess_toast", {"message_key": "lichess.menu_verrouille", "type": "warning"})
                 continue
             if atype == "back_menu":
+                # Journalisé dès la réception (issue #319, point 3) — l'heure
+                # de cette ligne (formateur %(asctime)s, voir alchess.py) est
+                # l'instant de la demande, avant l'éventuel appel réseau
+                # abort()/resign() fait par _request_resign_or_abort().
+                logger.info("Lichess : retour au menu demandé par l'utilisateur (%s).", self.game_id)
                 self._back_menu_requested = True
                 if not self.game_over:
-                    self._request_resign_or_abort()
+                    self._request_resign_or_abort(reason="retour au menu demandé par l'utilisateur")
                 self.game_over = True
                 continue
             if self.game_over:
                 continue
             if atype == "lichess_resign":
-                if self._request_resign_or_abort():
+                logger.info(
+                    "Lichess : abandon demandé par l'utilisateur (bouton Abandonner, %s).",
+                    self.game_id,
+                )
+                if self._request_resign_or_abort(reason="bouton Abandonner demandé par l'utilisateur"):
                     self.game_over = True
             elif atype == "lichess_propose_draw":
                 if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
@@ -350,7 +359,11 @@ class LichessGame(threading.Thread):
             send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
         return False
 
-    def _request_resign_or_abort(self) -> bool:
+    def _request_resign_or_abort(self, reason: str = "demande utilisateur") -> bool:
+        """`reason` (issue #319, point 3) : raison écrite dans le journal
+        avec le résultat — distincte de l'instant de la demande, déjà
+        journalisé par l'appelant (_process_browser_actions) avant l'appel
+        réseau abort()/resign() ci-dessous, qui peut prendre du temps."""
         aborting = len(self.board.move_stack) < 2
         if aborting:
             ok = self._safe_client_call(lambda: self.client.abort(self.game_id))
@@ -362,11 +375,17 @@ class LichessGame(threading.Thread):
         if aborting:
             self._status = "aborted"
             self._aborted = True
-            logger.info("Lichess : partie annulée (%s, moins de 2 coups).", self.game_id)
+            logger.info(
+                "Lichess : partie annulée (%s, moins de 2 coups) — raison : %s.",
+                self.game_id, reason,
+            )
         else:
             self._status = "resign"
             self._winner = "black" if self.user_color == "white" else "white"
-            logger.info("Lichess : abandon par %s (%s).", self.player_name, self.game_id)
+            logger.info(
+                "Lichess : abandon par %s (%s) — raison : %s.",
+                self.player_name, self.game_id, reason,
+            )
         return True
 
     # ── Événements Lichess ───────────────────────────────────────────────
@@ -852,7 +871,16 @@ class LichessGame(threading.Thread):
         )
 
     def _notify_unexpected_end(self) -> None:
-        logger.warning("Lichess : fin de partie inattendue (statut=%s).", self._status)
+        # Raison explicite dans le journal (issue #319, point 3) : ni
+        # back_menu ni abandon/annulation demandés par l'utilisateur ne sont
+        # passés par ici (voir _is_unexpected_end) — seul un statut Lichess
+        # inattendu (flux coupé, annulation décidée côté Lichess, etc.) mène
+        # ici, d'où "raison : autre".
+        logger.warning(
+            "Lichess : fin de partie inattendue (statut=%s) — raison : autre "
+            "(non demandée par l'utilisateur).",
+            self._status,
+        )
         send_event("lichess_aborted", {
             "message_key": _ABORT_CAUSE_KEYS.get(self._status, _ABORT_CAUSE_DEFAULT_KEY),
             "replay_settings": {
