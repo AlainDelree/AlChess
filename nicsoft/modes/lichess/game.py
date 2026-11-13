@@ -396,6 +396,19 @@ class LichessGame(threading.Thread):
             self._status = "unknownFinish"
         self.game_over = True
 
+    def _log_game_state_received(self, state: dict) -> None:
+        """Journal de diagnostic (issue #318) : rien de secret ici — statut,
+        nombre de coups et les deux indicateurs de nulle bruts envoyés par
+        Lichess, pour pouvoir confirmer a posteriori ce qu'il envoie
+        réellement juste après notre propre coup."""
+        logger.info(
+            "Lichess : état reçu (coups=%d, statut=%s, wdraw=%s, bdraw=%s).",
+            len(moves_from_state(state)),
+            state.get("status", self._status),
+            bool(state.get("wdraw")),
+            bool(state.get("bdraw")),
+        )
+
     def _apply_game_full(self, event: dict) -> None:
         white = event.get("white") or {}
         black = event.get("black") or {}
@@ -406,6 +419,7 @@ class LichessGame(threading.Thread):
             self.user_color = "white"
             self.level = black.get("aiLevel", self.level)
         state = event.get("state") or {}
+        self._log_game_state_received(state)
         self.board = chess.Board()
         self._moves_applied = 0
         self._apply_new_moves(state, initial=True)
@@ -430,7 +444,8 @@ class LichessGame(threading.Thread):
         self._check_finished(state.get("status", "started"), state.get("winner", ""))
 
     def _apply_game_state(self, event: dict) -> None:
-        self._apply_new_moves(event)
+        self._log_game_state_received(event)
+        last_mover_color = self._apply_new_moves(event)
         self._reset_clock_from_state(event)
         self._maybe_activate_first_move_deadline(event)
         opponent_offered = event.get("bdraw") if self.user_color == "white" else event.get("wdraw")
@@ -441,11 +456,25 @@ class LichessGame(threading.Thread):
                 logger.info("Lichess : nulle proposée par l'adversaire.")
             send_event("lichess_draw_offered", {"offered": opponent_offered})
         status = event.get("status", self._status)
-        if self._my_draw_offer_pending and not is_game_over(status):
+        # Une offre de nulle de l'utilisateur n'est considérée comme
+        # refusée que si l'adversaire a joué un coup sans l'accepter —
+        # jamais sur l'écho de notre propre coup (issue #318 : un faux
+        # refus était affiché dès la confirmation de notre coup, avant
+        # toute réponse réelle de l'adversaire). Lichess n'offre pas
+        # d'autre signal explicite de refus observable côté Board API
+        # (vérifié dans la spec officielle lichess-org/api et le source de
+        # BotPlayer.scala — voir rapport de clôture) : ce coup adverse non
+        # suivi d'une acceptation est donc le seul signal fiable dont nous
+        # disposons.
+        opponent_just_moved = last_mover_color is not None and last_mover_color != self.user_color
+        if self._my_draw_offer_pending and not is_game_over(status) and opponent_just_moved:
             my_offered = event.get("wdraw") if self.user_color == "white" else event.get("bdraw")
             if not bool(my_offered):
                 self._my_draw_offer_pending = False
-                logger.info("Lichess : nulle refusée (proposée par %s).", self.player_name)
+                logger.info(
+                    "Lichess : nulle refusée (proposée par %s, adversaire a joué sans accepter).",
+                    self.player_name,
+                )
                 send_event("lichess_draw_refused", {})
         self._check_finished(status, event.get("winner", ""))
 
@@ -464,10 +493,14 @@ class LichessGame(threading.Thread):
         self._aborted = status == "aborted"
         self.game_over = True
 
-    def _apply_new_moves(self, state: dict, initial: bool = False) -> None:
+    def _apply_new_moves(self, state: dict, initial: bool = False):
+        """Applique les coups non encore vus. Retourne la couleur de
+        l'auteur du dernier coup nouvellement appliqué (None si aucun) —
+        utilisé par _apply_game_state() pour distinguer l'écho de notre
+        propre coup d'un vrai coup de l'adversaire (issue #318)."""
         moves = moves_from_state(state)
         if len(moves) <= self._moves_applied:
-            return
+            return None
         new_moves = moves[self._moves_applied:]
         last_mover_color = None
         for idx, uci in enumerate(new_moves, start=self._moves_applied):
@@ -492,7 +525,7 @@ class LichessGame(threading.Thread):
                 })
         self._moves_applied = len(moves)
         if last_mover_color is None:
-            return
+            return None
         if last_mover_color != self.user_color:
             self._start_opponent_replication_wait(new_moves[-1])
         else:
@@ -500,6 +533,7 @@ class LichessGame(threading.Thread):
             if self._first_move_deadline_active:
                 self._first_move_deadline_active = False
                 send_event("lichess_first_move_deadline", {"active": False})
+        return last_mover_color
 
     def _maybe_activate_first_move_deadline(self, state: dict) -> None:
         """Compte à rebours du premier coup de l'utilisateur (noirs) après
@@ -715,11 +749,15 @@ class LichessGame(threading.Thread):
             # nous jouons, et le prochain gameState (wdraw/bdraw à False)
             # serait alors interprété à tort comme un refus de l'adversaire
             # (issue #316, point 1).
-            self.client.play_move(self.game_id, uci, offer_draw=self._my_draw_offer_pending)
+            offer_draw = self._my_draw_offer_pending
+            self.client.play_move(self.game_id, uci, offer_draw=offer_draw)
             now = time.monotonic()
             elapsed_ms = int((now - self._last_move_event_ts) * 1000)
             self._last_move_event_ts = now
-            logger.info("Lichess : coup envoyé %s (délai %d ms).", uci, elapsed_ms)
+            logger.info(
+                "Lichess : coup envoyé %s (délai %d ms, offre_nulle_jointe=%s).",
+                uci, elapsed_ms, offer_draw,
+            )
         except LichessApiError as exc:
             self._reset_target_fen = self.board.board_fen()
             self._awaiting_piece_reset = True
