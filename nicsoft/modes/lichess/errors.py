@@ -8,6 +8,28 @@ reçoivent que des codes HTTP et des messages déjà filtrés par Lichess
 """
 
 import json
+import re
+
+# Issue #330 : refus HTTP 400 d'une recherche d'adversaire humain (board/
+# seek) quand la couleur demandée (jamais "random") romprait l'équilibre
+# des couleurs du compte — texte exact établi par lecture du code source
+# public de lila (app/controllers/Setup.scala, lu le 14/11/2026) :
+# `JsonBadRequest(s"You must also play some games as $forced")`, sans
+# ponctuation finale ajoutée par lila lui-même. Reconnu indépendamment de
+# la casse pour rester robuste à une variante mineure du texte.
+_COLOR_BALANCE_REFUSAL_RE = re.compile(
+    r"must also play some games as\s+(white|black)\b", re.IGNORECASE,
+)
+
+
+def detect_color_balance_refusal(message: str) -> str:
+    """Retourne "white"/"black" si `message` correspond au refus Lichess
+    d'équilibre des couleurs (voir _COLOR_BALANCE_REFUSAL_RE ci-dessus) —
+    chaîne vide si `message` ne correspond pas (texte différent ou
+    inconnu) : l'appelant affiche alors le texte de Lichess seul, comme
+    pour tout autre refus 400 (issue #330, point 2)."""
+    m = _COLOR_BALANCE_REFUSAL_RE.search(message or "")
+    return m.group(1).lower() if m else ""
 
 
 def extract_api_message(body: str) -> str:

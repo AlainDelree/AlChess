@@ -47,6 +47,7 @@ from nicsoft.modes.lichess.errors import (
     LichessAuthError,
     LichessNetworkError,
     LichessRateLimitError,
+    detect_color_balance_refusal,
 )
 from nicsoft.modes.lichess.game_client import GameClient, is_game_over, moves_from_state
 
@@ -702,13 +703,26 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
 # vers ce lanceur sont nouvelles. Ordre (point 2) : position physique
 # confirmée D'ABORD (comme pour l'IA), puis recherche — jamais l'inverse.
 # Contrairement à la couleur "aléatoire" pour l'IA (résolue localement avant
-# tout appel réseau, issue #311), ici aussi : "aléatoire" est résolue en
-# white/black LOCALEMENT avant la recherche et transmise explicitement au
-# paramètre `color` de board/seek, plutôt que de laisser Lichess décider et
-# attendre l'évènement gameStart pour le savoir — cela évite une ambiguïté
-# d'orientation de l'écran de mise en place pendant que la couleur reste
-# inconnue, pour un résultat statistiquement identique (50/50 des deux
-# côtés). Rated=False toujours (seek.py) — partie amicale seulement (point 1).
+# tout appel réseau, issue #311, conservée ainsi car la partie contre l'IA
+# n'est jamais concernée par l'équilibrage des couleurs ci-dessous), la
+# recherche humaine NE résout PLUS "aléatoire" localement (issue #330 :
+# essai réel du 14/11/2026, une recherche 15+10 blancs refusée par Lichess
+# avec « You must also play some games as Black » — HTTP 400). Un choix
+# "aléatoire" local envoyait TOUJOURS une couleur précise à board/seek, donc
+# toujours soumise à la règle d'équilibre des couleurs de Lichess (établi
+# par lecture du code source public de lila, modules/lobby/src/main/
+# BoardApiHookStream.scala::mustPlayAsColor, lu le 14/11/2026 : le refus est
+# sauté entièrement quand la couleur demandée est "random" — paramètre
+# `color` laissé vide ici, "Better left empty to automatically get 50%
+# white" selon doc/specs/tags/board/api-board-seek.yaml du dépôt
+# lichess-org/api). La position de départ étant la même pour les deux
+# camps, l'écran de mise en place avant la recherche n'a pas besoin de
+# connaître la couleur réelle (orientation arbitraire, voir
+# `display_color` ci-dessous) : l'orientation réelle (échiquier, noms,
+# pendules) n'est appliquée qu'au vrai début de partie, une fois la couleur
+# confirmée par Lichess (LichessGame/lichess_init, déjà basé sur cette
+# couleur confirmée, inchangé par cette issue). Rated=False toujours
+# (seek.py) — partie amicale seulement (point 1).
 
 # Vitesses Lichess acceptées pour une recherche humaine (point 1 ; établi
 # dans #326, repris ici) — jamais Blitz ni Bullet.
@@ -752,6 +766,13 @@ def _classify_seek_error_event(ev: dict) -> tuple:
         return "toast.lichess_404", {}
     if status_code == 400:
         detail = ev.get("detail") or ""
+        # Issue #330 : refus d'équilibre des couleurs (board/seek, choix
+        # précis déjà demandé plusieurs fois) — reconnu sur le texte exact
+        # de Lichess (voir errors.py::detect_color_balance_refusal, établi
+        # par lecture du code source public de lila) ; sinon, texte de
+        # Lichess seul comme avant (point 2).
+        if detect_color_balance_refusal(detail):
+            return "toast.lichess_refus_equilibre_couleur", {"detail": f" : {detail}" if detail else ""}
         return "toast.lichess_refus_requete", {"detail": f" : {detail}" if detail else ""}
     if isinstance(status_code, int) and status_code >= 500:
         return "toast.lichess_indisponible", {}
@@ -815,17 +836,22 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
     from nicsoft.modes.lichess.game_log import GameLog
     from nicsoft.modes.lichess.seek import SeekSession
 
-    # Tirage de couleur de jeu (pile ou face) — aucun usage cryptographique,
-    # comme pour l'IA (issue #311) ; voir en-tête de section pour la raison
-    # de résoudre "aléatoire" nous-mêmes plutôt que de laisser Lichess choisir.
-    resolved_color = chosen_color if chosen_color in ("white", "black") else random.choice(("white", "black"))  # noqa: S311
+    # Issue #330 : "aléatoire" n'est plus résolu localement (voir en-tête de
+    # section) — `requested_color` est ce qui part réellement vers Lichess
+    # (board/seek), vide pour "aléatoire" afin que Lichess choisisse
+    # lui-même sans jamais déclencher la règle d'équilibre des couleurs.
+    # `display_color` ne sert qu'à l'écran de mise en place avant que la
+    # vraie couleur ne soit connue (position de départ identique pour les
+    # deux camps — un repli arbitraire n'y change donc rien).
+    requested_color = chosen_color if chosen_color in ("white", "black") else ""
+    display_color = requested_color or "white"
 
     nl_inst = None
     seek_session = None
     game_log = None
     try:
         nl_inst = _open_board_with_retry("NicLink_lichess")
-        _wait_initial_position_lichess(nl_inst, resolved_color)
+        _wait_initial_position_lichess(nl_inst, display_color)
         logger_lichess.info("Lichess : position de départ confirmée (recherche humaine).")
         set_nl_inst_ref(nl_inst)
 
@@ -868,8 +894,8 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
         seek_session = SeekSession(client, game_log=game_log)
 
         web_server._app_state = "lichess_seeking"
-        set_app_state("lichess_seeking", {"cadence": cadence_key, "color": resolved_color})
-        seek_session.start(clock_limit_s / 60.0, clock_increment_s, resolved_color)
+        set_app_state("lichess_seeking", {"cadence": cadence_key, "color": requested_color or "random"})
+        seek_session.start(clock_limit_s / 60.0, clock_increment_s, requested_color)
 
         last_tick_sent = 0.0
         found_game = None
@@ -980,7 +1006,12 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
             # d'autre à faire, la boucle continue (pas de limite de durée).
 
         game_id = found_game.get("gameId") or found_game.get("id") or ""
-        confirmed_color = found_game.get("color") or resolved_color
+        # "color" du gameStart (doc officielle, GameEventInfo.yaml : présent
+        # en pratique mais non `required`) porte la vraie couleur assignée
+        # par Lichess (fiable même pour une recherche "aléatoire" — c'est
+        # précisément ce qui manquait avant cette issue) ; `display_color`
+        # n'est qu'un repli défensif si ce champ venait un jour à manquer.
+        confirmed_color = found_game.get("color") or display_color
         if not game_id:
             raise LichessNetworkError("évènement gameStart sans identifiant de partie")
         opponent_info = found_game.get("opponent") or {}

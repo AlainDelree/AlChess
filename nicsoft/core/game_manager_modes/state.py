@@ -81,6 +81,10 @@ _TOAST_MESSAGES = {
     "toast.lichess_jeton_refuse":         "Lichess : jeton refusé ou droit manquant — vérifiez-le dans Paramètres.",
     "toast.lichess_404":                  "Lichess : requête invalide (ressource introuvable).",
     "toast.lichess_refus_requete":        "Lichess a refusé la requête.",
+    "toast.lichess_refus_equilibre_couleur": (
+        "Lichess a refusé la requête — Lichess demande d'équilibrer les couleurs : "
+        "choisissez l'autre couleur, ou « Aléatoire » pour quelques parties, puis réessayez."
+    ),
     "toast.lichess_indisponible":         "Lichess est indisponible pour le moment — réessayez plus tard.",
     "toast.lichess_rate_limited_detail":  "Lichess limite les demandes — réessayez dans un instant.",
 }

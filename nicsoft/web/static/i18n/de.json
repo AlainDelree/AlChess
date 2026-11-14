@@ -353,6 +353,7 @@
   "toast.lichess_jeton_refuse": "Token abgelehnt oder Berechtigung fehlt — bitte in den Einstellungen überprüfen.",
   "toast.lichess_404": "Lichess: ungültige Anfrage (Ressource nicht gefunden).",
   "toast.lichess_refus_requete": "Lichess hat die Anfrage abgelehnt{detail}.",
+  "toast.lichess_refus_equilibre_couleur": "Lichess hat die Anfrage abgelehnt{detail}. Lichess verlangt einen Ausgleich der Farben: wählen Sie die andere Farbe oder „Zufällig“ für ein paar Partien und versuchen Sie es erneut.",
   "toast.lichess_indisponible": "Lichess ist nicht verfügbar — versuchen Sie es später erneut.",
   "toast.lichess_error": "Bei Lichess ist ein Fehler aufgetreten.",
   "toast.lichess_seek_sans_adversaire": "Die Suche wurde beendet, ohne einen Gegner zu finden.",

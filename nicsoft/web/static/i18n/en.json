@@ -353,6 +353,7 @@
   "toast.lichess_jeton_refuse": "Token rejected or missing permission — check it in Settings.",
   "toast.lichess_404": "Lichess: invalid request (resource not found).",
   "toast.lichess_refus_requete": "Lichess refused the request{detail}.",
+  "toast.lichess_refus_equilibre_couleur": "Lichess refused the request{detail}. Lichess asks you to balance your colors: pick the other color, or \"Random\" for a few games, then try again.",
   "toast.lichess_indisponible": "Lichess is unavailable — try again later.",
   "toast.lichess_error": "An error occurred with Lichess.",
   "toast.lichess_seek_sans_adversaire": "The search ended without finding an opponent.",

@@ -353,6 +353,7 @@
   "toast.lichess_jeton_refuse": "Jeton refusé ou droit manquant — vérifiez-le dans Paramètres.",
   "toast.lichess_404": "Lichess : requête invalide (ressource introuvable).",
   "toast.lichess_refus_requete": "Lichess a refusé la requête{detail}.",
+  "toast.lichess_refus_equilibre_couleur": "Lichess a refusé la requête{detail}. Lichess demande d'équilibrer les couleurs : choisissez l'autre couleur, ou « Aléatoire » pour quelques parties, puis réessayez.",
   "toast.lichess_indisponible": "Lichess est indisponible — réessayez plus tard.",
   "toast.lichess_error": "Une erreur est survenue avec Lichess.",
   "toast.lichess_seek_sans_adversaire": "La recherche s'est arrêtée sans adversaire.",
