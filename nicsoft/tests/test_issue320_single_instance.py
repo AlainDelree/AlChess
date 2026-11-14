@@ -43,6 +43,23 @@ def _spawn_fake_process(with_alchess_marker: bool) -> int:
     script = f"import time  # {tag}\ntime.sleep(60)\n"
     # Exécutable et script fixes, écrits par ce test, sans entrée externe.
     proc = subprocess.Popen([sys.executable, "-c", script])  # noqa: S603  # nosec B603
+    # Juste après Popen(), /proc/<pid>/cmdline peut encore être vide — fenêtre
+    # noyau transitoire pendant l'exec, de l'ordre de la microseconde en
+    # charge normale, mais mesurée nettement plus large sous charge (issue
+    # #336). Attendre ici, de façon bornée, que la ligne de commande
+    # définitive soit en place évite de faire porter cette course à chaque
+    # appelant (_is_alchess_process, resolve_startup...).
+    pret = _wait_until(
+        lambda: bool(single_instance._cmdline_for_pid(proc.pid)),
+        timeout_s=5.0, interval_s=0.01,
+    )
+    if not pret:
+        proc.terminate()
+        proc.wait(timeout=5)
+        raise AssertionError(
+            f"PID {proc.pid} : /proc/{proc.pid}/cmdline resté vide plus de 5s "
+            f"après le lancement — le processus de test n'a jamais semblé prêt."
+        )
     return proc
 
 
