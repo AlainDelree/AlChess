@@ -73,21 +73,47 @@ def _extract_api_message(body: str) -> str:
     return ""
 
 
+def _url_tail(url: str) -> str:
+    """Partie de l'URL après API_BASE, pour le journal dédié de partie —
+    jamais le jeton (envoyé uniquement dans l'en-tête, jamais dans l'URL)."""
+    return url[len(API_BASE):] if url.startswith(API_BASE) else url
+
+
 class GameClient:
     """Client de partie pour un jeton donné. `transport` est injectable
-    (faux transport dans les tests, `UrllibTransport()` en production)."""
+    (faux transport dans les tests, `UrllibTransport()` en production).
 
-    def __init__(self, token: str, transport=None):
+    `game_log` (issue #326, point 10) : journal dédié de la partie en
+    cours — optionnel (None par défaut, aucun effet), attaché via
+    `attach_game_log()` dès que l'identifiant de partie est connu
+    (game_manager_modes/lichess.py). Journalise chaque requête envoyée
+    (coup, nulle, abandon...) et chaque ligne brute du flux, jamais le
+    jeton ni le tchat (voir game_log.py)."""
+
+    def __init__(self, token: str, transport=None, game_log=None):
         self._token = token
         self._transport = transport or UrllibTransport()
         self._lock = threading.Lock()
+        self._game_log = game_log
+
+    def attach_game_log(self, game_log) -> None:
+        self._game_log = game_log
 
     def _request(self, method: str, url: str, fields: dict | None = None) -> bytes:
-        with self._lock:
-            try:
-                return self._transport.request(method, url, self._token, fields)
-            except (TransportHTTPError, TransportNetworkError, TransportTimeoutError) as exc:
-                _raise_for_transport_error(exc)
+        start = time.monotonic()
+        try:
+            with self._lock:
+                result = self._transport.request(method, url, self._token, fields)
+        except (TransportHTTPError, TransportNetworkError, TransportTimeoutError) as exc:
+            if self._game_log is not None:
+                self._game_log.request(
+                    method, _url_tail(url), f"erreur {type(exc).__name__}", time.monotonic() - start,
+                )
+            _raise_for_transport_error(exc)
+        else:
+            if self._game_log is not None:
+                self._game_log.request(method, _url_tail(url), "ok", time.monotonic() - start)
+            return result
 
     # ── Actions ──────────────────────────────────────────────────────────
 
@@ -142,13 +168,22 @@ class GameClient:
                 for line in self._transport.stream_lines(url, self._token):
                     if attempt > 0:
                         attempt = 0
+                        if self._game_log is not None:
+                            self._game_log.connectivity("flux de partie reconnecté.")
                         yield {"type": "reconnected"}
                     if not line.strip():
                         continue
                     try:
                         event = json.loads(line)
                     except ValueError:
+                        if self._game_log is not None:
+                            self._game_log.raw(line)
                         continue
+                    if self._game_log is not None:
+                        if event.get("type") == "chatLine":
+                            self._game_log.chat_ignored()
+                        else:
+                            self._game_log.raw(line)
                     etype = event.get("type")
                     if etype not in _KNOWN_EVENT_TYPES:
                         continue
@@ -167,6 +202,10 @@ class GameClient:
                     return
                 delay = RECONNECT_DELAYS_S[min(attempt, len(RECONNECT_DELAYS_S) - 1)]
                 attempt += 1
+                if self._game_log is not None:
+                    self._game_log.connectivity(
+                        f"flux de partie coupé — tentative {attempt}, nouvel essai dans {delay}s."
+                    )
                 yield {"type": "reconnecting", "attempt": attempt, "delay_s": delay}
                 sleep(delay)
                 continue

@@ -2,6 +2,7 @@
 Fixtures e2e — Lance le serveur AlChess en subprocess et fournit
 une page Playwright connectée pour les tests end-to-end.
 """
+import json
 import os
 import queue
 import re
@@ -20,9 +21,64 @@ REPO_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 # Python lui-même.
 PYTHON = os.path.join(os.path.expanduser("~/NicLink"), "venv", "bin", "python")
 
+# Dossier utilisateur réel (où vivent les données ECO/livres non versionnées
+# nécessaires à certains tests e2e non-Lichess) — jamais utilisé directement
+# comme ALCHESS_DIR du serveur de test, voir _build_isolated_alchess_dir.
+REAL_USER_DIR = os.path.expanduser("~/NicLink")
+
 # Limite stricte d'attente de l'URL du serveur (issue #312) — au-delà, on
 # arrête le process et on fait échouer le test plutôt que de rester bloqué.
 STARTUP_TIMEOUT_S = 20
+
+# Sous-dossiers/fichiers de data/ dont certains tests e2e non-Lichess ont
+# réellement besoin (ECO, livres d'ouverture, exercices...) — jamais
+# config.json ni logs/ : ceux-là restent toujours neufs et vides, voir
+# _build_isolated_alchess_dir ci-dessous.
+_REAL_DATA_ITEMS = (
+    "books", "eco_a.tsv", "eco_b.tsv", "eco_c.tsv", "eco_d.tsv", "eco_e.tsv",
+    "eco_hierarchy.json", "mes_lignes", "mes_lignes.json", "pgn_library",
+    "players.json",
+)
+
+
+def _build_isolated_alchess_dir(tmp_path_factory):
+    """Construit un ALCHESS_DIR isolé pour toute la session de tests e2e
+    (issue #326, point 9).
+
+    Avant ce correctif, ALCHESS_DIR pointait directement sur le dossier
+    utilisateur réel d'Alain (~/NicLink) : tout test e2e qui ouvrait l'écran
+    de menu Lichess (`sendAction({type:'mode', value:'lichess'})`)
+    déclenchait, côté serveur, `check_lichess_resumable()` (nicsoft/web/
+    alchess.py) avec le VRAI jeton lu dans data/config.json, donc un vrai
+    appel réseau à /api/account/playing chez Lichess — constaté dans le
+    journal réel d'Alain le 14/11/2026 (parties en cours détectées sur son
+    vrai compte) et constaté également dans son vrai fichier niclink.log
+    (LOGS_DIR, lui aussi dérivé d'ALCHESS_DIR).
+
+    Ce dossier isolé reproduit, par liens symboliques en lecture seule,
+    uniquement les données réelles non versionnées dont certains tests
+    e2e non-Lichess ont besoin (ECO, livres d'ouverture — _REAL_DATA_ITEMS
+    ci-dessus), mais fournit un data/config.json tout neuf, sans aucun
+    jeton Lichess (donc jamais le vrai), et un logs/ tout neuf et vide
+    (jamais le vrai journal d'Alain). Avec un jeton vide,
+    check_lichess_resumable() s'arrête avant tout appel réseau
+    (load_config().get("lichess_token") vide → retour immédiat, voir
+    nicsoft/core/game_manager_modes/lichess.py) : aucun test de ce dossier
+    ne contacte donc jamais le vrai Lichess, avec ou sans jeton."""
+    base = tmp_path_factory.mktemp("alchess_e2e_dir")
+    data_dir = base / "data"
+    data_dir.mkdir()
+    real_data_dir = os.path.join(REAL_USER_DIR, "data")
+    for name in _REAL_DATA_ITEMS:
+        real_path = os.path.join(real_data_dir, name)
+        if os.path.exists(real_path):
+            os.symlink(real_path, data_dir / name)
+    (data_dir / "config.json").write_text(
+        json.dumps({"lichess_token": ""}, ensure_ascii=False), encoding="utf-8",
+    )
+    (base / "logs").mkdir()
+    (base / "games").mkdir()
+    return base
 
 
 def _start_line_reader(stream):
@@ -106,19 +162,20 @@ def wait_for_server_url(proc, line_queue, timeout_s=STARTUP_TIMEOUT_S):
 
 
 @pytest.fixture(scope="session")
-def server_url():
+def server_url(tmp_path_factory):
     """Lance le serveur AlChess (code de REPO_DIR) et retourne son URL."""
     env = os.environ.copy()
     env["BROWSER"] = "/bin/true"  # empêche l'ouverture automatique du navigateur
     env["ALCHESS_SKIP_BOARD"] = "1"  # n'interroge pas l'échiquier USB réel
-    # Données réelles (ECO, livres d'ouvertures...) non versionnées dans le dépôt
-    # (data/ est dans .gitignore) : un worktree de test ne les a pas. On pointe
-    # ALCHESS_DIR vers le dossier utilisateur pour les tests qui en dépendent,
-    # tout en gardant le CODE importé depuis REPO_DIR (cwd ci-dessous).
-    env.setdefault("ALCHESS_DIR", os.path.expanduser("~/NicLink"))
-    # ALCHESS_DIR ci-dessus pouvant être le dossier du vrai serveur d'Alain,
-    # ce serveur de test ne doit jamais lire ni écrire son marqueur
-    # d'instance unique, ni être arrêté ni bloqué par lui (issue #324).
+    # ALCHESS_DIR isolé (issue #326, point 9) : données ECO/livres réelles en
+    # lecture seule (lien symbolique) pour les tests qui en dépendent, mais
+    # config.json et logs/ toujours neufs — jamais le vrai jeton Lichess
+    # d'Alain, jamais son vrai journal. Voir _build_isolated_alchess_dir.
+    env["ALCHESS_DIR"] = str(_build_isolated_alchess_dir(tmp_path_factory))
+    # ALCHESS_DIR ci-dessus étant désormais un dossier isolé (pas celui du
+    # vrai serveur d'Alain), ce réglage n'a plus d'effet pratique ici, mais
+    # reste inoffensif à garder (issue #324) si un test futur repointe un
+    # jour ALCHESS_DIR vers le vrai dossier.
     env["ALCHESS_SKIP_SINGLE_INSTANCE"] = "1"
 
     proc = subprocess.Popen(

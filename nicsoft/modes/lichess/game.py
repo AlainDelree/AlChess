@@ -37,6 +37,7 @@ from nicsoft.modes.lichess.errors import (
     LichessRateLimitError,
 )
 from nicsoft.modes.lichess.game_client import is_game_over, moves_from_state, side_to_move
+from nicsoft.modes.lichess.game_log import GameLog
 
 logger = logging.getLogger("niclink.lichess")
 
@@ -254,12 +255,24 @@ class LichessGame(threading.Thread):
                  chosen_color_setting: str = "random", cadence_key: str = "",
                  resuming: bool = False,
                  initial_wtime_ms: float = None, initial_btime_ms: float = None,
-                 clock_known: bool = True, **kwargs):
+                 clock_known: bool = True, game_log=None, **kwargs):
         super().__init__(daemon=True, **kwargs)
         self.nl_inst = nl_inst
         self.client = client
         self.game_id = game_id
         self.level = level
+        # Journal dédié de partie (issue #326, point 10) — toujours actif :
+        # si l'appelant n'en fournit pas (ex. game_manager_modes/lichess.py
+        # n'a pas encore attaché le sien), LichessGame crée le sien ici,
+        # pour qu'une partie construite directement (tests, futur appelant)
+        # ne reste jamais sans journal dédié. Attaché au client existant
+        # seulement s'il n'en a pas déjà un (le lanceur attache en général
+        # le sien, créé plus tôt, avant même que ce coup-ci ne joigne la
+        # partie — voir game_manager_modes/lichess.py).
+        self._game_log = game_log if game_log is not None else GameLog(game_id)
+        attach = getattr(self.client, "attach_game_log", None)
+        if callable(attach) and getattr(self.client, "_game_log", None) is None:
+            attach(self._game_log)
         self.player_name = player_name or "Vous"
         self.clock_limit_s = clock_limit_s
         self.clock_increment_s = clock_increment_s
@@ -372,6 +385,7 @@ class LichessGame(threading.Thread):
         self._stream_event_queue = queue.Queue()
         self._stream_stop = threading.Event()
         self._stream_error = None
+        self._last_board_read_ts = time.monotonic()
 
     def start(self):
         self.run()
@@ -390,8 +404,12 @@ class LichessGame(threading.Thread):
         reader = threading.Thread(target=self._stream_reader_loop, daemon=True)
         reader.start()
         logger.info("Lichess : flux de partie ouvert (%s).", self.game_id)
+        self._game_log.state_change(f"Partie démarrée — game_id={self.game_id}, niveau={self.level}.")
         try:
             self._main_loop()
+        except Exception as exc:
+            self._game_log.exception(exc, context="fil principal (_main_loop)")
+            raise
         finally:
             self._stream_stop.set()
             self._finalize()
@@ -399,6 +417,7 @@ class LichessGame(threading.Thread):
                 reader.join(timeout=2.0)
             except RuntimeError:
                 pass  # jointure best-effort — le thread est daemon de toute façon
+            self._game_log.close()
 
     def _main_loop(self):
         while not self.game_over:
@@ -415,6 +434,21 @@ class LichessGame(threading.Thread):
                     break
             self._tick_physical()
             self._maybe_push_clock()
+            self._maybe_log_heartbeat()
+
+    def _maybe_log_heartbeat(self) -> None:
+        """Ligne de contrôle périodique du journal dédié (issue #326,
+        point 10, (g) fin) — appelée à chaque tour de boucle principale
+        (~50ms), mais ne journalise réellement qu'au rythme de
+        HEARTBEAT_INTERVAL_S (voir GameLog.maybe_heartbeat)."""
+        now = time.monotonic()
+        elapsed_s = 0.0 if (self.game_over or not self._clock_running) else max(0.0, now - self._clock_ref_monotonic)
+        white_ms, black_ms = compute_clock_ms(self._clock_white_ms, self._clock_black_ms,
+                                               self._clock_turn, elapsed_s)
+        last_read_age_s = max(0.0, now - getattr(self, "_last_board_read_ts", now))
+        self._game_log.maybe_heartbeat(
+            self._clock_turn, white_ms, black_ms, not self._board_lost, last_read_age_s,
+        )
 
     def _stream_reader_loop(self):
         try:
@@ -424,6 +458,14 @@ class LichessGame(threading.Thread):
                     return
         except (LichessApiError, LichessAuthError, LichessNetworkError, LichessRateLimitError) as exc:
             self._stream_error = exc
+        except Exception as exc:
+            # Toute autre exception imprévue dans ce fil secondaire ne
+            # remontait auparavant nulle part — journalisée ici en entier
+            # (issue #326, point 10, (g)) plutôt que de laisser le fil
+            # mourir silencieusement (le flux de partie s'arrête alors
+            # normalement via le "_stream_closed" ci-dessous).
+            self._stream_error = exc
+            self._game_log.exception(exc, context="fil de lecture du flux (_stream_reader_loop)")
         finally:
             self._stream_event_queue.put({"type": "_stream_closed"})
 
@@ -572,6 +614,10 @@ class LichessGame(threading.Thread):
         # d'annulation/le décompte du premier coup propres à Lichess contre
         # un humain — toute partie AlChess actuelle en a un.
         self._opponent_is_ai = white.get("aiLevel") is not None or black.get("aiLevel") is not None
+        self._game_log.state_change(
+            f"gameFull reçu — couleur_utilisateur={self.user_color}, adversaire_ia={self._opponent_is_ai}, "
+            f"niveau={self.level}, cadence={self.clock_limit_s}+{self.clock_increment_s}."
+        )
         state = event.get("state") or {}
         self._log_game_state_received(state)
         self.board = chess.Board()
@@ -657,6 +703,7 @@ class LichessGame(threading.Thread):
         self._winner = winner
         self._aborted = status == "aborted"
         self.game_over = True
+        self._game_log.state_change(f"partie terminée — statut={status}, vainqueur={winner or '(aucun)'}.")
         self._sync_turn_ready()
 
     def _apply_new_moves(self, state: dict, initial: bool = False):
@@ -790,6 +837,12 @@ class LichessGame(threading.Thread):
         elapsed_s = 0.0 if (self.game_over or not self._clock_running) else max(0.0, now - self._clock_ref_monotonic)
         white_ms, black_ms = compute_clock_ms(self._clock_white_ms, self._clock_black_ms,
                                                self._clock_turn, elapsed_s)
+        source = (
+            "inconnue (jamais confirmée par le flux)" if not self._clock_known else
+            "flux Lichess + décompte local" if self._clock_running else
+            "flux Lichess (figée, avant les deux premiers coups)"
+        )
+        self._game_log.clock(white_ms, black_ms, self._clock_turn, source)
         send_event("lichess_clock", {
             "white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn,
             "known": self._clock_known,
@@ -804,6 +857,7 @@ class LichessGame(threading.Thread):
     # ── Plateau physique ─────────────────────────────────────────────────
 
     def _read_hardware_fen(self):
+        self._last_board_read_ts = time.monotonic()
         try:
             raw = self.nl_inst.current_fen
         except Exception as exc:
@@ -821,14 +875,17 @@ class LichessGame(threading.Thread):
             self._board_lost_since = time.monotonic()
             self._next_reconnect_attempt_ts = self._board_lost_since
             logger.warning("Lichess : échiquier perdu en cours de partie (%s).", self.game_id)
+            self._game_log.connectivity("échiquier perdu — tentatives de reconnexion vont démarrer.")
             send_event("lichess_board_lost", {})
 
     def _register_board_present(self) -> None:
         if self._board_lost_strikes or self._board_lost:
             self._board_lost_strikes = 0
             if self._board_lost:
+                lost_duration_s = time.monotonic() - (self._board_lost_since or time.monotonic())
                 self._board_lost = False
                 self._board_lost_since = None
+                self._game_log.connectivity(f"échiquier reconnecté (perdu pendant {lost_duration_s:.1f}s).")
                 send_event("lichess_board_ok", {})
 
     def _maybe_attempt_reconnect(self) -> None:
@@ -848,6 +905,7 @@ class LichessGame(threading.Thread):
         threading.Thread(target=self._attempt_reconnect_once, daemon=True).start()
 
     def _attempt_reconnect_once(self) -> None:
+        attempt_start = time.monotonic()
         try:
             self.nl_inst.connect()
             restart = getattr(self.nl_inst, "_start_fen_reader", None)
@@ -855,6 +913,9 @@ class LichessGame(threading.Thread):
                 restart()
         except Exception as e:
             logger.debug("Lichess : tentative de reconnexion échiquier échouée (%s) : %s", self.game_id, e)
+            self._game_log.connectivity(
+                f"tentative de reconnexion échiquier échouée ({time.monotonic() - attempt_start:.2f}s) : {e}"
+            )
             elapsed = time.monotonic() - (self._board_lost_since or time.monotonic())
             interval = (self.RECONNECT_FAST_INTERVAL_S if elapsed < self.RECONNECT_FAST_DURATION_S
                         else self.RECONNECT_SLOW_INTERVAL_S)
@@ -913,6 +974,15 @@ class LichessGame(threading.Thread):
             return
         self._action_buttons_state = state
         resign_enabled, draw_enabled = state
+        self._game_log.state_change(
+            f"boutons abandon={'actif' if resign_enabled else 'grisé'} "
+            f"nulle={'actif' if draw_enabled else 'grisé'} — "
+            f"trait_utilisateur={self.user_color is not None and self.board.turn == (chess.WHITE if self.user_color == 'white' else chess.BLACK)}, "
+            f"reprise_en_cours={self._resume_pending}, replication_attendue={self._awaiting_physical_replication}, "
+            f"recalage_attendu={self._awaiting_piece_reset}, promotion_attendue={self._pending_promotion is not None}, "
+            f"position_illegale={self._illegal_position_active}, echiquier_perdu={self._board_lost}, "
+            f"offre_nulle_en_attente={self._my_draw_offer_pending}"
+        )
         send_event("lichess_action_buttons", {
             "resign_enabled": resign_enabled, "draw_enabled": draw_enabled,
         })
@@ -1077,6 +1147,10 @@ class LichessGame(threading.Thread):
             self._illegal_stable_count = 0
             self._clear_illegal_position()
             self._pending_promotion = promo
+            self._game_log.board_change(
+                f"promotion détectée {chess.square_name(promo[0])}{chess.square_name(promo[1])} — "
+                f"décision : choix de la pièce demandé à l'utilisateur."
+            )
             send_event("lichess_promotion_needed", {
                 "from": chess.square_name(promo[0]), "to": chess.square_name(promo[1]),
             })
@@ -1085,6 +1159,9 @@ class LichessGame(threading.Thread):
         if move is not None:
             self._illegal_stable_count = 0
             self._clear_illegal_position()
+            self._game_log.board_change(
+                f"coup physique reconnu {move.uci()} — position lue {hardware_fen} — décision : coup envoyé."
+            )
             self._submit_move(move.uci())
             return
         if hardware_fen == self._last_illegal_fen:
@@ -1114,6 +1191,10 @@ class LichessGame(threading.Thread):
         self._last_position_error_ts = now
         self._illegal_position_active = True
         self._last_illegal_position_sent_fen = hardware_fen
+        self._game_log.board_change(
+            f"position physique illégale — lue {hardware_fen}, attendue {expected_fen} — "
+            f"décision : case(s) à corriger affichée(s)."
+        )
         send_event("lichess_illegal_position", {
             "active": True, "expected_fen": expected_fen, "physical_fen": hardware_fen,
         })
@@ -1122,6 +1203,7 @@ class LichessGame(threading.Thread):
         if self._illegal_position_active:
             self._illegal_position_active = False
             self._last_illegal_position_sent_fen = None
+            self._game_log.board_change("position illégale résolue — case(s) à corriger masquée(s).")
             send_event("lichess_illegal_position", {"active": False})
 
     def _submit_promotion(self, piece_letter: str) -> None:
@@ -1230,6 +1312,7 @@ class LichessGame(threading.Thread):
                 self._notify_unexpected_end()
         except Exception as exc:
             logger.error("Lichess : notification de fin de partie échouée : %s", exc)
+            self._game_log.exception(exc, context="_finalize (notification de fin de partie)")
 
     def _is_unexpected_end(self) -> bool:
         """Vrai pour un statut de fin ni demandé par l'utilisateur
