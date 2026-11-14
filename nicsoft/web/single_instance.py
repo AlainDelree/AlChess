@@ -18,6 +18,16 @@ démarrage) dans DATA_DIR. Une nouvelle instance qui démarre lit ce marqueur :
 Aucune recherche ni arrêt de processus par nom de programme (pgrep/pkill/
 taskkill /IM/Stop-Process -Name) : uniquement par PID exact, obtenu depuis
 ce marqueur.
+
+Un serveur lancé par les tests (fixture e2e, tests d'intégration qui
+démarrent un vrai `python -m nicsoft.web`) peut tourner avec ALCHESS_DIR
+pointé vers le vrai dossier utilisateur (pour lire des données réelles non
+versionnées — ECO, livres d'ouvertures). Dans ce cas, le marqueur de ce
+dossier est celui du serveur réel d'Alain : il ne doit jamais être lu, écrit
+ni soumis à la règle « remplacer ou refuser » par un serveur de test.
+ALCHESS_SKIP_SINGLE_INSTANCE=1 désactive entièrement resolve_startup/
+write_marker/remove_marker pour ce processus — réservé aux serveurs de
+test (issue #324).
 """
 
 import json
@@ -61,6 +71,16 @@ _POLL_INTERVAL_S = 0.25
 _STATUS_TIMEOUT_S = 2.0
 
 
+_SKIP_ENV_VAR = "ALCHESS_SKIP_SINGLE_INSTANCE"
+
+
+def _skip_check() -> bool:
+    """Vrai pour un serveur de test qui ne doit jamais lire ni écrire le
+    marqueur d'instance, ni être soumis à la règle « remplacer ou
+    refuser » — même si son ALCHESS_DIR est celui du vrai serveur."""
+    return os.environ.get(_SKIP_ENV_VAR) == "1"
+
+
 def _marker_path():
     return DATA_DIR / MARKER_FILENAME
 
@@ -68,7 +88,10 @@ def _marker_path():
 def write_marker(pid: int, port: int, started_at: str) -> None:
     """Écrit le marqueur d'instance. Écriture atomique (fichier temporaire
     puis renommage) pour qu'une lecture concurrente ne voie jamais un
-    fichier à moitié écrit."""
+    fichier à moitié écrit. Ne fait rien pour un serveur de test
+    (_skip_check)."""
+    if _skip_check():
+        return
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     payload = {"pid": pid, "port": port, "started_at": started_at}
     tmp_path = _marker_path().with_suffix(".tmp")
@@ -79,7 +102,10 @@ def write_marker(pid: int, port: int, started_at: str) -> None:
 def remove_marker(pid: int) -> None:
     """Supprime le marqueur, seulement s'il désigne encore ce PID — une
     instance qui s'arrête ne doit jamais effacer le marqueur d'une instance
-    plus récente qui l'aurait déjà remplacé."""
+    plus récente qui l'aurait déjà remplacé. Ne fait rien pour un serveur
+    de test (_skip_check)."""
+    if _skip_check():
+        return
     existing = _read_marker()
     if existing is None or existing.get("pid") != pid:
         return
@@ -225,7 +251,13 @@ def resolve_startup():
     arrêtée avec succès), ou (False, message) si une partie est en cours
     dans l'ancienne instance (ou si son état n'a pas pu être confirmé) et
     qu'il ne faut PAS démarrer ni toucher à cette ancienne instance.
+
+    Retourne (True, None) sans rien lire ni toucher pour un serveur de test
+    (_skip_check).
     """
+    if _skip_check():
+        return True, None
+
     marker = _read_marker()
     if marker is None:
         return True, None

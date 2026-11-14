@@ -200,6 +200,102 @@ def test_remove_marker_ne_supprime_pas_si_pid_different(tmp_path):
     assert data["pid"] == 9999
 
 
+# ── Protection serveur de test (#324) — ignore le marqueur du vrai serveur ────
+# Un serveur lancé par les tests peut tourner avec ALCHESS_DIR pointé vers le
+# vrai dossier utilisateur (pour lire des données réelles comme l'ECO). Avec
+# ALCHESS_SKIP_SINGLE_INSTANCE=1, il ne doit jamais lire ni écrire le marqueur
+# qui s'y trouve, ni l'arrêter, ni être refusé — qu'il désigne un "vrai
+# serveur" au menu ou en partie. Faux processus (boucle sleep), jamais un
+# vrai serveur AlChess, comme le reste de ce fichier (sauf le test
+# d'intégration final).
+
+@pytest.mark.parametrize("etat_reel", ["menu", "playing"])
+def test_skip_single_instance_ignore_le_marqueur_reel(monkeypatch, etat_reel):
+    """Un serveur de test ne touche jamais au marqueur d'un "vrai" serveur,
+    qu'il soit au menu ou en partie — ne le lit pas, ne l'arrête pas, et
+    démarre sans être refusé."""
+    proc = _spawn_fake_process(with_alchess_marker=True)
+    try:
+        single_instance.write_marker(proc.pid, 6101, "2026-01-01T00:00:00")
+        monkeypatch.setattr(single_instance, "_query_state", lambda port: {"state": etat_reel})
+        monkeypatch.setenv("ALCHESS_SKIP_SINGLE_INSTANCE", "1")
+
+        can_start, message = single_instance.resolve_startup()
+
+        assert can_start is True
+        assert message is None
+        time.sleep(0.5)
+        assert proc.poll() is None, "le \"vrai\" serveur n'aurait jamais dû être arrêté"
+        marker_file = single_instance._marker_path()
+        data = json.loads(marker_file.read_text(encoding="utf-8"))
+        assert data["pid"] == proc.pid, "le marqueur du \"vrai\" serveur n'aurait pas dû être altéré"
+    finally:
+        _cleanup_pid(proc.pid)
+
+
+def test_skip_single_instance_write_remove_marker_sont_des_no_op(monkeypatch, tmp_path):
+    """write_marker/remove_marker ne doivent rien faire pour un serveur de
+    test : un marqueur réel préexistant doit rester intact."""
+    single_instance.write_marker(9999, 5002, "2026-01-01T00:01:00")  # marqueur "réel"
+    marker_file = tmp_path / single_instance.MARKER_FILENAME
+    assert marker_file.exists()
+
+    monkeypatch.setenv("ALCHESS_SKIP_SINGLE_INSTANCE", "1")
+    single_instance.write_marker(4242, 5001, "2026-01-01T00:00:00")  # serveur de test
+    data = json.loads(marker_file.read_text(encoding="utf-8"))
+    assert data["pid"] == 9999, "le marqueur réel n'aurait pas dû être écrasé"
+
+    single_instance.remove_marker(9999)  # le serveur de test ne doit pas pouvoir le supprimer
+    assert marker_file.exists(), "le marqueur réel n'aurait pas dû être supprimé"
+
+
+@pytest.mark.slow
+def test_integration_serveur_de_test_ignore_vrai_serveur_au_menu(tmp_path):
+    """Reproduction du scénario réel de l'issue #324 avec deux vrais
+    processus `python -m nicsoft.web` partageant le même ALCHESS_DIR : le
+    premier (sans ALCHESS_SKIP_SINGLE_INSTANCE) représente le vrai serveur
+    d'Alain, resté au menu ; le second (avec la variable) représente un
+    serveur lancé par les tests. Le second doit démarrer sans jamais
+    arrêter ni bloquer le premier."""
+    env = os.environ.copy()
+    env["BROWSER"] = "/bin/true"
+    env["ALCHESS_SKIP_BOARD"] = "1"
+    env["ALCHESS_NO_BROWSER"] = "1"
+    env["ALCHESS_DIR"] = str(tmp_path)
+
+    proc_reel = subprocess.Popen(
+        [sys.executable, "-m", "nicsoft.web"],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+        cwd=REPO_DIR, env=env,
+    )
+    proc_test = None
+    try:
+        queue_reel = _start_line_reader(proc_reel.stdout)
+        wait_for_server_url(proc_reel, queue_reel, timeout_s=20)
+        time.sleep(1.5)  # laisser le "vrai" serveur atteindre l'état "menu"
+        assert proc_reel.poll() is None, "le \"vrai\" serveur aurait dû rester actif au menu"
+
+        env_test = dict(env)
+        env_test["ALCHESS_SKIP_SINGLE_INSTANCE"] = "1"
+        proc_test = subprocess.Popen(
+            [sys.executable, "-m", "nicsoft.web"],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            cwd=REPO_DIR, env=env_test,
+        )
+        queue_test = _start_line_reader(proc_test.stdout)
+        wait_for_server_url(proc_test, queue_test, timeout_s=20)
+
+        time.sleep(1.0)
+        assert proc_reel.poll() is None, (
+            "le serveur de test n'aurait jamais dû arrêter le \"vrai\" serveur au menu"
+        )
+        assert proc_test.poll() is None, "le serveur de test aurait dû rester actif"
+    finally:
+        _kill_process(proc_reel)
+        if proc_test is not None:
+            _kill_process(proc_test)
+
+
 # ── Identification par ligne de commande (jamais par le seul nom) ─────────────
 
 @pytest.mark.skipif(sys.platform == "win32", reason="lecture /proc — Linux uniquement")

@@ -116,6 +116,10 @@ def server_url():
     # ALCHESS_DIR vers le dossier utilisateur pour les tests qui en dépendent,
     # tout en gardant le CODE importé depuis REPO_DIR (cwd ci-dessous).
     env.setdefault("ALCHESS_DIR", os.path.expanduser("~/NicLink"))
+    # ALCHESS_DIR ci-dessus pouvant être le dossier du vrai serveur d'Alain,
+    # ce serveur de test ne doit jamais lire ni écrire son marqueur
+    # d'instance unique, ni être arrêté ni bloqué par lui (issue #324).
+    env["ALCHESS_SKIP_SINGLE_INSTANCE"] = "1"
 
     proc = subprocess.Popen(
         [PYTHON, "-m", "nicsoft.web"],

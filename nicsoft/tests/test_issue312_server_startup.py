@@ -17,7 +17,9 @@ http://...") avait en plus disparu de la sortie Werkzeug, redirigée ou non,
 
 Sans matériel (ALCHESS_SKIP_BOARD=1), sans navigateur (ALCHESS_NO_BROWSER=1,
 BROWSER=/bin/true), sans écriture dans les vrais dossiers de l'utilisateur
-(ALCHESS_DIR pointé vers tmp_path).
+(ALCHESS_DIR pointé vers tmp_path). ALCHESS_SKIP_SINGLE_INSTANCE=1 en plus
+(#324) : ce test ne porte pas sur la vérification d'instance unique (#320),
+qui n'a donc pas à s'exécuter ici.
 """
 import os
 import subprocess
@@ -39,6 +41,7 @@ def test_adresse_affichee_en_moins_de_10s_sortie_redirigee(tmp_path):
     env["ALCHESS_SKIP_BOARD"] = "1"
     env["ALCHESS_NO_BROWSER"] = "1"
     env["ALCHESS_DIR"] = str(tmp_path)  # jamais le dossier réel de l'utilisateur
+    env["ALCHESS_SKIP_SINGLE_INSTANCE"] = "1"  # ne teste pas #320 — protection #324
 
     proc = subprocess.Popen(
         [sys.executable, "-m", "nicsoft.web"],
