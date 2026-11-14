@@ -711,6 +711,17 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
 # dans #326, repris ici) — jamais Blitz ni Bullet.
 _HUMAN_SEEK_ALLOWED_SPEEDS = frozenset({"rapid", "classical"})
 
+# Issue #328, point 2 : essai réel du 14/11/2026 — une partie avait bien été
+# créée chez Lichess alors que le flux de recherche s'était fermé sans
+# `gameStart` encore lu par AlChess (ordre/délai entre les deux non garanti
+# par la documentation officielle, voir seek.py). Avant de conclure à
+# l'absence d'adversaire, on patiente cette durée pour laisser `gameStart`
+# arriver, puis — s'il n'est toujours pas là — on consulte la liste des
+# parties en cours du compte (même appel que le garde-fou "une seule partie
+# à la fois" ci-dessus) : ne jamais laisser une partie ouverte chez Lichess
+# sans que l'utilisateur le sache.
+_SEEK_CLOSED_GRACE_S = 5.0
+
 
 def _launch_lichess_human(config: dict, token: str) -> None:
     from nicsoft.modes.lichess.game import speed_key_for_clock
@@ -780,6 +791,19 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
         logger_lichess.info("Lichess : position de départ confirmée (recherche humaine).")
         set_nl_inst_ref(nl_inst)
 
+        # Vrai début de la recherche du point de vue de l'utilisateur (issue
+        # #328, point 5) — capturé ICI, avant le garde-fou réseau et avant
+        # l'ouverture des deux flux (seek_session.start() ci-dessous, deux
+        # appels HTTP bloquants) : essai réel du 14/11/2026, écran affichant
+        # "0:03" neuf secondes après la position confirmée — établi par
+        # lecture du code, la cause est que le compteur ne démarrait
+        # qu'après ces appels réseau (garde-fou "une seule partie" +
+        # ouverture des deux flux, trois requêtes séquentielles), sans
+        # compter leur propre durée. Compter depuis ICI couvre cette durée
+        # de mise en place, cohérent avec "temps écoulé depuis le vrai début
+        # de la recherche".
+        search_start = time.monotonic()
+
         # Garde-fou « une seule partie à la fois » (issue #325, point 4 ;
         # repris ici point 2) — juste avant de démarrer la recherche.
         ongoing = _refuse_create_if_games_ongoing(token)
@@ -809,7 +833,6 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
         set_app_state("lichess_seeking", {"cadence": cadence_key, "color": resolved_color})
         seek_session.start(clock_limit_s / 60.0, clock_increment_s, resolved_color)
 
-        search_start = time.monotonic()
         last_tick_sent = 0.0
         found_game = None
         while found_game is None:
@@ -843,13 +866,73 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
                 return
             elif etype == "seek_closed":
                 # Flux de recherche fermé par Lichess sans appariement
-                # signalé (aucune durée maximale documentée — cas non
-                # observé en pratique, voir seek.py) : jamais d'attente
-                # silencieuse indéfinie.
-                logger_lichess.warning("Lichess : recherche humaine close par Lichess sans appariement signalé.")
+                # signalé — NE JAMAIS conclure à un échec ici (issue #328,
+                # point 2 : essai réel du 14/11/2026, une partie avait bel
+                # et bien été créée chez Lichess alors qu'AlChess concluait
+                # à tort à son absence et perdait sa trace). On patiente
+                # d'abord _SEEK_CLOSED_GRACE_S pour gameStart (le flux
+                # d'évènements reste ouvert, voir seek.py), puis on
+                # consulte la liste des parties en cours du compte avant de
+                # trancher.
+                logger_lichess.info(
+                    "Lichess : flux de recherche fermé par Lichess — attente de %.0fs de "
+                    "l'évènement de début de partie avant de conclure.", _SEEK_CLOSED_GRACE_S,
+                )
+                game_log.state_change(
+                    "flux de recherche fermé par Lichess sans appariement encore signalé — "
+                    f"attente de {_SEEK_CLOSED_GRACE_S:.0f}s de l'évènement gameStart."
+                )
+                grace_deadline = time.monotonic() + _SEEK_CLOSED_GRACE_S
+                while found_game is None and time.monotonic() < grace_deadline:
+                    if get_app_state() == "menu":
+                        break
+                    ev2 = seek_session.next_event(timeout=0.2)
+                    if ev2 is None:
+                        continue
+                    if ev2.get("type") == "found":
+                        found_game = ev2.get("game") or {}
+                    elif ev2.get("type") == "error":
+                        logger_lichess.warning(
+                            "Lichess : flux d'évènements interrompu pendant l'attente de gameStart (%s).",
+                            ev2.get("reason", "?"),
+                        )
+                        break
+
+                if found_game is not None:
+                    game_log.state_change("évènement de début de partie reçu pendant l'attente — partie trouvée.")
+                    continue  # ré-évalue "while found_game is None" -> sort normalement
+
+                # Toujours pas de gameStart : jamais de conclusion silencieuse
+                # (point 2) — même appel que le garde-fou "une seule partie à
+                # la fois" plus haut, qui a déjà garanti qu'aucune partie
+                # n'existait avant cette recherche.
+                game_log.state_change("aucun gameStart reçu — consultation de la liste des parties en cours du compte.")
+                ongoing = _fetch_ongoing_games(token)
+                if ongoing:
+                    logger_lichess.warning(
+                        "Lichess : adversaire trouvé mais partie non ouverte normalement — "
+                        "%d partie(s) en cours détectée(s) (%s).",
+                        len(ongoing), ", ".join(g["game_id"] for g in ongoing),
+                    )
+                    game_log.state_change(
+                        f"partie adoptée depuis la liste des parties en cours ({len(ongoing)}) — "
+                        "écran des parties en cours affiché, reprise non proposée (partie humaine, "
+                        "issue suivante)."
+                    )
+                    send_event("lichess_resumable", {"available": True, "games": ongoing})
+                    if _error is not None:
+                        _error["occurred"] = True
+                        _error["toast_key"] = "toast.lichess_seek_partie_non_ouverte"
+                        _error["return_to"] = "config_lichess"
+                    return
+
+                logger_lichess.info("Lichess : recherche humaine terminée — aucun adversaire trouvé.")
+                game_log.state_change(
+                    "recherche terminée — aucun adversaire trouvé (confirmé par la liste des parties en cours)."
+                )
                 if _error is not None:
                     _error["occurred"] = True
-                    _error["toast_key"] = "toast.lichess_network_error"
+                    _error["toast_key"] = "toast.lichess_seek_sans_adversaire"
                     _error["return_to"] = "config_lichess"
                 return
             # "waiting" (ligne vide de maintien du flux de recherche) : rien
@@ -927,7 +1010,14 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
         send_event("popup", {"message": f"Erreur : {e}"})
     finally:
         if seek_session is not None:
-            seek_session.cancel()
+            # close(), pas cancel() : la cause réelle (trouvé, erreur,
+            # annulation utilisateur déjà traitée par son propre cancel()
+            # explicite ci-dessus, ou conclusion après la période d'attente)
+            # est déjà journalisée par la branche qui a quitté le bloc try —
+            # jamais le message "annulée par l'utilisateur" ici, qui serait
+            # faux dans tous les cas sauf l'annulation réelle (issue #328,
+            # point 4).
+            seek_session.close()
         if game_log is not None:
             game_log.close()
         if nl_inst:

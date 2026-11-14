@@ -167,14 +167,32 @@ class StreamHandle:
                 if self._closed:
                     return
                 yield raw_line.decode("utf-8", errors="replace").rstrip("\n")
-        except ValueError:
-            # Lecture sur une réponse déjà fermée (close() appelé depuis un
-            # autre fil pendant une lecture bloquante) — fin normale du
-            # générateur, pas une erreur réseau.
-            return
         except socket.timeout:
+            if self._closed:
+                return
             raise TransportTimeoutError("délai dépassé") from None
         except urllib.error.URLError:
+            if self._closed:
+                return
             raise TransportNetworkError("réseau indisponible") from None
+        except Exception:
+            # close() appelé depuis un AUTRE fil pendant une lecture
+            # bloquante (ex. cancel() d'une recherche d'adversaire humain,
+            # seek.py) interrompt la lecture en cours — la nature exacte de
+            # l'exception levée par http.client/socket dépend du point
+            # précis où la lecture a été coupée et de la version de Python :
+            # ValueError observé historiquement, et AttributeError (attribut
+            # interne devenu None après close()) observé en pratique sur un
+            # essai réel (issue #328, 14/11/2026 — recherche d'adversaire
+            # humain, flux d'évènements fermé pendant que ce générateur
+            # attendait la ligne suivante). self._closed est déjà vrai à cet
+            # instant (close() le positionne AVANT de fermer la réponse,
+            # voir ci-dessous) : fin normale du générateur, jamais une erreur
+            # réseau. Toute autre exception, non liée à une fermeture
+            # volontaire, continue d'être remontée telle quelle à l'appelant
+            # (jamais avalée en silence).
+            if self._closed:
+                return
+            raise
         finally:
             self.close()

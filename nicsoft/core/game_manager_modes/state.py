@@ -74,6 +74,10 @@ _TOAST_MESSAGES = {
     "toast.lichess_rate_limited":   "Limite de requêtes Lichess atteinte — réessayez dans un instant.",
     "toast.lichess_network_error":  "Connexion à Lichess impossible — vérifiez le réseau.",
     "toast.lichess_error":          "Une erreur est survenue avec Lichess.",
+    "toast.lichess_seek_sans_adversaire":    "La recherche s'est arrêtée sans adversaire.",
+    "toast.lichess_seek_partie_non_ouverte": (
+        "Un adversaire a été trouvé, mais la partie n'a pas pu s'ouvrir normalement."
+    ),
 }
 
 

@@ -24,6 +24,20 @@ recherche reste active aussi longtemps que les deux flux restent ouverts ;
 seule une annulation explicite (cancel()) ou une coupure réseau y met fin
 côté AlChess.
 
+Issue #328 (essai réel du 14/11/2026) : la documentation officielle
+n'indique AUCUN ordre ni délai garanti entre la fermeture du flux de
+recherche (appariement) et l'arrivée de `gameStart` sur le flux
+d'évènements — établi par lecture du code, resté une hypothèse pour la
+suite (non vérifiable sans vraie partie, voir rapport de clôture). Ce
+module se contente donc de ne JAMAIS fermer le flux d'évènements tant que
+l'appelant n'a pas renoncé à attendre `gameStart` (voir "seek_closed"
+ci-dessous, et l'attente côté appelant dans
+game_manager_modes/lichess.py::_run_lichess_human) ; c'est cette attente,
+pas ce module, qui décidait trop tôt à l'échec et interrompait la lecture
+en cours, provoquant l'exception non interceptée qui a fait perdre la
+partie créée côté Lichess ce jour-là (seek.py ne fermait déjà le flux
+d'évènements qu'après avoir lu gameStart ou reçu cancel()/close()).
+
 N'importe jamais nicsoft.web (ARC-001).
 """
 
@@ -46,7 +60,10 @@ class SeekSession:
     une seconde recherche — créer une nouvelle instance). `start()` ouvre
     les deux flux et retourne aussitôt (lecture dans deux fils dédiés,
     daemon) ; `next_event(timeout)` consomme les évènements produits ;
-    `cancel()` ferme les deux flux sans attendre leur fin naturelle."""
+    `cancel()`/`close()` ferment les deux flux sans attendre leur fin
+    naturelle — `cancel()` pour une annulation utilisateur explicite (son
+    propre message de journal), `close()` pour toute autre conclusion déjà
+    journalisée par l'appelant (issue #328, point 4)."""
 
     def __init__(self, client, game_log=None):
         self._client = client
@@ -106,6 +123,12 @@ class SeekSession:
     def _read_event_stream(self) -> None:
         try:
             for line in self._event_handle.lines():
+                if self._game_log is not None and line.strip():
+                    # Lignes brutes du flux d'évènements pendant la
+                    # recherche (issue #328, point 6) — jamais de tchat sur
+                    # ce flux à ce stade (aucune partie n'existe encore),
+                    # donc toujours sans risque via raw() directement.
+                    self._game_log.raw(line)
                 if not line.strip():
                     continue
                 try:
@@ -119,6 +142,26 @@ class SeekSession:
         except (TransportNetworkError, TransportTimeoutError) as exc:
             if not self._cancelled and not self._found:
                 self._push_error(exc, "flux d'évènements (coupure)")
+        except Exception as exc:
+            # Toute autre exception imprévue dans ce fil secondaire (ex. la
+            # fermeture de StreamHandle depuis un autre fil pendant une
+            # lecture bloquante, en principe déjà absorbée par
+            # transport.py::StreamHandle.lines() — défense en profondeur) ne
+            # doit jamais rester seulement visible dans le terminal (issue
+            # #328, point 4 ; même traitement que
+            # LichessGame._stream_reader_loop, game.py) — et ne doit jamais
+            # non plus laisser l'appelant attendre indéfiniment un "found"
+            # qui ne viendra plus : un évènement "error" est poussé, sauf si
+            # la session est déjà résolue (cancel()/close()/found), où elle
+            # est sans effet pour l'appelant.
+            logger.error(
+                "Lichess : exception imprévue dans le fil de lecture du flux d'évènements (recherche).",
+                exc_info=True,
+            )
+            if self._game_log is not None:
+                self._game_log.exception(exc, context="fil de lecture du flux d'évènements (recherche)")
+            if not self._cancelled and not self._found:
+                self._events.put({"type": "error", "reason": type(exc).__name__})
 
     def _read_seek_stream(self) -> None:
         try:
@@ -128,15 +171,30 @@ class SeekSession:
             if not self._cancelled and not self._found:
                 self._push_error(exc, "flux de recherche (coupure)")
             return
+        except Exception as exc:
+            logger.error(
+                "Lichess : exception imprévue dans le fil de lecture du flux de recherche.",
+                exc_info=True,
+            )
+            if self._game_log is not None:
+                self._game_log.exception(exc, context="fil de lecture du flux de recherche")
+            if not self._cancelled and not self._found:
+                self._events.put({"type": "error", "reason": type(exc).__name__})
+            return
         # Flux de recherche fermé par Lichess — appariement (le flux
-        # d'évènements porte alors gameStart, déjà géré ci-dessus) ou
-        # recherche annulée par cancel() (self._cancelled déjà vrai dans ce
-        # cas). Si ni l'un ni l'autre, c'est Lichess qui a mis fin à la
-        # recherche de son côté sans appariement (aucune durée maximale
-        # documentée — cas non observé en pratique, prudence) : le signaler
-        # plutôt que de laisser l'appelant attendre indéfiniment un
-        # gameStart qui ne viendra jamais.
-        if not self._cancelled and not self._found:
+        # d'évènements porte alors gameStart, déjà géré ci-dessus, mais rien
+        # ne garantit qu'il soit déjà arrivé à cet instant précis, voir
+        # en-tête de module) ou recherche annulée par cancel()/close()
+        # (self._cancelled déjà vrai dans ce cas). Si ni l'un ni l'autre,
+        # c'est Lichess qui a clos la recherche de son côté — appariement
+        # dont gameStart n'est pas encore arrivé, ou réellement aucun
+        # adversaire : à l'appelant de patienter puis de trancher (issue
+        # #328, point 2 ; _run_lichess_human, game_manager_modes/lichess.py)
+        # — ce module ne ferme jamais lui-même le flux d'évènements ici, pour
+        # ne jamais manquer un gameStart encore en transit.
+        with self._lock:
+            already_resolved = self._cancelled or self._found
+        if not already_resolved:
             logger.info("Lichess : flux de recherche fermé par Lichess sans appariement signalé.")
             self._events.put({"type": "seek_closed"})
 
@@ -147,14 +205,33 @@ class SeekSession:
             return None
 
     def cancel(self) -> None:
-        """Ferme les deux flux — annulation réelle de la recherche côté
-        Lichess (voir en-tête de module). Idempotent."""
+        """Annulation explicite demandée par l'utilisateur (bouton
+        "Annuler la recherche") — ferme les deux flux et le journalise
+        comme telle. Idempotent, sans effet si déjà close()/cancel()ée ou
+        si un adversaire a déjà été trouvé."""
         if self._cancelled or self._found:
             return
         self._cancelled = True
         logger.info("Lichess : recherche d'adversaire annulée par l'utilisateur.")
         if self._game_log is not None:
             self._game_log.state_change("recherche d'adversaire annulée par l'utilisateur.")
+        self._close_streams()
+
+    def close(self) -> None:
+        """Fermeture interne des deux flux — fin normale (adversaire
+        trouvé), erreur, ou conclusion décidée par l'appelant après la
+        période d'attente qui suit un "seek_closed" (adversaire adopté
+        depuis la liste des parties en cours, ou recherche vraiment
+        terminée sans adversaire, issue #328 point 2). Contrairement à
+        cancel(), ne journalise PAS "annulée par l'utilisateur" : chaque
+        appelant a déjà journalisé la cause réelle avec son propre message
+        (point 4) avant d'appeler close(). Idempotent."""
+        if self._cancelled or self._found:
+            return
+        self._cancelled = True
+        self._close_streams()
+
+    def _close_streams(self) -> None:
         if self._seek_handle is not None:
             self._seek_handle.close()
         if self._event_handle is not None:
