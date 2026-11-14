@@ -485,6 +485,12 @@ def main():
                 gm.launch_lichess(action)
             elif atype == "start_lichess_resume":
                 gm.launch_lichess_resume(action)
+            elif atype == "lichess_abandon_ongoing":
+                # Depuis la liste des parties en cours (issue #325, point 3)
+                # — en arrière-plan, comme check_lichess_resumable ci-dessus,
+                # pour ne jamais bloquer le traitement des autres actions
+                # menu pendant l'appel réseau (abort()/resign()).
+                threading.Thread(target=gm.abandon_lichess_game, args=(action,), daemon=True).start()
             elif atype == "start_retranscription":
                 gm.launch_retranscription(action)
             elif atype == "back_menu":
