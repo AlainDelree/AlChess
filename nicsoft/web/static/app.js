@@ -165,6 +165,10 @@ document.addEventListener("click", (e) => {
     case "lichess_draw_refuse":
       sendAction({ type: "lichess_draw_refuse" });
       break;
+    case "lichess_ack_game_over":
+      sendAction({ type: "lichess_ack_game_over" });
+      _lichessShowOpponentEndBanner(false);
+      break;
     case "lichess_promotion":
       lichessSubmitPromotion(el.dataset.piece);
       break;
@@ -1650,16 +1654,32 @@ socket.on("game_over", (data) => {
   if (data.skip) return;  // back_menu — on ignore
   hideFeedback();
   _gameSource = data.source || "externe";
-  if (data.source === "lichess") { _lichessSetClocksVisible(false); _lichessHideStatusBanners(); }
+  if (data.source === "lichess") {
+    _lichessSetClocksVisible(false);
+    _lichessHideStatusBanners();
+    _lichessSetBeepToggleVisible(false);
+  }
   const gameTitle = data.title_key
     ? t(data.title_key, data.title_vars || {})
     : data.title;
   if (gameTitle) document.getElementById("gameover-title").textContent  = gameTitle;
   if (data.result) document.getElementById("gameover-result").textContent = data.result;
   document.getElementById("rv-game-info").textContent = "";
+  // Fin de partie provoquée par l'adversaire (issue #331, point 4) — LED
+  // allumées côté serveur jusqu'à l'acquittement ci-dessous (bouton "J'ai
+  // vu", voir le data-action lichess_ack_game_over).
+  _lichessShowOpponentEndBanner(!!data.opponent_caused_end, data.opponent_cause_key);
   const fenToRender = reviewFens[reviewIdx] || currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
   renderBoard(fenToRender, null, null, null, null, null, null);
 });
+
+function _lichessShowOpponentEndBanner(show, causeKey) {
+  const banner = document.getElementById("lichess-opponent-end-banner");
+  if (!banner) return;
+  banner.style.display = show ? "" : "none";
+  const causeEl = document.getElementById("lichess-opponent-end-cause");
+  if (causeEl) causeEl.textContent = (show && causeKey) ? t(causeKey) : "";
+}
 
 // ── SOCKETIO — initialisation des parties (pédagogique, HH) ─
 
@@ -1713,6 +1733,7 @@ socket.on("init", (data) => {
   const btnQuitPed = document.getElementById("btn-quit-game");
   if (btnQuitPed) btnQuitPed.style.display = "";
   _lichessSetClocksVisible(false);
+  _lichessSetBeepToggleVisible(false);
   const btnNulle = document.getElementById("btn-nulle");
   if (btnNulle) btnNulle.textContent = t("game.btn.nulle");
   document.getElementById("turn-info").textContent = t("game.en_attente");
@@ -1759,6 +1780,7 @@ socket.on("init_hh", (data) => {
   const btnQuitHH = document.getElementById("btn-quit-game");
   if (btnQuitHH) btnQuitHH.style.display = "";
   _lichessSetClocksVisible(false);
+  _lichessSetBeepToggleVisible(false);
   const btnNulleHH = document.getElementById("btn-nulle");
   if (btnNulleHH) btnNulleHH.textContent = t("game.btn.nulle");
   document.getElementById("turn-info").textContent = t("game.en_attente");
@@ -1797,6 +1819,25 @@ function _lichessSetClocksVisible(visible) {
   const clockBottom = document.getElementById("clock-bottom");
   if (clockTop) clockTop.style.display = visible ? "" : "none";
   if (clockBottom) clockBottom.style.display = visible ? "" : "none";
+}
+
+// Case « Bip quand l'adversaire joue » (issue #331, point 1) — visible
+// seulement pendant une partie Lichess (IA ou humain), cochable/
+// décochable à tout moment, effet immédiat (le serveur relit la config à
+// chaque évènement, voir game.py::_maybe_beep_opponent). État mémorisé
+// dans config.json (config_save), comme tts_enabled.
+let _lichessBeepOpponentMove = false;
+
+function _lichessSetBeepToggleVisible(visible) {
+  const row = document.getElementById("lichess-beep-toggle-row");
+  if (row) row.style.display = visible ? "" : "none";
+  const chk = document.getElementById("lichess-beep-toggle");
+  if (chk && visible) chk.checked = _lichessBeepOpponentMove;
+}
+
+function lichessToggleBeep(checked) {
+  _lichessBeepOpponentMove = !!checked;
+  socket.emit("config_save", { lichess_beep_opponent_move: _lichessBeepOpponentMove });
 }
 
 const LICHESS_STATUS_BANNER_IDS = [
@@ -1952,7 +1993,9 @@ socket.on("lichess_init", (data) => {
   }
   hideFeedback();
   _lichessSetClocksVisible(true);
+  _lichessSetBeepToggleVisible(true);
   _lichessHideStatusBanners();
+  _lichessShowOpponentEndBanner(false);
   // Désactivés par défaut (issue #321, point 1), même au tout début de
   // partie — le premier lichess_action_buttons envoyé juste après par le
   // serveur (dans la même fonction Python _apply_game_full) corrige
@@ -7601,6 +7644,12 @@ socket.on("config_data", (data) => {
   if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
   if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
   if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;
+
+  // Case « Bip quand l'adversaire joue » (issue #331, point 1) — mémorisée
+  // comme tts_enabled ; valeur par défaut décochée (config_manager.py).
+  _lichessBeepOpponentMove = !!data.lichess_beep_opponent_move;
+  const beepChk = document.getElementById("lichess-beep-toggle");
+  if (beepChk) beepChk.checked = _lichessBeepOpponentMove;
 
   _explHasApiKey = !!data.has_llm_api_key;
   explUpdateChatAvailability();
