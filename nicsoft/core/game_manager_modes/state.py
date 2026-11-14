@@ -78,15 +78,30 @@ _TOAST_MESSAGES = {
     "toast.lichess_seek_partie_non_ouverte": (
         "Un adversaire a été trouvé, mais la partie n'a pas pu s'ouvrir normalement."
     ),
+    "toast.lichess_jeton_refuse":         "Lichess : jeton refusé ou droit manquant — vérifiez-le dans Paramètres.",
+    "toast.lichess_404":                  "Lichess : requête invalide (ressource introuvable).",
+    "toast.lichess_refus_requete":        "Lichess a refusé la requête.",
+    "toast.lichess_indisponible":         "Lichess est indisponible pour le moment — réessayez plus tard.",
+    "toast.lichess_rate_limited_detail":  "Lichess limite les demandes — réessayez dans un instant.",
 }
 
 
-def _menu_toast_data(toast_key: str) -> dict:
-    """Construit le payload set_app_state("menu", ...) pour un retour menu forcé par une erreur."""
+def _menu_toast_data(toast_key: str, vars: dict | None = None, persistent: bool = False) -> dict:
+    """Construit le payload set_app_state("menu"/"config_lichess", ...) pour
+    un retour forcé par une erreur. `vars` (issue #329) : substitutions
+    pour le message traduit côté frontend (ex. {"seconds": 30}) — sans
+    effet sur le texte français de repli ci-dessous (_TOAST_MESSAGES),
+    jamais affiché quand toast_message_key est reconnu par i18n.js.
+    `persistent` : le message reste affiché jusqu'à dismissal manuel ou
+    nouvel essai plutôt que de disparaître après quelques secondes (issue
+    #329, point 2 — ex. refus HTTP de l'ouverture de la recherche
+    d'adversaire, jamais un simple toast éphémère)."""
     return {
         "toast_message_key": toast_key,
         "toast_message":     _TOAST_MESSAGES.get(toast_key, "Une erreur est survenue."),
         "toast_type":        "warning",
+        "toast_vars":        vars or {},
+        "toast_persistent":  persistent,
     }
 
 

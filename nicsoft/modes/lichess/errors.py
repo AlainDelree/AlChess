@@ -7,6 +7,23 @@ reçoivent que des codes HTTP et des messages déjà filtrés par Lichess
 (coup illégal, partie terminée, etc.), jamais le jeton lui-même.
 """
 
+import json
+
+
+def extract_api_message(body: str) -> str:
+    """Texte explicatif renvoyé par Lichess dans le corps JSON d'une
+    réponse d'erreur (champ "error", voir doc/specs/schemas/Error.yaml,
+    dépôt lichess-org/api) — chaîne vide si le corps est absent ou n'est
+    pas ce JSON attendu (issue #329, point 1 : affiché à l'écran pour un
+    refus 400, jamais le jeton, qui n'apparaît jamais dans ce corps)."""
+    try:
+        data = json.loads(body)
+    except (ValueError, TypeError):
+        return ""
+    if isinstance(data, dict):
+        return str(data.get("error", "") or "")
+    return ""
+
 
 class LichessError(Exception):
     """Base commune — jamais le jeton dans le message."""

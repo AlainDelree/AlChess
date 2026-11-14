@@ -105,7 +105,12 @@ def test_seek_session_echec_ouverture_flux_evenements_ne_demarre_aucun_fil():
     session = SeekSession(client)
     session.start(15.0, 10, "")
     ev = session.next_event(timeout=0.2)
-    assert ev == {"type": "error", "reason": "TransportNetworkError"}
+    # Issue #329 : l'évènement porte en plus le détail HTTP éventuel
+    # (status_code/retry_after_s/detail, tous None/vide ici — pas de
+    # réponse HTTP, juste une coupure réseau).
+    assert ev["type"] == "error"
+    assert ev["reason"] == "TransportNetworkError"
+    assert ev["status_code"] is None
     assert session._seek_handle is None  # jamais ouvert, l'échec était sur le premier flux
 
 

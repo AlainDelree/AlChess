@@ -1,4 +1,5 @@
 {
+  "common.fermer": "Close",
   "common.retour_menu": "← Back to menu",
   "common.retour": "← Back",
   "common.demarrer": "Start game",
@@ -347,7 +348,12 @@
   "toast.lichess_invalid_token": "Lichess token rejected — check it in Settings.",
   "toast.lichess_missing_scope": "This Lichess token is not allowed to play (board:play).",
   "toast.lichess_rate_limited": "Lichess rate limit reached — try again shortly.",
+  "toast.lichess_rate_limited_detail": "Lichess is rate-limiting requests, try again in {seconds} seconds.",
   "toast.lichess_network_error": "Could not reach Lichess — check your network.",
+  "toast.lichess_jeton_refuse": "Token rejected or missing permission — check it in Settings.",
+  "toast.lichess_404": "Lichess: invalid request (resource not found).",
+  "toast.lichess_refus_requete": "Lichess refused the request{detail}.",
+  "toast.lichess_indisponible": "Lichess is unavailable — try again later.",
   "toast.lichess_error": "An error occurred with Lichess.",
   "toast.lichess_seek_sans_adversaire": "The search ended without finding an opponent.",
   "toast.lichess_seek_partie_non_ouverte": "An opponent was found, but the game could not open normally.",

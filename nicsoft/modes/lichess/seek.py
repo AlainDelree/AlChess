@@ -46,6 +46,7 @@ import logging
 import queue
 import threading
 
+from nicsoft.modes.lichess.errors import extract_api_message
 from nicsoft.modes.lichess.transport import (
     TransportHTTPError,
     TransportNetworkError,
@@ -104,10 +105,29 @@ class SeekSession:
         threading.Thread(target=self._read_seek_stream, daemon=True).start()
 
     def _push_error(self, exc: Exception, context: str) -> None:
-        logger.warning("Lichess : recherche d'adversaire — %s échouée (%s).", context, type(exc).__name__)
+        """Journalise puis signale l'échec à l'appelant — le détail HTTP
+        (code, Retry-After, corps déjà journalisé en entier par
+        transport.py au journal général) est repris ici dans l'évènement
+        poussé, pour que l'appelant (game_manager_modes/lichess.py) affiche
+        le message exact attendu plutôt qu'un message réseau générique
+        (issue #329, point 2) — jamais le jeton, absent de tout ce qui suit."""
+        status_code = getattr(exc, "status_code", None)
+        retry_after_s = getattr(exc, "retry_after_s", None)
+        api_message = extract_api_message(getattr(exc, "body", "") or "") if status_code is not None else ""
+        detail = f"HTTP {status_code}" if status_code is not None else type(exc).__name__
+        logger.warning("Lichess : recherche d'adversaire — %s échouée (%s).", context, detail)
         if self._game_log is not None:
-            self._game_log.connectivity(f"recherche d'adversaire — {context} échouée : {type(exc).__name__}.")
-        self._events.put({"type": "error", "reason": type(exc).__name__})
+            self._game_log.connectivity(
+                f"recherche d'adversaire — {context} échouée : {detail}"
+                + (f" ({api_message})" if api_message else "") + "."
+            )
+        self._events.put({
+            "type": "error",
+            "reason": type(exc).__name__,
+            "status_code": status_code,
+            "retry_after_s": retry_after_s,
+            "detail": api_message,
+        })
 
     def _mark_found(self, game: dict) -> bool:
         """Retourne True si c'est bien cette fois-ci que la partie trouvée

@@ -16,12 +16,21 @@ lignes vides de maintien incluses, peut dépasser dix secondes).
 N'importe jamais nicsoft.web (ARC-001).
 """
 
+import logging
 import socket
 import urllib.error
 import urllib.parse
 import urllib.request
 
 from nicsoft.utils.net_safety import ensure_https
+
+logger = logging.getLogger("niclink.lichess")
+
+# Issue #329 : corps de réponse journalisé tronqué à ~500 caractères
+# (Lichess y explique la cause du refus) — jamais le jeton (absent du
+# corps/de l'URL, seulement dans l'en-tête Authorization, jamais journalisé
+# ici ni ailleurs dans ce module).
+_LOG_BODY_TRUNCATE = 500
 
 REQUEST_TIMEOUT_S = 10
 # Lichess envoie une ligne vide de maintien toutes les ~9s, mais une partie
@@ -44,12 +53,16 @@ class TransportError(Exception):
 
 
 class TransportHTTPError(TransportError):
-    """Lichess a répondu avec un code HTTP d'erreur."""
+    """Lichess a répondu avec un code HTTP d'erreur. `retry_after_s` (issue
+    #329) : valeur de l'en-tête Retry-After renvoyé par Lichess (429
+    notamment), None s'il est absent ou illisible — jamais une valeur
+    inventée ici (c'est à l'appelant de choisir un repli, voir errors.py)."""
 
-    def __init__(self, status_code: int, body: str = ""):
+    def __init__(self, status_code: int, body: str = "", retry_after_s: int | None = None):
         super().__init__(f"HTTP {status_code}")
         self.status_code = status_code
         self.body = body
+        self.retry_after_s = retry_after_s
 
 
 class TransportNetworkError(TransportError):
@@ -74,6 +87,43 @@ def _read_error_body(exc: urllib.error.HTTPError) -> str:
         return ""
 
 
+def _parse_retry_after(exc: urllib.error.HTTPError) -> int | None:
+    headers = getattr(exc, "headers", None)
+    value = headers.get("Retry-After") if headers is not None else None
+    if value is None:
+        return None
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _log_http_error(method: str, url: str, exc: urllib.error.HTTPError, body: str, retry_after_s: int | None) -> None:
+    """Journal général (issue #329, point 1) — méthode et chemin SANS
+    paramètres (jamais de jeton dans l'un ou l'autre : le jeton n'est
+    envoyé que dans l'en-tête Authorization, jamais journalisé), code de
+    réponse, Retry-After s'il existe, corps tronqué à ~500 caractères.
+    Appelé pour TOUS les appels passant par UrllibTransport, la recherche
+    d'adversaire (open_stream) comme les autres (request/stream_lines)."""
+    path = urllib.parse.urlparse(url).path
+    truncated = body[:_LOG_BODY_TRUNCATE].replace("\n", " ").replace("\r", " ").strip()
+    retry_part = f", Retry-After={retry_after_s}s" if retry_after_s is not None else ""
+    logger.warning(
+        "Lichess : erreur HTTP %s %s -> %s%s — corps : %s",
+        method, path, exc.code, retry_part, truncated or "(vide)",
+    )
+
+
+def _wrap_http_error(method: str, url: str, exc: urllib.error.HTTPError) -> TransportHTTPError:
+    """Lit le corps, journalise (journal général — point 1), puis retourne
+    l'exception typée portant le même détail pour l'appelant (journal de
+    partie dédié, choix du message affiché)."""
+    body = _read_error_body(exc)
+    retry_after_s = _parse_retry_after(exc)
+    _log_http_error(method, url, exc, body, retry_after_s)
+    return TransportHTTPError(exc.code, body, retry_after_s)
+
+
 class UrllibTransport:
     """Transport de production. Ne reçoit le jeton qu'en mémoire — jamais
     journalisé, jamais inclus dans une exception."""
@@ -87,7 +137,7 @@ class UrllibTransport:
             with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT_S) as resp:  # noqa: S310  # nosec B310
                 return resp.read()
         except urllib.error.HTTPError as exc:
-            raise TransportHTTPError(exc.code, _read_error_body(exc)) from None
+            raise _wrap_http_error(method, url, exc) from None
         except socket.timeout:
             raise TransportTimeoutError("délai dépassé") from None
         except urllib.error.URLError:
@@ -106,7 +156,7 @@ class UrllibTransport:
                 for raw_line in resp:
                     yield raw_line.decode("utf-8", errors="replace").rstrip("\n")
         except urllib.error.HTTPError as exc:
-            raise TransportHTTPError(exc.code, _read_error_body(exc)) from None
+            raise _wrap_http_error("GET", url, exc) from None
         except socket.timeout:
             raise TransportTimeoutError("délai dépassé") from None
         except urllib.error.URLError:
@@ -133,7 +183,7 @@ class UrllibTransport:
             # Adresse vérifiée par ensure_https ci-dessus.
             resp = urllib.request.urlopen(req, timeout=STREAM_READ_TIMEOUT_S)  # noqa: S310  # nosec B310
         except urllib.error.HTTPError as exc:
-            raise TransportHTTPError(exc.code, _read_error_body(exc)) from None
+            raise _wrap_http_error(method, url, exc) from None
         except socket.timeout:
             raise TransportTimeoutError("délai dépassé") from None
         except urllib.error.URLError:

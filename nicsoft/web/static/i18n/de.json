@@ -1,4 +1,5 @@
 {
+  "common.fermer": "Schließen",
   "common.retour_menu": "← Zurück zum Menü",
   "common.retour": "← Zurück",
   "common.demarrer": "Partie starten",
@@ -347,7 +348,12 @@
   "toast.lichess_invalid_token": "Lichess-Token abgelehnt — bitte in den Einstellungen überprüfen.",
   "toast.lichess_missing_scope": "Dieses Lichess-Token darf nicht spielen (board:play).",
   "toast.lichess_rate_limited": "Lichess-Anfragelimit erreicht — versuchen Sie es gleich erneut.",
+  "toast.lichess_rate_limited_detail": "Lichess begrenzt die Anfragen, versuchen Sie es in {seconds} Sekunden erneut.",
   "toast.lichess_network_error": "Verbindung zu Lichess nicht möglich — Netzwerk prüfen.",
+  "toast.lichess_jeton_refuse": "Token abgelehnt oder Berechtigung fehlt — bitte in den Einstellungen überprüfen.",
+  "toast.lichess_404": "Lichess: ungültige Anfrage (Ressource nicht gefunden).",
+  "toast.lichess_refus_requete": "Lichess hat die Anfrage abgelehnt{detail}.",
+  "toast.lichess_indisponible": "Lichess ist nicht verfügbar — versuchen Sie es später erneut.",
   "toast.lichess_error": "Bei Lichess ist ein Fehler aufgetreten.",
   "toast.lichess_seek_sans_adversaire": "Die Suche wurde beendet, ohne einen Gegner zu finden.",
   "toast.lichess_seek_partie_non_ouverte": "Ein Gegner wurde gefunden, aber die Partie konnte nicht normal geöffnet werden.",

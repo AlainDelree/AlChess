@@ -1374,8 +1374,8 @@ socket.on("app_state", (data) => {
     // partie après le premier coup physique (issue #311, point 1) — les
     // réglages déjà saisis restent dans les champs (SPA, rien à restaurer).
     if (data.toast_message_key || data.toast_message) {
-      const msg = data.toast_message_key ? t(data.toast_message_key) : data.toast_message;
-      afficherToast(msg, data.toast_type || "warning");
+      const msg = data.toast_message_key ? t(data.toast_message_key, data.toast_vars || {}) : data.toast_message;
+      afficherToast(msg, data.toast_type || "warning", !!data.toast_persistent);
     }
   }
 
@@ -1472,8 +1472,8 @@ socket.on("app_state", (data) => {
     _applyLichessCardState();
     // Retour menu forcé par une erreur (plateau perdu, moteur KO, timeout...) → toast explicatif
     if (data.toast_message_key || data.toast_message) {
-      const msg = data.toast_message_key ? t(data.toast_message_key) : data.toast_message;
-      afficherToast(msg, data.toast_type || "warning");
+      const msg = data.toast_message_key ? t(data.toast_message_key, data.toast_vars || {}) : data.toast_message;
+      afficherToast(msg, data.toast_type || "warning", !!data.toast_persistent);
     }
   }
 });
@@ -2431,13 +2431,32 @@ function _i18nMsg(data, field = "message", keyField = "message_key") {
   return (typeof val === "string" && val && val !== "[object Object]") ? val : "";
 }
 
-function afficherToast(message, type) {
+function afficherToast(message, type, persistent) {
   const toast = document.getElementById("toast");
   if (!toast) return;
-  toast.textContent = message;
-  toast.className = "toast toast-" + (type || "info") + " show";
   clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => { toast.classList.remove("show"); }, 4000);
+  toast._timer = null;
+  toast.className = "toast toast-" + (type || "info") + " show" + (persistent ? " toast-persistent" : "");
+  if (persistent) {
+    // Message persistant (issue #329, point 2) : reste affiché jusqu'à ce
+    // que l'utilisateur le ferme — jamais seulement quelques secondes pour
+    // un refus Lichess qu'il faut avoir le temps de lire avant de
+    // réessayer manuellement (aucune relance automatique de la recherche).
+    toast.textContent = "";
+    const span = document.createElement("span");
+    span.textContent = message;
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "toast-close";
+    closeBtn.textContent = "×";
+    closeBtn.setAttribute("aria-label", t("common.fermer"));
+    closeBtn.onclick = () => toast.classList.remove("show");
+    toast.appendChild(span);
+    toast.appendChild(closeBtn);
+  } else {
+    toast.textContent = message;
+    toast._timer = setTimeout(() => { toast.classList.remove("show"); }, 4000);
+  }
 }
 
 function _updateActionButtons() {

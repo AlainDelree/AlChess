@@ -1235,6 +1235,12 @@
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 .toast.toast-success { border-color:#4caf50; color:#4caf50; }
 .toast.toast-warning { border-color:#ff9800; color:#ff9800; }
+/* Issue #329, point 2 : message persistant (ne disparaît pas seul) — bouton
+   de fermeture cliquable, contrairement au toast éphémère normal. */
+.toast.toast-persistent { pointer-events:auto; display:flex; align-items:center; gap:10px; }
+.toast.toast-persistent .toast-close {
+  background:none; border:none; color:inherit; font-size:1.2rem; line-height:1; cursor:pointer; padding:0 2px;
+}
 .pos-init-error { background: #b71c1c !important; }
 .sq-error { background: rgba(180,0,0,0.45) !important; }
 .feedback-box-pause { border-radius:6px; padding:10px 12px; }

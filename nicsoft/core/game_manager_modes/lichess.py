@@ -518,7 +518,10 @@ def launch_lichess(config: dict) -> None:
         time.sleep(1.0)
         target_state = _error.get("return_to") or "menu"
         web_server._app_state = target_state
-        set_app_state(target_state, _menu_toast_data(_error["toast_key"] or "toast.lichess_error"))
+        set_app_state(target_state, _menu_toast_data(
+            _error["toast_key"] or "toast.lichess_error",
+            _error.get("toast_vars"), _error.get("toast_persistent", False),
+        ))
     elif web_server._app_state != "game_over":
         web_server._app_state = "menu"
         set_app_state("menu")
@@ -723,6 +726,38 @@ _HUMAN_SEEK_ALLOWED_SPEEDS = frozenset({"rapid", "classical"})
 _SEEK_CLOSED_GRACE_S = 5.0
 
 
+def _classify_seek_error_event(ev: dict) -> tuple:
+    """Traduit l'évènement "error" poussé par SeekSession (seek.py,
+    `_push_error`) en (clé de message, variables pour l'écran) — issue
+    #329, point 2 : essai réel du 14/11/2026, une vraie réponse d'erreur
+    de Lichess (TransportHTTPError) affichait le même message « vérifiez
+    le réseau » qu'une vraie panne réseau, alors que le réseau et le jeton
+    fonctionnaient (une partie contre l'IA avait réussi quelques minutes
+    plus tôt) — la cause réelle restait donc invisible à l'écran comme au
+    journal. "vérifiez le réseau" n'est renvoyé ici QUE si `status_code`
+    est absent (TransportNetworkError/TransportTimeoutError : coupure,
+    résolution de nom, délai dépassé — jamais une réponse HTTP de
+    Lichess, qui est arrivée). Tous les messages renvoyés par cette
+    fonction sont affichés de façon persistante par l'appelant (jamais un
+    toast éphémère pour cette famille d'erreurs)."""
+    status_code = ev.get("status_code")
+    if status_code in (401, 403):
+        return "toast.lichess_jeton_refuse", {}
+    if status_code == 429:
+        # Clé dédiée (distincte de toast.lichess_rate_limited, utilisée par
+        # les autres appels Lichess sans le délai exact) : {seconds} est
+        # TOUJOURS fourni ici — jamais affiché sans substitution.
+        return "toast.lichess_rate_limited_detail", {"seconds": ev.get("retry_after_s") or 60}
+    if status_code == 404:
+        return "toast.lichess_404", {}
+    if status_code == 400:
+        detail = ev.get("detail") or ""
+        return "toast.lichess_refus_requete", {"detail": f" : {detail}" if detail else ""}
+    if isinstance(status_code, int) and status_code >= 500:
+        return "toast.lichess_indisponible", {}
+    return "toast.lichess_network_error", {}
+
+
 def _launch_lichess_human(config: dict, token: str) -> None:
     from nicsoft.modes.lichess.game import speed_key_for_clock
 
@@ -763,7 +798,10 @@ def _launch_lichess_human(config: dict, token: str) -> None:
         time.sleep(1.0)
         target_state = _error.get("return_to") or "menu"
         web_server._app_state = target_state
-        set_app_state(target_state, _menu_toast_data(_error["toast_key"] or "toast.lichess_error"))
+        set_app_state(target_state, _menu_toast_data(
+            _error["toast_key"] or "toast.lichess_error",
+            _error.get("toast_vars"), _error.get("toast_persistent", False),
+        ))
     elif web_server._app_state != "game_over":
         web_server._app_state = "menu"
         set_app_state("menu")
@@ -860,8 +898,11 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
                     "Lichess : recherche humaine interrompue (%s).", ev.get("reason", "?"),
                 )
                 if _error is not None:
+                    toast_key, toast_vars = _classify_seek_error_event(ev)
                     _error["occurred"] = True
-                    _error["toast_key"] = "toast.lichess_network_error"
+                    _error["toast_key"] = toast_key
+                    _error["toast_vars"] = toast_vars
+                    _error["toast_persistent"] = True
                     _error["return_to"] = "config_lichess"
                 return
             elif etype == "seek_closed":
@@ -1103,7 +1144,10 @@ def launch_lichess_resume(action: dict) -> None:
         time.sleep(1.0)
         target_state = _error.get("return_to") or "menu"
         web_server._app_state = target_state
-        set_app_state(target_state, _menu_toast_data(_error["toast_key"] or "toast.lichess_error"))
+        set_app_state(target_state, _menu_toast_data(
+            _error["toast_key"] or "toast.lichess_error",
+            _error.get("toast_vars"), _error.get("toast_persistent", False),
+        ))
     elif web_server._app_state != "game_over":
         web_server._app_state = "menu"
         set_app_state("menu")

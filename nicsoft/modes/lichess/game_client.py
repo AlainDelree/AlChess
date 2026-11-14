@@ -28,6 +28,7 @@ from nicsoft.modes.lichess.errors import (
     LichessAuthError,
     LichessNetworkError,
     LichessRateLimitError,
+    extract_api_message,
 )
 from nicsoft.modes.lichess.transport import (
     TransportHTTPError,
@@ -58,25 +59,35 @@ def _raise_for_transport_error(exc) -> None:
         if exc.status_code in (401, 403):
             raise LichessAuthError(exc.status_code) from None
         if exc.status_code == 429:
-            raise LichessRateLimitError() from None
-        raise LichessApiError(exc.status_code, _extract_api_message(exc.body)) from None
+            raise LichessRateLimitError(exc.retry_after_s or 60) from None
+        raise LichessApiError(exc.status_code, extract_api_message(exc.body)) from None
     raise LichessNetworkError("réseau indisponible") from None
-
-
-def _extract_api_message(body: str) -> str:
-    try:
-        data = json.loads(body)
-    except (ValueError, TypeError):
-        return ""
-    if isinstance(data, dict):
-        return str(data.get("error", "") or "")
-    return ""
 
 
 def _url_tail(url: str) -> str:
     """Partie de l'URL après API_BASE, pour le journal dédié de partie —
     jamais le jeton (envoyé uniquement dans l'en-tête, jamais dans l'URL)."""
     return url[len(API_BASE):] if url.startswith(API_BASE) else url
+
+
+_LOG_BODY_TRUNCATE = 500
+
+
+def _describe_transport_error(exc) -> str:
+    """Détail à écrire dans le journal de partie dédié (issue #329, point
+    1, catégorie "requête") — code HTTP, Retry-After s'il existe, corps
+    tronqué à ~500 caractères (jamais au-delà, jamais le jeton — absent de
+    ce corps, envoyé uniquement dans l'en-tête Authorization). Pour une
+    erreur réseau pure (pas de réponse HTTP de Lichess), seul le type
+    d'exception est disponible."""
+    if isinstance(exc, TransportHTTPError):
+        detail = f"erreur HTTP {exc.status_code}"
+        if exc.retry_after_s is not None:
+            detail += f" (Retry-After={exc.retry_after_s}s)"
+        body = (exc.body or "")[:_LOG_BODY_TRUNCATE].replace("\n", " ").replace("\r", " ").strip()
+        detail += f" corps={body or '(vide)'}"
+        return detail
+    return f"erreur {type(exc).__name__}"
 
 
 class GameClient:
@@ -107,7 +118,7 @@ class GameClient:
         except (TransportHTTPError, TransportNetworkError, TransportTimeoutError) as exc:
             if self._game_log is not None:
                 self._game_log.request(
-                    method, _url_tail(url), f"erreur {type(exc).__name__}", time.monotonic() - start,
+                    method, _url_tail(url), _describe_transport_error(exc), time.monotonic() - start,
                 )
             _raise_for_transport_error(exc)
         else:
@@ -148,13 +159,35 @@ class GameClient:
 
     # ── Recherche d'un adversaire humain (issue #327, points 2/3) ────────
 
+    def _open_stream_logged(self, method: str, url: str, fields: dict | None = None):
+        """Enveloppe open_stream() pour écrire, en plus du journal général
+        (déjà fait par transport.py), le détail dans le journal de partie
+        dédié (issue #329, point 1, catégorie "requête") — seule
+        différence avec `_request()` : la StreamHandle, pas un contenu lu
+        en entier, est retournée en cas de succès ; relève l'exception de
+        transport telle quelle en cas d'échec (seek.py en a besoin pour
+        distinguer les causes — jamais la version traduite LichessApiError
+        ici, contrairement à `_request()`)."""
+        start = time.monotonic()
+        try:
+            handle = self._transport.open_stream(method, url, self._token, fields)
+        except (TransportHTTPError, TransportNetworkError, TransportTimeoutError) as exc:
+            if self._game_log is not None:
+                self._game_log.request(
+                    method, _url_tail(url), _describe_transport_error(exc), time.monotonic() - start,
+                )
+            raise
+        if self._game_log is not None:
+            self._game_log.request(method, _url_tail(url), "ok (flux ouvert)", time.monotonic() - start)
+        return handle
+
     def open_event_stream(self):
         """GET /api/stream/event — flux général d'évènements du compte
         (gameStart/gameFinish/challenge...), à ouvrir AVANT le flux de
         recherche (voir open_seek_stream) pour ne jamais manquer un
         appariement immédiat (recommandation officielle de la doc board/
         seek). Retourne une StreamHandle annulable (transport.py)."""
-        return self._transport.open_stream("GET", f"{API_BASE}/stream/event", self._token)
+        return self._open_stream_logged("GET", f"{API_BASE}/stream/event")
 
     def open_seek_stream(self, clock_limit_minutes, clock_increment_s: int, color: str = "", rated: bool = False):
         """POST /api/board/seek — recherche publique d'un adversaire humain
@@ -171,7 +204,7 @@ class GameClient:
         }
         if color:
             fields["color"] = color
-        return self._transport.open_stream("POST", f"{API_BASE}/board/seek", self._token, fields)
+        return self._open_stream_logged("POST", f"{API_BASE}/board/seek", fields)
 
     # ── Flux ─────────────────────────────────────────────────────────────
 
