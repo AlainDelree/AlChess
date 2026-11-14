@@ -50,14 +50,56 @@ _MAX_RESPONSE_BYTES = 65536
 # rapid, classical, correspondence — seule la dernière est ignorée ici.
 _IGNORED_SPEED = "correspondence"
 
-# "Reprenable" dans cette livraison (issue #325, point 3) : seules les
-# parties amicales contre l'IA Lichess, variante standard, peuvent être
-# rejouées par LichessGame aujourd'hui — les autres (humain-humain créée
-# ailleurs, variante non standard...) restent listées (pour qu'Alain les
-# termine) mais affichées avec l'explication « non reprenable ici pour
-# l'instant » côté interface, jamais masquées (voir rapport de clôture).
-_RESUMABLE_SOURCE = "ai"
+# "Reprenable" (issue #325 point 3 ; étendu aux parties humaines par
+# l'issue #333, point 1) : seule la variante standard est reprise par
+# LichessGame aujourd'hui — les autres (Chess960, Horde...) restent
+# listées (pour qu'Alain les termine) mais affichées avec l'explication
+# « variante non standard » côté interface, jamais masquées.
 _RESUMABLE_VARIANT = "standard"
+
+# Compatibilité avec l'API Board (issue #333, point 1) : établie par
+# lecture du code source public de lila (dépôt GitHub lichess-org/lila,
+# lu le 14/11/2026) — `app/controllers/PlayApi.scala::WithPovAsBoard`
+# refuse (HTTP 400, "This game cannot be played with the Board API.")
+# toute partie pour laquelle `lila.game.Game.isBoardCompatible(game)` est
+# faux, AVANT d'exécuter le moindre coup ou flux Board — cette règle
+# s'applique donc à TOUTE partie du compte, quelle que soit son origine
+# (AlChess, lichess.org, téléphone), site ou application : rien dans le
+# code ni la documentation officielle (lichess-org/api,
+# doc/specs/lichess-api.yaml, tag Board : « Time controls: Rapid,
+# Classical and Correspondence only ») ne distingue le site web de
+# l'application mobile — seules la CADENCE et, pour le blitz, la SOURCE
+# de la partie comptent. Règle exacte lue dans
+# `modules/game/src/main/Game.scala::isBoardCompatible` +
+# `modules/core/src/main/game/misc.scala::isBoardCompatible(Clock.Config)` :
+#
+#   game.clockConfig.forall(c =>
+#     Speed(c) >= Speed.Rapid
+#     || ((game.hasAi || source == Friend || source == Api) && Speed(c) >= Speed.Blitz)
+#   )
+#
+# — une partie SANS pendule (correspondance) satisfait toujours ce test
+# (`forall` sur `None`), mais ces parties sont déjà écartées plus haut
+# (_IGNORED_SPEED) : hors sujet ici. Pour les parties à pendule restantes :
+#   - rapid/classical  : toujours reprenable, quelle que soit la source ;
+#   - blitz            : reprenable seulement si créée par un défi direct
+#                         ("friend") ou via l'API ("api") — PAS depuis le
+#                         lobby/un pool/un tournoi/arena/swiss ;
+#   - bullet/ultraBullet : jamais reprenable (aucune exception, même IA).
+_BOARD_SPEEDS_ALWAYS = frozenset({"rapid", "classical"})
+_BOARD_SPEED_AT_BLITZ = "blitz"
+_BOARD_SOURCES_AT_BLITZ = frozenset({"friend", "api"})
+
+
+def _is_board_compatible(speed: str, source: str, is_ai: bool) -> bool:
+    """`True` si Lichess accepterait un coup/flux Board API pour une
+    partie de cette cadence/source — voir commentaire ci-dessus pour les
+    références exactes. Pure, sans effet de bord, testable sans réseau."""
+    if speed in _BOARD_SPEEDS_ALWAYS:
+        return True
+    if speed == _BOARD_SPEED_AT_BLITZ:
+        return bool(is_ai) or source in _BOARD_SOURCES_AT_BLITZ
+    return False
 
 
 def _user_agent() -> str:
@@ -192,14 +234,17 @@ def get_ongoing_games(token: str) -> dict:
     Seules les parties par correspondance sont ignorées (_IGNORED_SPEED
     ci-dessus) : une partie en temps réel, même très longue (classique
     90+30, par exemple), reste une candidate normale. Toutes les autres
-    parties en cours sont retournées (humain-humain créée ailleurs, variante
-    non standard...), avec un indicateur `resumable` (True seulement pour
-    une partie amicale contre l'IA en variante standard — seul cas que
-    LichessGame sait rejouer aujourd'hui, voir rapport de clôture) : à
-    l'appelant de les afficher toutes (issue #325, point 2/3) plutôt que
-    d'en masquer certaines silencieusement. Lichess classe `nowPlaying` par
-    urgence (« most urgent games are listed first », doc officielle) —
-    l'ordre de la liste retournée ci-dessous conserve cet ordre.
+    parties en cours sont retournées (contre l'IA ou contre un humain,
+    créée par AlChess ou ailleurs — lichess.org, téléphone —, variante non
+    standard...), avec un indicateur `resumable` (True pour toute partie en
+    variante standard que l'interface Board de Lichess accepterait de
+    jouer — voir `_is_board_compatible` ci-dessus, issue #333 point 1) et
+    `unresumable_reason` ("variant"/"speed"/None) expliquant pourquoi une
+    partie non reprenable l'est : à l'appelant de les afficher toutes
+    (issue #325, point 2/3) plutôt que d'en masquer certaines
+    silencieusement. Lichess classe `nowPlaying` par urgence (« most urgent
+    games are listed first », doc officielle) — l'ordre de la liste
+    retournée ci-dessous conserve cet ordre.
 
     Retourne :
       {"status": "ok", "games": [{...}, ...], "total": int}  — total == len(games)
@@ -246,17 +291,30 @@ def get_ongoing_games(token: str) -> dict:
     games = []
     for g in candidates:
         opponent = g.get("opponent") or {}
+        ai_level = opponent.get("ai")
+        speed = g.get("speed", "")
+        source = g.get("source", "")
+        variant_ok = (g.get("variant") or {}).get("key") == _RESUMABLE_VARIANT
+        speed_ok = _is_board_compatible(speed, source, ai_level is not None)
+        # Raison exacte affichée côté interface (issue #333, point 1) —
+        # la variante est vérifiée en premier : une partie en variante non
+        # standard reste de toute façon hors de portée de LichessGame,
+        # indépendamment de sa cadence.
+        if variant_ok and speed_ok:
+            reason = None
+        elif not variant_ok:
+            reason = "variant"
+        else:
+            reason = "speed"
         games.append({
             "game_id": g.get("gameId", ""),
             "color": g.get("color", ""),
             "opponent": opponent.get("username") or opponent.get("id") or "",
-            "ai_level": opponent.get("ai"),
-            "speed": g.get("speed", ""),
+            "ai_level": ai_level,
+            "speed": speed,
             "is_my_turn": bool(g.get("isMyTurn")),
             "seconds_left": g.get("secondsLeft"),
-            "resumable": (
-                g.get("source") == _RESUMABLE_SOURCE
-                and (g.get("variant") or {}).get("key") == _RESUMABLE_VARIANT
-            ),
+            "resumable": reason is None,
+            "unresumable_reason": reason,
         })
     return {"status": "ok", "games": games, "total": len(games)}

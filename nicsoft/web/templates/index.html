@@ -46,6 +46,16 @@
 
 <!-- ── Écran menu ── -->
 <div id="screen-menu">
+  <!-- Bandeau partie Lichess en cours (issue #333, point 3) — une seule
+       requête silencieuse à l'ouverture du menu principal (pas seulement
+       du mode Lichess) ; ne bloque jamais les autres modes. Réutilise
+       _lichessOngoingGameCard() (mêmes boutons Reprendre/Abandonner) sur
+       la partie la plus urgente de la liste (évènement "lichess_resumable",
+       déjà triée par Lichess). -->
+  <div id="lichess-menu-banner" class="card lichess-resume-banner" style="display:none;">
+    <h2 data-i18n="lichess.menu_banner_titre">⏱️ Une partie Lichess est en cours</h2>
+    <div id="lichess-menu-banner-list"></div>
+  </div>
   <div id="board-warning-banner-menu" class="board-warning-banner hidden" data-i18n="banner.board_absent_menu">
     Aucun échiquier connecté — le mode virtuel est actif. Pour jouer sur l'échiquier, branchez-le, allumez-le, puis cliquez sur « Connecter ».
   </div>

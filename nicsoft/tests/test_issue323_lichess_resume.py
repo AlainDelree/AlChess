@@ -129,22 +129,96 @@ def test_get_ongoing_games_aucune_partie_en_cours(monkeypatch):
     assert result == {"status": "ok", "games": [], "total": 0}
 
 
-def test_get_ongoing_games_partie_humain_humain_reste_listee_non_reprenable(monkeypatch):
-    """Issue #325, point 1 : contrairement à l'ancien comportement (#323,
-    qui ignorait tout ce qui n'était pas IA/standard), une partie créée
-    ailleurs (humain-humain, source=friend) reste une partie EN COURS —
-    listée (pour qu'Alain la termine) mais marquée non reprenable ici."""
-    non_ai = _nowplaying_ai_standard(game_id="human0001")
-    non_ai["source"] = "friend"
-    non_ai["opponent"] = {"id": "bob", "username": "bob"}
+def test_get_ongoing_games_partie_humain_blitz_defi_direct_est_reprenable(monkeypatch):
+    """Issue #333, point 1 : correction d'une hypothèse erronée de #325 —
+    établi par lecture du code source public de lila
+    (modules/game/src/main/Game.scala::isBoardCompatible +
+    modules/core/src/main/game/misc.scala, lus le 14/11/2026) qu'une
+    partie blitz créée par un DÉFI DIRECT ("Jouer avec un ami", source
+    Lichess="friend") reste jouable par l'API Board exactement comme une
+    partie contre l'IA à la même cadence (`PlayApi.scala::WithPovAsBoard`
+    n'exige PAS "rapid" minimum dans ce cas précis, seulement "blitz"
+    minimum) — donc reprenable ici, humain ou pas. Seule une partie
+    appariée par le lobby/un pool/un tournoi à cette cadence reste hors de
+    portée (voir test_get_ongoing_games_partie_humain_blitz_appariee_non_reprenable
+    ci-dessous)."""
+    friend_blitz = _nowplaying_ai_standard(game_id="human0001")
+    friend_blitz["source"] = "friend"
+    friend_blitz["opponent"] = {"id": "bob", "username": "bob"}
     monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
-        "nbMyTurn": 1, "nowPlaying": [non_ai],
+        "nbMyTurn": 1, "nowPlaying": [friend_blitz],
     }))
     result = lichess_client.get_ongoing_games("lip_x")
     assert result["status"] == "ok"
     assert result["total"] == 1
     assert result["games"][0]["game_id"] == "human0001"
+    assert result["games"][0]["resumable"] is True
+    assert result["games"][0]["unresumable_reason"] is None
+
+
+def test_get_ongoing_games_partie_humain_blitz_appariee_non_reprenable(monkeypatch):
+    """Issue #333, point 1 : contrairement à un défi direct (test
+    ci-dessus), une partie blitz appariée par le lobby (ou un pool, un
+    tournoi) reste hors de portée de l'API Board — `isBoardCompatible`
+    (lila) n'autorise le blitz qu'aux sources "friend"/"api" (ou contre
+    l'IA) ; "lobby"/"pool"/"tournament"/"arena"/"swiss" à cette cadence
+    restent donc "non reprenable" avec la raison exacte "speed"."""
+    lobby_blitz = _nowplaying_ai_standard(game_id="human0002")
+    lobby_blitz["source"] = "lobby"
+    lobby_blitz["opponent"] = {"id": "bob", "username": "bob"}
+    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
+        "nbMyTurn": 1, "nowPlaying": [lobby_blitz],
+    }))
+    result = lichess_client.get_ongoing_games("lip_x")
     assert result["games"][0]["resumable"] is False
+    assert result["games"][0]["unresumable_reason"] == "speed"
+
+
+def test_get_ongoing_games_partie_humain_bullet_jamais_reprenable(monkeypatch):
+    """Issue #333, point 1 : le bullet n'est JAMAIS jouable par l'API
+    Board, quelle que soit la source — même un défi direct entre amis
+    (`isBoardCompatible` exige au moins "blitz", jamais "bullet")."""
+    bullet = _nowplaying_ai_standard(game_id="human0003", speed="bullet")
+    bullet["source"] = "friend"
+    bullet["opponent"] = {"id": "bob", "username": "bob"}
+    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
+        "nbMyTurn": 1, "nowPlaying": [bullet],
+    }))
+    result = lichess_client.get_ongoing_games("lip_x")
+    assert result["games"][0]["resumable"] is False
+    assert result["games"][0]["unresumable_reason"] == "speed"
+
+
+def test_get_ongoing_games_partie_humain_rapide_toujours_reprenable(monkeypatch):
+    """Issue #333, point 1 : au-dessus du blitz (rapide, classique), une
+    partie humaine reste reprenable quelle que soit sa source — y compris
+    créée directement sur lichess.org ou depuis le téléphone (rien, dans
+    la documentation officielle ni dans lila, ne distingue le site web de
+    l'application mobile : seules la cadence et, en blitz, la source
+    comptent, voir commentaire de _is_board_compatible, client.py)."""
+    rapid_lobby = _nowplaying_ai_standard(game_id="human0004", speed="rapid")
+    rapid_lobby["source"] = "lobby"
+    rapid_lobby["opponent"] = {"id": "bob", "username": "bob"}
+    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
+        "nbMyTurn": 1, "nowPlaying": [rapid_lobby],
+    }))
+    result = lichess_client.get_ongoing_games("lip_x")
+    assert result["games"][0]["resumable"] is True
+    assert result["games"][0]["unresumable_reason"] is None
+
+
+def test_get_ongoing_games_variante_non_standard_non_reprenable(monkeypatch):
+    """Issue #333, point 1 : une variante non standard (Chess960...) reste
+    hors de portée de LichessGame aujourd'hui, indépendamment de la
+    cadence/source — raison exacte "variant", distincte de "speed"."""
+    chess960 = _nowplaying_ai_standard(game_id="human0005", speed="rapid")
+    chess960["variant"] = {"key": "chess960", "name": "Chess960"}
+    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
+        "nbMyTurn": 1, "nowPlaying": [chess960],
+    }))
+    result = lichess_client.get_ongoing_games("lip_x")
+    assert result["games"][0]["resumable"] is False
+    assert result["games"][0]["unresumable_reason"] == "variant"
 
 
 def test_get_ongoing_games_ignore_la_correspondance(monkeypatch):
@@ -187,7 +261,7 @@ def test_get_ongoing_games_propose_la_partie_ia_standard(monkeypatch):
     assert result["games"] == [{
         "game_id": "aBcD1234", "color": "black", "opponent": "Stockfish level 4",
         "ai_level": 4, "speed": "rapid", "is_my_turn": False, "seconds_left": 742,
-        "resumable": True,
+        "resumable": True, "unresumable_reason": None,
     }]
 
 
@@ -594,7 +668,7 @@ def test_run_lichess_resume_erreur_reseau_si_gamefull_absent(monkeypatch):
     monkeypatch.setattr(lichess_launcher, "_peek_game_full", lambda client, gid: None)
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "connecting", raising=False)
     _error = {"occurred": False, "toast_key": None, "return_to": "menu"}
-    lichess_launcher._run_lichess_resume("lip_x", "gid1", "Alain", _error)
+    lichess_launcher._run_lichess_resume("lip_x", "gid1", "Alain", _error=_error)
     assert _error["occurred"] is True
     assert _error["toast_key"] == "toast.lichess_network_error"
 
@@ -613,7 +687,7 @@ def test_run_lichess_resume_echiquier_non_detecte(monkeypatch):
     _error = {"occurred": False, "toast_key": None, "return_to": "menu"}
     events = []
     monkeypatch.setattr(lichess_launcher, "send_event", lambda t, d: events.append((t, d)))
-    lichess_launcher._run_lichess_resume("lip_x", "gid1", "Alain", _error)
+    lichess_launcher._run_lichess_resume("lip_x", "gid1", "Alain", _error=_error)
     assert _error["occurred"] is True
     assert _error["toast_key"] == "toast.board_not_found"
 
@@ -623,7 +697,7 @@ def test_run_lichess_resume_jeton_refuse(monkeypatch):
                          lambda client, gid: (_ for _ in ()).throw(LichessAuthError(401)))
     monkeypatch.setattr(lichess_launcher.web_server, "_app_state", "connecting", raising=False)
     _error = {"occurred": False, "toast_key": None, "return_to": "menu"}
-    lichess_launcher._run_lichess_resume("lip_x", "gid1", "Alain", _error)
+    lichess_launcher._run_lichess_resume("lip_x", "gid1", "Alain", _error=_error)
     assert _error["occurred"] is True
     assert _error["toast_key"] == "toast.lichess_invalid_token"
 

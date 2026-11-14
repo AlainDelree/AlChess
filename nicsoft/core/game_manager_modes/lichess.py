@@ -1109,16 +1109,18 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
             web_server._app_state = "menu"
 
 
-# ── Reprise d'une partie en cours (issue #323, étape L2b) ───────────────────
+# ── Reprise d'une partie en cours (issue #323, étape L2b ; étendue aux
+# parties contre un humain par l'issue #333) ────────────────────────────────
 #
-# Livraison limitée au cas le plus simple, comme permis par la consigne en
-# repli (« si la tâche est trop grosse, livrer d'abord la reprise pour une
-# partie contre l'IA ») : seules les parties amicales contre l'IA Lichess,
-# variante standard, sont proposées (voir client.get_ongoing_games). Le
-# mode jouable existant (LichessGame) est réutilisé tel quel pour la partie
-# elle-même — seul l'écran de mise en place (reconstruction de la position
-# physique) est nouveau, porté par LichessGame(resuming=True) et son
-# _tick_resume_setup() (voir modes/lichess/game.py).
+# Le mode jouable existant (LichessGame) est réutilisé tel quel pour la
+# partie elle-même — règles de nulle, décompte du premier coup, pendules :
+# déjà génériques côté IA/humain (voir _apply_game_full/_apply_game_state/
+# _compute_action_buttons, pilotés par `_opponent_is_ai`, lui-même déduit
+# de `aiLevel` ou, en son absence, de `known_user_color` transmis ici).
+# Seul l'écran de mise en place (reconstruction de la position physique)
+# est spécifique à la reprise, porté par LichessGame(resuming=True) et son
+# _tick_resume_setup() (voir modes/lichess/game.py) — déjà générique lui
+# aussi (aucune branche IA/humain).
 
 
 def _peek_game_full(client: GameClient, game_id: str):
@@ -1161,13 +1163,22 @@ def launch_lichess_resume(action: dict) -> None:
         return
 
     player_name = (action.get("player") or "Vous").strip() or "Vous"
+    # Couleur connue depuis la liste des parties en cours (issue #333,
+    # point 2) — champ `color` de chaque entrée de get_ongoing_games(),
+    # déjà en possession du navigateur (reçu via l'évènement
+    # "lichess_resumable") au moment où l'utilisateur clique "Reprendre" :
+    # seul moyen fiable de connaître la couleur d'une partie contre un
+    # humain, où ni `white` ni `black` ne porte `aiLevel` (voir
+    # _run_lichess_resume). Sans effet pour une partie contre l'IA
+    # (déduite comme avant depuis `aiLevel`).
+    known_color = (action.get("color") or "").strip()
     logger_lichess.info(f"Lichess : reprise demandée ({game_id}).")
 
     web_server._app_state = "connecting"
     set_app_state("connecting")
     _error = {"occurred": False, "toast_key": None, "return_to": "menu"}
     t = threading.Thread(
-        target=_run_lichess_resume, args=(token, game_id, player_name, _error), daemon=True,
+        target=_run_lichess_resume, args=(token, game_id, player_name, known_color, _error), daemon=True,
     )
     t.start()
     t.join()
@@ -1186,20 +1197,54 @@ def launch_lichess_resume(action: dict) -> None:
         threading.Thread(target=check_board_presence_silent, daemon=True).start()
 
 
-def _run_lichess_resume(token, game_id, player_name, _error=None):
+def _run_lichess_resume(token, game_id, player_name, known_color="", _error=None):
     from nicsoft.modes.lichess.game import LichessGame
+    from nicsoft.modes.lichess.game_log import GameLog
 
     nl_inst = None
+    # Journal dédié (issue #326, point 10 ; étendu au cycle de reprise par
+    # l'issue #333, point 6) — créé AVANT même le premier appel réseau
+    # (contrairement à LichessGame, qui ne le créerait que plus tard,
+    # faute d'appelant lui en fournissant un) : couvre ainsi la demande de
+    # reprise et la lecture de la position cible, pas seulement la partie
+    # une fois LichessGame construite. Jamais de jeton ni de tchat dedans
+    # (GameLog, inchangé).
+    game_log = GameLog(game_id)
+    game_log.state_change(f"reprise demandée depuis la liste des parties en cours (joueur={player_name}).")
     try:
         client = GameClient(token)
+        client.attach_game_log(game_log)
         full_event = _peek_game_full(client, game_id)
         if full_event is None:
             raise LichessNetworkError("réponse Lichess sans état de partie")
 
         white = full_event.get("white") or {}
         black = full_event.get("black") or {}
-        user_color = "black" if white.get("aiLevel") is not None else "white"
-        level = (white.get("aiLevel") if user_color == "black" else black.get("aiLevel")) or 1
+        white_ai = white.get("aiLevel")
+        black_ai = black.get("aiLevel")
+        if white_ai is not None or black_ai is not None:
+            # Partie contre l'IA — couleur déduite comme avant #333.
+            user_color = "black" if white_ai is not None else "white"
+            level = (white_ai if user_color == "black" else black_ai) or 1
+        else:
+            # Partie contre un humain (issue #333, point 2) : ni `white`
+            # ni `black` ne porte `aiLevel` — seul `known_color` (transmis
+            # par l'appelant depuis la liste des parties en cours) permet
+            # de savoir quel camp est le nôtre. Sans lui, impossible de
+            # continuer sans risquer de jouer/orienter le camp adverse :
+            # échec contrôlé plutôt qu'une couleur devinée au hasard.
+            if known_color not in ("white", "black"):
+                logger_lichess.error(
+                    "Lichess : reprise (%s) refusée — couleur inconnue pour une partie "
+                    "contre un humain (aucune couleur transmise par la liste des parties).",
+                    game_id,
+                )
+                game_log.state_change(
+                    "reprise refusée — couleur inconnue pour une partie contre un humain."
+                )
+                raise LichessNetworkError("couleur inconnue pour une partie contre un humain")
+            user_color = known_color
+            level = 0
         # Issue #325, point 7 : le champ `clock` (top-level de gameFull) ne
         # contient que la cadence CHOISIE (initial/increment), jamais le
         # temps RESTANT — et il est absent pour une partie par
@@ -1235,6 +1280,10 @@ def _run_lichess_resume(token, game_id, player_name, _error=None):
             "Lichess : reprise (%s) — état reçu (couleur=%s, statut=%s, coups=%d).",
             game_id, user_color, status, len(moves_from_state(state)),
         )
+        game_log.state_change(
+            f"position cible lue — couleur={user_color}, statut={status}, "
+            f"coups={len(moves_from_state(state))}, adversaire_ia={white_ai is not None or black_ai is not None}."
+        )
 
         nl_inst = _open_board_with_retry("NicLink_lichess")
         set_nl_inst_ref(nl_inst)
@@ -1245,7 +1294,7 @@ def _run_lichess_resume(token, game_id, player_name, _error=None):
             chosen_color_setting=user_color, cadence_key="",
             resuming=not already_over,
             initial_wtime_ms=initial_wtime_ms, initial_btime_ms=initial_btime_ms,
-            clock_known=clock_known,
+            clock_known=clock_known, game_log=game_log, known_user_color=user_color,
         )
 
         if already_over:
@@ -1306,6 +1355,12 @@ def _run_lichess_resume(token, game_id, player_name, _error=None):
             _error["toast_key"] = "toast.lichess_error"
         send_event("popup", {"message": f"Erreur : {e}"})
     finally:
+        # Idempotent (GameLog.close(), voir game_log.py) : si game.start()
+        # a été atteint, LichessGame.run() a déjà fermé ce même journal —
+        # sans effet ici dans ce cas ; ferme-le sinon (échec avant la
+        # construction de la partie, voir _run_lichess_human pour le même
+        # motif).
+        game_log.close()
         if nl_inst:
             try:
                 nl_inst.turn_off_all_leds()

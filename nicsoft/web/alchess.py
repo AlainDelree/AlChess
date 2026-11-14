@@ -432,6 +432,16 @@ def main():
                 # seule fois à l'ouverture de ce menu, jamais en boucle ;
                 # en arrière-plan pour ne jamais retarder l'affichage.
                 threading.Thread(target=gm.check_lichess_resumable, daemon=True).start()
+            elif atype == "lichess_menu_check":
+                # Bandeau du menu principal (issue #333, point 3) — même
+                # détection que ci-dessus, déclenchée une seule fois par le
+                # navigateur à chaque arrivée réelle sur le menu principal
+                # (pas seulement le mode Lichess) ; réutilise
+                # check_lichess_resumable() tel quel (même évènement
+                # "lichess_resumable", jamais de message si jeton absent ou
+                # réseau indisponible) — en arrière-plan, jamais bloquant
+                # pour les autres modes.
+                threading.Thread(target=gm.check_lichess_resumable, daemon=True).start()
             elif atype == "mode" and action.get("value") == "retranscription":
                 set_app_state("retranscription")
                 _check_retranscription_session()

@@ -1260,9 +1260,30 @@ socket.on("status", (data) => {
   if (_stEl) _stEl.textContent = data.message_key ? t(data.message_key) : data.message;
 });
 
+// Issue #333, point 3 : une seule requête silencieuse par arrivée réelle
+// sur le menu principal (pas à chaque remise à "menu" redondante pendant
+// un nettoyage de fin de partie) — réarmé dès qu'on quitte le menu.
+let _lichessMenuBannerChecked = false;
+
 socket.on("app_state", (data) => {
   // Si game_over avec skip=true (back_menu), on ignore complètement
   if (data.state === "game_over" && data.skip) return;
+  if (data.state === "menu") {
+    if (!_lichessMenuBannerChecked) {
+      _lichessMenuBannerChecked = true;
+      sendAction({ type: "lichess_menu_check" });
+    }
+  } else {
+    _lichessMenuBannerChecked = false;
+    const menuBanner = document.getElementById("lichess-menu-banner");
+    const menuList = document.getElementById("lichess-menu-banner-list");
+    if (menuBanner) menuBanner.style.display = "none";
+    // Vide aussi la liste (pas seulement le bandeau masqué) — un bouton
+    // resté dans le DOM (même invisible) porterait le même data-game-id
+    // que celui de l'écran de configuration Lichess, ambigu pour tout
+    // sélecteur non restreint à un conteneur visible.
+    if (menuList) menuList.innerHTML = "";
+  }
   document.getElementById("screen-menu").style.display                  = data.state === "menu"                  ? "flex" : "none";
   const schemaConnexion = document.getElementById("schema-connexion");
   if (schemaConnexion) schemaConnexion.style.display = data.state === "menu" ? "flex" : "none";
@@ -3221,7 +3242,15 @@ function _lichessOngoingGameCard(game) {
   } else {
     const note = document.createElement("span");
     note.className = "lichess-ongoing-game-note";
-    note.textContent = t("lichess.reprise_non_reprenable");
+    // Explication exacte de la raison (issue #333, point 1) — "variant"
+    // (variante non standard, ex. Chess960) ou "speed" (cadence trop
+    // rapide pour l'interface des échiquiers de Lichess, voir
+    // client.py::_is_board_compatible) ; repli générique si absente.
+    const reasonKey = {
+      variant: "lichess.reprise_non_reprenable_variante",
+      speed: "lichess.reprise_non_reprenable_cadence",
+    }[game.unresumable_reason] || "lichess.reprise_non_reprenable";
+    note.textContent = t(reasonKey);
     actions.appendChild(note);
   }
   const abandonBtn = document.createElement("button");
@@ -3237,23 +3266,42 @@ function _lichessOngoingGameCard(game) {
 }
 
 socket.on("lichess_resumable", (data) => {
+  const games = (data && data.available && Array.isArray(data.games)) ? data.games : [];
+  _lichessOngoingGames = games;
+
   const banner = document.getElementById("lichess-resume-banner");
   const form   = document.getElementById("lichess-new-game-form");
   const list   = document.getElementById("lichess-ongoing-games-list");
-  if (!banner || !list) return;
-  const games = (data && data.available && Array.isArray(data.games)) ? data.games : [];
-  _lichessOngoingGames = games;
-  banner.style.display = games.length ? "" : "none";
-  // Une seule partie à la fois (issue #325, point 2) : le formulaire de
-  // nouvelle partie reste caché tant qu'au moins une partie est en cours,
-  // et redevient accessible dès que la liste repasse à vide (abandon,
-  // ou fin de partie constatée au prochain rafraîchissement).
-  if (form) form.style.display = games.length ? "none" : "";
-  list.innerHTML = "";
-  games.forEach(g => list.appendChild(_lichessOngoingGameCard(g)));
-  const titre = document.getElementById("lichess-resume-titre");
-  if (titre) {
-    titre.textContent = t(games.length > 1 ? "lichess.reprise_titre_plurielle" : "lichess.reprise_titre");
+  if (banner && list) {
+    banner.style.display = games.length ? "" : "none";
+    // Une seule partie à la fois (issue #325, point 2) : le formulaire de
+    // nouvelle partie reste caché tant qu'au moins une partie est en cours,
+    // et redevient accessible dès que la liste repasse à vide (abandon,
+    // ou fin de partie constatée au prochain rafraîchissement).
+    if (form) form.style.display = games.length ? "none" : "";
+    list.innerHTML = "";
+    games.forEach(g => list.appendChild(_lichessOngoingGameCard(g)));
+    const titre = document.getElementById("lichess-resume-titre");
+    if (titre) {
+      titre.textContent = t(games.length > 1 ? "lichess.reprise_titre_plurielle" : "lichess.reprise_titre");
+    }
+  }
+
+  // Bandeau du menu principal (issue #333, point 3) — même donnée, juste
+  // la partie la plus urgente (liste déjà triée par Lichess) ; sans effet
+  // sur l'écran "parties en cours" du mode Lichess ci-dessus. Rempli
+  // SEULEMENT si l'écran menu est actuellement affiché (jamais en même
+  // temps que la liste de l'écran de configuration Lichess ci-dessus —
+  // sinon les deux copient le même bouton Reprendre/Abandonner avec le
+  // même data-game-id, dupliqué dans le DOM).
+  const screenMenu = document.getElementById("screen-menu");
+  const menuBanner = document.getElementById("lichess-menu-banner");
+  const menuList   = document.getElementById("lichess-menu-banner-list");
+  if (menuBanner && menuList) {
+    const surLeMenu = screenMenu && screenMenu.style.display !== "none";
+    menuBanner.style.display = (surLeMenu && games.length) ? "" : "none";
+    menuList.innerHTML = "";
+    if (surLeMenu && games.length) menuList.appendChild(_lichessOngoingGameCard(games[0]));
   }
 });
 
@@ -3261,9 +3309,15 @@ function lichessResumeGame(gameId) {
   const id = gameId || (_lichessOngoingGames[0] && _lichessOngoingGames[0].game_id);
   if (!id) return;
   const player = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
+  // Couleur connue (issue #333, point 2) — nécessaire pour reprendre une
+  // partie contre un humain, où le serveur ne peut plus la déduire de la
+  // présence d'une IA (voir _run_lichess_resume) ; déjà reçue avec la
+  // liste des parties en cours (évènement "lichess_resumable").
+  const game = _lichessOngoingGames.find(g => g.game_id === id);
+  const color = (game && game.color) || "";
   _basketSource = "Lichess";
   _gameMode = "lichess";
-  sendAction({ type: "start_lichess_resume", game_id: id, player });
+  sendAction({ type: "start_lichess_resume", game_id: id, player, color });
 }
 
 // Abandon depuis la liste des parties en cours (issue #325, point 3) —
