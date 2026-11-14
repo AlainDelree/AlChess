@@ -252,7 +252,9 @@ class LichessGame(threading.Thread):
     def __init__(self, nl_inst, client, game_id: str, level: int, player_name: str,
                  clock_limit_s: int, clock_increment_s: int,
                  chosen_color_setting: str = "random", cadence_key: str = "",
-                 resuming: bool = False, **kwargs):
+                 resuming: bool = False,
+                 initial_wtime_ms: float = None, initial_btime_ms: float = None,
+                 clock_known: bool = True, **kwargs):
         super().__init__(daemon=True, **kwargs)
         self.nl_inst = nl_inst
         self.client = client
@@ -336,8 +338,29 @@ class LichessGame(threading.Thread):
         self._first_move_deadline_estimate_total_s = None
         self._last_move_event_ts = time.monotonic()
 
-        self._clock_white_ms = float(clock_limit_s * 1000)
-        self._clock_black_ms = float(clock_limit_s * 1000)
+        # Valeur de départ des pendules (issue #325, point 7) : pour une
+        # reprise, `initial_wtime_ms`/`initial_btime_ms` (temps RESTANT réel,
+        # lu dans l'aperçu gameFull — voir game_manager_modes/lichess.py)
+        # sont préférés à clock_limit_s (temps de DÉPART de la cadence,
+        # jamais le temps restant) — sans quoi la pendule afficherait la
+        # cadence complète (ou 0, si clock_limit_s vaut 0 par défaut
+        # silencieux faute de champ `clock`) au lieu du temps réellement
+        # restant, jusqu'à la correction par le premier événement du flux
+        # (quasi immédiate pour une partie normale, mais jamais si cet
+        # événement manque lui aussi de wtime/btime — voir _clock_known).
+        if initial_wtime_ms is not None and initial_btime_ms is not None:
+            self._clock_white_ms = float(initial_wtime_ms)
+            self._clock_black_ms = float(initial_btime_ms)
+        else:
+            self._clock_white_ms = float(clock_limit_s * 1000)
+            self._clock_black_ms = float(clock_limit_s * 1000)
+        # Faux seulement quand ni l'aperçu de reprise ni (plus tard) un vrai
+        # événement de flux n'ont fourni de wtime/btime fiables (partie par
+        # correspondance qui aurait échappé au filtre du point 1, ou réponse
+        # Lichess inattendue) : jamais de valeur fausse affichée dans ce cas
+        # (voir _maybe_push_clock et app.js::_lichessRenderClock) — on
+        # préfère ne rien afficher plutôt qu'un 0:00 mensonger.
+        self._clock_known = bool(clock_known)
         self._clock_turn = "white"
         self._clock_ref_monotonic = time.monotonic()
         self._last_clock_push_ts = 0.0
@@ -554,6 +577,13 @@ class LichessGame(threading.Thread):
         self.board = chess.Board()
         self._moves_applied = 0
         self._apply_new_moves(state, initial=True)
+        # Coups déjà joués avant même l'écran de jeu (issue #325, point 5) —
+        # jamais vide pour une reprise : auparavant, lichess_init ne portait
+        # pas l'historique et l'écran l'effaçait (voir app.js), laissant
+        # l'historique vide pendant toute la mise en place. Sans effet pour
+        # une partie normale (toujours vide à ce stade, hors noirs après le
+        # premier coup de l'IA).
+        hist_fens, hist_moves = self._history_from_board()
         send_event("lichess_init", {
             "fen": self.board.board_fen(),
             "color": self.user_color,
@@ -561,6 +591,8 @@ class LichessGame(threading.Thread):
             "level": self.level,
             "clock_limit_s": self.clock_limit_s,
             "clock_increment_s": self.clock_increment_s,
+            "history_fen": hist_fens,
+            "history_moves": hist_moves,
         })
         self._reset_clock_from_state(state)
         if self.user_color == "black" and self._moves_applied >= 1:
@@ -724,6 +756,9 @@ class LichessGame(threading.Thread):
             return
         self._clock_white_ms = float(wtime)
         self._clock_black_ms = float(btime)
+        if not self._clock_known:
+            logger.info("Lichess : temps restant confirmé par le flux (%s) — plus affiché comme inconnu.", self.game_id)
+        self._clock_known = True
         self._clock_turn = side_to_move(state)
         self._clock_ref_monotonic = time.monotonic()
         # Lichess laisse les deux pendules figées à leur valeur de départ
@@ -755,7 +790,10 @@ class LichessGame(threading.Thread):
         elapsed_s = 0.0 if (self.game_over or not self._clock_running) else max(0.0, now - self._clock_ref_monotonic)
         white_ms, black_ms = compute_clock_ms(self._clock_white_ms, self._clock_black_ms,
                                                self._clock_turn, elapsed_s)
-        send_event("lichess_clock", {"white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn})
+        send_event("lichess_clock", {
+            "white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn,
+            "known": self._clock_known,
+        })
         if self._first_move_deadline_active:
             deadline_elapsed_s = max(0.0, now - self._first_move_expiration_ref)
             seconds, estimated = self._first_move_deadline_seconds_and_estimated(deadline_elapsed_s)
@@ -840,9 +878,22 @@ class LichessGame(threading.Thread):
         attente, ni position illégale, ni échiquier perdu). Exceptions de
         sécurité : Abandonner reste actif si l'échiquier est perdu (jamais
         bloquer l'utilisateur), Proposer nulle reste inactif tant qu'une
-        offre de l'utilisateur est déjà en attente de réponse."""
+        offre de l'utilisateur est déjà en attente de réponse.
+
+        Issue #325, point 5 : pendant la mise en place d'une reprise
+        (_resume_pending), Abandonner reste actif SANS attendre la
+        reconstruction de la position — l'abandon est un simple appel
+        réseau (voir _request_resign_or_abort), indépendant de l'état
+        physique de l'échiquier. Essai réel d'Alain du 14/11/2026 : les
+        deux boutons étaient grisés pendant toute la mise en place,
+        empêchant d'abandonner une partie sans d'abord la reconstruire.
+        Proposer nulle reste inactif ici : contrairement à l'abandon, une
+        offre de nulle n'a de sens que si la position/le tour sont déjà
+        confirmés."""
         if self.game_over or self.user_color is None:
             return False, False
+        if self._resume_pending:
+            return True, False
         user_turn = self.board.turn == (chess.WHITE if self.user_color == "white" else chess.BLACK)
         position_ok = not (
             self._awaiting_physical_replication
@@ -850,7 +901,6 @@ class LichessGame(threading.Thread):
             or self._pending_promotion is not None
             or self._illegal_position_active
             or self._board_lost
-            or self._resume_pending
         )
         turn_ready = user_turn and position_ok
         resign_enabled = turn_ready or self._board_lost

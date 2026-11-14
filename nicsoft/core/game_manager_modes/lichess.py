@@ -64,44 +64,75 @@ CLOCK_PRESETS = {
 DEFAULT_CLOCK_PRESET = "15+10"
 
 
-def check_lichess_resumable() -> None:
-    """Détecte une partie Lichess en cours à reprendre (issue #323, point
-    1) — appelée une seule fois à l'ouverture du menu Lichess (jamais en
-    boucle), jamais bloquante pour l'écran (délai court côté
-    get_ongoing_games). Jamais de message alarmant si pas de jeton, pas de
-    réseau ou erreur : simplement aucune proposition de reprise."""
-    token = (load_config().get("lichess_token") or "").strip()
-    if not token:
-        send_event("lichess_resumable", {"available": False})
-        return
-    from nicsoft.modes.lichess.client import get_ongoing_games
+def _fetch_ongoing_games(token: str):
+    """Appel réseau partagé par check_lichess_resumable() et le garde-fou de
+    création (_refuse_create_if_games_ongoing ci-dessous) — jamais
+    d'exception propagée : None si l'appel échoue ou si le statut n'est pas
+    "ok" (jeton absent/refusé, réseau, limite de requêtes), liste (possibly
+    vide) sinon. Jamais de message alarmant à l'appelant dans le cas None
+    (issue #323, point 1 ; étendu issue #325)."""
     try:
+        from nicsoft.modes.lichess.client import get_ongoing_games
         result = get_ongoing_games(token)
     except Exception as exc:
         logger_lichess.warning(
-            "Lichess : détection de partie en cours échouée (%s).", type(exc).__name__,
+            "Lichess : détection de partie(s) en cours échouée (%s).", type(exc).__name__,
         )
-        send_event("lichess_resumable", {"available": False})
-        return
-
-    if result.get("status") != "ok" or not result.get("game"):
+        return None
+    if result.get("status") != "ok":
         logger_lichess.info(
-            "Lichess : aucune partie en cours proposée à la reprise (statut=%s).",
+            "Lichess : liste des parties en cours indisponible (statut=%s).",
             result.get("status"),
         )
-        send_event("lichess_resumable", {"available": False})
-        return
+        return None
+    return result.get("games") or []
 
-    game = result["game"]
-    total = result.get("total_candidates", 1)
-    if total > 1:
-        logger_lichess.info(
-            "Lichess : %d partie(s) reprenable(s) détectée(s) — la plus urgente proposée (%s).",
-            total, game["game_id"],
-        )
-    else:
-        logger_lichess.info("Lichess : partie en cours détectée (%s).", game["game_id"])
-    send_event("lichess_resumable", {"available": True, "game": game})
+
+def check_lichess_resumable() -> None:
+    """Détecte les parties Lichess en cours du compte (issue #323, point 1 ;
+    étendu à toutes les parties — pas seulement la plus urgente — par
+    l'issue #325, points 1 et 2) — appelée à l'ouverture du menu Lichess
+    (jamais en boucle), jamais bloquante pour l'écran (délai court côté
+    get_ongoing_games), et à nouveau après un abandon depuis la liste
+    (abandon_lichess_game) pour rafraîchir l'écran. Jamais de message
+    alarmant si pas de jeton, pas de réseau ou erreur : simplement aucune
+    partie affichée (le formulaire de nouvelle partie reste accessible)."""
+    token = (load_config().get("lichess_token") or "").strip()
+    if not token:
+        send_event("lichess_resumable", {"available": False, "games": []})
+        return
+    games = _fetch_ongoing_games(token)
+    if games is None:
+        send_event("lichess_resumable", {"available": False, "games": []})
+        return
+    if not games:
+        logger_lichess.info("Lichess : aucune partie en cours (compte).")
+        send_event("lichess_resumable", {"available": False, "games": []})
+        return
+    logger_lichess.info(
+        "Lichess : %d partie(s) en cours détectée(s) (%s).",
+        len(games), ", ".join(g["game_id"] for g in games),
+    )
+    send_event("lichess_resumable", {"available": True, "games": games})
+
+
+def _refuse_create_if_games_ongoing(token: str) -> list | None:
+    """Garde-fou juste avant de créer une nouvelle partie (issue #325, point
+    4) : redemande la liste des parties en cours — y compris celles créées
+    ailleurs (lichess.org, téléphone) depuis l'ouverture de l'écran Lichess,
+    pas seulement celles déjà connues côté AlChess. Ce n'est pas un doublon
+    de l'instance unique du serveur (#320, single_instance.py) : il s'agit
+    de l'état du compte chez Lichess, pas du nombre de processus AlChess.
+
+    Retourne la liste (non vide) des parties qui font refuser la création,
+    ou None si la création peut continuer (aucune partie en cours, ou liste
+    impossible à obtenir — dans ce dernier cas, on laisse démarrer comme
+    avant plutôt que de bloquer sur une panne réseau, voir rapport de
+    clôture)."""
+    games = _fetch_ongoing_games(token)
+    if not games:
+        return None
+    return games
 
 
 class _BackMenuDuringWait(Exception):
@@ -519,6 +550,24 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
                     _wait_initial_position_lichess(nl_inst, resolved_color)
             logger_lichess.info(f"Lichess : premier coup physique détecté ({first_move_uci}), création de la partie.")
 
+        # Garde-fou « une seule partie à la fois » (issue #325, point 4) —
+        # juste avant de créer, pas à l'ouverture du menu : attrape aussi
+        # une partie créée ailleurs (lichess.org, téléphone) entre-temps.
+        # Pour les blancs, ce point arrive APRÈS le premier coup physique
+        # (déjà joué, irréversible) — le refus renvoie à l'écran de
+        # configuration plutôt que de perdre les réglages choisis.
+        ongoing = _refuse_create_if_games_ongoing(token)
+        if ongoing:
+            logger_lichess.info(
+                "Lichess : création refusée — partie(s) en cours détectée(s) (%s).",
+                ", ".join(g["game_id"] for g in ongoing),
+            )
+            if _error is not None:
+                _error["occurred"] = True
+                _error["toast_key"] = "toast.lichess_partie_en_cours_refus"
+                _error["return_to"] = "config_lichess"
+            return
+
         client = GameClient(token)
         if resolved_color == "white":
             # La partie n'existe qu'à partir d'ici : un échec de création ne
@@ -723,10 +772,35 @@ def _run_lichess_resume(token, game_id, player_name, _error=None):
         black = full_event.get("black") or {}
         user_color = "black" if white.get("aiLevel") is not None else "white"
         level = (white.get("aiLevel") if user_color == "black" else black.get("aiLevel")) or 1
-        clock = full_event.get("clock") or {}
-        clock_limit_s = int(clock.get("initial") or 0) // 1000
-        clock_increment_s = int(clock.get("increment") or 0) // 1000
+        # Issue #325, point 7 : le champ `clock` (top-level de gameFull) ne
+        # contient que la cadence CHOISIE (initial/increment), jamais le
+        # temps RESTANT — et il est absent pour une partie par
+        # correspondance (`daysPerTurn` à la place, doc officielle
+        # GameFullEvent.yaml, lue le 14/11/2026). L'ancien code faisait
+        # `int(clock.get("initial") or 0) // 1000`, qui retombait
+        # silencieusement à 0 dans ce cas — exactement le mécanisme du bug
+        # observé par Alain (bandeau « 0 min restantes » et pendule 0:00
+        # rouge) : ce 0 devenait la valeur de départ des pendules
+        # (LichessGame.__init__) et n'était jamais corrigé si l'événement de
+        # flux suivant manquait lui aussi de wtime/btime (même absence pour
+        # une correspondance). Point 1 ci-dessus exclut déjà ces parties de
+        # la liste proposée ; en défense supplémentaire, le temps RESTANT
+        # réel (state.wtime/state.btime, déjà présents dans l'aperçu
+        # gameFull) est transmis à LichessGame pour servir de valeur de
+        # départ fiable — plus jamais un 0 par défaut silencieux.
+        clock = full_event.get("clock")
+        clock_limit_s = int((clock or {}).get("initial") or 0) // 1000
+        clock_increment_s = int((clock or {}).get("increment") or 0) // 1000
         state = full_event.get("state") or {}
+        initial_wtime_ms = state.get("wtime")
+        initial_btime_ms = state.get("btime")
+        clock_known = isinstance(clock, dict) and initial_wtime_ms is not None and initial_btime_ms is not None
+        if not clock_known:
+            logger_lichess.warning(
+                "Lichess : reprise (%s) — champ horloge absent ou incomplet "
+                "(clock=%s, wtime=%s, btime=%s) : temps restant affiché comme inconnu plutôt qu'une valeur fausse.",
+                game_id, clock, initial_wtime_ms, initial_btime_ms,
+            )
         status = state.get("status", "started")
         already_over = is_game_over(status)
         logger_lichess.info(
@@ -742,6 +816,8 @@ def _run_lichess_resume(token, game_id, player_name, _error=None):
             clock_limit_s=clock_limit_s, clock_increment_s=clock_increment_s,
             chosen_color_setting=user_color, cadence_key="",
             resuming=not already_over,
+            initial_wtime_ms=initial_wtime_ms, initial_btime_ms=initial_btime_ms,
+            clock_known=clock_known,
         )
 
         if already_over:
@@ -817,3 +893,66 @@ def _run_lichess_resume(token, game_id, player_name, _error=None):
                 logger.warning(f"Déconnexion échiquier échouée (reprise Lichess) : {e}")
         if web_server._app_state not in ("game_over", "menu"):
             web_server._app_state = "menu"
+
+
+# ── Abandon depuis la liste des parties en cours (issue #325, point 3) ─────
+#
+# Abandonner une partie qui n'est PAS celle en cours de jeu dans AlChess (cas
+# normal ici : aucune LichessGame n'existe encore, l'utilisateur clique
+# "Abandonner" depuis l'écran de liste avant toute reprise) ne passe donc
+# jamais par LichessGame._request_resign_or_abort() — il n'y a pas
+# d'instance. La même logique est reproduite directement avec le client
+# Lichess seul : un bref aperçu du flux (_peek_game_full, déjà utilisé par
+# la reprise) donne le nombre de coups déjà joués pour choisir entre
+# annulation (< 2 coups) et abandon, exactement comme le ferait
+# LichessGame une fois la partie chargée ; puis un seul appel REST
+# (abort()/resign()). La liste est ensuite rafraîchie (check_lichess_resumable)
+# pour que l'écran se mette à jour sans action supplémentaire de
+# l'utilisateur.
+
+def abandon_lichess_game(action: dict) -> None:
+    game_id = (action.get("game_id") or "").strip()
+    if not game_id:
+        logger.warning("Lichess : abandon depuis la liste demandé sans identifiant de partie — ignoré.")
+        return
+    token = (load_config().get("lichess_token") or "").strip()
+    if not token:
+        send_event("lichess_toast", {"message_key": "toast.lichess_no_token", "type": "warning"})
+        return
+
+    logger_lichess.info("Lichess : abandon depuis la liste demandé (%s).", game_id)
+    client = GameClient(token)
+    try:
+        full_event = _peek_game_full(client, game_id)
+    except (LichessAuthError, LichessRateLimitError, LichessNetworkError, LichessApiError) as exc:
+        logger_lichess.warning(
+            "Lichess : abandon depuis la liste — lecture de l'état de partie échouée (%s) : %s.",
+            game_id, exc,
+        )
+        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        return
+    if full_event is None:
+        logger_lichess.warning("Lichess : abandon depuis la liste — état de partie introuvable (%s).", game_id)
+        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        return
+
+    moves = moves_from_state(full_event.get("state") or {})
+    aborting = len(moves) < 2
+    try:
+        if aborting:
+            client.abort(game_id)
+        else:
+            client.resign(game_id)
+    except (LichessApiError, LichessRateLimitError, LichessNetworkError) as exc:
+        logger_lichess.warning(
+            "Lichess : abandon depuis la liste refusé par Lichess (%s, %s) : %s.",
+            game_id, "annulation" if aborting else "abandon", exc,
+        )
+        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        return
+
+    logger_lichess.info(
+        "Lichess : partie %s depuis la liste (%s, %d coup(s) joué(s)).",
+        "annulée" if aborting else "abandonnée", game_id, len(moves),
+    )
+    check_lichess_resumable()

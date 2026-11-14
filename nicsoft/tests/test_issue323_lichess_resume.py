@@ -86,7 +86,8 @@ def _nowplaying_ai_standard(game_id="aBcD1234", color="white", opponent_ai=2,
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# 1. client.get_ongoing_games() — détection (issue #323, point 1)
+# 1. client.get_ongoing_games() — détection (issue #323, point 1 ; étendue
+#    à toutes les parties en cours, correspondance ignorée, par #325, pt.1)
 # ═══════════════════════════════════════════════════════════════════════
 
 def test_get_ongoing_games_sans_jeton():
@@ -125,23 +126,55 @@ def test_get_ongoing_games_reponse_illisible_est_network_error(monkeypatch):
 def test_get_ongoing_games_aucune_partie_en_cours(monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({"nbMyTurn": 0, "nowPlaying": []}))
     result = lichess_client.get_ongoing_games("lip_x")
-    assert result == {"status": "ok", "game": None, "total_candidates": 0}
+    assert result == {"status": "ok", "games": [], "total": 0}
 
 
-def test_get_ongoing_games_filtre_hors_ia_et_hors_standard(monkeypatch):
-    """Une partie humain-humain (source=friend) et une partie variante
-    (chess960) ne sont jamais proposées dans cette livraison (issue #323 —
-    cas le plus simple, voir rapport)."""
+def test_get_ongoing_games_partie_humain_humain_reste_listee_non_reprenable(monkeypatch):
+    """Issue #325, point 1 : contrairement à l'ancien comportement (#323,
+    qui ignorait tout ce qui n'était pas IA/standard), une partie créée
+    ailleurs (humain-humain, source=friend) reste une partie EN COURS —
+    listée (pour qu'Alain la termine) mais marquée non reprenable ici."""
     non_ai = _nowplaying_ai_standard(game_id="human0001")
     non_ai["source"] = "friend"
     non_ai["opponent"] = {"id": "bob", "username": "bob"}
-    variant = _nowplaying_ai_standard(game_id="var00001")
-    variant["variant"] = {"key": "chess960", "name": "Chess960"}
     monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
-        "nbMyTurn": 2, "nowPlaying": [non_ai, variant],
+        "nbMyTurn": 1, "nowPlaying": [non_ai],
     }))
     result = lichess_client.get_ongoing_games("lip_x")
-    assert result == {"status": "ok", "game": None, "total_candidates": 0}
+    assert result["status"] == "ok"
+    assert result["total"] == 1
+    assert result["games"][0]["game_id"] == "human0001"
+    assert result["games"][0]["resumable"] is False
+
+
+def test_get_ongoing_games_ignore_la_correspondance(monkeypatch):
+    """Point 1 : seule la cadence par correspondance (délai en jours par
+    coup) est ignorée, via le champ `speed` (confirmé présent dans la
+    doc officielle lichess-org/api, schémas GameEventInfo.yaml/Speed.yaml,
+    lus le 14/11/2026) — elle durerait des jours et bloquerait AlChess
+    indéfiniment si elle comptait comme « en cours »."""
+    correspondence = _nowplaying_ai_standard(game_id="corr00001", speed="correspondence")
+    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
+        "nbMyTurn": 1, "nowPlaying": [correspondence],
+    }))
+    result = lichess_client.get_ongoing_games("lip_x")
+    assert result == {"status": "ok", "games": [], "total": 0}
+
+
+def test_get_ongoing_games_classique_90_30_compte_normalement(monkeypatch):
+    """Point 1 : une partie en temps réel même très longue (classique
+    90+30, cadence qu'Alain veut surtout jouer) compte normalement —
+    listée, reprenable, et empêche la création d'une autre partie
+    (voir test_issue325_lichess_single_game.py pour le garde-fou)."""
+    classical = _nowplaying_ai_standard(game_id="classic001", speed="classical", seconds_left=5300)
+    monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
+        "nbMyTurn": 1, "nowPlaying": [classical],
+    }))
+    result = lichess_client.get_ongoing_games("lip_x")
+    assert result["status"] == "ok"
+    assert result["total"] == 1
+    assert result["games"][0]["speed"] == "classical"
+    assert result["games"][0]["resumable"] is True
 
 
 def test_get_ongoing_games_propose_la_partie_ia_standard(monkeypatch):
@@ -150,22 +183,29 @@ def test_get_ongoing_games_propose_la_partie_ia_standard(monkeypatch):
     monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({"nbMyTurn": 0, "nowPlaying": [game]}))
     result = lichess_client.get_ongoing_games("lip_x")
     assert result["status"] == "ok"
-    assert result["total_candidates"] == 1
-    assert result["game"] == {
+    assert result["total"] == 1
+    assert result["games"] == [{
         "game_id": "aBcD1234", "color": "black", "opponent": "Stockfish level 4",
         "ai_level": 4, "speed": "rapid", "is_my_turn": False, "seconds_left": 742,
-    }
+        "resumable": True,
+    }]
 
 
-def test_get_ongoing_games_plusieurs_parties_propose_la_plus_urgente(monkeypatch):
+def test_get_ongoing_games_plusieurs_parties_toutes_listees(monkeypatch):
+    """Issue #325, point 1 : plusieurs parties en cours (ne peuvent exister
+    que créées ailleurs ou laissées ouvertes par un arrêt brutal) sont
+    TOUTES retournées, dans l'ordre Lichess (le plus urgent d'abord) — plus
+    question de n'en choisir qu'une seule silencieusement (ancien
+    comportement #323, corrigé ici : Alain a vu les cases à corriger d'une
+    AUTRE partie que celle qu'il venait de jouer, voir rapport de clôture)."""
     first = _nowplaying_ai_standard(game_id="first0001")
     second = _nowplaying_ai_standard(game_id="second002")
     monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen({
         "nbMyTurn": 2, "nowPlaying": [first, second],
     }))
     result = lichess_client.get_ongoing_games("lip_x")
-    assert result["total_candidates"] == 2
-    assert result["game"]["game_id"] == "first0001"  # ordre Lichess conservé (la plus urgente)
+    assert result["total"] == 2
+    assert [g["game_id"] for g in result["games"]] == ["first0001", "second002"]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -177,7 +217,7 @@ def test_check_lichess_resumable_sans_jeton_ne_propose_rien(monkeypatch):
     monkeypatch.setattr(lichess_launcher, "load_config", lambda: {"lichess_token": ""})
     monkeypatch.setattr(lichess_launcher, "send_event", lambda t, d: events.append((t, d)))
     lichess_launcher.check_lichess_resumable()
-    assert events == [("lichess_resumable", {"available": False})]
+    assert events == [("lichess_resumable", {"available": False, "games": []})]
 
 
 def test_check_lichess_resumable_erreur_reseau_silencieuse(monkeypatch, caplog):
@@ -192,7 +232,7 @@ def test_check_lichess_resumable_erreur_reseau_silencieuse(monkeypatch, caplog):
 
     with caplog.at_level("WARNING"):
         lichess_launcher.check_lichess_resumable()
-    assert events == [("lichess_resumable", {"available": False})]
+    assert events == [("lichess_resumable", {"available": False, "games": []})]
     assert "lip_secret_abcdef" not in caplog.text
 
 
@@ -202,9 +242,9 @@ def test_check_lichess_resumable_aucune_partie(monkeypatch):
     monkeypatch.setattr(lichess_launcher, "send_event", lambda t, d: events.append((t, d)))
     import nicsoft.modes.lichess.client as client_mod
     monkeypatch.setattr(client_mod, "get_ongoing_games",
-                         lambda token: {"status": "ok", "game": None, "total_candidates": 0})
+                         lambda token: {"status": "ok", "games": [], "total": 0})
     lichess_launcher.check_lichess_resumable()
-    assert events == [("lichess_resumable", {"available": False})]
+    assert events == [("lichess_resumable", {"available": False, "games": []})]
 
 
 def test_check_lichess_resumable_propose_la_partie_detectee(monkeypatch):
@@ -212,12 +252,33 @@ def test_check_lichess_resumable_propose_la_partie_detectee(monkeypatch):
     monkeypatch.setattr(lichess_launcher, "load_config", lambda: {"lichess_token": "lip_x"})
     monkeypatch.setattr(lichess_launcher, "send_event", lambda t, d: events.append((t, d)))
     game = {"game_id": "aBcD1234", "color": "white", "opponent": "Stockfish level 2",
-            "ai_level": 2, "speed": "blitz", "is_my_turn": True, "seconds_left": 580}
+            "ai_level": 2, "speed": "blitz", "is_my_turn": True, "seconds_left": 580,
+            "resumable": True}
     import nicsoft.modes.lichess.client as client_mod
     monkeypatch.setattr(client_mod, "get_ongoing_games",
-                         lambda token: {"status": "ok", "game": game, "total_candidates": 1})
+                         lambda token: {"status": "ok", "games": [game], "total": 1})
     lichess_launcher.check_lichess_resumable()
-    assert events == [("lichess_resumable", {"available": True, "game": game})]
+    assert events == [("lichess_resumable", {"available": True, "games": [game]})]
+
+
+def test_check_lichess_resumable_plusieurs_parties_toutes_envoyees(monkeypatch):
+    """Issue #325, point 2 : l'écran doit pouvoir afficher toutes les
+    parties en cours, l'une sous l'autre — l'événement porte donc la liste
+    complète, pas seulement la première."""
+    events = []
+    monkeypatch.setattr(lichess_launcher, "load_config", lambda: {"lichess_token": "lip_x"})
+    monkeypatch.setattr(lichess_launcher, "send_event", lambda t, d: events.append((t, d)))
+    games = [
+        {"game_id": "g1", "color": "white", "opponent": "bob", "ai_level": None,
+         "speed": "blitz", "is_my_turn": True, "seconds_left": 300, "resumable": False},
+        {"game_id": "g2", "color": "black", "opponent": "Stockfish level 3", "ai_level": 3,
+         "speed": "rapid", "is_my_turn": False, "seconds_left": 900, "resumable": True},
+    ]
+    import nicsoft.modes.lichess.client as client_mod
+    monkeypatch.setattr(client_mod, "get_ongoing_games",
+                         lambda token: {"status": "ok", "games": games, "total": 2})
+    lichess_launcher.check_lichess_resumable()
+    assert events == [("lichess_resumable", {"available": True, "games": games})]
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -243,11 +304,19 @@ def _make_resuming_game(monkeypatch, moves="e2e4", user_color_is_black=True, boa
     return game, board, events
 
 
-def test_resume_pending_desactive_les_boutons_meme_au_bon_tour(monkeypatch):
+def test_resume_pending_abandon_actif_mais_pas_nulle(monkeypatch):
+    """Issue #325, point 5 : Abandonner doit être utilisable dès l'écran de
+    mise en place, sans attendre la reconstruction de la position (abandon
+    = simple appel réseau, indépendant du plateau physique) — contrairement
+    à Proposer nulle, qui reste inactif tant que la position/le tour ne
+    sont pas confirmés. Remplace l'ancien comportement (#323 : les deux
+    boutons grisés pendant toute la mise en place), corrigé après l'essai
+    réel d'Alain du 14/11/2026 où cela empêchait d'abandonner sans
+    reconstruire la position."""
     game, board, events = _make_resuming_game(monkeypatch)
     assert game._resume_pending is True
     resign_enabled, draw_enabled = game._compute_action_buttons()
-    assert (resign_enabled, draw_enabled) == (False, False)
+    assert (resign_enabled, draw_enabled) == (True, False)
 
 
 def test_tick_resume_setup_signale_les_cases_en_erreur_et_allume_les_led(monkeypatch):
@@ -601,13 +670,25 @@ def test_appjs_wiring_reprise_present():
 
 
 def test_appjs_nom_adversaire_jamais_en_innerhtml():
+    """Le nom de l'adversaire (vient de Lichess, non fiable) est construit
+    dans _lichessOngoingGameCard() (issue #325, point 3) — jamais par
+    interpolation dans une chaîne injectée en innerHTML, uniquement via
+    textContent. Le seul `.innerHTML` du bloc de liste (`socket.on(
+    "lichess_resumable", ...)`) est un vidage (`= ""`), jamais une valeur
+    contenant le nom de l'adversaire."""
     src = _read_appjs()
+    card_start = src.index("function _lichessOngoingGameCard")
+    card_end = src.index("\n}", card_start)
+    card_bloc = src[card_start:card_end]
+    assert "innerHTML" not in card_bloc
+    assert "opponentSpan.textContent" in card_bloc
+
     start = src.index('socket.on("lichess_resumable"')
     end = src.index("\n});", start)
     bloc = src[start:end]
     code_lines = [line for line in bloc.splitlines() if not line.strip().startswith("//")]
-    assert not any(".innerHTML" in line for line in code_lines)
-    assert "textContent" in bloc
+    innerhtml_lines = [line for line in code_lines if ".innerHTML" in line]
+    assert innerhtml_lines and all(line.strip().endswith('innerHTML = "";') for line in innerhtml_lines)
 
 
 def test_appjs_lichess_resume_setup_reutilise_renderboardwitherrors():
@@ -620,7 +701,14 @@ def test_appjs_lichess_resume_setup_reutilise_renderboardwitherrors():
 
 
 def test_index_html_banniere_reprise_presente():
+    """Issue #325, point 2/3 : une carte par partie en cours (et son bouton
+    Reprendre) est désormais construite dynamiquement par app.js
+    (_lichessOngoingGameCard, voir ci-dessus) plutôt qu'un unique bouton
+    statique — le gabarit HTML n'expose plus que le conteneur de liste et
+    le formulaire de nouvelle partie, caché tant que la liste n'est pas
+    vide."""
     html = (REPO_ROOT / "nicsoft" / "web" / "templates" / "index.html").read_text(encoding="utf-8")
     assert 'id="lichess-resume-banner"' in html
     assert 'id="lichess-resume-setup"' in html
-    assert 'data-action="lichess_resume_game"' in html
+    assert 'id="lichess-ongoing-games-list"' in html
+    assert 'id="lichess-new-game-form"' in html

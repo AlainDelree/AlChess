@@ -39,10 +39,23 @@ _TIMEOUT_S = 10
 _PLAYING_TIMEOUT_S = 6
 _MAX_RESPONSE_BYTES = 65536
 
-# Issue #323 : source/variante proposées à la reprise dans cette livraison.
-# « Cas le plus simple » explicitement permis par la consigne en repli — une
-# partie amicale contre l'IA Lichess en échecs standard. Les parties
-# humain-humain et de variante restent à faire (voir rapport de clôture).
+# Issue #325, point 1 : seul le type de cadence ("speed", distinct de la
+# source ou de la variante) distingue de façon fiable une partie en temps
+# réel — même très longue (ex. classique 90+30, cadence qu'Alain veut
+# surtout jouer) — d'une partie par correspondance (délai en jours par
+# coup, qui durerait des jours et bloquerait AlChess indéfiniment si elle
+# comptait comme « en cours »). Valeurs officielles du champ `speed`
+# (doc/specs/schemas/Speed.yaml, dépôt lichess-org/api, lu le 14/11/2026via
+# `gh api search/code` + lecture du fichier) : ultraBullet, bullet, blitz,
+# rapid, classical, correspondence — seule la dernière est ignorée ici.
+_IGNORED_SPEED = "correspondence"
+
+# "Reprenable" dans cette livraison (issue #325, point 3) : seules les
+# parties amicales contre l'IA Lichess, variante standard, peuvent être
+# rejouées par LichessGame aujourd'hui — les autres (humain-humain créée
+# ailleurs, variante non standard...) restent listées (pour qu'Alain les
+# termine) mais affichées avec l'explication « non reprenable ici pour
+# l'instant » côté interface, jamais masquées (voir rapport de clôture).
 _RESUMABLE_SOURCE = "ai"
 _RESUMABLE_VARIANT = "standard"
 
@@ -162,9 +175,11 @@ def test_ai_game(token: str, transport=None) -> dict:
 
 
 def get_ongoing_games(token: str) -> dict:
-    """GET /api/account/playing (issue #323, étape L2b, point 1) — détecte
-    une partie Lichess en cours à reprendre, à l'ouverture du menu Lichess
-    uniquement (jamais en boucle).
+    """GET /api/account/playing (issue #323, étape L2b, point 1 ; étendu à
+    toutes les parties en cours par l'issue #325, point 1) — détecte les
+    parties Lichess en cours du compte, quelle que soit leur origine
+    (AlChess, lichess.org, téléphone), à l'ouverture du menu Lichess et
+    juste avant la création d'une nouvelle partie (jamais en boucle).
 
     Même jeton que les autres appels, aucun droit (scope OAuth)
     supplémentaire : la spécification officielle lichess-org/api (dépôt
@@ -174,24 +189,27 @@ def get_ongoing_games(token: str) -> dict:
     board:play. Délai d'attente court (_PLAYING_TIMEOUT_S) : cet appel ne
     doit jamais retarder longtemps l'affichage de l'écran de menu.
 
-    Ne propose à la reprise que les parties amicales contre l'IA Lichess en
-    variante standard (_RESUMABLE_SOURCE/_RESUMABLE_VARIANT ci-dessus) —
-    seul cas livré dans cette étape (voir rapport de clôture pour les
-    parties humain-humain/correspondance, qui restent à faire). Lichess
-    classe `nowPlaying` par urgence (« most urgent games are listed first »,
-    doc officielle) — en l'absence d'horodatage de création dans cette
-    réponse, c'est la meilleure approximation disponible de « la partie la
-    plus récente » sans appel réseau supplémentaire (voir rapport).
+    Seules les parties par correspondance sont ignorées (_IGNORED_SPEED
+    ci-dessus) : une partie en temps réel, même très longue (classique
+    90+30, par exemple), reste une candidate normale. Toutes les autres
+    parties en cours sont retournées (humain-humain créée ailleurs, variante
+    non standard...), avec un indicateur `resumable` (True seulement pour
+    une partie amicale contre l'IA en variante standard — seul cas que
+    LichessGame sait rejouer aujourd'hui, voir rapport de clôture) : à
+    l'appelant de les afficher toutes (issue #325, point 2/3) plutôt que
+    d'en masquer certaines silencieusement. Lichess classe `nowPlaying` par
+    urgence (« most urgent games are listed first », doc officielle) —
+    l'ordre de la liste retournée ci-dessous conserve cet ordre.
 
     Retourne :
-      {"status": "ok", "game": {...} | None, "total_candidates": int}
+      {"status": "ok", "games": [{...}, ...], "total": int}  — total == len(games)
       {"status": "invalid"}        — jeton absent ou refusé (401/403)
       {"status": "rate_limited"}   — 429
       {"status": "network_error"}  — pas de réseau ou réponse inattendue
 
     Jamais de message alarmant pour l'appelant en cas de "invalid"/
     "rate_limited"/"network_error" (issue #323, point 1) : ces statuts ne
-    font simplement pas apparaître de proposition de reprise.
+    font simplement apparaître aucune partie en cours.
     """
     if not token:
         return {"status": "invalid"}
@@ -223,26 +241,22 @@ def get_ongoing_games(token: str) -> dict:
 
     candidates = [
         g for g in (data.get("nowPlaying") or [])
-        if isinstance(g, dict)
-        and g.get("source") == _RESUMABLE_SOURCE
-        and (g.get("variant") or {}).get("key") == _RESUMABLE_VARIANT
-        and g.get("gameId")
+        if isinstance(g, dict) and g.get("gameId") and g.get("speed") != _IGNORED_SPEED
     ]
-    if not candidates:
-        return {"status": "ok", "game": None, "total_candidates": 0}
-
-    chosen = candidates[0]  # ordre Lichess : la partie la plus urgente d'abord
-    opponent = chosen.get("opponent") or {}
-    return {
-        "status": "ok",
-        "total_candidates": len(candidates),
-        "game": {
-            "game_id": chosen.get("gameId", ""),
-            "color": chosen.get("color", ""),
+    games = []
+    for g in candidates:
+        opponent = g.get("opponent") or {}
+        games.append({
+            "game_id": g.get("gameId", ""),
+            "color": g.get("color", ""),
             "opponent": opponent.get("username") or opponent.get("id") or "",
             "ai_level": opponent.get("ai"),
-            "speed": chosen.get("speed", ""),
-            "is_my_turn": bool(chosen.get("isMyTurn")),
-            "seconds_left": chosen.get("secondsLeft"),
-        },
-    }
+            "speed": g.get("speed", ""),
+            "is_my_turn": bool(g.get("isMyTurn")),
+            "seconds_left": g.get("secondsLeft"),
+            "resumable": (
+                g.get("source") == _RESUMABLE_SOURCE
+                and (g.get("variant") or {}).get("key") == _RESUMABLE_VARIANT
+            ),
+        })
+    return {"status": "ok", "games": games, "total": len(games)}

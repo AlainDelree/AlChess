@@ -630,6 +630,13 @@
     }
     .color-btn.selected { border-color: #e94560; color: #1a2a3a; background: #a0b8d0; font-weight: 600; }
 
+    /* Formulaire de nouvelle partie Lichess (issue #325, point 2) — simple
+       conteneur caché/affiché par app.js selon qu'une partie est en cours ;
+       `display:contents` pour que .cfg-hh-scroll/.cfg-hh-footer restent des
+       enfants flex directs de #screen-config-lichess (flex:1 sur
+       .cfg-hh-scroll n'aurait aucun effet sinon). */
+    #lichess-new-game-form { display: contents; }
+
     /* ── Écran config Humain vs Humain ── */
     .cfg-hh-titlebar {
       width: 100%;
@@ -1670,4 +1677,11 @@
 .lichess-resume-banner { background:#fff3c4; border:2px solid #d9a500; margin-bottom:16px; text-align:center; }
 .lichess-resume-banner h2 { margin-top:0; }
 .lichess-resume-detail { font-size:0.95rem; color:#5a4a1a; margin:6px 0 14px; }
+/* Une carte par partie en cours (issue #325, points 2/3) — plusieurs
+   parties ne peuvent apparaître que si elles ont été créées ailleurs ou
+   laissées ouvertes par un arrêt brutal : affichées l'une sous l'autre. */
+.lichess-ongoing-game-card { background:#fffbea; border:1px solid #d9a500; border-radius:8px; padding:10px 14px; margin:0 0 10px; text-align:left; }
+.lichess-ongoing-game-card .lichess-resume-detail { margin:0 0 8px; }
+.lichess-ongoing-game-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.lichess-ongoing-game-note { font-size:0.85rem; color:#5a4a1a; font-style:italic; }
 .outils-wiki-result { display:none; margin-top:12px; }

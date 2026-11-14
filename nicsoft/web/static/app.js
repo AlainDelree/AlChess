@@ -151,7 +151,10 @@ document.addEventListener("click", (e) => {
       startGameLichess();
       break;
     case "lichess_resume_game":
-      lichessResumeGame();
+      lichessResumeGame(el.dataset.gameId);
+      break;
+    case "lichess_abandon_ongoing":
+      ouvrirModalAbandonOngoing(el.dataset.gameId, el.dataset.opponent || "");
       break;
     case "lichess_draw_accept":
       sendAction({ type: "lichess_draw_accept" });
@@ -1862,9 +1865,14 @@ socket.on("lichess_init", (data) => {
   _lichessClockRowsSwapped = false;
   _lichessLastClockData = null;
   _pendingMove = null;
-  reviewFens  = [data.fen || currentFen];
-  reviewMoves = [];
-  reviewIdx   = 0;
+  // Coups déjà joués avant l'écran de jeu (issue #325, point 5) — une
+  // reprise envoie son historique dans history_fen/history_moves ; une
+  // partie normale les envoie vides (aucun coup joué encore), donc ce
+  // repli reste correct dans les deux cas.
+  const hasHistory = Array.isArray(data.history_fen) && data.history_fen.length > 0;
+  reviewFens  = hasHistory ? data.history_fen : [data.fen || currentFen];
+  reviewMoves = hasHistory ? (data.history_moves || []) : [];
+  reviewIdx   = reviewFens.length - 1;
   currentFen  = data.fen || currentFen;
   const isWhite = data.color === "white";
   const playerLabel   = _localPlayerName(data.player, "lichess.vous");
@@ -1903,7 +1911,11 @@ socket.on("lichess_init", (data) => {
   const btnNulle = document.getElementById("btn-nulle");
   if (btnNulle) btnNulle.textContent = t("game.btn.nulle");
   document.getElementById("turn-info").textContent = t("game.en_attente");
-  document.getElementById("historique").innerHTML = "";
+  if (hasHistory) {
+    _renderHistory();
+  } else {
+    document.getElementById("historique").innerHTML = "";
+  }
   hideFeedback();
   _lichessSetClocksVisible(true);
   _lichessHideStatusBanners();
@@ -1979,7 +1991,7 @@ socket.on("lichess_illegal_position", (data) => {
   } else if (currentFen) {
     renderBoard(currentFen, null, null, null, null, null, null);
   }
-  _lichessShowBanner("lichess-first-move-deadline", _lichessFirstMoveDeadlineBannerActive && !_lichessIllegalPositionActive);
+  _lichessUpdateFirstMoveBanner();
 });
 
 // player-row-top montre l'adversaire et player-row-bottom l'utilisateur
@@ -1998,15 +2010,19 @@ function _lichessRenderClock(data) {
   const topIsTurn = _lichessClockRowsSwapped
     ? (data.turn === currentPlayerColor)
     : (data.turn !== currentPlayerColor);
+  // Issue #325, point 7 : temps restant inconnu (champ absent côté Lichess,
+  // ex. partie par correspondance qui aurait échappé au filtre de la liste)
+  // → jamais un "0:00" en rouge mensonger, un tiret neutre à la place.
+  const known = data.known !== false;
   if (clockTop) {
-    clockTop.textContent = _lichessFormatClock(topMs);
-    clockTop.classList.toggle("is-turn", topIsTurn);
-    clockTop.classList.toggle("is-low", topMs < 20000);
+    clockTop.textContent = known ? _lichessFormatClock(topMs) : "—";
+    clockTop.classList.toggle("is-turn", known && topIsTurn);
+    clockTop.classList.toggle("is-low", known && topMs < 20000);
   }
   if (clockBottom) {
-    clockBottom.textContent = _lichessFormatClock(bottomMs);
-    clockBottom.classList.toggle("is-turn", !topIsTurn);
-    clockBottom.classList.toggle("is-low", bottomMs < 20000);
+    clockBottom.textContent = known ? _lichessFormatClock(bottomMs) : "—";
+    clockBottom.classList.toggle("is-turn", known && !topIsTurn);
+    clockBottom.classList.toggle("is-low", known && bottomMs < 20000);
   }
 }
 
@@ -2127,12 +2143,22 @@ socket.on("lichess_first_move_deadline", (data) => {
   _lichessFirstMoveDeadlineEstimated = active ? !!data.estimated : false;
   _lichessFirstMoveDeadlineBannerActive = active;
   if (active) _lichessRenderFirstMoveDeadline();
-  // Remplacée par le message de position incorrecte tant qu'il est actif
-  // (issue #321, point 5 : Alain n'a vu, lors de son coup noir illégal,
-  // que cette phrase de premier coup — jamais d'indication claire sur ce
-  // qui n'allait pas sur l'échiquier).
-  _lichessShowBanner("lichess-first-move-deadline", active && !_lichessIllegalPositionActive);
+  _lichessUpdateFirstMoveBanner();
 });
+
+// Remplacée par le message de position incorrecte (issue #321, point 5 :
+// Alain n'a vu, lors de son coup noir illégal, que cette phrase de premier
+// coup — jamais d'indication claire sur ce qui n'allait pas sur
+// l'échiquier) ET par l'écran de mise en place d'une reprise (issue #325,
+// point 5 : les deux bandeaux s'affichaient ensemble lors de l'essai réel
+// d'Alain du 14/11/2026) — centralisé ici car ces trois états changent
+// indépendamment les uns des autres.
+function _lichessUpdateFirstMoveBanner() {
+  _lichessShowBanner(
+    "lichess-first-move-deadline",
+    _lichessFirstMoveDeadlineBannerActive && !_lichessIllegalPositionActive && !_lichessResumeSetupActive,
+  );
+}
 
 // ── Fin de partie inattendue — jamais silencieuse (issue #311, point 3) ──
 
@@ -3026,9 +3052,11 @@ function startGameLichess() {
   sendAction({ type: "start_lichess", level, cadence, color: _lichessColor, player });
 }
 
-// ── Reprise d'une partie Lichess en cours (issue #323) ────────────────────
+// ── Partie(s) Lichess en cours (issue #323 ; étendu à la liste complète,
+//    une seule partie à la fois, par l'issue #325) ─────────────────────────
 
-let _lichessResumableGameId = null;
+let _lichessOngoingGames = [];
+let _lichessResumeSetupActive = false;
 
 // Vitesse Lichess (speed) → clé i18n de cadence approximative affichée dans
 // le bandeau de reprise — /api/account/playing ne renvoie pas la cadence
@@ -3040,37 +3068,106 @@ const _LICHESS_SPEED_KEYS = {
   classical: "lichess.vitesse.classical", correspondence: "lichess.vitesse.correspondence",
 };
 
-socket.on("lichess_resumable", (data) => {
-  const banner = document.getElementById("lichess-resume-banner");
-  if (!banner) return;
-  const game = data && data.available ? (data.game || null) : null;
-  _lichessResumableGameId = game ? game.game_id : null;
-  banner.style.display = game ? "" : "none";
-  if (!game) return;
-  const detail = document.getElementById("lichess-resume-detail");
-  if (!detail) return;
-  const colorKey  = game.color === "black" ? "config.color.noirs" : "config.color.blancs";
-  const speedKey  = _LICHESS_SPEED_KEYS[game.speed] || "lichess.vitesse.inconnue";
-  const turnKey   = game.is_my_turn ? "lichess.reprise_mon_tour" : "lichess.reprise_tour_adverse";
-  const seconds   = Number.isFinite(game.seconds_left) ? game.seconds_left : null;
-  const minutes   = seconds !== null ? Math.max(0, Math.round(seconds / 60)) : null;
-  // Nom de l'adversaire : uniquement via textContent (jamais interpolé dans
-  // une clé i18n injectée en innerHTML) — vient de Lichess, non fiable.
-  detail.textContent = "";
+// Une carte par partie en cours (issue #325, point 3) — jamais innerHTML
+// avec le nom de l'adversaire (vient de Lichess, non fiable) : uniquement
+// textContent, et data-action/data-game-id pour rester sur le système de
+// délégation d'événements existant (issue #220) plutôt qu'un onclick inline.
+function _lichessOngoingGameCard(game) {
+  const card = document.createElement("div");
+  card.className = "lichess-ongoing-game-card";
+
+  const detail = document.createElement("p");
+  detail.className = "lichess-resume-detail";
+  const colorKey = game.color === "black" ? "config.color.noirs" : "config.color.blancs";
+  const speedKey = _LICHESS_SPEED_KEYS[game.speed] || "lichess.vitesse.inconnue";
+  const turnKey  = game.is_my_turn ? "lichess.reprise_mon_tour" : "lichess.reprise_tour_adverse";
+  // Issue #325, point 7 : un temps restant ≤ 0 pour une partie encore
+  // listée comme « en cours » est suspect (Lichess aurait normalement déjà
+  // clos une partie réellement à 0) — jamais affiché plutôt qu'un
+  // "0 min restantes" trompeur (voir rapport de clôture).
+  const seconds = Number.isFinite(game.seconds_left) && game.seconds_left > 0 ? game.seconds_left : null;
+  const minutes = seconds !== null ? Math.max(0, Math.round(seconds / 60)) : null;
   const parts = [t(colorKey), t(speedKey), t(turnKey)];
   if (minutes !== null) parts.push(t("lichess.reprise_minutes_restantes", { minutes }));
   detail.textContent = parts.join(" — ") + " — ";
   const opponentSpan = document.createElement("strong");
-  opponentSpan.textContent = game.opponent || t("lichess.ia_niveau", { level: game.ai_level || "?" });
+  const opponentName = game.opponent || t("lichess.ia_niveau", { level: game.ai_level || "?" });
+  opponentSpan.textContent = opponentName;
   detail.appendChild(opponentSpan);
+  card.appendChild(detail);
+
+  const actions = document.createElement("div");
+  actions.className = "lichess-ongoing-game-actions";
+  if (game.resumable) {
+    const resumeBtn = document.createElement("button");
+    resumeBtn.className = "btn btn-reprendre";
+    resumeBtn.dataset.action = "lichess_resume_game";
+    resumeBtn.dataset.gameId = game.game_id;
+    resumeBtn.textContent = t("lichess.reprise_bouton");
+    actions.appendChild(resumeBtn);
+  } else {
+    const note = document.createElement("span");
+    note.className = "lichess-ongoing-game-note";
+    note.textContent = t("lichess.reprise_non_reprenable");
+    actions.appendChild(note);
+  }
+  const abandonBtn = document.createElement("button");
+  abandonBtn.className = "btn btn-warning";
+  abandonBtn.dataset.action = "lichess_abandon_ongoing";
+  abandonBtn.dataset.gameId = game.game_id;
+  abandonBtn.dataset.opponent = opponentName;
+  abandonBtn.textContent = t("lichess.abandon_bouton");
+  actions.appendChild(abandonBtn);
+  card.appendChild(actions);
+
+  return card;
+}
+
+socket.on("lichess_resumable", (data) => {
+  const banner = document.getElementById("lichess-resume-banner");
+  const form   = document.getElementById("lichess-new-game-form");
+  const list   = document.getElementById("lichess-ongoing-games-list");
+  if (!banner || !list) return;
+  const games = (data && data.available && Array.isArray(data.games)) ? data.games : [];
+  _lichessOngoingGames = games;
+  banner.style.display = games.length ? "" : "none";
+  // Une seule partie à la fois (issue #325, point 2) : le formulaire de
+  // nouvelle partie reste caché tant qu'au moins une partie est en cours,
+  // et redevient accessible dès que la liste repasse à vide (abandon,
+  // ou fin de partie constatée au prochain rafraîchissement).
+  if (form) form.style.display = games.length ? "none" : "";
+  list.innerHTML = "";
+  games.forEach(g => list.appendChild(_lichessOngoingGameCard(g)));
+  const titre = document.getElementById("lichess-resume-titre");
+  if (titre) {
+    titre.textContent = t(games.length > 1 ? "lichess.reprise_titre_plurielle" : "lichess.reprise_titre");
+  }
 });
 
-function lichessResumeGame() {
-  if (!_lichessResumableGameId) return;
+function lichessResumeGame(gameId) {
+  const id = gameId || (_lichessOngoingGames[0] && _lichessOngoingGames[0].game_id);
+  if (!id) return;
   const player = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
   _basketSource = "Lichess";
   _gameMode = "lichess";
-  sendAction({ type: "start_lichess_resume", game_id: _lichessResumableGameId, player });
+  sendAction({ type: "start_lichess_resume", game_id: id, player });
+}
+
+// Abandon depuis la liste des parties en cours (issue #325, point 3) —
+// confirmation explicite « irréversible », même modal générique que
+// ouvrirModalAbandonner() (modal-title/modal-confirm/modal-btns-standard).
+function ouvrirModalAbandonOngoing(gameId, opponent) {
+  if (!gameId) return;
+  const std  = document.getElementById("modal-btns-standard");
+  const coul = document.getElementById("modal-btns-couleur");
+  document.getElementById("modal-title").textContent = t("lichess.abandon_confirmer_titre", { opponent: opponent || "?" });
+  const btn = document.getElementById("modal-confirm");
+  btn.textContent = t("lichess.abandon_confirmer_bouton");
+  btn.className   = "btn btn-warning";
+  btn.onclick = () => { fermerModal(); sendAction({ type: "lichess_abandon_ongoing", game_id: gameId }); };
+  if (std)  std.style.display  = "flex";
+  if (coul) coul.style.display = "none";
+  document.getElementById("modal-overlay").classList.add("open");
 }
 
 // Écran de mise en place d'une partie reprise (issue #323, point 3) — même
@@ -3080,6 +3177,7 @@ function lichessResumeGame() {
 // reconstruction initiale de la position après une reprise.
 socket.on("lichess_resume_setup", (data) => {
   const active = !!data.active;
+  _lichessResumeSetupActive = active;
   const el = document.getElementById("lichess-resume-setup");
   if (el) el.style.display = active ? "" : "none";
   if (active) {
@@ -3087,6 +3185,11 @@ socket.on("lichess_resume_setup", (data) => {
   } else if (currentFen) {
     renderBoard(currentFen, null, null, null, null, null, null);
   }
+  // Issue #325, point 5 : « Jouez votre premier coup. » (compte à rebours
+  // du premier coup, noirs) ne doit jamais s'afficher en même temps que la
+  // reconstruction de position — essai réel d'Alain du 14/11/2026, les
+  // deux bandeaux apparaissaient ensemble.
+  _lichessUpdateFirstMoveBanner();
 });
 
 function _stopAutoPlay() {

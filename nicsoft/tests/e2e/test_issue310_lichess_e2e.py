@@ -69,6 +69,28 @@ def _declencher_evenement_socket_client(page, event, data):
     )
 
 
+def _declencher_lichess_resumable(page, data):
+    """Variante de _declencher_evenement_socket_client() dédiée à
+    "lichess_resumable" (issue #325) : le serveur réel (lancé en subprocess
+    par conftest.py, avec le jeton Lichess éventuellement déjà enregistré
+    dans ~/NicLink — pas un environnement isolé) peut encore émettre un VRAI
+    événement "lichess_resumable" en arrière-plan (check_lichess_resumable(),
+    appel réseau de quelques secondes) APRÈS le retour de la fixture
+    at_config_lichess ci-dessous, et écraser l'état simulé par le test en
+    cours — observé en pratique : échecs intermittents de sélecteurs sans
+    rapport avec le test, selon le moment où cette réponse tardive arrive.
+    La fixture détache donc le VRAI gestionnaire une fois pour toutes
+    (`socket.off`) et le conserve sur `window.__realLichessResumableHandlers`
+    pour que CE helper l'invoque directement — un vrai paquet entrant ne
+    peut alors plus jamais atteindre l'interface pendant ces tests."""
+    page.evaluate(
+        "(data) => { "
+        "(window.__realLichessResumableHandlers || []).forEach((cb) => cb(data)); "
+        "}",
+        data,
+    )
+
+
 @pytest.fixture
 def at_config_lichess(at_menu):
     """Atteint l'écran de configuration Lichess sans dépendre de l'échiquier
@@ -80,6 +102,24 @@ def at_config_lichess(at_menu):
     bloquée par l'attribut `disabled` du bouton."""
     at_menu.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     at_menu.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
+    # Issue #325, point 2 : détache le vrai gestionnaire socket.io de
+    # "lichess_resumable" (voir _declencher_lichess_resumable ci-dessus)
+    # avant de poser un état de départ déterministe (aucune partie en
+    # cours) — indépendant du jeton/réseau réels de l'environnement.
+    at_menu.evaluate(
+        "() => { "
+        # Idempotent (issue #325) — `page` est partagée par toute la session
+        # (scope session, conftest.py) : ne stasher/détacher qu'une seule
+        # fois, sinon un second appel (test suivant, même fixture) stashe un
+        # tableau déjà vide (socket.off() du premier appel) et écrase le
+        # vrai gestionnaire capturé.
+        "if (!window.__realLichessResumableHandlers) { "
+        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
+        "socket.off('lichess_resumable'); "
+        "} "
+        "}"
+    )
+    _declencher_lichess_resumable(at_menu, {"available": False, "games": []})
     return at_menu
 
 
@@ -112,7 +152,13 @@ def test_config_lichess_pas_de_defilement_horizontal(at_config_lichess):
         "#cfg-lichess-black",
         "#cfg-lichess-random",
         "#cfg-lichess-player",
-        "#screen-config-lichess button[data-action=\"back_menu\"]",
+        # Issue #325, point 2 : le formulaire de nouvelle partie (et son
+        # propre bouton Retour) vit dans #lichess-new-game-form, caché tant
+        # qu'une partie est en cours — #lichess-resume-banner porte
+        # désormais son propre bouton Retour (même data-action), d'où le
+        # besoin de préciser le conteneur ici (sélecteur générique = deux
+        # éléments, en mode strict Playwright).
+        "#lichess-new-game-form button[data-action=\"back_menu\"]",
         "#btn-start-lichess",
     ],
 )
@@ -128,7 +174,7 @@ def test_config_lichess_elements_visibles_dans_la_fenetre(at_config_lichess, sel
 def test_config_lichess_retour_menu(at_config_lichess):
     """Le bouton Retour de l'écran de config Lichess ramène bien au menu."""
     at_config_lichess.locator(
-        "#screen-config-lichess button[data-action=\"back_menu\"]"
+        "#lichess-new-game-form button[data-action=\"back_menu\"]"
     ).click()
     at_config_lichess.wait_for_selector("#screen-menu", state="visible", timeout=5000)
     assert at_config_lichess.locator("#screen-menu").is_visible()

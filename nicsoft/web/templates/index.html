@@ -446,14 +446,18 @@
     Lichess se joue sur l'échiquier physique. Branchez-le, allumez-le, puis cliquez sur « Connecter ».
   </div>
 
-  <!-- Reprise d'une partie en cours (issue #323) — masqué par défaut, affiché
-       uniquement si check_lichess_resumable() détecte une partie reprenable. -->
+  <!-- Partie(s) en cours (issue #323 ; liste complète issue #325) — masqué
+       par défaut, affiché uniquement si check_lichess_resumable() détecte
+       au moins une partie en cours (une seule à la fois : le formulaire de
+       nouvelle partie ci-dessous reste caché tant que cette liste n'est
+       pas vide, voir lichess-new-game-form et app.js::"lichess_resumable"). -->
   <div id="lichess-resume-banner" class="card cfg-hh-card lichess-resume-banner" style="display:none;">
-    <h2 data-i18n="lichess.reprise_titre">⏱️ Une partie Lichess est en cours : la reprendre</h2>
-    <p id="lichess-resume-detail" class="lichess-resume-detail"></p>
-    <button class="btn btn-reprendre" data-action="lichess_resume_game" id="lichess-resume-btn" data-i18n="lichess.reprise_bouton">▶ Reprendre cette partie</button>
+    <h2 id="lichess-resume-titre" data-i18n="lichess.reprise_titre">⏱️ Une partie Lichess est en cours : la reprendre</h2>
+    <div id="lichess-ongoing-games-list"></div>
+    <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour" style="margin-top:10px;">← Retour</button>
   </div>
 
+  <div id="lichess-new-game-form">
   <!-- Zone scrollable -->
   <div class="cfg-hh-scroll">
 
@@ -512,6 +516,8 @@
     <button class="btn btn-continuer cfg-hh-btn-back" data-action="back_menu" data-i18n="common.retour">← Retour</button>
     <button id="btn-start-lichess" class="btn btn-reprendre cfg-hh-btn-start" disabled data-action="start_game_lichess" data-i18n="common.demarrer">▶ Démarrer la partie</button>
   </div>
+
+  </div><!-- /lichess-new-game-form -->
 
 </div>
 
