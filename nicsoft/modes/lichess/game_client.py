@@ -157,6 +157,28 @@ class GameClient:
         choice = "yes" if accept else "no"
         self._request("POST", f"{API_BASE}/board/game/{game_id}/draw/{choice}")
 
+    def answer_takeback(self, game_id: str, accept: bool) -> None:
+        """POST /api/board/game/{gameId}/takeback/{yes|no} (issue #334,
+        point 5) — l'échiquier physique ne peut pas défaire un coup :
+        AlChess n'appelle jamais ceci avec accept=True pour une demande
+        venant de l'adversaire (voir game.py::_check_opponent_takeback)."""
+        choice = "yes" if accept else "no"
+        self._request("POST", f"{API_BASE}/board/game/{game_id}/takeback/{choice}")
+
+    def claim_victory(self, game_id: str) -> None:
+        """POST /api/board/game/{gameId}/claim-victory (issue #334, point
+        2) — doc officielle lichess-org/api (doc/specs/tags/board/
+        api-board-game-gameId-claim-victory.yaml, lue le 14/11/2026) :
+        valable seulement après qu'un événement `opponentGone` du flux a
+        annoncé `gone=true` et que `claimWinInSeconds` secondes se sont
+        écoulées depuis — Lichess répond 400 sinon (voir game.py)."""
+        self._request("POST", f"{API_BASE}/board/game/{game_id}/claim-victory")
+
+    def claim_draw(self, game_id: str) -> None:
+        """POST /api/board/game/{gameId}/claim-draw (issue #334, point 3) —
+        même doc que claim_victory ci-dessus, même condition de délai."""
+        self._request("POST", f"{API_BASE}/board/game/{game_id}/claim-draw")
+
     # ── Recherche d'un adversaire humain (issue #327, points 2/3) ────────
 
     def _open_stream_logged(self, method: str, url: str, fields: dict | None = None):

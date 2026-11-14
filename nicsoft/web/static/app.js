@@ -169,6 +169,15 @@ document.addEventListener("click", (e) => {
       sendAction({ type: "lichess_ack_game_over" });
       _lichessShowOpponentEndBanner(false);
       break;
+    case "lichess_claim_victory":
+      sendAction({ type: "lichess_claim_victory" });
+      break;
+    case "lichess_claim_draw":
+      sendAction({ type: "lichess_claim_draw" });
+      break;
+    case "lichess_opponent_gone_ack":
+      sendAction({ type: "lichess_opponent_gone_ack" });
+      break;
     case "lichess_promotion":
       lichessSubmitPromotion(el.dataset.piece);
       break;
@@ -1828,6 +1837,14 @@ let _lichessIllegalPositionActive = false;
 // suivant de l'utilisateur (issue #321, point 3) — le bandeau doit rester
 // visible au moins jusque-là, pas seulement quelques secondes.
 let _lichessDrawBannerPendingClearOnOwnMove = false;
+// Adversaire parti (issue #334, points 1/2/3) — secondes/claimable/
+// draw_claimable viennent toujours du serveur (lichess_opponent_gone,
+// recalculés depuis l'instant de réception, jamais une minuterie JS qui
+// repartirait de zéro à chaque rendu).
+let _lichessOpponentGoneActive = false;
+let _lichessOpponentGoneSeconds = null;
+let _lichessOpponentGoneClaimable = false;
+let _lichessOpponentGoneDrawClaimable = false;
 let _lichessReplaySettings = null;
 // Vrai quand un retournement manuel (flipBoard) a échangé les rangées de
 // noms haut/bas par rapport à la convention initiale (haut=adversaire,
@@ -1864,6 +1881,7 @@ function lichessToggleBeep(checked) {
 const LICHESS_STATUS_BANNER_IDS = [
   "lichess-reconnecting-banner", "lichess-board-lost-banner",
   "lichess-draw-offer-banner", "lichess-promotion-row", "lichess-first-move-deadline",
+  "lichess-opponent-gone-banner",
 ];
 
 function _lichessHideStatusBanners() {
@@ -1884,6 +1902,14 @@ function _lichessHideStatusBanners() {
   _lichessFirstMoveDeadlineBannerActive = false;
   _lichessIllegalPositionActive = false;
   _lichessDrawBannerPendingClearOnOwnMove = false;
+  _lichessOpponentGoneActive = false;
+  _lichessOpponentGoneSeconds = null;
+  _lichessOpponentGoneClaimable = false;
+  _lichessOpponentGoneDrawClaimable = false;
+  const btnClaimVictory = document.getElementById("btn-lichess-claim-victory");
+  if (btnClaimVictory) btnClaimVictory.disabled = true;
+  const btnClaimDraw = document.getElementById("btn-lichess-claim-draw");
+  if (btnClaimDraw) btnClaimDraw.disabled = true;
   _lichessSetActionButtons(true, true, false);
 }
 
@@ -2177,7 +2203,41 @@ socket.on("lichess_move_refused", (data) => {
 });
 
 socket.on("lichess_toast", (data) => {
-  afficherToast(data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""), data.type || "info");
+  afficherToast(
+    data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""),
+    data.type || "info", !!data.persistent,
+  );
+});
+
+// ── Adversaire parti — réclamer victoire/nulle (issue #334) ──────────────
+// Bandeau + décompte toujours recalculés depuis l'instant de réception
+// (seconds/claimable viennent du serveur à chaque poussée, ~1x/s, comme
+// lichess_first_move_deadline) — jamais une minuterie JS locale qui
+// repartirait de zéro à chaque rendu.
+
+function _lichessRenderOpponentGoneBanner() {
+  const secEl = document.getElementById("lichess-opponent-gone-seconds");
+  if (secEl) {
+    secEl.textContent = _lichessOpponentGoneClaimable
+      ? t("lichess.adversaire_parti_reclamable")
+      : t("lichess.adversaire_parti_decompte", {
+          seconds: Math.max(0, Math.round(_lichessOpponentGoneSeconds ?? 0)),
+        });
+  }
+  const btnVictory = document.getElementById("btn-lichess-claim-victory");
+  if (btnVictory) btnVictory.disabled = !_lichessOpponentGoneClaimable;
+  const btnDraw = document.getElementById("btn-lichess-claim-draw");
+  if (btnDraw) btnDraw.disabled = !_lichessOpponentGoneDrawClaimable;
+}
+
+socket.on("lichess_opponent_gone", (data) => {
+  const gone = !!data.gone;
+  _lichessOpponentGoneActive = gone;
+  _lichessOpponentGoneSeconds = gone ? (data.seconds ?? 0) : null;
+  _lichessOpponentGoneClaimable = gone && !!data.claimable;
+  _lichessOpponentGoneDrawClaimable = gone && !!data.draw_claimable;
+  if (gone) _lichessRenderOpponentGoneBanner();
+  _lichessShowBanner("lichess-opponent-gone-banner", gone);
 });
 
 // ── Nulle : message persistant près de « Tour en cours » (issue #321,

@@ -752,6 +752,16 @@
           <button class="btn btn-reprendre" data-action="lichess_draw_accept" data-i18n="lichess.accepter">Accepter</button>
           <button class="btn btn-warning" data-action="lichess_draw_refuse" data-i18n="lichess.refuser">Refuser</button>
         </div>
+        <!-- Issue #334, points 1-4 : adversaire parti — décompte recalculé
+             par le serveur, boutons grisés jusqu'à la fin du délai annoncé
+             par Lichess (claim-victory/claim-draw), "J'ai vu" n'éteint que
+             le signal bip/LED (le bandeau reste affiché). -->
+        <div id="lichess-opponent-gone-banner" class="lichess-info-banner lichess-banner-danger lichess-draw-offer-banner" style="display:none;">
+          <span id="lichess-opponent-gone-seconds"></span>
+          <button class="btn btn-warning" id="btn-lichess-claim-victory" data-action="lichess_claim_victory" disabled data-i18n="lichess.reclamer_victoire">Réclamer la victoire</button>
+          <button class="btn btn-warning" id="btn-lichess-claim-draw" data-action="lichess_claim_draw" disabled data-i18n="lichess.reclamer_nulle">Réclamer la nulle</button>
+          <button class="btn btn-reprendre" data-action="lichess_opponent_gone_ack" data-i18n="lichess.jai_vu">J'ai vu</button>
+        </div>
         <div id="lichess-promotion-row" class="lichess-promotion-row" style="display:none;">
           <span data-i18n="lichess.choisir_promotion">Promotion — choisissez la pièce :</span>
           <button class="btn btn-reprendre" data-action="lichess_promotion" data-piece="q" data-i18n="lichess.promotion.dame">Dame</button>
