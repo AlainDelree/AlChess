@@ -54,9 +54,16 @@ def _node_available() -> bool:
 # ═══════════════════════════════════════════════════════════════════════
 
 def _started_white(game, client, monkeypatch):
+    # Adversaire humain (pas l'IA) : depuis l'issue #327, point 5, proposer
+    # une nulle contre l'IA de Lichess est un no-op grisé en permanence
+    # (établi par lecture du code public de lila, voir game.py) — les
+    # scénarios de ce fichier qui testent le cycle complet d'une offre
+    # (en attente/portée par le coup/refusée/acceptée) supposent donc un
+    # adversaire humain.
     monkeypatch.setattr(client, "answer_draw", lambda game_id, accept: None)
+    game._known_user_color = "white"
     game._apply_game_full({
-        "white": {"id": "alain"}, "black": {"aiLevel": 2},
+        "white": {"id": "alain"}, "black": {"id": "opp", "name": "Adversaire"},
         "state": {"status": "started", "moves": ""},
     })
     assert game.user_color == "white"
@@ -132,8 +139,10 @@ def test_offre_faite_pendant_le_tour_de_l_adversaire(monkeypatch):
     client = game.client
     draw_calls = []
     monkeypatch.setattr(client, "answer_draw", lambda game_id, accept: draw_calls.append(accept))
+    # Adversaire humain (voir _started_white ci-dessus pour la raison).
+    game._known_user_color = "black"
     game._apply_game_full({
-        "white": {"aiLevel": 2}, "black": {"id": "alain"},
+        "white": {"id": "opp", "name": "Adversaire"}, "black": {"id": "alain"},
         "state": {"status": "started", "moves": ""},
     })
     assert game.user_color == "black"

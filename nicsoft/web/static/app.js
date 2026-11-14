@@ -144,6 +144,9 @@ document.addEventListener("click", (e) => {
     case "select_color_lichess":
       selectColorLichess(el.dataset.color);
       break;
+    case "select_opponent_type_lichess":
+      selectOpponentTypeLichess(el.dataset.opponentType);
+      break;
     case "lichess_adjust_level":
       lichessAdjustLevel(parseInt(el.dataset.delta, 10));
       break;
@@ -1264,6 +1267,13 @@ socket.on("app_state", (data) => {
   if (cfgHH) cfgHH.style.display = data.state === "config_humain" ? "flex" : "none";
   const cfgLichess = document.getElementById("screen-config-lichess");
   if (cfgLichess) cfgLichess.style.display = data.state === "config_lichess" ? "flex" : "none";
+  // Recherche d'un adversaire humain (issue #327, point 3).
+  const seekingEl = document.getElementById("screen-lichess-seeking");
+  if (seekingEl) seekingEl.style.display = data.state === "lichess_seeking" ? "flex" : "none";
+  if (data.state === "lichess_seeking") {
+    const elapsedEl = document.getElementById("lichess-seeking-elapsed");
+    if (elapsedEl) elapsedEl.textContent = t("lichess.recherche.temps_ecoule", { time: "0:00" });
+  }
   document.getElementById("screen-retranscription").style.display          = data.state === "retranscription"      ? "flex" : "none";
   document.getElementById("screen-retrans-game").style.display             = data.state === "retrans_playing"      ? "grid" : "none";
 
@@ -1820,19 +1830,26 @@ function _lichessHideStatusBanners() {
 // seule source de vérité du déroulement de la partie) ; jamais recalculé
 // ici à partir d'autres signaux, pour que les exceptions de sécurité
 // restent cohérentes avec LichessGame._compute_action_buttons().
-function _lichessSetActionButtons(resignEnabled, drawEnabled, showHint) {
+function _lichessSetActionButtons(resignEnabled, drawEnabled, showHint, drawDisabledVsAi) {
   const btnResign = document.getElementById("btn-resign");
   const btnNulle = document.getElementById("btn-nulle");
   if (btnResign) btnResign.disabled = !resignEnabled;
   if (btnNulle) btnNulle.disabled = !drawEnabled;
   const hint = document.getElementById("lichess-actions-hint");
-  if (hint) hint.style.display = showHint ? "" : "none";
+  if (hint) {
+    // Issue #327, point 5 : contre l'IA de Lichess, proposer une nulle est
+    // un no-op grisé en PERMANENCE (jamais seulement "pas encore votre
+    // tour") — l'indication doit donc être différente et toujours visible,
+    // pas seulement pendant l'attente habituelle.
+    hint.textContent = drawDisabledVsAi ? t("lichess.nulle_impossible_ia") : t("lichess.boutons_actifs_a_votre_tour");
+    hint.style.display = (drawDisabledVsAi || showHint) ? "" : "none";
+  }
 }
 
 socket.on("lichess_action_buttons", (data) => {
   const resignEnabled = !!data.resign_enabled;
   const drawEnabled = !!data.draw_enabled;
-  _lichessSetActionButtons(resignEnabled, drawEnabled, !resignEnabled || !drawEnabled);
+  _lichessSetActionButtons(resignEnabled, drawEnabled, !resignEnabled || !drawEnabled, !!data.draw_disabled_vs_ai);
 });
 
 function _lichessShowBanner(id, show) {
@@ -1857,6 +1874,16 @@ function _lichessFormatClock(ms) {
   return `${mm}:${ss < 10 ? "0" : ""}${ss}`;
 }
 
+// Recherche d'un adversaire humain (issue #327, point 3) — temps écoulé
+// affiché, poussé env. une fois par seconde par le serveur tant que la
+// recherche reste active (pas de minuteur local : toujours la valeur
+// envoyée par le serveur, comme les pendules de partie).
+socket.on("lichess_seek_tick", (data) => {
+  const elapsedEl = document.getElementById("lichess-seeking-elapsed");
+  if (!elapsedEl) return;
+  elapsedEl.textContent = t("lichess.recherche.temps_ecoule", { time: _lichessFormatClock((data.elapsed_s || 0) * 1000) });
+});
+
 socket.on("lichess_init", (data) => {
   _gameMode = "lichess";
   _basketSource = "Lichess";
@@ -1876,7 +1903,14 @@ socket.on("lichess_init", (data) => {
   currentFen  = data.fen || currentFen;
   const isWhite = data.color === "white";
   const playerLabel   = _localPlayerName(data.player, "lichess.vous");
-  const opponentLabel = t("lichess.ia_niveau", { level: _lichessLevel });
+  // Issue #327, point 4 : nom et cote de l'adversaire humain, échappés
+  // comme tout texte venu de Lichess — affectés à .textContent plus bas
+  // (jamais innerHTML), ce qui suffit déjà à empêcher toute injection HTML.
+  const opponentLabel = data.opponent_is_ai
+    ? t("lichess.ia_niveau", { level: _lichessLevel })
+    : (data.opponent_rating
+        ? `${data.opponent_name || t("lichess.adversaire_inconnu")} (${data.opponent_rating})`
+        : (data.opponent_name || t("lichess.adversaire_inconnu")));
   // L'échiquier de l'écran est orienté du point de vue de l'utilisateur
   // (issue #315, point 1) : la rangée du haut montre toujours l'adversaire
   // et celle du bas l'utilisateur, pour les deux couleurs (point 2) — voir
@@ -1924,7 +1958,7 @@ socket.on("lichess_init", (data) => {
   // serveur (dans la même fonction Python _apply_game_full) corrige
   // immédiatement vers l'état réel (tour + position physique), pour les
   // noirs comme pour les blancs.
-  _lichessSetActionButtons(false, false, true);
+  _lichessSetActionButtons(false, false, true, !!data.opponent_is_ai);
   const abortedOverlay = document.getElementById("lichess-aborted-overlay");
   if (abortedOverlay) abortedOverlay.style.display = "none";
 });
@@ -3018,15 +3052,29 @@ function startGameHH() {
   sendAction({ type: "start_humain", white, black, color: _hhColor, game_type: type });
 }
 
-// ── CONFIG LICHESS (issue #309) ───────────────────────────
+// ── CONFIG LICHESS (issue #309 ; choix IA/humain issue #327) ──────────────
 
 let _lichessColor = "random";
+let _lichessOpponentType = "ai";
 
 function selectColorLichess(c) {
   _lichessColor = c;
   document.getElementById("cfg-lichess-white") ?.classList.toggle("selected", c === "white");
   document.getElementById("cfg-lichess-black") ?.classList.toggle("selected", c === "black");
   document.getElementById("cfg-lichess-random")?.classList.toggle("selected", c === "random");
+}
+
+// Issue #327, point 1 : bascule IA/humain sur l'écran de configuration —
+// masque le niveau d'IA (sans objet contre un humain) et affiche le rappel
+// "amicale seulement, classé plus tard".
+function selectOpponentTypeLichess(type) {
+  _lichessOpponentType = type === "human" ? "human" : "ai";
+  document.getElementById("cfg-lichess-opponent-ai")?.classList.toggle("selected", _lichessOpponentType === "ai");
+  document.getElementById("cfg-lichess-opponent-human")?.classList.toggle("selected", _lichessOpponentType === "human");
+  const niveauCard = document.getElementById("cfg-lichess-niveau-card");
+  if (niveauCard) niveauCard.style.display = _lichessOpponentType === "human" ? "none" : "";
+  const humanNote = document.getElementById("cfg-lichess-opponent-human-note");
+  if (humanNote) humanNote.style.display = _lichessOpponentType === "human" ? "" : "none";
 }
 
 function lichessClampLevel() {
@@ -3049,7 +3097,10 @@ function startGameLichess() {
   const player  = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
   _basketSource = "Lichess";
   _gameMode = "lichess";
-  sendAction({ type: "start_lichess", level, cadence, color: _lichessColor, player });
+  sendAction({
+    type: "start_lichess", level, cadence, color: _lichessColor, player,
+    opponent_type: _lichessOpponentType,
+  });
 }
 
 // ── Partie(s) Lichess en cours (issue #323 ; étendu à la liste complète,

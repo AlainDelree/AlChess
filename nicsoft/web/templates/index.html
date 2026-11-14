@@ -463,10 +463,20 @@
 
     <p class="lichess-cfg-disclaimer" data-i18n="config.lichess.disclaimer">Partie amicale, sans classement — toutes les aides (moteur, analyse, coups suggérés) sont désactivées pendant la partie.</p>
 
+    <!-- Choix du type de partie (issue #327, point 1) -->
+    <div class="card cfg-hh-card">
+      <h2 data-i18n="config.h2.adversaire">Adversaire</h2>
+      <div class="color-btns">
+        <button class="color-btn selected" id="cfg-lichess-opponent-ai" data-action="select_opponent_type_lichess" data-opponent-type="ai" data-i18n="config.lichess.adversaire_ia">🤖 Contre l'IA</button>
+        <button class="color-btn" id="cfg-lichess-opponent-human" data-action="select_opponent_type_lichess" data-opponent-type="human" data-i18n="config.lichess.adversaire_humain">🧑 Contre un humain</button>
+      </div>
+      <div class="cfg-elo-caption" id="cfg-lichess-opponent-human-note" style="display:none;" data-i18n="config.lichess.rated_plus_tard">Partie amicale seulement pour l'instant — les parties classées viendront plus tard.</div>
+    </div>
+
     <div class="cfg-hh-players-grid">
 
-      <!-- Niveau IA -->
-      <div class="card cfg-hh-card">
+      <!-- Niveau IA (masqué contre un humain) -->
+      <div class="card cfg-hh-card" id="cfg-lichess-niveau-card">
         <h2 data-i18n="config.h2.niveau_ia">Niveau de l'IA Lichess</h2>
         <div class="cfg-elo-row">
           <button class="cfg-elo-btn" data-action="lichess_adjust_level" data-delta="-1">-1</button>
@@ -476,7 +486,9 @@
         <div class="cfg-elo-caption" data-i18n="config.lichess.niveau_desc">Niveau 1 (facile) à 8 (fort)</div>
       </div>
 
-      <!-- Cadence -->
+      <!-- Cadence — préréglages valides pour une recherche humaine (Rapide/
+           Classique seulement, jamais Blitz/Bullet, dont 90+30) comme pour
+           l'IA : mêmes préréglages réutilisés pour les deux (issue #327). -->
       <div class="card cfg-hh-card">
         <h2 data-i18n="config.h2.cadence">Cadence</h2>
         <select id="cfg-lichess-cadence" class="cfg-input">
@@ -519,6 +531,19 @@
 
   </div><!-- /lichess-new-game-form -->
 
+</div>
+
+<!-- Recherche d'un adversaire humain (issue #327, point 3) — écran dédié,
+     temps écoulé affiché, bouton d'annulation qui interrompt réellement la
+     demande chez Lichess (voir seek.py) tant que la connexion reste
+     ouverte. Pas de limite de durée imposée côté AlChess. -->
+<div id="screen-lichess-seeking" class="screen-connecting">
+  <div class="card" style="text-align:center; max-width:420px; margin:0 auto;">
+    <h2 class="card-title-lg" data-i18n="lichess.recherche.titre">🔎 Recherche d'un adversaire…</h2>
+    <p id="lichess-seeking-elapsed" style="color:#1a2a3a; font-size:1.3rem; font-weight:700; margin:10px 0;">Temps écoulé : 0:00</p>
+    <p class="outil-desc" data-i18n="lichess.recherche.explication">La recherche reste active tant que cet écran est ouvert.</p>
+    <button class="btn btn-warning" data-action="back_menu" data-i18n="lichess.recherche.annuler" style="margin-top:12px; width:auto;">✖ Annuler la recherche</button>
+  </div>
 </div>
 
 <div id="screen-retranscription">

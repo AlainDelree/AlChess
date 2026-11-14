@@ -285,18 +285,20 @@ def test_check_lichess_resumable_plusieurs_parties_toutes_envoyees(monkeypatch):
 # 3. LichessGame(resuming=True) — écran de mise en place (issue #323, point 3)
 # ═══════════════════════════════════════════════════════════════════════
 
-def _make_resuming_game(monkeypatch, moves="e2e4", user_color_is_black=True, board=None):
+def _make_resuming_game(monkeypatch, moves="e2e4", user_color_is_black=True, board=None, opponent_is_ai=True):
     events, _, _ = _make_recorder(monkeypatch)
     board = board or FakeBoard()
     transport = FakeTransport()
     client = GameClient("lip_test", transport=transport)
+    known_color = "" if opponent_is_ai else ("black" if user_color_is_black else "white")
     game = LichessGame(
         board, client, "gid1", level=2, player_name="Alain",
         clock_limit_s=300, clock_increment_s=0, chosen_color_setting="black",
-        resuming=True,
+        resuming=True, known_user_color=known_color,
     )
-    white = {"id": "alain"} if not user_color_is_black else {"aiLevel": 2}
-    black = {"aiLevel": 2} if not user_color_is_black else {"id": "alain"}
+    ai_side = {"aiLevel": 2} if opponent_is_ai else {"id": "opp", "name": "Adversaire"}
+    white = {"id": "alain"} if not user_color_is_black else ai_side
+    black = ai_side if not user_color_is_black else {"id": "alain"}
     game._apply_game_full({
         "white": white, "black": black,
         "state": {"status": "started", "moves": moves},
@@ -338,7 +340,9 @@ def test_tick_resume_setup_signale_les_cases_en_erreur_et_allume_les_led(monkeyp
 
 
 def test_tick_resume_setup_position_deja_correcte_reprend_immediatement(monkeypatch):
-    game, board, events = _make_resuming_game(monkeypatch)
+    # Adversaire humain ici (voir issue #327, point 5 : Proposer nulle reste
+    # grisé en permanence contre l'IA — ce test veut les deux boutons actifs).
+    game, board, events = _make_resuming_game(monkeypatch, opponent_is_ai=False)
     board.current_fen = game.board.board_fen() + " w - - 0 1"
     game._tick_physical()
     assert game._resume_pending is False

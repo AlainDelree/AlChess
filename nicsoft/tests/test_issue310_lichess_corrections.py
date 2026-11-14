@@ -210,16 +210,21 @@ def test_enchainement_humain_puis_lichess_libere_l_echiquier(monkeypatch, tmp_pa
 # ── 4. Nulle : proposée puis refusée ─────────────────────────────────────────
 
 def test_nulle_proposee_puis_refusee_si_statut_ne_passe_pas_a_nulle(monkeypatch):
+    # Adversaire humain : depuis l'issue #327, point 5, proposer une nulle
+    # contre l'IA de Lichess est un no-op silencieux côté serveur (jamais
+    # reflété dans l'état reçu — voir game.py), donc grisé en permanence
+    # côté AlChess ; ce scénario (offre réellement en attente puis refusée)
+    # suppose donc un adversaire humain.
     events, states, actions = _make_recorder(monkeypatch)
     board = FakeBoard()
     client = GameClient("lip_test", transport=FakeTransport())
     game = LichessGame(board, client, "gid_draw", level=1, player_name="Alain",
-                        clock_limit_s=900, clock_increment_s=10)
+                        clock_limit_s=900, clock_increment_s=10, known_user_color="white")
     monkeypatch.setattr(game, "client", client)
     monkeypatch.setattr(client, "answer_draw", lambda game_id, accept: None)
 
     game._apply_game_full({
-        "white": {"id": "alain"}, "black": {"aiLevel": 1},
+        "white": {"id": "alain"}, "black": {"id": "opp", "name": "Adversaire"},
         "state": {"status": "started", "moves": "e2e4"},
     })
     assert game.user_color == "white"

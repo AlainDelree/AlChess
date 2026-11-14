@@ -59,6 +59,11 @@ BUSY_STATES = frozenset({
     "paused",
     "position_initiale",
     "lichess_wait_first_move",
+    # Recherche d'un adversaire humain (issue #327) — l'échiquier physique
+    # est déjà ouvert à ce stade (position confirmée avant la recherche,
+    # voir game_manager_modes/lichess.py), une seconde instance ne doit pas
+    # pouvoir démarrer pendant qu'elle est active.
+    "lichess_seeking",
     "retrans_playing",
     "exercice_running",
 })

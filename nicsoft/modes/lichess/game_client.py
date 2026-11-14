@@ -146,6 +146,33 @@ class GameClient:
         choice = "yes" if accept else "no"
         self._request("POST", f"{API_BASE}/board/game/{game_id}/draw/{choice}")
 
+    # ── Recherche d'un adversaire humain (issue #327, points 2/3) ────────
+
+    def open_event_stream(self):
+        """GET /api/stream/event — flux général d'évènements du compte
+        (gameStart/gameFinish/challenge...), à ouvrir AVANT le flux de
+        recherche (voir open_seek_stream) pour ne jamais manquer un
+        appariement immédiat (recommandation officielle de la doc board/
+        seek). Retourne une StreamHandle annulable (transport.py)."""
+        return self._transport.open_stream("GET", f"{API_BASE}/stream/event", self._token)
+
+    def open_seek_stream(self, clock_limit_minutes, clock_increment_s: int, color: str = "", rated: bool = False):
+        """POST /api/board/seek — recherche publique d'un adversaire humain
+        en temps réel. La réponse reste ouverte (lignes vides périodiques)
+        tant que la recherche est active ; fermer la StreamHandle retournée
+        (voir transport.py) annule réellement la recherche côté Lichess.
+        `clock_limit_minutes` est en MINUTES (paramètre `time` de l'API,
+        contrairement au reste de ce module qui travaille en secondes) —
+        voir doc/specs/tags/board/api-board-seek.yaml, lue le 14/11/2026."""
+        fields = {
+            "time": clock_limit_minutes,
+            "increment": clock_increment_s,
+            "rated": "true" if rated else "false",
+        }
+        if color:
+            fields["color"] = color
+        return self._transport.open_stream("POST", f"{API_BASE}/board/seek", self._token, fields)
+
     # ── Flux ─────────────────────────────────────────────────────────────
 
     def stream_game(self, game_id: str, sleep=time.sleep):

@@ -111,3 +111,70 @@ class UrllibTransport:
             raise TransportTimeoutError("délai dépassé") from None
         except urllib.error.URLError:
             raise TransportNetworkError("réseau indisponible") from None
+
+    def open_stream(self, method: str, url: str, token: str, fields: dict | None = None) -> "StreamHandle":
+        """Ouvre un flux (GET ou POST) et retourne une poignée annulable
+        (issue #327, points 2/3 : recherche d'adversaire humain, board/seek
+        ET le flux général d'évènements /api/stream/event, ouverts en
+        parallèle, chacun dans son propre fil de lecture — voir
+        nicsoft/modes/lichess/seek.py). Contrairement à `stream_lines`
+        ci-dessus, la réponse n'est pas consommée ici : l'appelant lit via
+        `StreamHandle.lines()` depuis un fil dédié et peut annuler
+        l'opération depuis un AUTRE fil en appelant `StreamHandle.close()`,
+        ce qui ferme la connexion TCP sous-jacente — c'est précisément ainsi
+        que Lichess annule une recherche d'adversaire côté serveur (doc
+        officielle lichess-org/api, doc/specs/tags/board/api-board-seek.yaml,
+        lue le 14/11/2026 : « If the client closes the connection, the seek
+        is canceled »)."""
+        ensure_https(url)
+        data = urllib.parse.urlencode(fields).encode("utf-8") if fields else None
+        req = urllib.request.Request(url, data=data, method=method, headers=_headers(token))
+        try:
+            # Adresse vérifiée par ensure_https ci-dessus.
+            resp = urllib.request.urlopen(req, timeout=STREAM_READ_TIMEOUT_S)  # noqa: S310  # nosec B310
+        except urllib.error.HTTPError as exc:
+            raise TransportHTTPError(exc.code, _read_error_body(exc)) from None
+        except socket.timeout:
+            raise TransportTimeoutError("délai dépassé") from None
+        except urllib.error.URLError:
+            raise TransportNetworkError("réseau indisponible") from None
+        return StreamHandle(resp)
+
+
+class StreamHandle:
+    """Poignée d'un flux ouvert par `UrllibTransport.open_stream` — voir sa
+    documentation pour le détail de l'annulation. `lines()` est un
+    générateur à usage unique ; `close()` est idempotent et sans effet si
+    le flux est déjà terminé (jamais d'exception à l'annulation, même
+    appelée deux fois ou après la fin naturelle du flux)."""
+
+    def __init__(self, response):
+        self._response = response
+        self._closed = False
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        try:
+            self._response.close()
+        except Exception:
+            pass
+
+    def lines(self):
+        try:
+            for raw_line in self._response:
+                if self._closed:
+                    return
+                yield raw_line.decode("utf-8", errors="replace").rstrip("\n")
+        except ValueError:
+            # Lecture sur une réponse déjà fermée (close() appelé depuis un
+            # autre fil pendant une lecture bloquante) — fin normale du
+            # générateur, pas une erreur réseau.
+            return
+        except socket.timeout:
+            raise TransportTimeoutError("délai dépassé") from None
+        except urllib.error.URLError:
+            raise TransportNetworkError("réseau indisponible") from None
+        finally:
+            self.close()

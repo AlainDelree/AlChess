@@ -79,26 +79,34 @@ def test_boutons_restent_desactives_tant_que_le_coup_adverse_nest_pas_reproduit(
 
 def test_boutons_actifs_des_le_debut_de_partie_pour_les_blancs(monkeypatch):
     """Les blancs sont au trait dès le début, position physique de départ
-    déjà alignée (issue #321, point 1 : actif dès le tout début)."""
+    déjà alignée (issue #321, point 1 : actif dès le tout début). Adversaire
+    HUMAIN ici (pas l'IA) : depuis l'issue #327, point 5, Proposer nulle
+    reste grisé en permanence contre l'IA (établi par lecture du code
+    public de lila — voir game.py) — ce test vérifie les DEUX boutons
+    actifs, qui suppose donc un adversaire humain."""
     events, _, _ = _make_recorder(monkeypatch)
     board = FakeBoard()
-    game, _, _ = _make_game(nl_inst=board)
+    game, _, _ = _make_game(nl_inst=board, known_user_color="white")
     game._apply_game_full({
-        "white": {"id": "alain"}, "black": {"aiLevel": 1},
+        "white": {"id": "alain"}, "black": {"id": "opp", "name": "Adversaire"},
         "state": {"status": "started", "moves": ""},
     })
     assert game.user_color == "white"
     assert game._action_buttons_state == (True, True)
     btn_events = _events_of(events, "lichess_action_buttons")
-    assert btn_events and btn_events[-1] == {"resign_enabled": True, "draw_enabled": True}
+    assert btn_events and btn_events[-1] == {
+        "resign_enabled": True, "draw_enabled": True, "draw_disabled_vs_ai": False,
+    }
 
 
 def test_boutons_sactivent_pour_les_noirs_une_fois_le_coup_reproduit(monkeypatch):
+    """Adversaire humain (voir commentaire du test précédent) — nécessaire
+    pour que Proposer nulle puisse être actif ici."""
     events, _, _ = _make_recorder(monkeypatch)
     board = FakeBoard()
-    game, _, _ = _make_game(nl_inst=board)
+    game, _, _ = _make_game(nl_inst=board, known_user_color="black")
     game._apply_game_full({
-        "white": {"aiLevel": 1}, "black": {"id": "alain"},
+        "white": {"id": "opp", "name": "Adversaire"}, "black": {"id": "alain"},
         "state": {"status": "started", "moves": "e2e4"},
     })
     board.current_fen = AFTER_E2E4_W
@@ -114,11 +122,13 @@ def test_boutons_sactivent_pour_les_noirs_une_fois_le_coup_reproduit(monkeypatch
 # ═══════════════════════════════════════════════════════════════════════
 
 def test_position_illegale_desactive_les_boutons_et_signale_les_cases(monkeypatch):
+    """Adversaire humain (voir commentaires ci-dessus) — nécessaire pour que
+    Proposer nulle puisse être actif ici."""
     events, _, _ = _make_recorder(monkeypatch)
     board = FakeBoard()
-    game, _, _ = _make_game(nl_inst=board)
+    game, _, _ = _make_game(nl_inst=board, known_user_color="black")
     game._apply_game_full({
-        "white": {"aiLevel": 1}, "black": {"id": "alain"},
+        "white": {"id": "opp", "name": "Adversaire"}, "black": {"id": "alain"},
         "state": {"status": "started", "moves": "e2e4"},
     })
     board.current_fen = AFTER_E2E4_W
@@ -169,7 +179,9 @@ def test_abandon_possible_si_echiquier_perdu_meme_hors_tour(monkeypatch):
     game._sync_turn_ready()
     assert game._action_buttons_state == (True, False)
     btn_events = _events_of(events, "lichess_action_buttons")
-    assert btn_events[-1] == {"resign_enabled": True, "draw_enabled": False}
+    # draw_disabled_vs_ai (issue #327, point 5) : ajouté au payload pour que
+    # l'interface explique pourquoi le bouton est grisé — vrai ici (IA).
+    assert btn_events[-1] == {"resign_enabled": True, "draw_enabled": False, "draw_disabled_vs_ai": True}
 
 
 def test_accepter_offre_adverse_toujours_possible_boutons_desactives(monkeypatch):
@@ -218,10 +230,13 @@ def test_proposer_nulle_desactive_tant_quune_offre_est_en_attente(monkeypatch):
     board = FakeBoard()
     client = GameClient("lip_test", transport=FakeTransport())
     monkeypatch.setattr(client, "answer_draw", lambda game_id, accept: None)
+    # Adversaire humain (voir commentaires plus haut dans ce fichier) : la
+    # proposition de nulle est toujours un no-op grisé contre l'IA depuis
+    # l'issue #327, point 5.
     game = LichessGame(board, client, "gid321p", level=1, player_name="Alain",
-                        clock_limit_s=900, clock_increment_s=10)
+                        clock_limit_s=900, clock_increment_s=10, known_user_color="white")
     game._apply_game_full({
-        "white": {"id": "alain"}, "black": {"aiLevel": 1},
+        "white": {"id": "alain"}, "black": {"id": "opp", "name": "Adversaire"},
         "state": {"status": "started", "moves": ""},
     })
     assert game._action_buttons_state == (True, True)

@@ -34,9 +34,15 @@ from nicsoft.tests.test_issue311_lichess_sequencing import _make_bare_game
 
 
 def _started_white(game, client, monkeypatch):
+    # Adversaire humain (pas l'IA) : depuis l'issue #327, point 5, proposer
+    # une nulle contre l'IA de Lichess est un no-op grisé en permanence
+    # (établi par lecture du code public de lila) — les scénarios de ce
+    # fichier qui testent le cycle d'une offre en attente supposent donc un
+    # adversaire humain.
     monkeypatch.setattr(client, "answer_draw", lambda game_id, accept: None)
+    game._known_user_color = "white"
     game._apply_game_full({
-        "white": {"id": "alain"}, "black": {"aiLevel": 1},
+        "white": {"id": "alain"}, "black": {"id": "opp", "name": "Adversaire"},
         "state": {"status": "started", "moves": ""},
     })
     assert game.user_color == "white"

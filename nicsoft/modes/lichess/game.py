@@ -216,13 +216,17 @@ def opponent_pgn_name(level: int) -> str:
 
 def build_pgn_headers(game_id: str, user_name: str, user_color: str, level: int,
                        clock_limit_s: int, clock_increment_s: int, result: str,
-                       date_utc: str) -> dict:
-    ai_name = opponent_pgn_name(level)
+                       date_utc: str, opponent_name: str = "", event_label: str = "") -> dict:
+    """`opponent_name`/`event_label` (issue #327, point 6) permettent de
+    nommer un adversaire HUMAIN réel (nom Lichess) au lieu du nom d'IA par
+    défaut — jamais fournis pour une partie contre l'IA (comportement
+    inchangé, voir game_manager_modes/lichess.py et _save_pgn ci-dessous)."""
+    opp_name = opponent_name or opponent_pgn_name(level)
     user_name = user_name or "Vous"
-    white = user_name if user_color == "white" else ai_name
-    black = ai_name if user_color == "white" else user_name
+    white = user_name if user_color == "white" else opp_name
+    black = opp_name if user_color == "white" else user_name
     return {
-        "Event": f"Lichess, amicale contre l'IA niveau {level}",
+        "Event": event_label or f"Lichess, amicale contre l'IA niveau {level}",
         "Site": f"https://lichess.org/{game_id}",
         "Date": date_utc,
         "White": white,
@@ -241,6 +245,7 @@ class LichessGame(threading.Thread):
 
     POLL_DELAY_S = 0.05
     CLOCK_PUSH_INTERVAL_S = 1.0
+    CLOCK_LOG_MIN_INTERVAL_S = 30.0
     BOARD_LOST_STRIKES = 40           # ~2s de lectures en échec consécutives
     POSITION_ERROR_THROTTLE_S = 1.0
     ILLEGAL_STABLE_READS_REQUIRED = 8
@@ -255,7 +260,7 @@ class LichessGame(threading.Thread):
                  chosen_color_setting: str = "random", cadence_key: str = "",
                  resuming: bool = False,
                  initial_wtime_ms: float = None, initial_btime_ms: float = None,
-                 clock_known: bool = True, game_log=None, **kwargs):
+                 clock_known: bool = True, game_log=None, known_user_color: str = "", **kwargs):
         super().__init__(daemon=True, **kwargs)
         self.nl_inst = nl_inst
         self.client = client
@@ -285,6 +290,17 @@ class LichessGame(threading.Thread):
         self.board = chess.Board()
         self.user_color = None
         self.game_over = False
+        # Couleur connue AVANT même le premier gameFull (issue #327, point
+        # 4) — pour une partie contre un humain, aucun des deux côtés ne
+        # porte `aiLevel` : la couleur de l'utilisateur ne peut donc plus
+        # être déduite de la présence de l'IA (seul moyen utilisé jusqu'ici,
+        # voir _apply_game_full) et doit être transmise explicitement par
+        # l'appelant (depuis l'évènement gameStart du flux général
+        # d'évènements, voir seek.py/game_manager_modes/lichess.py). Jamais
+        # utilisée pour une partie contre l'IA (déduite comme avant).
+        self._known_user_color = known_user_color if known_user_color in ("white", "black") else ""
+        self.opponent_name = ""
+        self.opponent_rating = None
 
         self._moves_applied = 0
         self._status = "created"
@@ -320,6 +336,12 @@ class LichessGame(threading.Thread):
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
+        # Renvoi unique de l'offre (issue #327, point 5) — voir
+        # _apply_game_state : si l'état reçu juste après notre propre coup
+        # (offre jointe via offeringDraw=true) ne montre toujours pas notre
+        # indicateur, on retente UNE SEULE fois (jamais en boucle), réinitialisé
+        # chaque fois qu'une nouvelle offre démarre (_process_browser_actions).
+        self._my_draw_offer_resent = False
 
         # Reprise d'une partie en cours (issue #323) : tant que
         # _resume_pending est vrai, _tick_physical() n'attend ni coup
@@ -377,6 +399,16 @@ class LichessGame(threading.Thread):
         self._clock_turn = "white"
         self._clock_ref_monotonic = time.monotonic()
         self._last_clock_push_ts = 0.0
+        # Débit du JOURNAL DÉDIÉ de pendule, distinct de celui de l'envoi au
+        # navigateur ci-dessus (issue #327, point 6) — une ligne par seconde
+        # noierait les lignes utiles d'une partie de 90+30 : le journal
+        # n'écrit qu'au recalage Lichess (force=True), au changement de
+        # trait/source, ou au plus toutes les _CLOCK_LOG_MIN_INTERVAL_S
+        # (filet de sécurité, comme le heartbeat général) — voir
+        # _maybe_log_clock. Le flux envoyé au navigateur n'est pas concerné.
+        self._last_clock_log_turn = None
+        self._last_clock_log_source = None
+        self._last_clock_log_ts = 0.0
         # Les pendules Lichess restent figées à leur valeur de départ tant
         # que les deux camps n'ont pas chacun joué leur premier coup — jamais
         # décomptées par une minuterie locale avant ça (issue #322, point 2).
@@ -503,16 +535,31 @@ class LichessGame(threading.Thread):
                     self.game_over = True
                     self._sync_turn_ready()
             elif atype == "lichess_propose_draw":
-                if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
+                if self._opponent_is_ai:
+                    # Défense en profondeur (issue #327, point 5) : le
+                    # bouton reste grisé en permanence contre l'IA
+                    # (_compute_action_buttons) — si une action arrive
+                    # malgré tout, ne jamais envoyer la requête (Lichess
+                    # l'ignorerait silencieusement, voir game.py en-tête) ni
+                    # faire croire qu'une offre est en cours.
+                    logger.info("Lichess : proposition de nulle ignorée (adversaire IA, %s).", self.game_id)
+                    send_event("lichess_toast", {"message_key": "lichess.nulle_impossible_ia", "type": "warning"})
+                elif self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
                     self._my_draw_offer_pending = True
+                    self._my_draw_offer_resent = False
                     logger.info("Lichess : nulle proposée par %s.", self.player_name)
+                    self._game_log.state_change(f"nulle proposée par {self.player_name} — requête envoyée (draw/yes).")
                     send_event("lichess_draw_proposed", {})
             elif atype == "lichess_draw_accept":
                 self._draw_offered_by_opponent = False
-                self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True))
+                if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
+                    logger.info("Lichess : nulle acceptée par %s (offre de l'adversaire).", self.player_name)
+                    self._game_log.state_change(f"nulle acceptée par {self.player_name} (offre de l'adversaire).")
             elif atype == "lichess_draw_refuse":
                 self._draw_offered_by_opponent = False
-                self._safe_client_call(lambda: self.client.answer_draw(self.game_id, False))
+                if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, False)):
+                    logger.info("Lichess : nulle refusée par %s (offre de l'adversaire).", self.player_name)
+                    self._game_log.state_change(f"nulle refusée par {self.player_name} (offre de l'adversaire).")
             elif atype == "lichess_promotion_choice" and self._pending_promotion is not None:
                 self._submit_promotion(action.get("piece", "q"))
 
@@ -591,31 +638,56 @@ class LichessGame(threading.Thread):
         point 6) est journalisé brut, présent ou non, pour savoir si/quand
         Lichess l'envoie réellement — observé absent lors de l'essai réel
         d'Alain du 13/11/2026 ayant motivé l'estimation locale de repli."""
+        wdraw = bool(state.get("wdraw"))
+        bdraw = bool(state.get("bdraw"))
         logger.info(
             "Lichess : état reçu (coups=%d, statut=%s, wdraw=%s, bdraw=%s, expiration=%s).",
             len(moves_from_state(state)),
             state.get("status", self._status),
-            bool(state.get("wdraw")),
-            bool(state.get("bdraw")),
+            wdraw, bdraw,
             state.get("expiration"),
         )
+        # Issue #327, point 6 : présence/absence des deux indicateurs de
+        # nulle à CHAQUE état reçu, sans throttle (contrairement aux
+        # pendules ci-dessus) — distinct du journal général, c'est le
+        # journal dédié de CETTE partie qu'Alain relit après un essai réel.
+        self._game_log.state_change(f"état reçu — indicateurs nulle : blancs={wdraw}, noirs={bdraw}.")
 
     def _apply_game_full(self, event: dict) -> None:
         white = event.get("white") or {}
         black = event.get("black") or {}
-        if white.get("aiLevel") is not None:
+        white_is_ai = white.get("aiLevel") is not None
+        black_is_ai = black.get("aiLevel") is not None
+        self._opponent_is_ai = white_is_ai or black_is_ai
+        if white_is_ai:
             self.user_color = "black"
             self.level = white.get("aiLevel", self.level)
-        else:
+        elif black_is_ai:
             self.user_color = "white"
             self.level = black.get("aiLevel", self.level)
-        # issue #322, point 1 : seule l'absence totale d'`aiLevel` des deux
-        # côtés (futur mode contre un humain) désactive la menace
-        # d'annulation/le décompte du premier coup propres à Lichess contre
-        # un humain — toute partie AlChess actuelle en a un.
-        self._opponent_is_ai = white.get("aiLevel") is not None or black.get("aiLevel") is not None
+        elif self._known_user_color:
+            # Partie contre un humain (issue #327, point 4) : ni white ni
+            # black ne porte `aiLevel`, donc notre couleur ne peut plus être
+            # déduite de l'IA — transmise par l'appelant (voir __init__ et
+            # game_manager_modes/lichess.py, résolue depuis l'évènement
+            # gameStart du flux général d'évènements AVANT ce premier
+            # gameFull).
+            self.user_color = self._known_user_color
+        else:
+            # Repli, ne devrait jamais arriver en pratique (humain sans
+            # couleur connue à l'avance) — garder une valeur plutôt que
+            # planter ; conserve la couleur déjà connue si elle existe.
+            self.user_color = self.user_color or "white"
+        opponent_dict = black if self.user_color == "white" else white
+        if self._opponent_is_ai:
+            self.opponent_name = opponent_pgn_name(self.level)
+            self.opponent_rating = None
+        else:
+            self.opponent_name = opponent_dict.get("name") or opponent_dict.get("id") or ""
+            self.opponent_rating = opponent_dict.get("rating")
         self._game_log.state_change(
             f"gameFull reçu — couleur_utilisateur={self.user_color}, adversaire_ia={self._opponent_is_ai}, "
+            f"adversaire={self.opponent_name!r} (cote={self.opponent_rating}), "
             f"niveau={self.level}, cadence={self.clock_limit_s}+{self.clock_increment_s}."
         )
         state = event.get("state") or {}
@@ -639,6 +711,13 @@ class LichessGame(threading.Thread):
             "clock_increment_s": self.clock_increment_s,
             "history_fen": hist_fens,
             "history_moves": hist_moves,
+            # Issue #327, point 4 : nom et cote de l'adversaire, échappés
+            # côté navigateur comme tout texte venu de Lichess (esc()) —
+            # jamais inséré en HTML brut ici. None pour la cote si inconnue
+            # (IA, ou compte anonyme côté Lichess).
+            "opponent_name": self.opponent_name,
+            "opponent_rating": self.opponent_rating,
+            "opponent_is_ai": self._opponent_is_ai,
         })
         self._reset_clock_from_state(state)
         if self.user_color == "black" and self._moves_applied >= 1:
@@ -664,6 +743,7 @@ class LichessGame(threading.Thread):
             self._draw_offered_by_opponent = opponent_offered
             if opponent_offered:
                 logger.info("Lichess : nulle proposée par l'adversaire.")
+                self._game_log.state_change("nulle proposée par l'adversaire (indicateur reçu).")
             send_event("lichess_draw_offered", {"offered": opponent_offered})
         status = event.get("status", self._status)
         # Une offre de nulle de l'utilisateur n'est considérée comme
@@ -685,7 +765,38 @@ class LichessGame(threading.Thread):
                     "Lichess : nulle refusée (proposée par %s, adversaire a joué sans accepter).",
                     self.player_name,
                 )
+                self._game_log.state_change(
+                    f"nulle refusée — proposée par {self.player_name}, adversaire a joué sans accepter."
+                )
                 send_event("lichess_draw_refused", {})
+        # Renvoi unique de l'offre si son écho n'apparaît pas (issue #327,
+        # point 5) — contre un humain seulement : établi par lecture du code
+        # public de lila (modules/bot/src/main/BotPlayer.scala::offerDraw,
+        # modules/round/src/main/Drawer.scala::yes, lus le 14/11/2026) que
+        # renvoyer une offre déjà active (isOfferingDraw déjà vrai) retombe
+        # sur `case _ => ReloadOwner` — un no-op sans erreur, jamais un
+        # second vrai envoi — donc sans risque même si l'offre était déjà
+        # bien passée. Seulement juste après NOTRE propre coup
+        # (my_just_moved), jamais après un coup adverse, et une seule fois
+        # par offre (_my_draw_offer_resent). Non vérifié avec une vraie
+        # partie contre un humain (interdit pendant cette issue, voir
+        # rapport de clôture) — repose sur la lecture du code ci-dessus.
+        my_just_moved = last_mover_color is not None and last_mover_color == self.user_color
+        if (
+            self._my_draw_offer_pending and my_just_moved and not self._opponent_is_ai
+            and not self._my_draw_offer_resent
+        ):
+            my_offered_now = event.get("wdraw") if self.user_color == "white" else event.get("bdraw")
+            if not bool(my_offered_now):
+                self._my_draw_offer_resent = True
+                logger.info(
+                    "Lichess : offre de nulle non reflétée juste après notre coup — renvoi unique (draw/yes)."
+                )
+                self._game_log.state_change(
+                    "nulle — offre non reflétée dans l'état reçu juste après notre coup ; "
+                    "renvoi unique par précaution (jamais en boucle)."
+                )
+                self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True))
         self._check_finished(status, event.get("winner", ""))
         self._sync_turn_ready()
 
@@ -698,6 +809,7 @@ class LichessGame(threading.Thread):
             # de fin de partie (issue #316, point 1).
             self._my_draw_offer_pending = False
             logger.info("Lichess : nulle acceptée (proposée par %s).", self.player_name)
+            self._game_log.state_change(f"nulle acceptée par l'adversaire (offre de {self.player_name}).")
             send_event("lichess_draw_accepted", {})
         self._status = status
         self._winner = winner
@@ -842,7 +954,7 @@ class LichessGame(threading.Thread):
             "flux Lichess + décompte local" if self._clock_running else
             "flux Lichess (figée, avant les deux premiers coups)"
         )
-        self._game_log.clock(white_ms, black_ms, self._clock_turn, source)
+        self._maybe_log_clock(white_ms, black_ms, self._clock_turn, source, force=force)
         send_event("lichess_clock", {
             "white_ms": white_ms, "black_ms": black_ms, "turn": self._clock_turn,
             "known": self._clock_known,
@@ -853,6 +965,25 @@ class LichessGame(threading.Thread):
             send_event("lichess_first_move_deadline", {
                 "active": True, "seconds": seconds, "estimated": estimated,
             })
+
+    def _maybe_log_clock(self, white_ms: float, black_ms: float, turn: str, source: str, force: bool) -> None:
+        """Écrit dans le journal dédié seulement au recalage reçu de
+        Lichess (`force=True`, voir _reset_clock_from_state), au changement
+        de trait ou de source depuis la dernière ligne écrite, ou au plus
+        toutes les CLOCK_LOG_MIN_INTERVAL_S — jamais à chaque appel (issue
+        #327, point 6 : une ligne par seconde noierait les lignes utiles
+        d'une partie de 90+30). Valeurs arrondies à la milliseconde entière
+        (point 6)."""
+        now = time.monotonic()
+        turn_changed = turn != self._last_clock_log_turn
+        source_changed = source != self._last_clock_log_source
+        stale = (now - self._last_clock_log_ts) >= self.CLOCK_LOG_MIN_INTERVAL_S
+        if not (force or turn_changed or source_changed or stale):
+            return
+        self._last_clock_log_turn = turn
+        self._last_clock_log_source = source
+        self._last_clock_log_ts = now
+        self._game_log.clock(round(white_ms), round(black_ms), turn, source)
 
     # ── Plateau physique ─────────────────────────────────────────────────
 
@@ -965,7 +1096,13 @@ class LichessGame(threading.Thread):
         )
         turn_ready = user_turn and position_ok
         resign_enabled = turn_ready or self._board_lost
-        draw_enabled = turn_ready and not self._my_draw_offer_pending
+        # Issue #327, point 5 : contre l'IA de Lichess, proposer une nulle
+        # est un no-op silencieux côté serveur, jamais reflété dans l'état
+        # reçu (lila, modules/game/src/main/Game.scala::playerCanOfferDraw
+        # exige `!opponent.isAi` — lu le 14/11/2026, voir rapport de
+        # clôture) — le bouton reste grisé en permanence contre l'IA,
+        # jamais seulement pendant l'attente d'une réponse.
+        draw_enabled = turn_ready and not self._my_draw_offer_pending and not self._opponent_is_ai
         return resign_enabled, draw_enabled
 
     def _sync_turn_ready(self) -> None:
@@ -985,6 +1122,10 @@ class LichessGame(threading.Thread):
         )
         send_event("lichess_action_buttons", {
             "resign_enabled": resign_enabled, "draw_enabled": draw_enabled,
+            # Issue #327, point 5 : permet à l'interface d'afficher une
+            # explication courte (« Lichess n'accepte pas les nulles contre
+            # l'ordinateur ») plutôt qu'un bouton grisé sans raison.
+            "draw_disabled_vs_ai": self._opponent_is_ai,
         })
 
     def _tick_physical(self) -> None:
@@ -1265,9 +1406,18 @@ class LichessGame(threading.Thread):
 
     def _save_pgn(self, result: str) -> None:
         date_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y.%m.%d")
+        # Issue #327, point 6 : vrai nom/cote de l'adversaire humain dans le
+        # PGN — jamais pour l'IA (opponent_name vide alors, build_pgn_headers
+        # retombe sur l'ancien nom d'IA par défaut).
+        opponent_name = "" if self._opponent_is_ai else self.opponent_name
+        event_label = (
+            f"Lichess, amicale contre l'IA niveau {self.level}" if self._opponent_is_ai
+            else "Lichess, amicale contre un humain"
+        )
         headers = build_pgn_headers(
             self.game_id, self.player_name, self.user_color or "white", self.level,
             self.clock_limit_s, self.clock_increment_s, result, date_utc,
+            opponent_name=opponent_name, event_label=event_label,
         )
         final_path = build_final_path("Lichess", "Amicale", headers["White"], headers["Black"])
         try:

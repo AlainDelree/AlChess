@@ -486,6 +486,14 @@ def launch_lichess(config: dict) -> None:
         set_app_state("menu", _menu_toast_data("toast.lichess_no_token"))
         return
 
+    # Issue #327, point 1 : choix du type de partie sur l'écran Lichess —
+    # "ai" (comportement inchangé ci-dessous) ou "human" (recherche d'un
+    # adversaire humain, voir _launch_lichess_human plus bas). Jamais classé
+    # ("rated") dans cette livraison — partie amicale seulement.
+    if (config.get("opponent_type") or "ai") == "human":
+        _launch_lichess_human(config, token)
+        return
+
     level = max(1, min(8, int(config.get("level", 1) or 1)))
     cadence_key = config.get("cadence", DEFAULT_CLOCK_PRESET)
     clock_limit_s, clock_increment_s = CLOCK_PRESETS.get(cadence_key, CLOCK_PRESETS[DEFAULT_CLOCK_PRESET])
@@ -680,6 +688,261 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
                 )
             except Exception as e:
                 logger.warning(f"Déconnexion échiquier échouée (Lichess) : {e}")
+        if web_server._app_state not in ("game_over", "menu"):
+            web_server._app_state = "menu"
+
+
+# ── Recherche d'un adversaire humain (issue #327, étape L2b) ────────────────
+#
+# Réutilise le mode jouable existant (LichessGame, modes/lichess/game.py) tel
+# quel : seules la recherche elle-même (seek.py::SeekSession) et l'orientation
+# vers ce lanceur sont nouvelles. Ordre (point 2) : position physique
+# confirmée D'ABORD (comme pour l'IA), puis recherche — jamais l'inverse.
+# Contrairement à la couleur "aléatoire" pour l'IA (résolue localement avant
+# tout appel réseau, issue #311), ici aussi : "aléatoire" est résolue en
+# white/black LOCALEMENT avant la recherche et transmise explicitement au
+# paramètre `color` de board/seek, plutôt que de laisser Lichess décider et
+# attendre l'évènement gameStart pour le savoir — cela évite une ambiguïté
+# d'orientation de l'écran de mise en place pendant que la couleur reste
+# inconnue, pour un résultat statistiquement identique (50/50 des deux
+# côtés). Rated=False toujours (seek.py) — partie amicale seulement (point 1).
+
+# Vitesses Lichess acceptées pour une recherche humaine (point 1 ; établi
+# dans #326, repris ici) — jamais Blitz ni Bullet.
+_HUMAN_SEEK_ALLOWED_SPEEDS = frozenset({"rapid", "classical"})
+
+
+def _launch_lichess_human(config: dict, token: str) -> None:
+    from nicsoft.modes.lichess.game import speed_key_for_clock
+
+    cadence_key = config.get("cadence", DEFAULT_CLOCK_PRESET)
+    clock_limit_s, clock_increment_s = CLOCK_PRESETS.get(cadence_key, CLOCK_PRESETS[DEFAULT_CLOCK_PRESET])
+    speed = speed_key_for_clock(clock_limit_s, clock_increment_s)
+    if speed not in _HUMAN_SEEK_ALLOWED_SPEEDS:
+        # Ne devrait jamais arriver avec les préréglages proposés par
+        # l'écran (tous Rapide/Classique, voir CLOCK_PRESETS) — filet de
+        # sécurité si un préréglage futur ne l'était pas (issue #327, point
+        # 1 : jamais Blitz/Bullet pour une recherche humaine).
+        logger_lichess.error(
+            f"Lichess : recherche humaine refusée — cadence {cadence_key} de vitesse {speed} "
+            "(seules Rapide/Classique sont acceptées pour un adversaire humain)."
+        )
+        web_server._app_state = "menu"
+        set_app_state("config_lichess", _menu_toast_data("toast.lichess_cadence_invalide"))
+        return
+
+    chosen_color = config.get("color", "random")
+    player_name = (config.get("player") or "Vous").strip() or "Vous"
+    logger_lichess.info(
+        f"Lichess : recherche d'adversaire humain demandée — cadence={cadence_key} "
+        f"couleur={chosen_color} joueur={player_name}"
+    )
+
+    web_server._app_state = "connecting"
+    set_app_state("connecting")
+    _error = {"occurred": False, "toast_key": None, "return_to": "config_lichess"}
+    t = threading.Thread(
+        target=_run_lichess_human,
+        args=(token, clock_limit_s, clock_increment_s, chosen_color, cadence_key, player_name, _error),
+        daemon=True,
+    )
+    t.start()
+    t.join()
+    if _error["occurred"]:
+        time.sleep(1.0)
+        target_state = _error.get("return_to") or "menu"
+        web_server._app_state = target_state
+        set_app_state(target_state, _menu_toast_data(_error["toast_key"] or "toast.lichess_error"))
+    elif web_server._app_state != "game_over":
+        web_server._app_state = "menu"
+        set_app_state("menu")
+    if web_server._app_state == "menu":
+        threading.Thread(target=check_board_presence_silent, daemon=True).start()
+
+
+def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, cadence_key,
+                        player_name, _error=None):
+    from nicsoft.modes.lichess.game import LichessGame
+    from nicsoft.modes.lichess.game_log import GameLog
+    from nicsoft.modes.lichess.seek import SeekSession
+
+    # Tirage de couleur de jeu (pile ou face) — aucun usage cryptographique,
+    # comme pour l'IA (issue #311) ; voir en-tête de section pour la raison
+    # de résoudre "aléatoire" nous-mêmes plutôt que de laisser Lichess choisir.
+    resolved_color = chosen_color if chosen_color in ("white", "black") else random.choice(("white", "black"))  # noqa: S311
+
+    nl_inst = None
+    seek_session = None
+    game_log = None
+    try:
+        nl_inst = _open_board_with_retry("NicLink_lichess")
+        _wait_initial_position_lichess(nl_inst, resolved_color)
+        logger_lichess.info("Lichess : position de départ confirmée (recherche humaine).")
+        set_nl_inst_ref(nl_inst)
+
+        # Garde-fou « une seule partie à la fois » (issue #325, point 4 ;
+        # repris ici point 2) — juste avant de démarrer la recherche.
+        ongoing = _refuse_create_if_games_ongoing(token)
+        if ongoing:
+            logger_lichess.info(
+                "Lichess : recherche humaine refusée — partie(s) en cours détectée(s) (%s).",
+                ", ".join(g["game_id"] for g in ongoing),
+            )
+            if _error is not None:
+                _error["occurred"] = True
+                _error["toast_key"] = "toast.lichess_partie_en_cours_refus"
+                _error["return_to"] = "config_lichess"
+            return
+
+        client = GameClient(token)
+        # Journal dédié (issue #326, point 10 ; étendu ici au cycle de
+        # recherche, issue #327 point 6) — créé avant de connaître
+        # l'identifiant de partie (inconnu tant qu'aucun adversaire n'est
+        # trouvé) : nom de fichier provisoire ("recherche"), mais fichier
+        # unique qui couvre déjà démarrage/annulation/appariement puis toute
+        # la partie une fois trouvée (passé tel quel à LichessGame).
+        game_log = GameLog("recherche")
+        client.attach_game_log(game_log)
+        seek_session = SeekSession(client, game_log=game_log)
+
+        web_server._app_state = "lichess_seeking"
+        set_app_state("lichess_seeking", {"cadence": cadence_key, "color": resolved_color})
+        seek_session.start(clock_limit_s / 60.0, clock_increment_s, resolved_color)
+
+        search_start = time.monotonic()
+        last_tick_sent = 0.0
+        found_game = None
+        while found_game is None:
+            if get_app_state() == "menu":
+                # Annulation demandée par l'utilisateur (bouton "Annuler la
+                # recherche") — "lichess_seeking" n'est jamais relayée à
+                # action_queue (server.py::on_action, même mécanisme que
+                # _BackMenuDuringWait pour position_initiale/
+                # lichess_wait_first_move) : seul ce sondage de l'état
+                # détecte la demande depuis ce fil.
+                seek_session.cancel()
+                raise _BackMenuDuringWait()
+            ev = seek_session.next_event(timeout=0.2)
+            now = time.monotonic()
+            if now - last_tick_sent >= 1.0:
+                last_tick_sent = now
+                send_event("lichess_seek_tick", {"elapsed_s": now - search_start})
+            if ev is None:
+                continue
+            etype = ev.get("type")
+            if etype == "found":
+                found_game = ev.get("game") or {}
+            elif etype == "error":
+                logger_lichess.warning(
+                    "Lichess : recherche humaine interrompue (%s).", ev.get("reason", "?"),
+                )
+                if _error is not None:
+                    _error["occurred"] = True
+                    _error["toast_key"] = "toast.lichess_network_error"
+                    _error["return_to"] = "config_lichess"
+                return
+            elif etype == "seek_closed":
+                # Flux de recherche fermé par Lichess sans appariement
+                # signalé (aucune durée maximale documentée — cas non
+                # observé en pratique, voir seek.py) : jamais d'attente
+                # silencieuse indéfinie.
+                logger_lichess.warning("Lichess : recherche humaine close par Lichess sans appariement signalé.")
+                if _error is not None:
+                    _error["occurred"] = True
+                    _error["toast_key"] = "toast.lichess_network_error"
+                    _error["return_to"] = "config_lichess"
+                return
+            # "waiting" (ligne vide de maintien du flux de recherche) : rien
+            # d'autre à faire, la boucle continue (pas de limite de durée).
+
+        game_id = found_game.get("gameId") or found_game.get("id") or ""
+        confirmed_color = found_game.get("color") or resolved_color
+        if not game_id:
+            raise LichessNetworkError("évènement gameStart sans identifiant de partie")
+        opponent_info = found_game.get("opponent") or {}
+        logger_lichess.info(
+            "Lichess : adversaire trouvé (%s), couleur=%s, adversaire=%s.",
+            game_id, confirmed_color, opponent_info.get("username") or opponent_info.get("id") or "?",
+        )
+        game_log.state_change(
+            f"recherche terminée — adversaire trouvé, game_id={game_id}, couleur={confirmed_color}."
+        )
+
+        game = LichessGame(
+            nl_inst, client, game_id, level=0, player_name=player_name,
+            clock_limit_s=clock_limit_s, clock_increment_s=clock_increment_s,
+            chosen_color_setting=chosen_color, cadence_key=cadence_key,
+            known_user_color=confirmed_color, game_log=game_log,
+        )
+        _discard_stale_browser_actions()
+        web_server._app_state = "playing"
+        set_app_state("playing")
+        logger_lichess.info(
+            "Partie Lichess humaine : %s vs %s (%s), couleur=%s",
+            player_name, opponent_info.get("username") or opponent_info.get("id") or "?", game_id, confirmed_color,
+        )
+        # LichessGame.start() exécute toute la partie de façon synchrone —
+        # voir le même commentaire dans _run_lichess ci-dessus (issue #310,
+        # point 1) : ne jamais appeler game.join() ensuite.
+        game.start()
+
+    except _BackMenuDuringWait:
+        pass
+    except LichessAuthError as e:
+        logger_lichess.error(f"Jeton Lichess refusé pendant la recherche humaine (HTTP {e.status_code}).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = ("toast.lichess_missing_scope" if e.status_code == 403
+                                    else "toast.lichess_invalid_token")
+    except LichessRateLimitError:
+        logger_lichess.warning("Limite de requêtes Lichess atteinte (recherche humaine).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_rate_limited"
+    except (LichessNetworkError, LichessApiError) as e:
+        logger_lichess.error(f"Erreur Lichess pendant la recherche/partie humaine : {e}")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_network_error"
+    except SystemExit as e:
+        if "board connection error" in str(e):
+            logger.error("Erreur mode Lichess (humain) : échiquier non détecté.")
+            if _error is not None:
+                _error["occurred"] = True
+                _error["toast_key"] = "toast.board_not_found"
+            send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+    except ConnectionError as e:
+        logger.error(f"Erreur de connexion échiquier (Lichess humain) : {e}")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.position_timeout" if "Timeout" in str(e) else "toast.board_not_found"
+        send_event("board_error", {"message": str(e)})
+    except Exception as e:
+        logger.error(f"Erreur inattendue mode Lichess (humain) : {e}")
+        import traceback
+        traceback.print_exc()
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_error"
+        send_event("popup", {"message": f"Erreur : {e}"})
+    finally:
+        if seek_session is not None:
+            seek_session.cancel()
+        if game_log is not None:
+            game_log.close()
+        if nl_inst:
+            try:
+                nl_inst.turn_off_all_leds()
+            except Exception as e:
+                logger.debug(f"Extinction LEDs (fin Lichess humain) échouée : {e}")
+            _disconnect_start = time.monotonic()
+            try:
+                nl_inst.disconnect()
+                logger_lichess.info(
+                    f"Lichess : échiquier physique libéré ({time.monotonic() - _disconnect_start:.2f}s)."
+                )
+            except Exception as e:
+                logger.warning(f"Déconnexion échiquier échouée (Lichess humain) : {e}")
         if web_server._app_state not in ("game_over", "menu"):
             web_server._app_state = "menu"
 

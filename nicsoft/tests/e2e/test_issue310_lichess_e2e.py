@@ -201,6 +201,10 @@ def at_game_lichess(at_menu):
             "color": "white",
             "level": 3,
             "player": "Testeur e2e",
+            # opponent_is_ai (issue #327, point 4) : toujours envoyé par le
+            # vrai serveur depuis cette issue — ce double simulé doit
+            # reproduire la forme réelle du payload.
+            "opponent_is_ai": True,
         },
     )
     # Dans une vraie partie, ce second événement suit lichess_init dans la
@@ -328,7 +332,7 @@ def game_lichess_noirs(at_menu):
     at_menu.wait_for_selector("#screen-game", state="visible", timeout=5000)
     _declencher_evenement_socket_client(
         at_menu, "lichess_init",
-        {"fen": FEN_DEPART, "color": "black", "level": 3, "player": "Testeur e2e noirs"},
+        {"fen": FEN_DEPART, "color": "black", "level": 3, "player": "Testeur e2e noirs", "opponent_is_ai": True},
     )
     return at_menu
 
@@ -339,7 +343,7 @@ def game_lichess_blancs(at_menu):
     at_menu.wait_for_selector("#screen-game", state="visible", timeout=5000)
     _declencher_evenement_socket_client(
         at_menu, "lichess_init",
-        {"fen": FEN_DEPART, "color": "white", "level": 3, "player": "Testeur e2e blancs"},
+        {"fen": FEN_DEPART, "color": "white", "level": 3, "player": "Testeur e2e blancs", "opponent_is_ai": True},
     )
     return at_menu
 

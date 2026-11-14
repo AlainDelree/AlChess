@@ -489,12 +489,15 @@ def test_pas_de_signal_sonore_pour_les_blancs(monkeypatch):
 def test_nulle_refusee_meme_proposee_pendant_le_tour_de_l_utilisateur(monkeypatch):
     """Comme test_issue310 mais l'offre est faite alors que c'est au tour de
     l'utilisateur de jouer (pas celui de l'adversaire) — le refus doit être
-    détecté de la même façon dès que l'adversaire joue sans accepter."""
+    détecté de la même façon dès que l'adversaire joue sans accepter.
+    Adversaire humain (issue #327, point 5 : proposer une nulle contre l'IA
+    est un no-op grisé en permanence depuis cette issue)."""
     game, events, _, actions = _make_bare_game(monkeypatch)
     client = game.client
     monkeypatch.setattr(client, "answer_draw", lambda game_id, accept: None)
+    game._known_user_color = "white"
     game._apply_game_full({
-        "white": {"id": "alain"}, "black": {"aiLevel": 2},
+        "white": {"id": "alain"}, "black": {"id": "opp", "name": "Adversaire"},
         "state": {"status": "started", "moves": ""},  # c'est le tour des blancs (l'utilisateur)
     })
     assert game.user_color == "white"

@@ -36,14 +36,40 @@ from nicsoft.modes.lichess.transport import TransportHTTPError
 
 # ── Doubles de test ──────────────────────────────────────────────────────────
 
+class FakeStreamHandle:
+    """Double de transport.StreamHandle (issue #327) — même contrat :
+    `lines()` générateur à usage unique, `close()` idempotent qui arrête le
+    générateur AVANT la ligne suivante (jamais pendant une ligne déjà
+    produite), comme la vraie poignée annulable."""
+
+    def __init__(self, lines):
+        self._lines = list(lines)
+        self.closed = False
+
+    def close(self):
+        self.closed = True
+
+    def lines(self):
+        for item in self._lines:
+            if self.closed:
+                return
+            if isinstance(item, Exception):
+                raise item
+            yield item
+
+
 class FakeTransport:
     """Même contrat que le faux transport de test_issue307 — aucune
     connexion réseau réelle. requests: callables consommées dans l'ordre ;
-    stream_batches: listes de lignes consommées dans l'ordre par appel."""
+    stream_batches: listes de lignes consommées dans l'ordre par appel.
+    open_stream_specs (issue #327) : listes de lignes (ou Exception à lever
+    à l'OUVERTURE) consommées dans l'ordre par open_stream() — un appel pour
+    le flux d'évènements, un pour la recherche (voir seek.py)."""
 
-    def __init__(self, requests=None, stream_batches=None):
+    def __init__(self, requests=None, stream_batches=None, open_stream_specs=None):
         self._requests = list(requests or [])
         self._stream_batches = list(stream_batches or [])
+        self._open_stream_specs = list(open_stream_specs or [])
 
     def request(self, method, url, token, fields=None):
         handler = self._requests.pop(0)
@@ -58,6 +84,12 @@ class FakeTransport:
             if isinstance(item, Exception):
                 raise item
             yield item
+
+    def open_stream(self, method, url, token, fields=None):
+        spec = self._open_stream_specs.pop(0)
+        if isinstance(spec, Exception):
+            raise spec
+        return FakeStreamHandle(spec)
 
 
 def _ok(body):
@@ -130,6 +162,7 @@ def _make_game(nl_inst=None, **kwargs):
         nl_inst, client, kwargs.pop("game_id", "gid1"),
         level=kwargs.pop("level", 1), player_name=kwargs.pop("player_name", "Alain"),
         clock_limit_s=kwargs.pop("clock_limit_s", 900), clock_increment_s=kwargs.pop("clock_increment_s", 10),
+        **kwargs,
     )
     return game, client, transport
 
