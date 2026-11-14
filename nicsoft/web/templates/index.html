@@ -827,9 +827,10 @@
         </div>
         <!-- Coup actuel centré, grand -->
         <div id="review-move-san" class="game-gameover-move-san"></div>
-        <!-- Meilleur coup (visible si analysé et best_move disponible) -->
-        <div id="review-best-move-row" class="game-gameover-best-move-row" style="display:none;">
-          <button id="btn-review-best" class="btn btn-best game-gameover-best-move-btn" data-action="review_best_move">💡 Voir le meilleur coup</button>
+        <!-- Meilleur coup : place toujours réservée (grisé si indisponible) pour que la
+             navigation ne se déplace jamais d'un coup à l'autre (issue #332) -->
+        <div id="review-best-move-row" class="game-gameover-best-move-row">
+          <button id="btn-review-best" class="btn btn-best game-gameover-best-move-btn" disabled data-action="review_best_move" data-i18n="game.btn.meilleur">💡 Voir le meilleur coup</button>
           <div id="review-best-move-san" class="game-gameover-best-move-san" style="display:none;"></div>
         </div>
         <!-- Play/Pause + Slider vitesse -->

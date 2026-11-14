@@ -3357,15 +3357,16 @@ function showReviewBestMove() {
 }
 
 function _updateReviewBestMoveBtn() {
+  // La ligne reste toujours affichée (place réservée) pour que la navigation
+  // (boutons Précédent/Suivant) ne se déplace jamais quand ce bouton
+  // apparaît ou disparaît d'un coup à l'autre (issue #332) — seul l'état
+  // actif/grisé du bouton change.
   const row = document.getElementById("review-best-move-row");
   const sanEl = document.getElementById("review-best-move-san");
+  const btn = document.getElementById("btn-review-best");
   if (!row) return;
   if (sanEl) { sanEl.style.display = "none"; sanEl.textContent = ""; }
-  if (!_isAnalysed || reviewIdx === 0) {
-    row.style.display = "none";
-    return;
-  }
-  const m = reviewMoves[reviewIdx - 1];
+  const m = (_isAnalysed && reviewIdx > 0) ? reviewMoves[reviewIdx - 1] : null;
   const hasBest = m && m.best_move && m.best_move !== (m.uci || "");
   const hasSeqRv = m && m.punishment_line && m.punishment_line.length > 0;
   const btnSeqRv = document.getElementById("btn-rv-sequence");
@@ -3373,7 +3374,11 @@ function _updateReviewBestMoveBtn() {
     btnSeqRv.style.display = hasSeqRv ? "block" : "none";
     btnSeqRv.disabled = !hasSeqRv;
   }
-  row.style.display = hasBest ? "block" : "none";
+  if (btn) {
+    btn.disabled = !hasBest;
+    btn.style.opacity = hasBest ? "1" : "0.4";
+    btn.style.pointerEvents = hasBest ? "auto" : "none";
+  }
 }
 
 // Rendu de l'historique cliquable (utilisé par renderReview et _renderPauseReview)
