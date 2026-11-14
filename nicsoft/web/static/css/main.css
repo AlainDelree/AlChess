@@ -874,6 +874,30 @@
       border-radius: 4px;
       overflow: hidden;
     }
+    /* Flèches d'analyse post-partie : 3 meilleures lignes + coup joué
+       (issue #335) — superposées à #board, jamais à .coord-file en dessous. */
+    .board-pos { position: relative; }
+    .board-arrows-svg {
+      position: absolute;
+      top: 0; left: 0;
+      width: var(--bd-size);
+      height: var(--bd-size);
+      pointer-events: none;
+      overflow: visible;
+      z-index: 5;
+    }
+    .board-arrow-number {
+      font-weight: bold;
+      fill: #fff;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+    .board-arrow-badge-played {
+      stroke: #e67e22;
+      stroke-width: 2;
+      fill: none;
+    }
     .jfilt-btn {
       background: #a0b8d0;
       border: 1px solid #333;
@@ -1552,6 +1576,21 @@
 .game-gameover-save-select { width:100%; background:#a0b8d0; border:1px solid #333; border-radius:4px; color:white; padding:8px 10px; font-size:0.88rem; }
 .game-gameover-save-btn { width:100%; margin-bottom:0; padding:8px; }
 .game-gameover-basket-btn { width:100%; margin-bottom:0; padding:8px; background:#2a5a4a; color:#e0e0e0; border:1px solid #1a4a3a; }
+
+/* ── Flèches d'analyse post-partie : 3 meilleures lignes + coup joué (issue #335) ── */
+.review-arrows-toggle-row { display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#1a2a3a; }
+.review-arrows-toggle-row label { cursor:pointer; }
+.review-arrows-status { margin-top:6px; font-size:0.8rem; color:#3a5a7a; font-style:italic; }
+.review-arrows-legend { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; font-size:0.78rem; color:#1a2a3a; }
+.review-arrow-legend-item { display:flex; align-items:center; gap:4px; }
+.review-arrow-swatch { width:12px; height:12px; border-radius:50%; display:inline-block; border:1px solid #1a1a1a; }
+.review-arrow-swatch-1 { background:#2ecc71; }
+.review-arrow-swatch-2 { background:#3498db; }
+.review-arrow-swatch-3 { background:#95a5a6; }
+.review-arrow-swatch-played { background:#e67e22; }
+.review-arrows-list { list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:3px; font-size:0.82rem; font-weight:600; }
+.review-arrow-played-tag { font-weight:normal; opacity:0.75; }
+
 .game-gameover-actions-card { padding:14px 18px; display:flex; flex-direction:column; gap:8px; }
 .game-gameover-tab-row { display:flex; gap:0; border-radius:6px; overflow:hidden; border:1px solid #a0b8d0; margin-bottom:2px; }
 .game-gameover-tab-btn { flex:1; padding:8px 4px; font-size:0.78rem; font-weight:bold; cursor:pointer; border:none; transition:opacity 0.15s; }

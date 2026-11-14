@@ -733,6 +733,71 @@ def on_analyser_pgn(data):
 
     threading.Thread(target=run, daemon=True).start()
 
+# Service de calcul à la demande des 3 meilleures lignes + préchargement
+# (issue #335) — un seul moteur réutilisé pour tout l'écran d'analyse,
+# construit au premier appel. Jamais utilisé en mode Lichess (écran commun,
+# ouvert seulement une fois la partie terminée) — voir
+# test_issue333_lichess_no_engine.py.
+_review_multipv_service = None
+_review_multipv_service_lock = threading.Lock()
+
+
+def _get_review_multipv_service():
+    global _review_multipv_service
+    with _review_multipv_service_lock:
+        if _review_multipv_service is None:
+            import json
+            from nicsoft.engine.engine_manager import EngineManager, find_stockfish
+            from nicsoft.engine.review_multipv import ReviewMultiPVService
+
+            cfg_path = DATA_DIR / "config.json"
+            engine_path = ""
+            engine_elo = 1500
+            if cfg_path.exists():
+                try:
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        cfg = json.load(f)
+                    engine_path = cfg.get("engine_path", "")
+                    engine_elo  = cfg.get("engine_elo", engine_elo)
+                except Exception as e:
+                    logger.debug(f"[WEB] Lecture config.json pour review_multipv échouée : {e}")
+            if not engine_path:
+                engine_path = find_stockfish() or "stockfish"
+
+            def engine_factory():
+                return EngineManager(engine_path, engine_elo=engine_elo, analyse_active=True)
+
+            def on_result(fen, result):
+                socketio.emit("review_lines_result", {"fen": fen, **result})
+
+            _review_multipv_service = ReviewMultiPVService(engine_factory, on_result=on_result)
+    return _review_multipv_service
+
+
+@socketio.on("review_request_lines")
+def on_review_request_lines(data):
+    """Issue #335 — calcule à la demande les 3 meilleures lignes moteur
+    pour la position affichée sur l'écran d'analyse post-partie ; mémorise
+    par FEN (reparcourir les coups ne recalcule rien) et précalcule en
+    arrière-plan les positions voisines (prev_fen/next_fen) envoyées par le
+    client. Ne bloque jamais la requête socketio (calcul dans le fil dédié
+    de ReviewMultiPVService) ; ignoré si la case "Afficher les flèches" est
+    décochée côté config (garde-fou serveur en plus du client)."""
+    from nicsoft.core.config_manager import load_config
+
+    data = data or {}
+    fen = data.get("fen", "")
+    if not fen:
+        return
+    if not load_config().get("show_review_arrows", True):
+        return
+    service = _get_review_multipv_service()
+    neighbor_fens = [data.get("prev_fen"), data.get("next_fen")]
+    cached = service.request(fen, neighbor_fens=neighbor_fens)
+    if cached is not None:
+        socketio.emit("review_lines_result", {"fen": fen, **cached})
+
+
 @socketio.on("outils_pgn_preview")
 def on_outils_pgn_preview(data):
     """Aperçu d'un fichier PGN uploadé depuis le navigateur."""

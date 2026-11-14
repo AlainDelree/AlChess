@@ -823,6 +823,119 @@ function uciToCoords(uci) {
   return [`${fromFile}-${fromRank}`, `${toFile}-${toRank}`];
 }
 
+function uciToAlgebraic(uci) {
+  if (!uci || uci.length < 4) return [null, null];
+  return [uci.slice(0, 2), uci.slice(2, 4)];
+}
+
+// ── Flèches d'analyse post-partie : 3 meilleures lignes + coup joué
+// (issue #335) — overlay SVG sur #board, sur le modèle de
+// explDrawArrows/explSquareCenter (Opening Explorer, issue #148), mais
+// piloté par _boardFlipped (orientation de l'échiquier de jeu/review, pas
+// celle, indépendante, de l'Opening Explorer).
+
+const REVIEW_ARROW_COLORS = ["#2ecc71", "#3498db", "#95a5a6"]; // vert / bleu / gris
+const REVIEW_ARROW_PLAYED_COLOR = "#e67e22"; // orange
+
+function boardSquareCenter(square, size) {
+  const file = square.charCodeAt(0) - 97; // 'a' → 0
+  const rank = parseInt(square[1], 10) - 1; // '1' → 0
+  const col = _boardFlipped ? (7 - file) : file;
+  const row = _boardFlipped ? rank : (7 - rank);
+  return { x: (col + 0.5) * size, y: (row + 0.5) * size };
+}
+
+function clearReviewArrows() {
+  const svg = document.getElementById("board-arrows");
+  if (!svg) return;
+  const defs = svg.querySelector("defs");
+  svg.innerHTML = "";
+  if (defs) svg.appendChild(defs);
+}
+
+function _drawOneReviewArrow(svg, size, from, to, color, label, widthRatio, coincidence) {
+  const p1 = boardSquareCenter(from, size);
+  const p2 = boardSquareCenter(to, size);
+  if (p1.x === p2.x && p1.y === p2.y) return;
+  const strokeWidth = size * widthRatio;
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", p1.x);
+  line.setAttribute("y1", p1.y);
+  line.setAttribute("x2", p2.x);
+  line.setAttribute("y2", p2.y);
+  line.setAttribute("stroke", color);
+  line.setAttribute("stroke-opacity", "0.85");
+  line.setAttribute("stroke-width", strokeWidth);
+  line.setAttribute("stroke-linecap", "round");
+  line.setAttribute("marker-end", `url(#board-arrowhead-${typeof label === "number" ? label : "played"})`);
+  line.classList.add("review-arrow-line");
+  svg.appendChild(line);
+
+  // Badge au milieu de la flèche : numéro (1/2/3) pour les lignes moteur,
+  // point pour le coup joué quand il diffère des trois — jamais à
+  // l'arrivée, pour ne pas masquer la case de destination.
+  const mx = (p1.x + p2.x) / 2;
+  const my = (p1.y + p2.y) / 2;
+  const r  = size * 0.11;
+  if (coincidence) {
+    // Coup joué = aussi l'une des 3 meilleures lignes : contour orange
+    // autour du numéro plutôt qu'une flèche séparée superposée.
+    const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    ring.setAttribute("cx", mx);
+    ring.setAttribute("cy", my);
+    ring.setAttribute("r", r + size * 0.035);
+    ring.setAttribute("class", "board-arrow-badge-played");
+    svg.appendChild(ring);
+  }
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", mx);
+  circle.setAttribute("cy", my);
+  circle.setAttribute("r", r);
+  circle.setAttribute("fill", color);
+  circle.setAttribute("stroke", "#1a1a1a");
+  circle.setAttribute("stroke-width", size * 0.012);
+  svg.appendChild(circle);
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.setAttribute("x", mx);
+  text.setAttribute("y", my);
+  text.setAttribute("class", "board-arrow-number");
+  text.setAttribute("font-size", r * 1.3);
+  text.textContent = String(label);
+  svg.appendChild(text);
+}
+
+// Dessine jusqu'à 3 flèches pour les meilleures lignes moteur (vert/bleu/
+// gris, numérotées 1/2/3, la première plus marquée) + une flèche orange
+// pour le coup réellement joué depuis cette position, sauf s'il coïncide
+// déjà avec une des trois (alors contour orange sur le numéro concerné,
+// jamais deux flèches superposées).
+function drawReviewArrows(lines, playedUci) {
+  clearReviewArrows();
+  const svg   = document.getElementById("board-arrows");
+  const board = document.getElementById("board");
+  if (!svg || !board) return;
+  const size = board.getBoundingClientRect().width / 8;
+  if (!size) return;
+
+  const safeLines = (lines || []).slice(0, 3);
+  const playedIsTop = playedUci && safeLines.some(l => l.move === playedUci);
+
+  safeLines.forEach((line, i) => {
+    const [from, to] = uciToAlgebraic(line.move);
+    if (!from || !to) return;
+    const isPlayed = playedUci && line.move === playedUci;
+    _drawOneReviewArrow(svg, size, from, to, REVIEW_ARROW_COLORS[i], i + 1,
+                         i === 0 ? 0.11 : 0.07, isPlayed);
+  });
+
+  if (playedUci && !playedIsTop) {
+    const [from, to] = uciToAlgebraic(playedUci);
+    if (from && to) {
+      _drawOneReviewArrow(svg, size, from, to, REVIEW_ARROW_PLAYED_COLOR, "•", 0.07, false);
+    }
+  }
+}
+
 // ── Flip échiquier ────────────────────────────────────────────────────────
 
 function flipBoard() {
@@ -1382,6 +1495,9 @@ socket.on("app_state", (data) => {
   document.getElementById("panel-gameover").style.display = isAnalyseReview ? "flex" : "none";
   document.getElementById("panel-pause").style.display    = data.state === "paused"                     ? "flex" : "none";
   analyseLlmSetToggleVisible(isAnalyseReview);
+  // Flèches d'analyse (issue #335) : disparaissent proprement en quittant
+  // l'écran d'analyse (retour menu, nouvelle partie...).
+  if (!isAnalyseReview) _reviewClearArrowsUI();
   if (data.state === "config" && data.last_player) {
     document.getElementById("cfg-player").value = data.last_player;
   }
@@ -1407,6 +1523,11 @@ socket.on("app_state", (data) => {
   if (data.state === "game_over" && !data.skip) {
     // Restaurer le fond par défaut — l'écran d'analyse est neutre
     document.body.setAttribute("style", "background: #d8e4f0 !important;");
+    // Recharge la config à chaque entrée sur l'écran d'analyse (comme
+    // config_lichess) — nécessaire pour restaurer l'état mémorisé de la
+    // case « Afficher les flèches » (issue #335) même si l'utilisateur
+    // n'est jamais passé par l'écran Paramètres dans cette session.
+    socket.emit("config_get", {});
     if (data.result_key) _analyseEmpty = true;
     if (data.title_key || data.title) document.getElementById("gameover-title").textContent = data.title_key ? t(data.title_key) : data.title;
     // data.result peut contenir un score ("0-1", "1-0", "1/2-1/2") ou un message texte
@@ -3070,6 +3191,140 @@ let _isAnalysed  = false;   // true après analyse_terminee
 let _autoPlayTimer = null;  // setInterval handle
 let _gameSource  = "externe"; // "niclink" ou "externe"
 
+// ── Flèches d'analyse post-partie : 3 meilleures lignes + coup joué
+// (issue #335). "Coup joué" = le coup réellement joué DEPUIS la position
+// affichée (reviewMoves[reviewIdx]), pas celui qui y a mené — comme sur
+// lichess.org, les flèches représentent les options pour LE TRAIT en
+// cours sur la position visible, plus ce qui a été choisi.
+let _reviewArrowsEnabled = true;   // mémorisé en config (show_review_arrows), défaut coché
+let _reviewLinesCache    = {};     // fen -> {lines, error} — mémoire côté client en plus du cache serveur
+let _reviewLinesPending  = {};     // fen -> true si une requête est en vol
+
+function reviewToggleArrows(checked) {
+  _reviewArrowsEnabled = !!checked;
+  socket.emit("config_save", { show_review_arrows: _reviewArrowsEnabled });
+  _reviewUpdateArrows();
+}
+
+function _reviewClearArrowsUI() {
+  clearReviewArrows();
+  const status = document.getElementById("review-arrows-status");
+  const legend = document.getElementById("review-arrows-legend");
+  const list   = document.getElementById("review-arrows-list");
+  if (status) { status.style.display = "none"; status.textContent = ""; }
+  if (legend) legend.style.display = "none";
+  if (list)   list.innerHTML = "";
+}
+
+function _reviewFormatScore(line) {
+  if (line.mate != null) return (line.mate > 0 ? "#" : "#-") + Math.abs(line.mate);
+  if (line.cp   != null) {
+    const v = (line.cp / 100).toFixed(2);
+    return (line.cp > 0 ? "+" : "") + v;
+  }
+  return "?";
+}
+
+function _reviewRenderLinesList(lines, playedUci, playedSan) {
+  const list   = document.getElementById("review-arrows-list");
+  const legend = document.getElementById("review-arrows-legend");
+  if (!list) return;
+  list.innerHTML = "";
+  if (!lines || !lines.length) {
+    if (legend) legend.style.display = "none";
+    return;
+  }
+  if (legend) legend.style.display = "flex";
+  lines.slice(0, 3).forEach((line, i) => {
+    const li = document.createElement("li");
+    li.style.color = REVIEW_ARROW_COLORS[i];
+    li.textContent = `${i + 1}. ${line.san || line.move} (${_reviewFormatScore(line)})`;
+    if (playedUci && line.move === playedUci) {
+      const tag = document.createElement("span");
+      tag.className = "review-arrow-played-tag";
+      tag.textContent = " — " + t("game.legende.fleche_jouee");
+      li.appendChild(tag);
+    }
+    list.appendChild(li);
+  });
+  if (playedUci) {
+    const li = document.createElement("li");
+    li.style.color = REVIEW_ARROW_PLAYED_COLOR;
+    li.textContent = `${t("game.legende.fleche_jouee")} : ${playedSan || playedUci}`;
+    list.appendChild(li);
+  }
+}
+
+function _reviewApplyLinesResult(result, playedUci, playedSan) {
+  const status = document.getElementById("review-arrows-status");
+  if (!result || result.error || !result.lines || !result.lines.length) {
+    clearReviewArrows();
+    const legend = document.getElementById("review-arrows-legend");
+    const list   = document.getElementById("review-arrows-list");
+    if (legend) legend.style.display = "none";
+    if (list)   list.innerHTML = "";
+    if (status) {
+      status.textContent = t("game.label.fleches_indisponibles");
+      status.style.display = "block";
+    }
+    return;
+  }
+  if (status) status.style.display = "none";
+  drawReviewArrows(result.lines, playedUci);
+  _reviewRenderLinesList(result.lines, playedUci, playedSan);
+}
+
+// Demande/affiche les flèches pour la position actuellement affichée —
+// appelé depuis renderReview() à chaque changement de coup. Calcul à la
+// demande avec mémoire des résultats déjà calculés (fen déjà en cache =
+// aucune requête réseau) ; sinon indicateur "calcul…" immédiat puis
+// demande serveur avec préchargement des positions voisines.
+function _reviewUpdateArrows() {
+  if (!_reviewArrowsEnabled) { _reviewClearArrowsUI(); return; }
+  const fen = reviewFens[reviewIdx];
+  if (!fen) { _reviewClearArrowsUI(); return; }
+  const playedMove = reviewMoves[reviewIdx]; // coup joué DEPUIS cette position
+  const playedUci  = playedMove ? playedMove.uci : null;
+  const playedSan  = playedMove ? playedMove.san : null;
+
+  const cached = _reviewLinesCache[fen];
+  if (cached) {
+    _reviewApplyLinesResult(cached, playedUci, playedSan);
+    return;
+  }
+
+  clearReviewArrows();
+  const status = document.getElementById("review-arrows-status");
+  const legend = document.getElementById("review-arrows-legend");
+  const list   = document.getElementById("review-arrows-list");
+  if (legend) legend.style.display = "none";
+  if (list)   list.innerHTML = "";
+  if (status) { status.textContent = t("game.label.calcul_en_cours"); status.style.display = "block"; }
+
+  if (!_reviewLinesPending[fen]) {
+    _reviewLinesPending[fen] = true;
+    socket.emit("review_request_lines", {
+      fen,
+      prev_fen: reviewFens[reviewIdx - 1] || null,
+      next_fen: reviewFens[reviewIdx + 1] || null,
+    });
+  }
+}
+
+socket.on("review_lines_result", (data) => {
+  if (!data || !data.fen) return;
+  const fen = data.fen;
+  const result = { lines: data.lines || [], error: data.error || null };
+  _reviewLinesCache[fen] = result;
+  delete _reviewLinesPending[fen];
+  // Ignoré si la position affichée a changé depuis la demande (issue #335 —
+  // "annulé ou ignoré si l'utilisateur change de position") : le résultat
+  // reste en cache pour une prochaine visite de cette position.
+  if (!_reviewArrowsEnabled || reviewFens[reviewIdx] !== fen) return;
+  const playedMove = reviewMoves[reviewIdx];
+  _reviewApplyLinesResult(result, playedMove ? playedMove.uci : null, playedMove ? playedMove.san : null);
+});
+
 function reviewPrev() {
   if (reviewIdx > 0) { reviewIdx--; renderReview(); }
 }
@@ -3539,6 +3794,7 @@ function renderReview() {
   }
   renderHistory(reviewIdx);
   _updateReviewBestMoveBtn();
+  _reviewUpdateArrows();
 }
 
 // ── Analyse — panneau IA (drawer rétractable, conversation multi-tours, issue #196) ──
@@ -7709,6 +7965,19 @@ socket.on("config_data", (data) => {
   _lichessBeepOpponentMove = !!data.lichess_beep_opponent_move;
   const beepChk = document.getElementById("lichess-beep-toggle");
   if (beepChk) beepChk.checked = _lichessBeepOpponentMove;
+
+  // Case « Afficher les flèches » de l'écran d'analyse (issue #335) —
+  // mémorisée comme lichess_beep_opponent_move ; par défaut cochée
+  // (config_manager.py, show_review_arrows: True).
+  _reviewArrowsEnabled = data.show_review_arrows !== false;
+  const arrowsChk = document.getElementById("review-arrows-toggle");
+  if (arrowsChk) arrowsChk.checked = _reviewArrowsEnabled;
+  // La valeur mémorisée arrive après le premier rendu de l'écran d'analyse
+  // (requête config_get asynchrone) — réapplique l'état réel si l'écran est
+  // déjà affiché, plutôt que de rester sur la valeur par défaut du temps
+  // de la réponse.
+  const panelGameover = document.getElementById("panel-gameover");
+  if (panelGameover && panelGameover.style.display !== "none") _reviewUpdateArrows();
 
   _explHasApiKey = !!data.has_llm_api_key;
   explUpdateChatAvailability();
