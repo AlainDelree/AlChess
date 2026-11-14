@@ -31,6 +31,7 @@ DEFAULT_CONFIG = {
     "llm_api_key": "",
     "llm_model": "",            # optionnel, laisser vide = modèle par défaut
     "lichess_token": "",        # jeton personnel Lichess (issue #306) — même mécanisme que llm_api_key
+    "lichess_beep_opponent_move": False,  # bip échiquier aux coups/nulle/fin adverses (issue #331)
     "tts_enabled": False,
     "tts_rate": 150,            # débit pyttsx3, mots par minute
     "tts_volume": 80,           # volume mpg123, 0-100

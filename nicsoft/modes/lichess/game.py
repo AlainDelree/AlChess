@@ -27,6 +27,7 @@ import time
 
 import chess
 
+from nicsoft.core.config_manager import load_config
 from nicsoft.core.ihm_port import send_event, get_action, set_app_state
 from nicsoft.engine.board_utils import san_ep
 from nicsoft.engine.pgn_manager import build_and_save_pgn, build_final_path
@@ -59,6 +60,43 @@ _ABORT_CAUSE_KEYS = {
     "aborted": "lichess.annulee_premier_coup_trop_tard",
 }
 _ABORT_CAUSE_DEFAULT_KEY = "lichess.annulee_cause_inconnue"
+
+# Issue #331, point 3 : signal LED persistant (abandon/nulle proposée/fin de
+# partie provoquée par l'adversaire) — mêmes 8 chaînes binaires (une par
+# rangée) que NicLinkManager.signal_lights() (driver.py, sig_num 2 et 3,
+# non modifié ici), mais postées via nl_inst.set_all_leds() plutôt que
+# signal_lights() : ce dernier éteint toujours tout seul après 1.5s, alors
+# que ces LED doivent rester allumées jusqu'à acquittement de l'utilisateur
+# (voir _wait_for_game_over_ack ci-dessous). set_all_leds() poste un seul
+# paquet USB (confirmé par lecture de driver.py/hid_backend.py) — aucun
+# second accès USB n'est nécessaire pour allumer plusieurs cases à la fois.
+_RANKS_1_4_LIT = ["00000000"] * 4 + ["11111111"] * 4  # moitié blancs (rangs 1-4)
+_RANKS_5_8_LIT = ["11111111"] * 4 + ["00000000"] * 4  # moitié noirs (rangs 5-8)
+
+# Délai (s) entre les deux bips du signal « distinct » (nulle proposée par
+# l'adversaire / fin de partie provoquée par l'adversaire) — jamais testé
+# sur le vrai échiquier (aucun matériel disponible pour cette issue), voir
+# rapport de clôture.
+_DOUBLE_BEEP_GAP_S = 0.3
+
+# Clé i18n de la cause affichée sur le bandeau de fin de partie provoquée
+# par l'adversaire (issue #331, point 4) — statut Lichess brut -> clé.
+_OPPONENT_END_CAUSE_KEYS = {
+    "resign": "lichess.cause.resign",
+    "timeout": "lichess.cause.timeout",
+    "outoftime": "lichess.cause.timeout",
+    "mate": "lichess.cause.mate",
+    "draw": "lichess.cause.draw",
+    "stalemate": "lichess.cause.draw",
+    "insufficientMaterialClaim": "lichess.cause.draw",
+}
+_OPPONENT_END_CAUSE_DEFAULT_KEY = "lichess.cause.default"
+
+
+def opponent_half_led_pattern(user_color: str) -> list:
+    """Pattern LED (8 rangées) de la moitié de l'échiquier côté adversaire,
+    quelle que soit l'orientation de l'utilisateur (issue #331, point 3)."""
+    return _RANKS_5_8_LIT if user_color == "white" else _RANKS_1_4_LIT
 
 
 # ── Fonctions pures ──────────────────────────────────────────────────────────
@@ -336,6 +374,19 @@ class LichessGame(threading.Thread):
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
+        # Issue #331, point 3 : vrai juste après que l'utilisateur a
+        # explicitement répondu « Accepter » à une offre de nulle de
+        # l'adversaire — exempte la fin de partie qui en découle du signal
+        # LED/bip « provoquée par l'adversaire » (l'utilisateur vient déjà
+        # d'agir explicitement, jamais une double alerte pour la même
+        # réponse). Jamais remis à False ensuite : la partie se termine
+        # immédiatement après une acceptation, aucun autre coup ne peut
+        # suivre dans cette même partie.
+        self._user_just_accepted_draw = False
+        # Calculé par _finalize(), lu par run() pour savoir s'il faut
+        # bloquer sur _wait_for_game_over_ack() (issue #331, point 3) —
+        # jamais vrai tant que la partie n'est pas terminée.
+        self.opponent_caused_end = False
         # Renvoi unique de l'offre (issue #327, point 5) — voir
         # _apply_game_state : si l'état reçu juste après notre propre coup
         # (offre jointe via offeringDraw=true) ne montre toujours pas notre
@@ -372,6 +423,11 @@ class LichessGame(threading.Thread):
         # exacte.
         self._first_move_deadline_estimate_total_s = None
         self._last_move_event_ts = time.monotonic()
+        # Auteur du tout dernier coup appliqué (issue #331, point 3) — sert
+        # uniquement à distinguer un mat délivré par l'utilisateur lui-même
+        # (son propre coup physique, pas une fin « provoquée par
+        # l'adversaire ») d'un mat subi par lui ; voir _finalize().
+        self._last_move_mover_color = None
 
         # Valeur de départ des pendules (issue #325, point 7) : pour une
         # reprise, `initial_wtime_ms`/`initial_btime_ms` (temps RESTANT réel,
@@ -445,6 +501,16 @@ class LichessGame(threading.Thread):
         finally:
             self._stream_stop.set()
             self._finalize()
+            # Issue #331, point 3 : bloque ICI (fil du lanceur — jamais
+            # _finalize() elle-même, pour qu'elle reste rapide et non
+            # bloquante pour les appelants directs, notamment les tests qui
+            # l'invoquent isolément) tant que la fin de partie provoquée par
+            # l'adversaire n'a pas été acquittée — voir
+            # _wait_for_game_over_ack(). Avant la fermeture du journal dédié
+            # ci-dessous, pour que la ligne d'acquittement y soit bien écrite.
+            if self.opponent_caused_end:
+                self._wait_for_game_over_ack()
+                self._clear_opponent_alert_leds("fin de partie acquittée")
             try:
                 reader.join(timeout=2.0)
             except RuntimeError:
@@ -552,11 +618,14 @@ class LichessGame(threading.Thread):
                     send_event("lichess_draw_proposed", {})
             elif atype == "lichess_draw_accept":
                 self._draw_offered_by_opponent = False
+                self._user_just_accepted_draw = True
+                self._clear_opponent_alert_leds("nulle acceptée par l'utilisateur")
                 if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
                     logger.info("Lichess : nulle acceptée par %s (offre de l'adversaire).", self.player_name)
                     self._game_log.state_change(f"nulle acceptée par {self.player_name} (offre de l'adversaire).")
             elif atype == "lichess_draw_refuse":
                 self._draw_offered_by_opponent = False
+                self._clear_opponent_alert_leds("nulle refusée par l'utilisateur")
                 if self._safe_client_call(lambda: self.client.answer_draw(self.game_id, False)):
                     logger.info("Lichess : nulle refusée par %s (offre de l'adversaire).", self.player_name)
                     self._game_log.state_change(f"nulle refusée par {self.player_name} (offre de l'adversaire).")
@@ -601,6 +670,101 @@ class LichessGame(threading.Thread):
                 self.player_name, self.game_id, reason,
             )
         return True
+
+    # ── Alertes « l'adversaire a joué/proposé/terminé » (issue #331) ──────
+    # Bip (case à cocher, config.json::lichess_beep_opponent_move) + LED
+    # (toujours, indépendamment de la case) quand l'adversaire joue, propose
+    # la nulle ou termine la partie — pour rester perceptible sans regarder
+    # l'écran, y compris onglet navigateur en arrière-plan (bip matériel de
+    # l'échiquier, jamais le navigateur : seul mécanisme déjà existant et
+    # réutilisé — nl_inst.beep(), voir driver.py — qui ne dépend d'aucun
+    # état de focus/premier-plan du navigateur).
+
+    def _hardware_beep(self, reason: str, double: bool = False) -> None:
+        """Bip matériel de l'échiquier physique — `double` pour un signal
+        distinct (nulle proposée / fin de partie provoquée par l'adversaire),
+        deux bips espacés de _DOUBLE_BEEP_GAP_S émis par un fil dédié pour ne
+        jamais bloquer la boucle de jeu (jamais de time.sleep() dans le fil
+        principal pour un simple signal sonore)."""
+        total = 2 if double else 1
+
+        def _emit_one(n: int) -> None:
+            try:
+                self.nl_inst.beep()
+            except Exception as exc:
+                logger.debug("Bip matériel (%s, %d/%d) échoué : %s", reason, n, total, exc)
+            self._game_log.state_change(f"bip émis — {reason} ({n}/{total}).")
+
+        if double:
+            def _twice():
+                _emit_one(1)
+                time.sleep(_DOUBLE_BEEP_GAP_S)
+                _emit_one(2)
+            threading.Thread(target=_twice, daemon=True, name="lichess_beep").start()
+        else:
+            _emit_one(1)
+
+    def _maybe_beep_opponent(self, reason: str, double: bool = False) -> None:
+        """N'émet le bip que si la case « Bip quand l'adversaire joue » est
+        cochée — relu à chaque appel (jamais mis en cache) pour un effet
+        immédiat si l'utilisateur la coche/décoche en cours de partie
+        (issue #331, point 1)."""
+        if load_config().get("lichess_beep_opponent_move"):
+            self._hardware_beep(reason, double=double)
+
+    def _light_opponent_half(self, reason: str) -> None:
+        """Allume en LED, de façon persistante (jamais d'extinction
+        automatique), la moitié de l'échiquier côté adversaire — toujours,
+        indépendamment de la case à cocher (issue #331, point 3). Reste
+        allumé jusqu'à _clear_opponent_alert_leds() (réponse à la nulle, ou
+        acquittement de fin de partie). Ne perturbe jamais l'affichage
+        normal du coup adverse : jamais appelé pendant celui-ci (seulement
+        depuis l'offre de nulle adverse et la fin de partie, voir
+        _apply_game_state/_finalize)."""
+        if self.user_color is None:
+            return
+        pattern = opponent_half_led_pattern(self.user_color)
+        half_desc = "rangs 5-8 (noirs)" if self.user_color == "white" else "rangs 1-4 (blancs)"
+        try:
+            self.nl_inst.turn_off_all_leds()
+            self.nl_inst.set_all_leds(pattern)
+        except Exception as exc:
+            logger.debug("LED moitié adversaire (%s) échouée : %s", reason, exc)
+        logger.info("Lichess : LED moitié adversaire allumées (%s, %s).", reason, half_desc)
+        self._game_log.state_change(f"LED allumées — moitié adversaire ({half_desc}) — déclencheur={reason}.")
+
+    def _clear_opponent_alert_leds(self, reason: str) -> None:
+        """Éteint le signal LED posé par _light_opponent_half() — réponse à
+        la nulle (accepter/refuser) ou acquittement de fin de partie."""
+        try:
+            self.nl_inst.turn_off_all_leds()
+        except Exception as exc:
+            logger.debug("Extinction LED alerte adversaire (%s) échouée : %s", reason, exc)
+        self._game_log.state_change(f"LED éteintes — acquittement ({reason}).")
+
+    def _wait_for_game_over_ack(self) -> None:
+        """Bloque (fil du lanceur de cette partie — jamais le fil socketio
+        ni la boucle menu, voir game_manager_modes/lichess.py) jusqu'à ce
+        que l'utilisateur acquitte la fin de partie provoquée par
+        l'adversaire : bouton « J'ai vu » (action lichess_ack_game_over) ou
+        tout retour au menu/changement de mode, qui vaut acquittement
+        implicite (issue #331, point 3). Les LED restent allumées pendant
+        toute cette attente, sans limite de durée — comme les autres
+        attentes sans limite de temps de ce module (voir
+        _wait_initial_position_lichess dans le lanceur) ; au plus tard,
+        elles sont de toute façon éteintes par le lanceur à la libération
+        de l'échiquier (nl_inst.turn_off_all_leds() dans le `finally` de
+        _run_lichess/_run_lichess_human) ou par le prochain
+        NicLinkManager.reset() au début de la partie suivante."""
+        while True:
+            action = get_action(timeout=0.2)
+            if action is None:
+                continue
+            atype = action.get("type", "")
+            if atype == "lichess_ack_game_over" or atype == "back_menu" or atype in _OTHER_MODE_ACTIONS:
+                logger.info("Lichess : fin de partie (adversaire) acquittée (%s).", atype or "?")
+                self._game_log.state_change(f"fin de partie — acquittement reçu ({atype or '?'}).")
+                return
 
     # ── Événements Lichess ───────────────────────────────────────────────
 
@@ -744,6 +908,19 @@ class LichessGame(threading.Thread):
             if opponent_offered:
                 logger.info("Lichess : nulle proposée par l'adversaire.")
                 self._game_log.state_change("nulle proposée par l'adversaire (indicateur reçu).")
+                # LED/bip (issue #331, point 3) — jamais ici de
+                # turn_off_all_leds() dans la branche inverse (offre
+                # retirée/déjà répondue) : ce coup adverse réutilise la même
+                # mise à jour d'état et pourrait coïncider avec les LED
+                # d'affichage normal du coup (_start_opponent_replication_wait,
+                # juste au-dessus dans cette même méthode) — jamais perturbées
+                # par ce signal. L'extinction se fait sur réponse explicite
+                # (lichess_draw_accept/refuse) ou, si l'offre s'éteint sans
+                # réponse, au cycle normal de LED du coup suivant
+                # (_check_replication/_check_piece_reset éteignent déjà tout
+                # une fois la position reproduite).
+                self._light_opponent_half("nulle proposée par l'adversaire")
+                self._maybe_beep_opponent("nulle proposée par l'adversaire", double=True)
             send_event("lichess_draw_offered", {"offered": opponent_offered})
         status = event.get("status", self._status)
         # Une offre de nulle de l'utilisateur n'est considérée comme
@@ -838,6 +1015,7 @@ class LichessGame(threading.Thread):
                 logger.warning("Coup Lichess inattendu (%s) ignoré : %s", uci, exc)
                 continue
             last_mover_color = mover_color
+            self._last_move_mover_color = mover_color
             if not initial:
                 now = time.monotonic()
                 elapsed_ms = int((now - self._last_move_event_ts) * 1000)
@@ -848,6 +1026,14 @@ class LichessGame(threading.Thread):
                     "color": mover_color, "level": self.level,
                     "opponent_move": mover_color != self.user_color,
                 })
+                # Bip court à chaque coup de l'adversaire SEULEMENT (jamais
+                # pour les coups de l'utilisateur) — case à cocher, issue
+                # #331 point 2. Le tout premier coup de l'IA (utilisateur
+                # noirs, avant même ce coup-ci) garde son bip existant,
+                # inconditionnel, déclenché séparément par
+                # _apply_game_full — voir rapport de clôture.
+                if mover_color != self.user_color:
+                    self._maybe_beep_opponent("coup de l'adversaire")
         self._moves_applied = len(moves)
         if last_mover_color is None:
             return None
@@ -1431,12 +1617,26 @@ class LichessGame(threading.Thread):
         sortie) — chaque étape est isolée dans son propre try/except pour
         qu'un échec n'empêche jamais les suivantes (issue #310, point 1) :
         le PGN doit être tenté avant l'envoi de l'état de fin, lui-même
-        avant la libération de l'échiquier (faite par l'appelant)."""
-        try:
-            self.nl_inst.turn_off_all_leds()
-        except Exception as exc:
-            logger.debug("Extinction LEDs (fin partie Lichess) échouée : %s", exc)
+        avant la libération de l'échiquier (faite par l'appelant).
 
+        Issue #331, point 3 : si la fin de partie est provoquée par
+        l'adversaire (abandon, temps écoulé, mat, nulle acceptée — jamais
+        pour un abandon/une annulation demandés par l'utilisateur, ni pour
+        une offre de nulle que l'utilisateur vient lui-même d'accepter, ni
+        pour un mat délivré par le propre coup physique de l'utilisateur
+        (son dernier coup joué est alors la cause directe et visible de la
+        fin, pas un évènement Lichess passif), ni pour une fin non
+        demandée/silencieuse déjà traitée autrement (voir `skip`), la
+        moitié de l'échiquier côté adversaire reste allumée : cette méthode
+        se contente de calculer `self.opponent_caused_end` (jamais bloquant
+        ici — des appelants directs, notamment les tests, invoquent cette
+        méthode isolément et doivent toujours la voir retourner
+        immédiatement) ; c'est run() qui bloque ensuite sur
+        _wait_for_game_over_ack() avant de rendre la main à l'appelant (qui
+        libère alors l'échiquier) — sinon le `finally` du lanceur
+        (game_manager_modes/lichess.py, nl_inst.turn_off_all_leds() juste
+        avant nl_inst.disconnect()) éteindrait le signal en quelques
+        millisecondes, bien avant que l'utilisateur ne l'ait vu."""
         result = pgn_result(self._status, self._winner)
         logger.info("Lichess : partie terminée (statut=%s, résultat=%s).", self._status, result)
         if not self._aborted:
@@ -1446,14 +1646,44 @@ class LichessGame(threading.Thread):
                 logger.warning("Sauvegarde PGN Lichess échouée (hors _save_pgn) : %s", exc)
 
         unexpected = self._is_unexpected_end()
+        skip = self._back_menu_requested or unexpected
+        ended_by_users_own_mate = (
+            self._status == "mate" and self._last_move_mover_color == self.user_color
+        )
+        # self._status doit être un statut de fin RÉEL (mat/abandon/temps
+        # écoulé/nulle...) — jamais "created"/"started" : certains tests
+        # (et, en théorie, un fil interrompu avant toute vraie fin) forcent
+        # game_over=True sans faire transiter _status, ce qui ne doit
+        # jamais déclencher l'attente d'acquittement (issue #331, point 3).
+        is_real_end_status = self._status in (_FINISHED_WITH_WINNER | _FINISHED_DRAW)
+        self.opponent_caused_end = (
+            is_real_end_status
+            and not self._user_initiated_end
+            and not self._user_just_accepted_draw
+            and not ended_by_users_own_mate
+            and not skip
+        )
+        if self.opponent_caused_end:
+            self._light_opponent_half(f"fin de partie — statut={self._status}")
+            self._maybe_beep_opponent(f"fin de partie — statut={self._status}", double=True)
+        else:
+            try:
+                self.nl_inst.turn_off_all_leds()
+            except Exception as exc:
+                logger.debug("Extinction LEDs (fin partie Lichess) échouée : %s", exc)
+
         try:
             title_key, title_vars = self._title_for_status()
             hist_fens, hist_moves = self._history_from_board()
-            skip = self._back_menu_requested or unexpected
             payload = {
                 "title_key": title_key, "title_vars": title_vars,
                 "result": result, "source": "lichess", "skip": skip,
                 "history_fen": hist_fens, "history_moves": hist_moves,
+                "opponent_caused_end": self.opponent_caused_end,
+                "opponent_cause_key": (
+                    _OPPONENT_END_CAUSE_KEYS.get(self._status, _OPPONENT_END_CAUSE_DEFAULT_KEY)
+                    if self.opponent_caused_end else None
+                ),
             }
             send_event("game_over", payload)
             if not skip:
