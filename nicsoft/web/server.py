@@ -15,6 +15,7 @@ import queue
 import re
 import secrets
 import shutil
+import signal
 import sys
 import threading
 from nicsoft.config import APP_DIR, DATA_DIR, ENGINES_DIR, GAMES_DIR, LOGS_DIR
@@ -556,11 +557,18 @@ def on_disconnect():
         # Annuler le timer précédent si existe
         if _disconnect_timer and _disconnect_timer.is_alive():
             _disconnect_timer.cancel()
-        # Lancer un timer — si pas de reconnexion dans le délai, quitter
+        # Lancer un timer — si pas de reconnexion dans le délai, quitter.
+        # SIGTERM (et non os._exit() direct, issue #337) : un arrêt immédiat
+        # depuis ce fil daemon court-circuitait tout le chemin de sortie
+        # normal (atexit : relance ModemManager, suppression du marqueur
+        # d'instance unique — jamais exécutés par os._exit()) et pouvait, en
+        # cas d'arrêt externe simultané (ex. SIGTERM du harness de test),
+        # faire courir deux chemins de sortie concurrents dans le même
+        # interpréteur. os.kill(SIGTERM) rejoint l'unique chemin de sortie
+        # déjà géré par _handle_termination_signal (nicsoft/web/alchess.py).
         def _shutdown():
             logger.info("[WEB] Aucune reconnexion — fermeture du programme.")
-            import os
-            os._exit(0)
+            os.kill(os.getpid(), signal.SIGTERM)
         _disconnect_timer = threading.Timer(_DISCONNECT_TIMEOUT, _shutdown)
         _disconnect_timer.daemon = True
         _disconnect_timer.start()
