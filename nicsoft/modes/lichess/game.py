@@ -374,6 +374,31 @@ class LichessGame(threading.Thread):
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
+        # Issue #334, points 1-4 : adversaire parti (événement `opponentGone`
+        # du flux) — `_opponent_gone_claim_win_in_seconds`/`_ref_monotonic`
+        # mémorisent le délai annoncé et l'instant de réception (horloge
+        # monotone locale, jamais une minuterie JS qui repartirait de zéro à
+        # chaque re-rendu) ; `_opponent_gone_claimable` devient vrai une fois
+        # ce délai écoulé (recalculé à chaque poussée, voir
+        # _push_opponent_gone_state) — c'est à cet instant, et seulement à
+        # cet instant, que le signal bip/LED de #331 est déclenché (jamais
+        # dès le départ de l'adversaire). `_opponent_gone_signal_acked`
+        # (bouton « J'ai vu » dédié à CE bandeau, distinct de
+        # lichess_ack_game_over) n'éteint que le signal, jamais le bandeau
+        # ni les boutons de réclamation.
+        self._opponent_gone = False
+        self._opponent_gone_claim_win_in_seconds = None
+        self._opponent_gone_ref_monotonic = None
+        self._opponent_gone_claimable = False
+        self._opponent_gone_signal_acked = False
+        # Issue #334, point 5 : vrai tant qu'une demande de reprise de coup
+        # de l'adversaire (wtakeback/btakeback, cf. doc lichess-org/api
+        # GameStateEvent.yaml) reste active côté Lichess — sert à ne la
+        # refuser qu'UNE SEULE fois par demande (jamais en boucle à chaque
+        # état reçu), tout en acceptant une NOUVELLE demande plus tard (le
+        # champ redevient absent/faux entre deux demandes, voir
+        # _check_opponent_takeback).
+        self._takeback_request_active = False
         # Issue #331, point 3 : vrai juste après que l'utilisateur a
         # explicitement répondu « Accepter » à une offre de nulle de
         # l'adversaire — exempte la fin de partie qui en découle du signal
@@ -631,6 +656,41 @@ class LichessGame(threading.Thread):
                     self._game_log.state_change(f"nulle refusée par {self.player_name} (offre de l'adversaire).")
             elif atype == "lichess_promotion_choice" and self._pending_promotion is not None:
                 self._submit_promotion(action.get("piece", "q"))
+            elif atype == "lichess_claim_victory":
+                self._handle_claim_action(
+                    claim_fn=lambda: self.client.claim_victory(self.game_id),
+                    request_label="réclamation de victoire (adversaire parti)",
+                )
+            elif atype == "lichess_claim_draw":
+                self._handle_claim_action(
+                    claim_fn=lambda: self.client.claim_draw(self.game_id),
+                    request_label="réclamation de nulle (adversaire parti)",
+                )
+            elif atype == "lichess_opponent_gone_ack":
+                # Issue #334, point 4 : éteint seulement le signal bip/LED
+                # (bandeau et boutons de réclamation restent affichés tant
+                # que l'adversaire n'est pas revenu — voir _apply_opponent_gone).
+                self._opponent_gone_signal_acked = True
+                self._clear_opponent_alert_leds("signal « adversaire parti » acquitté par l'utilisateur")
+                self._game_log.state_change("signal « adversaire parti » (bip/LED) acquitté par l'utilisateur.")
+
+    def _handle_claim_action(self, claim_fn, request_label: str) -> None:
+        """Réclamation de victoire/nulle (issue #334, points 2/3) —
+        `request_label` distingue les deux dans le journal dédié et les
+        messages de log. Jamais déclenché automatiquement : toujours en
+        réponse à `lichess_claim_victory`/`lichess_claim_draw`, envoyés par
+        le navigateur seulement sur un clic utilisateur (le bouton y reste
+        grisé tant que le délai annoncé par Lichess n'est pas écoulé — voir
+        app.js). Défense en profondeur : si l'état connu ici dit que la
+        réclamation n'est pas (ou plus) possible, la requête réseau n'est
+        même pas envoyée."""
+        logger.info("Lichess : %s demandée par l'utilisateur (%s).", request_label, self.game_id)
+        if not (self._opponent_gone and self._opponent_gone_claimable):
+            send_event("lichess_toast", {
+                "message_key": "lichess.reclamation_pas_encore_possible", "type": "warning",
+            })
+            return
+        self._safe_claim_call(claim_fn, request_label)
 
     def _safe_client_call(self, fn) -> bool:
         try:
@@ -641,6 +701,35 @@ class LichessGame(threading.Thread):
         except (LichessNetworkError, LichessRateLimitError):
             send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
         return False
+
+    def _safe_claim_call(self, fn, request_label: str) -> bool:
+        """Comme _safe_client_call, mais pour claim-victory/claim-draw
+        (issue #334, points 2/3) — jamais le message générique « coup
+        refusé » (celui de _safe_client_call parlerait à tort d'un coup).
+        Un refus de Lichess (délai pas encore écoulé côté serveur,
+        adversaire revenu entre-temps, partie déjà terminée) affiche son
+        message exact, de façon PERSISTANTE (jamais un toast qui disparaît
+        tout seul avant que l'utilisateur ait pu le lire) ; aucun verrou
+        local n'est posé ici après un refus — le bouton reste cliquable
+        tant que l'état connu (_opponent_gone_claimable) dit la réclamation
+        possible, pour que l'utilisateur puisse réessayer sans attendre."""
+        try:
+            fn()
+        except LichessApiError as exc:
+            detail = exc.api_message or str(exc)
+            logger.info("Lichess : %s refusée par Lichess : %s.", request_label, detail)
+            self._game_log.state_change(f"{request_label} — refusée par Lichess : {detail}.")
+            send_event("lichess_toast", {
+                "message_key": "lichess.reclamation_refusee", "vars": {"detail": detail},
+                "type": "warning", "persistent": True,
+            })
+            return False
+        except (LichessNetworkError, LichessRateLimitError):
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+            return False
+        logger.info("Lichess : %s envoyée — acceptée par Lichess.", request_label)
+        self._game_log.state_change(f"{request_label} — envoyée, acceptée par Lichess.")
+        return True
 
     def _request_resign_or_abort(self, reason: str = "demande utilisateur") -> bool:
         """`reason` (issue #319, point 3) : raison écrite dans le journal
@@ -742,6 +831,19 @@ class LichessGame(threading.Thread):
             logger.debug("Extinction LED alerte adversaire (%s) échouée : %s", reason, exc)
         self._game_log.state_change(f"LED éteintes — acquittement ({reason}).")
 
+    def _signal_opponent_claimable(self) -> None:
+        """Issue #334, point 4 : réutilise le mécanisme de signaux de #331
+        dès que la réclamation devient possible (jamais dès le simple
+        départ de l'adversaire, voir _push_opponent_gone_state) — bip
+        double (case à cocher) + LED persistante de la moitié adverse,
+        jusqu'à acquittement (lichess_opponent_gone_ack), retour de
+        l'adversaire ou réclamation. N'émet rien si déjà acquitté pour
+        cette absence (self._opponent_gone_signal_acked)."""
+        if self._opponent_gone_signal_acked:
+            return
+        self._maybe_beep_opponent("réclamation possible (adversaire parti)", double=True)
+        self._light_opponent_half("réclamation possible (adversaire parti)")
+
     def _wait_for_game_over_ack(self) -> None:
         """Bloque (fil du lanceur de cette partie — jamais le fil socketio
         ni la boucle menu, voir game_manager_modes/lichess.py) jusqu'à ce
@@ -782,7 +884,111 @@ class LichessGame(threading.Thread):
             self._apply_game_full(event)
         elif etype == "gameState":
             self._apply_game_state(event)
-        # chatLine / opponentGone : rien à afficher à cette étape.
+        elif etype == "opponentGone":
+            self._apply_opponent_gone(event)
+        # chatLine : rien à afficher à cette étape.
+
+    def _apply_opponent_gone(self, event: dict) -> None:
+        """Issue #334, points 1/4 : événement `opponentGone` du flux
+        (gone + claimWinInSeconds, doc lichess-org/api
+        doc/specs/schemas/OpponentGoneEvent.yaml, lue le 14/11/2026).
+        Jamais de signal bip/LED ici — seulement mémorisation du délai
+        annoncé et de l'instant de réception (horloge monotone locale) :
+        c'est _push_opponent_gone_state(), rappelée à chaque seconde par
+        _maybe_push_clock, qui recalcule le temps restant et déclenche le
+        signal une fois ce délai écoulé."""
+        gone = bool(event.get("gone"))
+        claim_win_in_seconds = event.get("claimWinInSeconds")
+        logger.info(
+            "Lichess : opponentGone reçu (gone=%s, claimWinInSeconds=%s, %s).",
+            gone, claim_win_in_seconds, self.game_id,
+        )
+        self._game_log.state_change(
+            f"opponentGone reçu — gone={gone}, claimWinInSeconds={claim_win_in_seconds}."
+        )
+        if gone:
+            self._opponent_gone = True
+            self._opponent_gone_signal_acked = False
+            if claim_win_in_seconds is not None:
+                self._opponent_gone_claim_win_in_seconds = max(0.0, float(claim_win_in_seconds))
+                self._opponent_gone_ref_monotonic = time.monotonic()
+            elif self._opponent_gone_ref_monotonic is None:
+                # Lichess n'a jamais annoncé de délai (champ absent dès le
+                # premier événement) — jamais vu en pratique d'après la
+                # doc (toujours présent quand gone=true), mais jamais de
+                # blocage silencieux ici : réclamable immédiatement plutôt
+                # que bloqué sans fin (voir rapport de clôture).
+                self._opponent_gone_claim_win_in_seconds = 0.0
+                self._opponent_gone_ref_monotonic = time.monotonic()
+            self._opponent_gone_claimable = False
+            self._push_opponent_gone_state()
+        else:
+            was_claimable = self._opponent_gone_claimable
+            self._opponent_gone = False
+            self._opponent_gone_claim_win_in_seconds = None
+            self._opponent_gone_ref_monotonic = None
+            self._opponent_gone_claimable = False
+            self._opponent_gone_signal_acked = False
+            if was_claimable:
+                self._clear_opponent_alert_leds("adversaire de retour")
+            send_event("lichess_opponent_gone", {"gone": False})
+
+    def _push_opponent_gone_state(self) -> None:
+        """Recalcule le temps restant avant réclamation possible depuis
+        l'instant de réception mémorisé (horloge monotone locale, jamais
+        un décompte JS qui repartirait de zéro à chaque rendu — issue
+        #334, point 1) et le pousse au navigateur. Déclenche le signal de
+        #331 (_signal_opponent_claimable) exactement à la transition vers
+        « réclamable », jamais à chaque poussée."""
+        if not self._opponent_gone:
+            return
+        now = time.monotonic()
+        if self._opponent_gone_claim_win_in_seconds is None or self._opponent_gone_ref_monotonic is None:
+            remaining = 0.0
+        else:
+            elapsed = max(0.0, now - self._opponent_gone_ref_monotonic)
+            remaining = max(0.0, self._opponent_gone_claim_win_in_seconds - elapsed)
+        became_claimable = remaining <= 0.0 and not self._opponent_gone_claimable
+        self._opponent_gone_claimable = remaining <= 0.0
+        send_event("lichess_opponent_gone", {
+            "gone": True,
+            "seconds": remaining,
+            # Issue #334, point 3 : même décompte Lichess (opponentGone ne
+            # porte qu'un seul délai) pour la victoire et pour la nulle —
+            # voir rapport de clôture.
+            "claimable": self._opponent_gone_claimable,
+            "draw_claimable": self._opponent_gone_claimable,
+        })
+        if became_claimable:
+            self._signal_opponent_claimable()
+
+    def _check_opponent_takeback(self, state: dict) -> None:
+        """Issue #334, point 5 : détecte une demande de reprise de coup de
+        l'adversaire (wtakeback/btakeback — doc lichess-org/api
+        doc/specs/schemas/GameStateEvent.yaml, lue le 14/11/2026 : "true if
+        <color> is proposing takeback, else omitted") et la refuse
+        explicitement, UNE SEULE FOIS par demande (jamais en boucle si le
+        même état est reçu/relu plusieurs fois) — `_takeback_request_active`
+        ne redevient faux que si l'indicateur disparaît à son tour,
+        permettant de refuser une NOUVELLE demande plus tard. Appelé à la
+        fois par _apply_game_full (une demande peut déjà être active dès le
+        premier état reçu — issue #334, point 6) et _apply_game_state."""
+        if self.user_color is None:
+            return
+        requested = bool(state.get("btakeback") if self.user_color == "white" else state.get("wtakeback"))
+        if requested and not self._takeback_request_active:
+            self._takeback_request_active = True
+            logger.info("Lichess : demande de reprise de coup de l'adversaire — refus automatique (%s).", self.game_id)
+            self._game_log.state_change(
+                "demande de reprise de coup reçue (adversaire) — refus automatique envoyé (takeback/no)."
+            )
+            if self._safe_client_call(lambda: self.client.answer_takeback(self.game_id, False)):
+                send_event("lichess_toast", {
+                    "message_key": "lichess.reprise_refusee", "type": "info", "persistent": True,
+                })
+        elif not requested and self._takeback_request_active:
+            self._takeback_request_active = False
+            self._game_log.state_change("demande de reprise de coup (adversaire) retirée/traitée.")
 
     def _handle_stream_closed(self) -> None:
         if self.game_over:
@@ -856,6 +1062,18 @@ class LichessGame(threading.Thread):
         )
         state = event.get("state") or {}
         self._log_game_state_received(state)
+        # Issue #334, point 6 : une demande de reprise de coup de
+        # l'adversaire déjà active au moment de la reprise (wtakeback/
+        # btakeback déjà présent dans ce premier état) est détectée et
+        # refusée dès la fin de la mise en place, pas seulement au
+        # prochain gameState — voir _check_opponent_takeback. Pour
+        # l'adversaire déjà parti (opponentGone), voir en revanche le
+        # rapport de clôture : Lichess ne réémet pas cet événement à la
+        # (re)connexion du flux (limitation confirmée côté Lichess,
+        # lila#18664/#18665, lue le 14/11/2026) — AlChess ne peut donc pas
+        # le savoir avant un futur changement d'état réel (ex. retour de
+        # l'adversaire).
+        self._check_opponent_takeback(state)
         self.board = chess.Board()
         self._moves_applied = 0
         self._apply_new_moves(state, initial=True)
@@ -898,6 +1116,7 @@ class LichessGame(threading.Thread):
 
     def _apply_game_state(self, event: dict) -> None:
         self._log_game_state_received(event)
+        self._check_opponent_takeback(event)
         last_mover_color = self._apply_new_moves(event)
         self._reset_clock_from_state(event)
         self._maybe_activate_first_move_deadline(event)
@@ -1151,6 +1370,12 @@ class LichessGame(threading.Thread):
             send_event("lichess_first_move_deadline", {
                 "active": True, "seconds": seconds, "estimated": estimated,
             })
+        # Issue #334, point 1 : même cadence (1x/s) que le compte à rebours
+        # du premier coup ci-dessus — recalculé depuis l'instant de
+        # réception mémorisé, jamais une minuterie JS qui repartirait de
+        # zéro à chaque rendu.
+        if self._opponent_gone:
+            self._push_opponent_gone_state()
 
     def _maybe_log_clock(self, white_ms: float, black_ms: float, turn: str, source: str, force: bool) -> None:
         """Écrit dans le journal dédié seulement au recalage reçu de
