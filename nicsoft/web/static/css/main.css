@@ -1319,6 +1319,16 @@
 .toast.toast-persistent .toast-close {
   background:none; border:none; color:inherit; font-size:1.2rem; line-height:1; cursor:pointer; padding:0 2px;
 }
+/* Issue #347, partie 2, point 1 : les toasts du mode Lichess restent
+   affichés plus longtemps, voire de façon persistante — sans cette
+   largeur maximale et ce retour à la ligne, un message long en
+   `white-space:nowrap` (règle plus ancienne ci-dessus) s'étirerait sur
+   toute la largeur de l'écran pendant toute cette durée, risquant de
+   passer par-dessus l'échiquier, les pendules ou les boutons. Règle
+   commune à tous les modes (un seul élément #toast partagé) : changement
+   neutre pour un message court (déjà plus étroit que cette largeur
+   maximale), voir rapport de clôture.*/
+.toast { max-width: min(90vw, 480px); white-space: normal; text-align: center; }
 .pos-init-error { background: #b71c1c !important; }
 .sq-error { background: rgba(180,0,0,0.45) !important; }
 .feedback-box-pause { border-radius:6px; padding:10px 12px; }

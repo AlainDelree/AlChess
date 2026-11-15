@@ -36,6 +36,7 @@ from nicsoft.modes.lichess.errors import (
     LichessAuthError,
     LichessNetworkError,
     LichessRateLimitError,
+    is_ambiguous_turn_or_over_error,
 )
 from nicsoft.modes.lichess.game_client import is_game_over, moves_from_state, side_to_move
 from nicsoft.modes.lichess.game_log import GameLog
@@ -423,6 +424,14 @@ class LichessGame(threading.Thread):
         self._illegal_stable_count = 0
         self._illegal_position_active = False
         self._last_illegal_position_sent_fen = None
+        # Issue #347, partie 2, point 2 : vrai quand le DERNIER coup
+        # physique envoyé a été refusé par Lichess (HTTP 400 ambigu) parce
+        # que la partie venait de se terminer côté serveur (adversaire
+        # abandon/temps écoulé/nulle...) — posé par _handle_move_rejected,
+        # lu par _finalize() pour que l'écran de fin précise que ce coup
+        # n'a pas été accepté. Jamais remis à False ensuite : la partie se
+        # termine immédiatement après (comme _user_just_accepted_draw).
+        self._last_move_rejected_after_game_over = False
 
         # Boutons Abandonner/Proposer nulle (issue #321, point 1) : état
         # (resign_enabled, draw_enabled) poussé côté interface par
@@ -434,6 +443,18 @@ class LichessGame(threading.Thread):
 
         self._draw_offered_by_opponent = False
         self._my_draw_offer_pending = False
+        # Issue #347, point 2 : contre un HUMAIN seulement, « Proposer
+        # nulle » suit désormais l'usage FIDE (on propose après avoir joué
+        # son coup, pendant que l'adversaire réfléchit) plutôt que « mon
+        # tour » (règle de #321, conservée telle quelle contre l'IA, voir
+        # _compute_action_buttons). Vrai dès que le coup de l'utilisateur
+        # part vers Lichess (_submit_move) jusqu'au coup suivant de
+        # l'adversaire (_apply_new_moves) — jamais recalculé à partir du
+        # trait courant, pour que le bouton reste actif pendant toute la
+        # réflexion de l'adversaire. Sans effet contre l'IA (bouton
+        # toujours grisé, _compute_action_buttons ne lit pas ce drapeau
+        # dans ce cas).
+        self._human_draw_window_open = False
         # Issue #334, points 1-4 : adversaire parti (événement `opponentGone`
         # du flux) — `_opponent_gone_claim_win_in_seconds`/`_ref_monotonic`
         # mémorisent le délai annoncé et l'instant de réception (horloge
@@ -707,7 +728,7 @@ class LichessGame(threading.Thread):
                     # faire croire qu'une offre est en cours.
                     logger.info("Lichess : proposition de nulle ignorée (adversaire IA, %s).", self.game_id)
                     send_event("lichess_toast", {"message_key": "lichess.nulle_impossible_ia", "type": "warning"})
-                elif self._safe_client_call(lambda: self.client.answer_draw(self.game_id, True)):
+                elif self._safe_draw_offer_call():
                     self._my_draw_offer_pending = True
                     self._my_draw_offer_resent = False
                     logger.info("Lichess : nulle proposée par %s.", self.player_name)
@@ -783,7 +804,7 @@ class LichessGame(threading.Thread):
         except LichessApiError as exc:
             send_event("lichess_move_refused", {"message": exc.api_message or str(exc)})
         except (LichessNetworkError, LichessRateLimitError):
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
         return False
 
     def _safe_claim_call(self, fn, request_label: str) -> bool:
@@ -809,23 +830,60 @@ class LichessGame(threading.Thread):
             })
             return False
         except (LichessNetworkError, LichessRateLimitError):
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
             return False
         logger.info("Lichess : %s envoyée — acceptée par Lichess.", request_label)
         self._game_log.state_change(f"{request_label} — envoyée, acceptée par Lichess.")
+        return True
+
+    def _safe_draw_offer_call(self) -> bool:
+        """Envoi d'une offre de nulle de l'utilisateur (issue #347, partie
+        1, point 2) — comme _safe_claim_call ci-dessus, jamais le message
+        générique « Lichess a refusé ce coup » (_safe_client_call) pour un
+        refus qui ne concerne pas un coup : un clic répété pendant la
+        même fenêtre (offre déjà active) doit afficher un message clair
+        plutôt qu'un texte parlant d'un coup, et ne jamais planter."""
+        try:
+            self.client.answer_draw(self.game_id, True)
+        except LichessApiError as exc:
+            detail = exc.api_message or str(exc)
+            logger.info("Lichess : offre de nulle refusée par Lichess : %s.", detail)
+            self._game_log.state_change(f"offre de nulle — refusée par Lichess : {detail}.")
+            send_event("lichess_toast", {
+                "message_key": "lichess.nulle_requete_refusee", "vars": {"detail": detail},
+                "type": "warning", "persistent": True,
+            })
+            return False
+        except (LichessNetworkError, LichessRateLimitError):
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
+            return False
         return True
 
     def _request_resign_or_abort(self, reason: str = "demande utilisateur") -> bool:
         """`reason` (issue #319, point 3) : raison écrite dans le journal
         avec le résultat — distincte de l'instant de la demande, déjà
         journalisé par l'appelant (_process_browser_actions) avant l'appel
-        réseau abort()/resign() ci-dessous, qui peut prendre du temps."""
+        réseau abort()/resign() ci-dessous, qui peut prendre du temps.
+
+        Issue #347, partie 1, point 5 : ligne dédiée du journal de partie
+        AVANT l'appel réseau (heure automatique de GameLog._write, état de
+        la partie, type d'adversaire) — la réponse effective de Lichess
+        est déjà journalisée séparément par GameClient._request (appelée
+        par _safe_client_call ci-dessous), jamais le jeton (masqué par
+        GameLog._mask, indépendamment de ces deux lignes)."""
         aborting = len(self.board.move_stack) < 2
+        adversaire = "IA" if self._opponent_is_ai else "humain"
+        action_label = "annulation (moins de 2 coups)" if aborting else "abandon"
+        self._game_log.state_change(
+            f"{action_label} demandé par l'utilisateur — raison={reason}, adversaire={adversaire}, "
+            f"coups_joues={len(self.board.move_stack)}, statut_avant={self._status}."
+        )
         if aborting:
             ok = self._safe_client_call(lambda: self.client.abort(self.game_id))
         else:
             ok = self._safe_client_call(lambda: self.client.resign(self.game_id))
         if not ok:
+            self._game_log.state_change(f"{action_label} — refusé ou en erreur (voir ligne REQUEST ci-dessus).")
             return False
         self._user_initiated_end = True
         if aborting:
@@ -842,6 +900,10 @@ class LichessGame(threading.Thread):
                 "Lichess : abandon par %s (%s) — raison : %s.",
                 self.player_name, self.game_id, reason,
             )
+        self._game_log.state_change(
+            f"{action_label} — acceptée par Lichess, statut_apres={self._status}, "
+            f"vainqueur={self._winner or '(aucun)'}."
+        )
         return True
 
     # ── Alertes « l'adversaire a joué/proposé/terminé » (issue #331) ──────
@@ -1186,7 +1248,7 @@ class LichessGame(threading.Thread):
         if self.game_over:
             return
         if self._stream_error is not None:
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
         if self._status in ("created", "started"):
             self._status = "unknownFinish"
         self.game_over = True
@@ -1458,9 +1520,21 @@ class LichessGame(threading.Thread):
         if last_mover_color is None:
             return None
         if last_mover_color != self.user_color:
+            # Issue #347, point 2 : le coup de l'adversaire referme la
+            # fenêtre « Proposer nulle » (contre un humain) — y compris à
+            # la lecture initiale d'une reprise (initial=True), pour
+            # refléter correctement l'historique déjà joué.
+            self._human_draw_window_open = False
             self._start_opponent_replication_wait(new_moves[-1])
         else:
             self._awaiting_piece_reset = False
+            # Issue #347, point 2 : l'écho (confirmé par le flux) de notre
+            # propre coup rouvre/confirme la fenêtre — en complément de
+            # l'ouverture immédiate faite par _submit_move() à l'envoi
+            # (jamais d'attente du flux pour activer le bouton), ceci
+            # couvre aussi la lecture initiale d'une reprise où le dernier
+            # coup joué était déjà le nôtre.
+            self._human_draw_window_open = True
             if self._first_move_deadline_active:
                 self._first_move_deadline_active = False
                 self._first_move_deadline_estimate_total_s = None
@@ -1676,45 +1750,62 @@ class LichessGame(threading.Thread):
             self._reconnecting_in_progress = False
 
     def _compute_action_buttons(self):
-        """(resign_enabled, draw_enabled) — issue #321, points 1 et 2.
+        """(resign_enabled, draw_enabled) — issues #321, #327 et #347.
+
+        Contre l'IA de Lichess (#321, points 1 et 2, INCHANGÉ par #347) :
         Abandonner/Proposer nulle ne sont actifs que trait de l'utilisateur
         ET position physique alignée (ni réplication/recalage/promotion en
-        attente, ni position illégale, ni échiquier perdu). Exceptions de
-        sécurité : Abandonner reste actif si l'échiquier est perdu (jamais
-        bloquer l'utilisateur), Proposer nulle reste inactif tant qu'une
-        offre de l'utilisateur est déjà en attente de réponse.
+        attente, ni position illégale, ni échiquier perdu) ; Abandonner
+        reste actif si l'échiquier est perdu ; Proposer nulle reste grisé
+        en PERMANENCE (#327, point 5 : no-op silencieux côté serveur contre
+        l'IA — lila, modules/game/src/main/Game.scala::playerCanOfferDraw
+        exige `!opponent.isAi`, lu le 14/11/2026).
+
+        Contre un HUMAIN (#347) :
+        - Abandonner reste actif à TOUT moment du déroulement de la partie
+          (tour adverse, reproduction du coup adverse sur l'échiquier,
+          reprise) — Alain a signalé ne pouvoir abandonner que pendant son
+          propre tour, impossible en cadence longue (15-20 min de
+          réflexion adverse) alors que Lichess le permet à tout moment.
+          L'appel réseau (_request_resign_or_abort) ne dépend lui-même
+          d'aucun état physique.
+        - Proposer nulle suit désormais l'usage FIDE (on propose nulle
+          APRÈS avoir joué son coup, pendant que l'adversaire réfléchit,
+          jamais avant) au lieu de « mon tour » : actif dès que le coup de
+          l'utilisateur est parti vers Lichess (_human_draw_window_open,
+          posé par _submit_move) jusqu'au coup suivant de l'adversaire
+          (_apply_new_moves le referme), y compris pendant la reproduction
+          de ce coup et pendant le tour de l'utilisateur avant qu'il ne
+          rejoue. Ancienne confusion (#321) : une offre faite pendant le
+          coup adverse était jugée refusée dès le coup suivant — supprimée
+          en proposant seulement après son propre coup (#318 inchangé par
+          ailleurs : le refus n'est lui-même déclaré qu'après un vrai coup
+          de l'adversaire, voir _apply_game_state).
 
         Issue #325, point 5 : pendant la mise en place d'une reprise
         (_resume_pending), Abandonner reste actif SANS attendre la
-        reconstruction de la position — l'abandon est un simple appel
-        réseau (voir _request_resign_or_abort), indépendant de l'état
-        physique de l'échiquier. Essai réel d'Alain du 14/11/2026 : les
-        deux boutons étaient grisés pendant toute la mise en place,
-        empêchant d'abandonner une partie sans d'abord la reconstruire.
-        Proposer nulle reste inactif ici : contrairement à l'abandon, une
-        offre de nulle n'a de sens que si la position/le tour sont déjà
-        confirmés."""
+        reconstruction de la position, pour les deux types d'adversaire —
+        comportement antérieur à #347, inchangé ici. Proposer nulle reste
+        inactif pendant cette mise en place, quel que soit l'adversaire."""
         if self.game_over or self.user_color is None:
             return False, False
         if self._resume_pending:
             return True, False
-        user_turn = self.board.turn == (chess.WHITE if self.user_color == "white" else chess.BLACK)
-        position_ok = not (
-            self._awaiting_physical_replication
-            or self._awaiting_piece_reset
-            or self._pending_promotion is not None
-            or self._illegal_position_active
-            or self._board_lost
-        )
-        turn_ready = user_turn and position_ok
-        resign_enabled = turn_ready or self._board_lost
-        # Issue #327, point 5 : contre l'IA de Lichess, proposer une nulle
-        # est un no-op silencieux côté serveur, jamais reflété dans l'état
-        # reçu (lila, modules/game/src/main/Game.scala::playerCanOfferDraw
-        # exige `!opponent.isAi` — lu le 14/11/2026, voir rapport de
-        # clôture) — le bouton reste grisé en permanence contre l'IA,
-        # jamais seulement pendant l'attente d'une réponse.
-        draw_enabled = turn_ready and not self._my_draw_offer_pending and not self._opponent_is_ai
+        if self._opponent_is_ai:
+            user_turn = self.board.turn == (chess.WHITE if self.user_color == "white" else chess.BLACK)
+            position_ok = not (
+                self._awaiting_physical_replication
+                or self._awaiting_piece_reset
+                or self._pending_promotion is not None
+                or self._illegal_position_active
+                or self._board_lost
+            )
+            turn_ready = user_turn and position_ok
+            resign_enabled = turn_ready or self._board_lost
+            draw_enabled = False
+        else:
+            resign_enabled = True
+            draw_enabled = self._human_draw_window_open
         return resign_enabled, draw_enabled
 
     def _sync_turn_ready(self) -> None:
@@ -1730,7 +1821,8 @@ class LichessGame(threading.Thread):
             f"reprise_en_cours={self._resume_pending}, replication_attendue={self._awaiting_physical_replication}, "
             f"recalage_attendu={self._awaiting_piece_reset}, promotion_attendue={self._pending_promotion is not None}, "
             f"position_illegale={self._illegal_position_active}, echiquier_perdu={self._board_lost}, "
-            f"offre_nulle_en_attente={self._my_draw_offer_pending}"
+            f"offre_nulle_en_attente={self._my_draw_offer_pending}, "
+            f"fenetre_nulle_humain_ouverte={self._human_draw_window_open}, adversaire_ia={self._opponent_is_ai}"
         )
         send_event("lichess_action_buttons", {
             "resign_enabled": resign_enabled, "draw_enabled": draw_enabled,
@@ -1973,6 +2065,7 @@ class LichessGame(threading.Thread):
         self._submit_move(uci)
 
     def _submit_move(self, uci: str) -> None:
+        offer_draw = self._my_draw_offer_pending
         try:
             # Une offre de nulle en attente doit partir AVEC ce coup
             # (paramètre offeringDraw) pour rester valable : sans lui,
@@ -1980,7 +2073,6 @@ class LichessGame(threading.Thread):
             # nous jouons, et le prochain gameState (wdraw/bdraw à False)
             # serait alors interprété à tort comme un refus de l'adversaire
             # (issue #316, point 1).
-            offer_draw = self._my_draw_offer_pending
             self.client.play_move(self.game_id, uci, offer_draw=offer_draw)
             now = time.monotonic()
             elapsed_ms = int((now - self._last_move_event_ts) * 1000)
@@ -1989,14 +2081,104 @@ class LichessGame(threading.Thread):
                 "Lichess : coup envoyé %s (délai %d ms, offre_nulle_jointe=%s).",
                 uci, elapsed_ms, offer_draw,
             )
+            self._game_log.state_change(
+                f"coup physique envoyé {uci} — offre_nulle_jointe={offer_draw} — accepté par Lichess."
+            )
+            # Issue #347, point 1 (partie 2) : contre un humain, l'envoi
+            # réussi de notre propre coup rouvre immédiatement la fenêtre
+            # « Proposer nulle » — sans attendre l'écho du flux (confirmé
+            # en plus par _apply_new_moves, voir plus haut), pour que le
+            # bouton devienne actif dès l'instant où le coup part vers
+            # Lichess, comme demandé (« dès que l'utilisateur a joué son
+            # coup »).
+            if not self._opponent_is_ai:
+                self._human_draw_window_open = True
         except LichessApiError as exc:
-            self._reset_target_fen = self.board.board_fen()
-            self._awaiting_piece_reset = True
-            send_event("lichess_move_refused", {"message": exc.api_message or str(exc)})
-        except (LichessNetworkError, LichessRateLimitError):
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+            self._handle_move_rejected(uci, exc)
+        except (LichessNetworkError, LichessRateLimitError) as exc:
+            self._game_log.state_change(f"coup physique {uci} — erreur réseau : {exc}.")
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
         # Le coup confirmé revient par le flux (gameState) et sera appliqué
         # par _apply_new_moves — jamais de mise à jour optimiste ici.
+
+    # Délai maximal (s) d'attente d'un événement de fin de partie déjà en
+    # route dans le flux, avant de conclure qu'un refus ambigu est une
+    # vraie erreur — voir _handle_move_rejected ci-dessous. Jamais une
+    # attente réseau : ce délai ne fait qu'attendre ce qui est peut-être
+    # déjà en chemin dans le flux ouvert (StreamReader), jamais une
+    # nouvelle requête. Issue réelle du 15/11/2026 (Alain, noirs) :
+    # l'événement de fin (adversaire abandonne) était déjà arrivé 51ms
+    # avant la réponse HTTP d'erreur du coup — largement sous ce délai.
+    AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S = 2.0
+
+    def _handle_move_rejected(self, uci: str, exc: LichessApiError) -> None:
+        """Issue #347, point 2 (partie 2) : un coup refusé par Lichess avec
+        le message HTTP 400 ambigu « Not your turn, or game already over »
+        (doc officielle lichess-org/api — un seul message pour deux causes
+        très différentes) ne doit jamais s'afficher comme une simple
+        erreur « Lichess a refusé ce coup » SI la vraie cause est que la
+        partie vient de se terminer (adversaire qui abandonne, temps
+        écoulé, nulle acceptée...) : cas réel constaté par Alain le
+        15/11/2026 (parties noirs) — il avait livré un mat sur l'échiquier
+        physique, mais l'adversaire avait abandonné quelques dizaines de
+        millisecondes avant que Lichess reçoive son coup ; Alain a gagné,
+        mais l'écran n'a montré qu'un coup refusé.
+
+        Message non ambigu (coup réellement illégal, position désynchro-
+        nisée, etc.) : comportement inchangé (toast + remise en place
+        physique demandée). Message ambigu : on relit l'état réel de la
+        partie — seule source de vérité de ce module (voir l'en-tête du
+        fichier) — en traitant tout événement déjà en route dans le flux
+        ouvert, avec une attente bornée (jamais indéfinie, voir
+        AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S) pour couvrir le cas où
+        l'événement de fin n'est pas encore arrivé. Si la partie est
+        confirmée terminée, le déroulement normal de fin de partie prend
+        le relais (_finalize, déclenché par _main_loop dès que
+        self.game_over devient vrai) — AUCUN toast « coup refusé » n'est
+        affiché dans ce cas, mais self._last_move_rejected_after_game_over
+        est posé pour que l'écran de fin précise que ce dernier coup
+        physique n'a pas été accepté (le PGN enregistré ne le contient de
+        toute façon jamais : _submit_move ne pousse jamais le coup sur
+        self.board avant confirmation par le flux)."""
+        message = exc.api_message or str(exc)
+        self._game_log.state_change(
+            f"coup physique {uci} — refusé par Lichess (HTTP {exc.status_code}) : {message}."
+        )
+        ambiguous = is_ambiguous_turn_or_over_error(message)
+        if ambiguous and not self.game_over:
+            self._drain_pending_stream_events(self.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S)
+        if ambiguous and self.game_over:
+            self._last_move_rejected_after_game_over = True
+            self._game_log.state_change(
+                f"coup physique {uci} — relecture du flux : partie déjà terminée "
+                f"(statut={self._status}) — dernier coup non accepté, aucune erreur affichée."
+            )
+            return
+        if ambiguous:
+            self._game_log.state_change(
+                f"coup physique {uci} — relecture du flux : partie toujours en cours "
+                f"après {self.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S:.1f}s — vraie erreur, coup refusé affiché."
+            )
+        self._reset_target_fen = self.board.board_fen()
+        self._awaiting_piece_reset = True
+        send_event("lichess_move_refused", {"message": message})
+
+    def _drain_pending_stream_events(self, timeout_s: float) -> None:
+        """Traite, dans la limite de `timeout_s`, tout événement du flux de
+        partie déjà disponible (ou arrivant pendant l'attente) — jamais de
+        nouvelle requête réseau ici, seulement la lecture de ce qui est
+        déjà en route. S'arrête dès que la partie est marquée terminée
+        (self.game_over) ou que le délai est dépassé."""
+        deadline = time.monotonic() + timeout_s
+        while not self.game_over:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            try:
+                event = self._stream_event_queue.get(timeout=min(remaining, 0.2))
+            except queue.Empty:
+                continue
+            self._handle_stream_event(event)
 
     # ── Fin de partie ────────────────────────────────────────────────────
 
@@ -2123,6 +2305,12 @@ class LichessGame(threading.Thread):
                     if self.opponent_caused_end else None
                 ),
                 "rated": self.rated,
+                # Issue #347, partie 2, point 2 : le dernier coup physique
+                # n'a pas été accepté par Lichess (partie déjà terminée
+                # côté serveur à sa réception) — jamais dans le PGN
+                # enregistré ci-dessus (_submit_move ne pousse jamais le
+                # coup localement avant confirmation du flux).
+                "last_move_rejected": self._last_move_rejected_after_game_over,
             }
             send_event("game_over", payload)
             if not skip:

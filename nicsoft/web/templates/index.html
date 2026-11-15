@@ -889,6 +889,11 @@
         <div id="rv-lichess-rated-info" class="game-gameover-info-text" style="display:none;"></div>
         <div id="lichess-opponent-end-banner" class="lichess-info-banner lichess-banner-danger" style="display:none;">
           <span id="lichess-opponent-end-cause"></span>
+          <!-- Issue #347, partie 2, point 2 : dernier coup physique non
+               accepté par Lichess (partie déjà terminée côté serveur quand
+               le coup est arrivé) — jamais affiché seul, toujours en plus
+               de la cause ci-dessus. -->
+          <span id="lichess-last-move-rejected-note" style="display:none;"></span>
           <button class="btn btn-reprendre" id="btn-lichess-ack-game-over" data-action="lichess_ack_game_over" data-i18n="lichess.jai_vu">J'ai vu</button>
         </div>
       </div>

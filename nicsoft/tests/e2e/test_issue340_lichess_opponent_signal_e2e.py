@@ -72,7 +72,11 @@ def test_cadre_depart_puis_reclamable_puis_disparait_au_retour(at_game_lichess):
     assert "board-opponent-gone-frame" not in classes
     assert "board-opponent-gone-frame-claimable" not in classes
     assert page.locator("#lichess-opponent-gone-banner").is_hidden()
-    toast_text = page.locator("#toast").inner_text()
+    # Issue #347, partie 2, point 1 : ce message (catégorie « adversaire
+    # parti/revenu ») est désormais persistant (bouton de fermeture visible,
+    # voir afficherToast()) — on lit le texte du <span> dédié, pas tout
+    # #toast (qui inclut aussi le "×" du bouton de fermeture).
+    toast_text = page.locator("#toast span").inner_text()
     expected = page.evaluate("() => t('lichess.adversaire_revenu')")
     assert toast_text == expected
 
