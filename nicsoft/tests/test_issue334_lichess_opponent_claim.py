@@ -37,7 +37,9 @@ import chess
 import pytest
 
 import nicsoft.core.config_manager as cm
-from nicsoft.modes.lichess.game import _DOUBLE_BEEP_GAP_S, _RANKS_1_4_LIT, _RANKS_5_8_LIT
+from nicsoft.modes.lichess.game import (
+    _DOUBLE_BEEP_GAP_S, _RANKS_1_4_LIT, _RANKS_3_4_LIT, _RANKS_5_6_LIT, _RANKS_5_8_LIT,
+)
 from nicsoft.modes.lichess.transport import TransportHTTPError
 from nicsoft.tests.test_issue309_lichess_l2a import FakeTransport, _ok
 from nicsoft.tests.test_issue331_lichess_opponent_alerts import _AlertBoard, _make_game, _started
@@ -80,9 +82,12 @@ def test_opponent_gone_decompte_exact_depuis_reception(isolated_config, monkeypa
     assert data["claimable"] is False
     assert data["draw_claimable"] is False
     assert data["seconds"] == pytest.approx(60.0, abs=0.5)
-    # Jamais de signal au simple départ (issue #334, point 4).
+    # Issue #340, point 1 : signal LED (toujours) dès le simple départ —
+    # pattern PARTIEL, distinct du pattern complet de la réclamation
+    # possible (vérifié plus loin dans ce fichier). Pas de bip ici : la
+    # case « Bip quand l'adversaire joue » n'est pas cochée dans ce test.
     assert board.beep_count == 0
-    assert board.all_leds_calls == []
+    assert board.all_leds_calls == [list(_RANKS_5_6_LIT)]
 
     # 40s d'horloge réelle simulées SANS nouvel événement Lichess — même
     # convention que test_issue311_lichess_sequencing (décrémente la
@@ -102,6 +107,12 @@ def test_opponent_gone_devient_reclamable_declenche_signal_une_fois(isolated_con
     _started(game, "white", opponent_is_ai=False)
 
     game._handle_stream_event({"type": "opponentGone", "gone": True, "claimWinInSeconds": 30})
+    # Issue #340, point 1 : le simple départ a déjà émis UN bip (case
+    # cochée) + la LED partielle, avant même la transition réclamable.
+    _wait_double_beep()
+    assert board.beep_count == 1
+    assert board.all_leds_calls == [list(_RANKS_5_6_LIT)]
+
     game._opponent_gone_ref_monotonic -= 30.0
     game._push_opponent_gone_state()
     data = _last(events, "lichess_opponent_gone")
@@ -109,14 +120,14 @@ def test_opponent_gone_devient_reclamable_declenche_signal_une_fois(isolated_con
     assert data["draw_claimable"] is True
     assert data["seconds"] == 0.0
     _wait_double_beep()
-    assert board.beep_count == 2  # bip DOUBLE (issue #331, point 3 réutilisé)
+    assert board.beep_count == 1 + 2  # 1 (départ) + bip DOUBLE (réclamable, #331 réutilisé)
     assert board.all_leds_calls and board.all_leds_calls[-1] == _RANKS_5_8_LIT
 
     # Rappelé une seconde fois (prochaine poussée ~1x/s) : aucun second
     # signal pour la même absence.
     game._push_opponent_gone_state()
     _wait_double_beep()
-    assert board.beep_count == 2
+    assert board.beep_count == 3
 
 
 @pytest.mark.parametrize("user_color,expected_pattern", [("white", _RANKS_5_8_LIT), ("black", _RANKS_1_4_LIT)])
@@ -129,6 +140,20 @@ def test_signal_reclamable_bonne_moitie_selon_orientation(isolated_config, monke
     assert board.all_leds_calls and board.all_leds_calls[-1] == expected_pattern
 
 
+@pytest.mark.parametrize("user_color,expected_pattern", [("white", _RANKS_5_6_LIT), ("black", _RANKS_3_4_LIT)])
+def test_signal_depart_bonne_moitie_selon_orientation(isolated_config, monkeypatch, user_color, expected_pattern):
+    """Issue #340, point 1/8 : pattern PARTIEL du simple départ, pour les
+    deux orientations — distinct du pattern complet (réclamable) et
+    toujours côté adversaire (jamais le camp de l'utilisateur, voir la
+    correction du point 8 sur _RANKS_1_4_LIT/_RANKS_5_8_LIT)."""
+    board = _AlertBoard()
+    game, client, events, _, _ = _make_game(monkeypatch, nl_inst=board)
+    _started(game, user_color, opponent_is_ai=False)
+
+    game._handle_stream_event({"type": "opponentGone", "gone": True, "claimWinInSeconds": 60})
+    assert board.all_leds_calls == [list(expected_pattern)]
+
+
 def test_opponent_revenu_avant_la_fin_du_delai_annule_tout(isolated_config, monkeypatch):
     cm.save_config({"lichess_beep_opponent_move": True})
     board = _AlertBoard()
@@ -139,7 +164,7 @@ def test_opponent_revenu_avant_la_fin_du_delai_annule_tout(isolated_config, monk
     game._opponent_gone_ref_monotonic -= 30.0
     game._push_opponent_gone_state()
     _wait_double_beep()
-    assert board.beep_count == 2
+    assert board.beep_count == 3  # 1 (départ, point 1) + 2 (réclamable, double)
     off_before = board.leds_off_count
 
     game._handle_stream_event({"type": "opponentGone", "gone": False})

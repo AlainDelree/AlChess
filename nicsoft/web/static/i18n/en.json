@@ -779,6 +779,7 @@
   "lichess.cause.default": "The game ended on Lichess.",
   "lichess.adversaire_parti_decompte": "Your opponent has left the game — claim possible in {seconds}s.",
   "lichess.adversaire_parti_reclamable": "Your opponent has left the game — you can claim victory or a draw.",
+  "lichess.adversaire_revenu": "Your opponent is back — the game continues normally.",
   "lichess.reclamer_victoire": "Claim victory",
   "lichess.reclamer_nulle": "Claim draw",
   "lichess.reclamation_refusee": "Lichess refused the claim: {detail}",

@@ -70,8 +70,39 @@ _ABORT_CAUSE_DEFAULT_KEY = "lichess.annulee_cause_inconnue"
 # (voir _wait_for_game_over_ack ci-dessous). set_all_leds() poste un seul
 # paquet USB (confirmé par lecture de driver.py/hid_backend.py) — aucun
 # second accès USB n'est nécessaire pour allumer plusieurs cases à la fois.
-_RANKS_1_4_LIT = ["00000000"] * 4 + ["11111111"] * 4  # moitié blancs (rangs 1-4)
-_RANKS_5_8_LIT = ["11111111"] * 4 + ["00000000"] * 4  # moitié noirs (rangs 5-8)
+#
+# Issue #340, point 8 : ces deux patterns étaient INVERSÉS depuis #331 —
+# l'indice i d'une chaîne du tableau correspond physiquement à la rangée
+# (i+1), convention confirmée par trois lectures indépendantes et
+# concordantes du code existant : hid_backend.set_all_leds(r1..r8)
+# ("r1..r8 = rangées 1 à 8"), driver.py::_led_worker_loop (arr[0]->r1,
+# ..., arr[7]->r8) et build_led_map_for_move/square_cords (led_map[rang-1],
+# déjà utilisé pour l'affichage normal des coups, jamais mis en cause).
+# Avec cette convention, les anciennes valeurs allumaient en réalité
+# l'INVERSE de ce que leur nom et leur commentaire annonçaient
+# (_RANKS_1_4_LIT allumait les rangs 5-8, _RANKS_5_8_LIT les rangs 1-4) :
+# c'est ce qui a fait allumer, lors de la partie réelle du 15/11/2026 où
+# Alain jouait les noirs, les LED de SON propre camp (rangs 5-8) au lieu
+# de celles de l'adversaire (rangs 1-4) — opponent_half_led_pattern()
+# demandait pourtant la bonne constante ; seul le contenu des deux
+# constantes était faux. Corrigé ci-dessous (contenu échangé, noms
+# inchangés) — non ré-testé sur le vrai échiquier (aucun matériel
+# disponible pour cette issue), voir rapport de clôture.
+_RANKS_1_4_LIT = ["11111111"] * 4 + ["00000000"] * 4  # moitié blancs (rangs 1-4)
+_RANKS_5_8_LIT = ["00000000"] * 4 + ["11111111"] * 4  # moitié noirs (rangs 5-8)
+
+# Issue #340, point 1/2 : pattern PARTIEL (seulement les 2 rangs du centre
+# du camp adverse, les plus proches du milieu de l'échiquier) pour le
+# signal de simple DÉPART de l'adversaire — volontairement moins étendu
+# que le pattern COMPLET (4 rangs, _RANKS_1_4_LIT/_RANKS_5_8_LIT) réservé
+# au signal « réclamation possible » (point 2), pour qu'on distingue les
+# deux sans lire l'écran. Pas de clignotement : la seule primitive
+# matérielle disponible pour un affichage persistant (set_all_leds)
+# affiche un pattern statique — un clignotement aurait exigé un fil dédié
+# gérant lui-même l'alternance marche/arrêt, jamais testé sur le vrai
+# échiquier pour cette issue (voir rapport de clôture).
+_RANKS_3_4_LIT = ["00000000"] * 2 + ["11111111"] * 2 + ["00000000"] * 4  # centre, côté blancs
+_RANKS_5_6_LIT = ["00000000"] * 4 + ["11111111"] * 2 + ["00000000"] * 2  # centre, côté noirs
 
 # Délai (s) entre les deux bips du signal « distinct » (nulle proposée par
 # l'adversaire / fin de partie provoquée par l'adversaire) — jamais testé
@@ -97,6 +128,14 @@ def opponent_half_led_pattern(user_color: str) -> list:
     """Pattern LED (8 rangées) de la moitié de l'échiquier côté adversaire,
     quelle que soit l'orientation de l'utilisateur (issue #331, point 3)."""
     return _RANKS_5_8_LIT if user_color == "white" else _RANKS_1_4_LIT
+
+
+def opponent_gone_departure_led_pattern(user_color: str) -> list:
+    """Pattern LED du signal de simple DÉPART de l'adversaire (issue #340,
+    point 1) — partiel (2 rangs centraux du camp adverse), distinct du
+    pattern complet d'opponent_half_led_pattern() réservé à la réclamation
+    possible (point 2)."""
+    return _RANKS_5_6_LIT if user_color == "white" else _RANKS_3_4_LIT
 
 
 # ── Fonctions pures ──────────────────────────────────────────────────────────
@@ -391,6 +430,12 @@ class LichessGame(threading.Thread):
         self._opponent_gone_ref_monotonic = None
         self._opponent_gone_claimable = False
         self._opponent_gone_signal_acked = False
+        # Issue #340, point 1 : vrai dès que le signal de simple départ a
+        # été donné UNE FOIS pour la période d'absence en cours — remis à
+        # faux seulement au retour de l'adversaire ou à un NOUVEAU départ
+        # (jamais par un événement `opponentGone` répété de la même
+        # période, voir _apply_opponent_gone, point 9 de cette issue).
+        self._opponent_gone_departure_signaled = False
         # Issue #334, point 5 : vrai tant qu'une demande de reprise de coup
         # de l'adversaire (wtakeback/btakeback, cf. doc lichess-org/api
         # GameStateEvent.yaml) reste active côté Lichess — sert à ne la
@@ -690,7 +735,19 @@ class LichessGame(threading.Thread):
                 "message_key": "lichess.reclamation_pas_encore_possible", "type": "warning",
             })
             return
-        self._safe_claim_call(claim_fn, request_label)
+        if self._safe_claim_call(claim_fn, request_label):
+            # Issue #340, point 10 : une réclamation réussie termine la
+            # partie à l'initiative de l'UTILISATEUR, exactement comme un
+            # abandon/une annulation (_request_resign_or_abort) — sans ce
+            # marquage, _finalize() ne pouvait pas distinguer ce cas d'une
+            # fin VRAIMENT causée par l'adversaire (le statut Lichess qui en
+            # résulte, ex. "timeout", est le même dans les deux cas) et
+            # rallumait à tort le signal LED/bip « fin de partie provoquée
+            # par l'adversaire » — observé dans la partie réelle du
+            # 15/11/2026 (réclamation acceptée à 06:04:48, LED et double bip
+            # « fin de partie » redonnés juste après, comme si l'adversaire
+            # l'avait provoquée).
+            self._user_initiated_end = True
 
     def _safe_client_call(self, fn) -> bool:
         try:
@@ -801,48 +858,106 @@ class LichessGame(threading.Thread):
         if load_config().get("lichess_beep_opponent_move"):
             self._hardware_beep(reason, double=double)
 
-    def _light_opponent_half(self, reason: str) -> None:
-        """Allume en LED, de façon persistante (jamais d'extinction
-        automatique), la moitié de l'échiquier côté adversaire — toujours,
-        indépendamment de la case à cocher (issue #331, point 3). Reste
-        allumé jusqu'à _clear_opponent_alert_leds() (réponse à la nulle, ou
-        acquittement de fin de partie). Ne perturbe jamais l'affichage
-        normal du coup adverse : jamais appelé pendant celui-ci (seulement
-        depuis l'offre de nulle adverse et la fin de partie, voir
-        _apply_game_state/_finalize)."""
-        if self.user_color is None:
-            return
-        pattern = opponent_half_led_pattern(self.user_color)
-        half_desc = "rangs 5-8 (noirs)" if self.user_color == "white" else "rangs 1-4 (blancs)"
+    def _set_opponent_alert_leds(self, pattern: list, desc: str, reason: str) -> None:
+        """Poste un pattern LED d'alerte persistant (jamais d'extinction
+        automatique) — factorise ce que faisait _light_opponent_half() pour
+        le pattern complet (issue #331) et ce que fait maintenant
+        _light_opponent_departure() pour le pattern partiel (issue #340,
+        point 1)."""
         try:
             self.nl_inst.turn_off_all_leds()
             self.nl_inst.set_all_leds(pattern)
         except Exception as exc:
-            logger.debug("LED moitié adversaire (%s) échouée : %s", reason, exc)
-        logger.info("Lichess : LED moitié adversaire allumées (%s, %s).", reason, half_desc)
-        self._game_log.state_change(f"LED allumées — moitié adversaire ({half_desc}) — déclencheur={reason}.")
+            logger.debug("LED alerte adversaire (%s) échouée : %s", reason, exc)
+        logger.info("Lichess : LED alerte adversaire allumées (%s, %s).", reason, desc)
+        self._game_log.state_change(f"LED allumées — {desc} — déclencheur={reason}.")
+
+    def _light_opponent_half(self, reason: str) -> None:
+        """Allume en LED, de façon persistante, la moitié COMPLÈTE de
+        l'échiquier côté adversaire — toujours, indépendamment de la case à
+        cocher (issue #331, point 3). Reste allumé jusqu'à
+        _clear_opponent_alert_leds() (réponse à la nulle, acquittement de
+        fin de partie, ou acquittement/retour du signal « adversaire
+        parti »)."""
+        if self.user_color is None:
+            return
+        pattern = opponent_half_led_pattern(self.user_color)
+        half_desc = "moitié adversaire (rangs 5-8 (noirs))" if self.user_color == "white" \
+            else "moitié adversaire (rangs 1-4 (blancs))"
+        self._set_opponent_alert_leds(pattern, half_desc, reason)
+
+    def _light_opponent_departure(self, reason: str) -> None:
+        """Issue #340, point 1 : allume en LED, de façon persistante, le
+        pattern PARTIEL (2 rangs centraux du camp adverse) du simple départ
+        de l'adversaire — distinct du pattern complet de
+        _light_opponent_half(), réservé à la réclamation possible."""
+        if self.user_color is None:
+            return
+        pattern = opponent_gone_departure_led_pattern(self.user_color)
+        half_desc = "départ adversaire (rangs 5-6, centre côté noir)" if self.user_color == "white" \
+            else "départ adversaire (rangs 3-4, centre côté blanc)"
+        self._set_opponent_alert_leds(pattern, half_desc, reason)
 
     def _clear_opponent_alert_leds(self, reason: str) -> None:
-        """Éteint le signal LED posé par _light_opponent_half() — réponse à
-        la nulle (accepter/refuser) ou acquittement de fin de partie."""
+        """Éteint le signal LED posé par _light_opponent_half()/
+        _light_opponent_departure() — réponse à la nulle (accepter/
+        refuser), acquittement de fin de partie, ou acquittement/retour du
+        signal « adversaire parti »."""
         try:
             self.nl_inst.turn_off_all_leds()
         except Exception as exc:
             logger.debug("Extinction LED alerte adversaire (%s) échouée : %s", reason, exc)
         self._game_log.state_change(f"LED éteintes — acquittement ({reason}).")
 
+    def _apply_opponent_gone_led_state(self, reason: str) -> None:
+        """Issue #340, point 5 : pose en LED l'alerte « adversaire parti »
+        actuellement due (réclamable > simple départ), SAUF si un coup
+        adverse est en cours d'affichage sur l'échiquier
+        (self._awaiting_physical_replication, posé par
+        _start_opponent_replication_wait via des set_led() additifs non
+        encore confirmés) : priorité au coup, le signal est alors différé —
+        _check_replication() rappelle cette même méthode juste après avoir
+        confirmé le coup et éteint ses LED, ce qui rétablit le signal à ce
+        moment-là. N'affecte jamais le bip, émis indépendamment (il ne
+        partage aucune ressource avec l'affichage LED)."""
+        if self._awaiting_physical_replication:
+            self._game_log.state_change(f"LED alerte différée (coup adverse affiché) — {reason}.")
+            return
+        if not self._opponent_gone or self._opponent_gone_signal_acked:
+            return
+        if self._opponent_gone_claimable:
+            self._light_opponent_half(reason)
+        else:
+            self._light_opponent_departure(reason)
+
+    def _signal_opponent_gone_departure(self) -> None:
+        """Issue #340, point 1 : signal donné UNE SEULE fois par période
+        d'absence, dès le départ de l'adversaire (jamais seulement à la
+        réclamation possible, comme avant cette issue) — bip simple (case
+        à cocher) + LED partielle persistante, distincte du pattern complet
+        de _signal_opponent_claimable(). La garde d'unicité (une seule fois
+        par période) est faite par l'appelant (_apply_opponent_gone,
+        is_new_period) — _opponent_gone_departure_signaled n'est positionné
+        qu'ici, pour que _apply_opponent_gone_led_state() sache ensuite
+        quel pattern réafficher après un éventuel coup adverse."""
+        self._opponent_gone_departure_signaled = True
+        self._maybe_beep_opponent("adversaire parti", double=False)
+        self._apply_opponent_gone_led_state("adversaire parti")
+
     def _signal_opponent_claimable(self) -> None:
         """Issue #334, point 4 : réutilise le mécanisme de signaux de #331
         dès que la réclamation devient possible (jamais dès le simple
-        départ de l'adversaire, voir _push_opponent_gone_state) — bip
-        double (case à cocher) + LED persistante de la moitié adverse,
-        jusqu'à acquittement (lichess_opponent_gone_ack), retour de
-        l'adversaire ou réclamation. N'émet rien si déjà acquitté pour
-        cette absence (self._opponent_gone_signal_acked)."""
+        départ de l'adversaire, voir _push_opponent_gone_state et, depuis
+        l'issue #340 point 1, _signal_opponent_gone_departure) — bip
+        double (case à cocher) + LED persistante de la moitié adverse
+        COMPLÈTE (pattern distinct de celui du simple départ), jusqu'à
+        acquittement (lichess_opponent_gone_ack), retour de l'adversaire ou
+        réclamation. N'émet rien si déjà acquitté pour cette absence
+        (self._opponent_gone_signal_acked)."""
         if self._opponent_gone_signal_acked:
             return
         self._maybe_beep_opponent("réclamation possible (adversaire parti)", double=True)
-        self._light_opponent_half("réclamation possible (adversaire parti)")
+        self._apply_opponent_gone_led_state("réclamation possible (adversaire parti)")
 
     def _wait_for_game_over_ack(self) -> None:
         """Bloque (fil du lanceur de cette partie — jamais le fil socketio
@@ -889,14 +1004,33 @@ class LichessGame(threading.Thread):
         # chatLine : rien à afficher à cette étape.
 
     def _apply_opponent_gone(self, event: dict) -> None:
-        """Issue #334, points 1/4 : événement `opponentGone` du flux
-        (gone + claimWinInSeconds, doc lichess-org/api
-        doc/specs/schemas/OpponentGoneEvent.yaml, lue le 14/11/2026).
-        Jamais de signal bip/LED ici — seulement mémorisation du délai
-        annoncé et de l'instant de réception (horloge monotone locale) :
-        c'est _push_opponent_gone_state(), rappelée à chaque seconde par
-        _maybe_push_clock, qui recalcule le temps restant et déclenche le
-        signal une fois ce délai écoulé."""
+        """Issue #334, points 1/4 — étendu par l'issue #340 : événement
+        `opponentGone` du flux (gone + claimWinInSeconds, doc lichess-org/api
+        doc/specs/schemas/OpponentGoneEvent.yaml, lue le 14/11/2026), reçu
+        environ toutes les 5s TANT QUE l'adversaire reste parti (observé
+        dans la partie réelle du 15/11/2026 : des événements répétés
+        arrivent même une fois le délai à 0, jusqu'à ce que l'adversaire
+        revienne ou que la réclamation ait lieu).
+
+        Issue #340, point 9 : un événement répété de la MÊME période
+        d'absence ne doit jamais réarmer un signal déjà donné — avant ce
+        correctif, `_opponent_gone_claimable`/`_opponent_gone_signal_acked`
+        étaient remis à faux à CHAQUE événement `gone=true`, ce qui faisait
+        croire à _push_opponent_gone_state() qu'on venait juste de
+        redevenir réclamable et relançait le signal (bip double + LED) —
+        observé trois fois de suite (06:04:41/42/47) dans la partie réelle
+        au lieu d'une. Seule une NOUVELLE période (transition
+        non-parti -> parti) réarme ces indicateurs ; `claim_win_in_seconds`
+        reste mis à jour à chaque événement de la même période (c'est le
+        countdown légitime envoyé par Lichess, pas un signal).
+
+        Issue #340, point 1 : le signal de simple départ
+        (_signal_opponent_gone_departure) est déclenché ici, une seule fois
+        par période, dès la détection d'une NOUVELLE période — jamais de
+        signal bip/LED « réclamable » ici : c'est toujours
+        _push_opponent_gone_state(), rappelée à chaque seconde par
+        _maybe_push_clock, qui recalcule le temps restant et déclenche ce
+        second signal une fois le délai écoulé."""
         gone = bool(event.get("gone"))
         claim_win_in_seconds = event.get("claimWinInSeconds")
         logger.info(
@@ -907,8 +1041,12 @@ class LichessGame(threading.Thread):
             f"opponentGone reçu — gone={gone}, claimWinInSeconds={claim_win_in_seconds}."
         )
         if gone:
+            is_new_period = not self._opponent_gone
             self._opponent_gone = True
-            self._opponent_gone_signal_acked = False
+            if is_new_period:
+                self._opponent_gone_signal_acked = False
+                self._opponent_gone_claimable = False
+                self._opponent_gone_departure_signaled = False
             if claim_win_in_seconds is not None:
                 self._opponent_gone_claim_win_in_seconds = max(0.0, float(claim_win_in_seconds))
                 self._opponent_gone_ref_monotonic = time.monotonic()
@@ -920,16 +1058,18 @@ class LichessGame(threading.Thread):
                 # que bloqué sans fin (voir rapport de clôture).
                 self._opponent_gone_claim_win_in_seconds = 0.0
                 self._opponent_gone_ref_monotonic = time.monotonic()
-            self._opponent_gone_claimable = False
+            if is_new_period:
+                self._signal_opponent_gone_departure()
             self._push_opponent_gone_state()
         else:
-            was_claimable = self._opponent_gone_claimable
+            was_signaled = self._opponent_gone_departure_signaled or self._opponent_gone_claimable
             self._opponent_gone = False
             self._opponent_gone_claim_win_in_seconds = None
             self._opponent_gone_ref_monotonic = None
             self._opponent_gone_claimable = False
             self._opponent_gone_signal_acked = False
-            if was_claimable:
+            self._opponent_gone_departure_signaled = False
+            if was_signaled:
                 self._clear_opponent_alert_leds("adversaire de retour")
             send_event("lichess_opponent_gone", {"gone": False})
 
@@ -1670,6 +1810,12 @@ class LichessGame(threading.Thread):
             except Exception as exc:
                 logger.debug("Extinction LEDs (réplication) échouée : %s", exc)
             send_event("lichess_position_ok", {})
+            # Issue #340, point 5 : le coup adverse vient de finir d'être
+            # montré (priorité au coup, voir _apply_opponent_gone_led_state)
+            # — si un signal « adversaire parti » reste dû (pas encore
+            # acquitté, adversaire toujours parti), le rétablir maintenant
+            # que turn_off_all_leds() ci-dessus vient de l'effacer.
+            self._apply_opponent_gone_led_state("coup adverse affiché — signal rétabli")
             return
         self._throttled_position_wait(hardware_fen, self._replication_target_fen)
 

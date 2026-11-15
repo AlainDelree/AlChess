@@ -779,6 +779,7 @@
   "lichess.cause.default": "La partie s'est terminée côté Lichess.",
   "lichess.adversaire_parti_decompte": "Votre adversaire a quitté la partie — réclamation possible dans {seconds} s.",
   "lichess.adversaire_parti_reclamable": "Votre adversaire a quitté la partie — vous pouvez réclamer la victoire ou la nulle.",
+  "lichess.adversaire_revenu": "Votre adversaire est revenu — la partie continue normalement.",
   "lichess.reclamer_victoire": "Réclamer la victoire",
   "lichess.reclamer_nulle": "Réclamer la nulle",
   "lichess.reclamation_refusee": "Lichess a refusé la réclamation : {detail}",

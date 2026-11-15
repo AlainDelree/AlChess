@@ -779,6 +779,7 @@
   "lichess.cause.default": "Die Partie wurde auf Lichess beendet.",
   "lichess.adversaire_parti_decompte": "Ihr Gegner hat die Partie verlassen — Anspruch möglich in {seconds} s.",
   "lichess.adversaire_parti_reclamable": "Ihr Gegner hat die Partie verlassen — Sie können den Sieg oder ein Remis beanspruchen.",
+  "lichess.adversaire_revenu": "Ihr Gegner ist zurück — die Partie geht normal weiter.",
   "lichess.reclamer_victoire": "Sieg beanspruchen",
   "lichess.reclamer_nulle": "Remis beanspruchen",
   "lichess.reclamation_refusee": "Lichess hat den Anspruch abgelehnt: {detail}",

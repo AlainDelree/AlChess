@@ -177,6 +177,13 @@ document.addEventListener("click", (e) => {
       break;
     case "lichess_opponent_gone_ack":
       sendAction({ type: "lichess_opponent_gone_ack" });
+      // Issue #340, point 3 : le cadre suit le signal bip/LED, éteint
+      // côté matériel par ce même acquittement (voir game.py —
+      // lichess_opponent_gone_ack) — aucun événement serveur dédié ne
+      // revient pour ce détail purement cosmétique, donc mis à jour ici,
+      // localement, exactement comme l'intention de l'utilisateur.
+      _lichessOpponentGoneSignalAcked = true;
+      _lichessUpdateOpponentGoneFrame();
       break;
     case "lichess_promotion":
       lichessSubmitPromotion(el.dataset.piece);
@@ -1605,6 +1612,15 @@ socket.on("app_state", (data) => {
     _lastTurnInfo = null;
     _retransPlayerData = null;
     _gameSource = "externe";
+    // Issue #340, point 4 : garantit qu'aucun cadre/bandeau « adversaire
+    // parti » ne reste affiché au retour au menu, quel que soit le chemin
+    // suivi pour y arriver — contrairement au chemin game_over normal
+    // (socket.on("game_over"), ligne ~1834), le chemin back_menu envoie
+    // game_over avec skip=true, qui ne nettoie PAS ces banners côté client
+    // (ignoré volontairement, voir ce handler) : ce nettoyage générique,
+    // exécuté à CHAQUE arrivée réelle sur le menu, couvre aussi ce cas-là
+    // (et tout autre retour au menu futur) sans dépendre du chemin suivi.
+    _lichessHideStatusBanners();
     // Remis à neutre ici : repris par chaque mode avant sa propre attente de
     // position (Lichess dès le clic "start_lichess" ; pédagogique/HH à leur
     // "init"/"init_hh") — évite qu'un _gameMode="lichess" résiduel affiche à
@@ -1983,6 +1999,13 @@ let _lichessOpponentGoneActive = false;
 let _lichessOpponentGoneSeconds = null;
 let _lichessOpponentGoneClaimable = false;
 let _lichessOpponentGoneDrawClaimable = false;
+// Cadre de l'échiquier de l'écran (issue #340, point 3) — contrairement au
+// bandeau texte (qui reste affiché après « J'ai vu », voir le commentaire
+// HTML au-dessus de #lichess-opponent-gone-banner), le cadre suit le signal
+// bip/LED et disparaît donc aussi sur acquittement local, pas seulement au
+// retour de l'adversaire. Remis à faux à chaque NOUVEAU départ (transition
+// gone=false -> gone=true), jamais par un simple re-rendu de la même période.
+let _lichessOpponentGoneSignalAcked = false;
 let _lichessReplaySettings = null;
 // Vrai quand un retournement manuel (flipBoard) a échangé les rangées de
 // noms haut/bas par rapport à la convention initiale (haut=adversaire,
@@ -2044,11 +2067,30 @@ function _lichessHideStatusBanners() {
   _lichessOpponentGoneSeconds = null;
   _lichessOpponentGoneClaimable = false;
   _lichessOpponentGoneDrawClaimable = false;
+  _lichessOpponentGoneSignalAcked = false;
   const btnClaimVictory = document.getElementById("btn-lichess-claim-victory");
   if (btnClaimVictory) btnClaimVictory.disabled = true;
   const btnClaimDraw = document.getElementById("btn-lichess-claim-draw");
   if (btnClaimDraw) btnClaimDraw.disabled = true;
   _lichessSetActionButtons(true, true, false);
+  // Issue #340, point 4 : aucun cadre ne doit rester affiché d'une partie
+  // à l'autre ni au retour au menu — cette fonction est déjà appelée dans
+  // tous ces cas (voir ses appelants existants).
+  _lichessUpdateOpponentGoneFrame();
+}
+
+// Cadre autour de l'échiquier de l'écran tant que l'adversaire est parti
+// (issue #340, point 3) — orange pour le simple départ, rouge distinct dès
+// que la réclamation devient possible ; disparaît avec le signal (retour
+// de l'adversaire, acquittement « J'ai vu », fin de partie ou menu, tous
+// gérés par _lichessHideStatusBanners ci-dessus et le handler socket
+// ci-dessous).
+function _lichessUpdateOpponentGoneFrame() {
+  const wrapper = document.getElementById("board-wrapper");
+  if (!wrapper) return;
+  const show = _lichessOpponentGoneActive && !_lichessOpponentGoneSignalAcked;
+  wrapper.classList.toggle("board-opponent-gone-frame", show && !_lichessOpponentGoneClaimable);
+  wrapper.classList.toggle("board-opponent-gone-frame-claimable", show && _lichessOpponentGoneClaimable);
 }
 
 // Boutons Abandonner/Proposer nulle (issue #321, points 1 et 2) — l'état
@@ -2370,12 +2412,21 @@ function _lichessRenderOpponentGoneBanner() {
 
 socket.on("lichess_opponent_gone", (data) => {
   const gone = !!data.gone;
+  const wasGone = _lichessOpponentGoneActive;
+  if (gone && !wasGone) _lichessOpponentGoneSignalAcked = false;  // nouveau départ
   _lichessOpponentGoneActive = gone;
   _lichessOpponentGoneSeconds = gone ? (data.seconds ?? 0) : null;
   _lichessOpponentGoneClaimable = gone && !!data.claimable;
   _lichessOpponentGoneDrawClaimable = gone && !!data.draw_claimable;
   if (gone) _lichessRenderOpponentGoneBanner();
   _lichessShowBanner("lichess-opponent-gone-banner", gone);
+  _lichessUpdateOpponentGoneFrame();
+  // Issue #340, point 4 : court message au retour de l'adversaire — le
+  // bandeau/cadre viennent de disparaître ci-dessus, ce toast confirme
+  // explicitement pourquoi (plutôt que de laisser l'utilisateur deviner).
+  if (wasGone && !gone) {
+    afficherToast(t("lichess.adversaire_revenu"), "info");
+  }
 });
 
 // ── Nulle : message persistant près de « Tour en cours » (issue #321,
