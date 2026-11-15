@@ -21,6 +21,20 @@ Corrections dans LichessGame (nicsoft/modes/lichess/game.py) :
 
 Entièrement sans réseau (faux transport/client, voir test_issue309) et sans
 matériel (FakeBoard — double exposant current_fen, comme nl_inst réel).
+
+Issue #347 (partie 1) a changé, contre un adversaire HUMAIN seulement, la
+règle d'activation des DEUX boutons :
+  - Abandonner reste actif à tout moment (plus de dépendance au trait/à la
+    position physique) — les tests ci-dessous qui vérifiaient
+    resign_enabled selon le trait utilisent donc désormais un adversaire
+    IA (comportement de #321 inchangé contre elle) ;
+  - Proposer nulle suit l'usage FIDE (actif seulement APRÈS son propre
+    coup, jusqu'au coup suivant de l'adversaire) plutôt que « mon tour » —
+    les tests humains ci-dessous attendant (True, True) dès le début de
+    partie ou juste après la reproduction du coup adverse (avant d'avoir
+    soi-même joué) sont corrigés en (True, False). Voir
+    test_issue347_lichess_resign_anytime_and_draw_after_move.py pour la
+    couverture dédiée de ce nouveau comportement.
 """
 import chess
 
@@ -79,11 +93,13 @@ def test_boutons_restent_desactives_tant_que_le_coup_adverse_nest_pas_reproduit(
 
 def test_boutons_actifs_des_le_debut_de_partie_pour_les_blancs(monkeypatch):
     """Les blancs sont au trait dès le début, position physique de départ
-    déjà alignée (issue #321, point 1 : actif dès le tout début). Adversaire
-    HUMAIN ici (pas l'IA) : depuis l'issue #327, point 5, Proposer nulle
-    reste grisé en permanence contre l'IA (établi par lecture du code
-    public de lila — voir game.py) — ce test vérifie les DEUX boutons
-    actifs, qui suppose donc un adversaire humain."""
+    déjà alignée (issue #321, point 1 : actif dès le tout début) — reste
+    vrai pour Abandonner (issue #347 : actif en permanence contre un
+    humain). Adversaire HUMAIN ici (pas l'IA). Proposer nulle, en
+    revanche, est désormais grisé jusqu'au premier coup joué par
+    l'utilisateur (issue #347, partie 1, point 2 — usage FIDE, y compris
+    après le tout premier coup) : jamais actif ici, avant que les blancs
+    n'aient joué."""
     events, _, _ = _make_recorder(monkeypatch)
     board = FakeBoard()
     game, _, _ = _make_game(nl_inst=board, known_user_color="white")
@@ -92,16 +108,18 @@ def test_boutons_actifs_des_le_debut_de_partie_pour_les_blancs(monkeypatch):
         "state": {"status": "started", "moves": ""},
     })
     assert game.user_color == "white"
-    assert game._action_buttons_state == (True, True)
+    assert game._action_buttons_state == (True, False)
     btn_events = _events_of(events, "lichess_action_buttons")
     assert btn_events and btn_events[-1] == {
-        "resign_enabled": True, "draw_enabled": True, "draw_disabled_vs_ai": False,
+        "resign_enabled": True, "draw_enabled": False, "draw_disabled_vs_ai": False,
     }
 
 
 def test_boutons_sactivent_pour_les_noirs_une_fois_le_coup_reproduit(monkeypatch):
-    """Adversaire humain (voir commentaire du test précédent) — nécessaire
-    pour que Proposer nulle puisse être actif ici."""
+    """Adversaire humain (voir commentaire du test précédent). Abandonner
+    actif dès le début (issue #347). Proposer nulle reste grisé une fois
+    le coup adverse reproduit : les noirs n'ont pas encore joué leur
+    propre coup (issue #347, partie 1, point 2)."""
     events, _, _ = _make_recorder(monkeypatch)
     board = FakeBoard()
     game, _, _ = _make_game(nl_inst=board, known_user_color="black")
@@ -112,7 +130,7 @@ def test_boutons_sactivent_pour_les_noirs_une_fois_le_coup_reproduit(monkeypatch
     board.current_fen = AFTER_E2E4_W
     game._tick_physical()
     assert game._awaiting_physical_replication is False
-    assert game._action_buttons_state == (True, True)
+    assert game._action_buttons_state == (True, False)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -122,18 +140,23 @@ def test_boutons_sactivent_pour_les_noirs_une_fois_le_coup_reproduit(monkeypatch
 # ═══════════════════════════════════════════════════════════════════════
 
 def test_position_illegale_desactive_les_boutons_et_signale_les_cases(monkeypatch):
-    """Adversaire humain (voir commentaires ci-dessus) — nécessaire pour que
-    Proposer nulle puisse être actif ici."""
+    """Adversaire IA ici (issue #347 : depuis cette issue, Abandonner reste
+    actif en permanence contre un HUMAIN, y compris en position illégale —
+    ce test vérifie donc le comportement INCHANGÉ contre l'IA, où les deux
+    boutons restent liés au trait/à la position physique, exactement comme
+    avant #347). Couverture du cas humain (Abandonner reste actif malgré la
+    position illégale) : voir
+    test_issue347_lichess_resign_anytime_and_draw_after_move.py."""
     events, _, _ = _make_recorder(monkeypatch)
     board = FakeBoard()
-    game, _, _ = _make_game(nl_inst=board, known_user_color="black")
+    game, _, _ = _make_game(nl_inst=board)
     game._apply_game_full({
-        "white": {"id": "opp", "name": "Adversaire"}, "black": {"id": "alain"},
+        "white": {"aiLevel": 1}, "black": {"id": "alain"},
         "state": {"status": "started", "moves": "e2e4"},
     })
     board.current_fen = AFTER_E2E4_W
     game._tick_physical()
-    assert game._action_buttons_state == (True, True)
+    assert game._action_buttons_state == (True, False)
 
     after_e4 = chess.Board()
     after_e4.push_uci("e2e4")
@@ -159,7 +182,7 @@ def test_position_illegale_desactive_les_boutons_et_signale_les_cases(monkeypatc
     game._tick_physical()
     assert game._illegal_position_active is False
     assert _events_of(events, "lichess_illegal_position")[-1] == {"active": False}
-    assert game._action_buttons_state == (True, True)
+    assert game._action_buttons_state == (True, False)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -222,26 +245,11 @@ def test_refuser_offre_adverse_toujours_possible_boutons_desactives(monkeypatch)
     assert game._draw_offered_by_opponent is False
 
 
-def test_proposer_nulle_desactive_tant_quune_offre_est_en_attente(monkeypatch):
-    """Ne fait pas partie des deux exceptions de sécurité de l'issue, mais
-    un comportement préexistant à préserver : jamais deux offres de nulle
-    de l'utilisateur en même temps."""
-    events, _, actions = _make_recorder(monkeypatch)
-    board = FakeBoard()
-    client = GameClient("lip_test", transport=FakeTransport())
-    monkeypatch.setattr(client, "answer_draw", lambda game_id, accept: None)
-    # Adversaire humain (voir commentaires plus haut dans ce fichier) : la
-    # proposition de nulle est toujours un no-op grisé contre l'IA depuis
-    # l'issue #327, point 5.
-    game = LichessGame(board, client, "gid321p", level=1, player_name="Alain",
-                        clock_limit_s=900, clock_increment_s=10, known_user_color="white")
-    game._apply_game_full({
-        "white": {"id": "alain"}, "black": {"id": "opp", "name": "Adversaire"},
-        "state": {"status": "started", "moves": ""},
-    })
-    assert game._action_buttons_state == (True, True)
-    actions.put({"type": "lichess_propose_draw"})
-    game._process_browser_actions()
-    assert game._my_draw_offer_pending is True
-    game._tick_physical()
-    assert game._action_buttons_state == (True, False)
+## Issue #347, partie 1, point 2 : contre un humain, Proposer nulle ne suit
+## plus « mon tour » (où une offre en attente désactivait le bouton) mais
+## l'usage FIDE (actif après son propre coup jusqu'au coup adverse) — une
+## offre déjà en attente ne grise plus le bouton (il reste cliquable
+## pendant toute la réflexion de l'adversaire). Voir
+## test_issue347_lichess_resign_anytime_and_draw_after_move.py pour la
+## couverture de ce nouveau comportement (fenêtre ouverte/fermée, offre
+## déjà active, refus clair sans plantage).

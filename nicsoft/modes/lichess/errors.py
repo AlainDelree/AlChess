@@ -22,6 +22,26 @@ _COLOR_BALANCE_REFUSAL_RE = re.compile(
 )
 
 
+# Issue #347, partie 2, point 2 : refus HTTP 400 ambigu d'un coup — un seul
+# message pour deux causes très différentes (pas le tour de l'utilisateur,
+# OU la partie est déjà terminée côté Lichess). Texte exact établi par
+# lecture du code source public de lila (modules/round/src/main/
+# RoundSocket.scala / Env.scala, lu le 15/11/2026 — voir rapport de
+# clôture) ; reconnu par simple inclusion (insensible à la casse) plutôt
+# qu'une regex stricte, pour rester robuste à une variante mineure de
+# ponctuation.
+_AMBIGUOUS_TURN_OR_OVER_TEXT = "not your turn, or game already over"
+
+
+def is_ambiguous_turn_or_over_error(message: str) -> bool:
+    """Vrai si `message` correspond au refus HTTP 400 ambigu de Lichess
+    pour un coup envoyé hors tour OU après la fin de la partie — l'appelant
+    doit alors relire l'état réel de la partie avant de choisir son
+    message (voir game.py::_handle_move_rejected), jamais conclure « coup
+    refusé » sur la seule foi de ce texte."""
+    return _AMBIGUOUS_TURN_OR_OVER_TEXT in (message or "").lower()
+
+
 def detect_color_balance_refusal(message: str) -> str:
     """Retourne "white"/"black" si `message` correspond au refus Lichess
     d'équilibre des couleurs (voir _COLOR_BALANCE_REFUSAL_RE ci-dessus) —

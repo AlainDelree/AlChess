@@ -1429,11 +1429,11 @@ def abandon_lichess_game(action: dict) -> None:
             "Lichess : abandon depuis la liste — lecture de l'état de partie échouée (%s) : %s.",
             game_id, exc,
         )
-        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
         return
     if full_event is None:
         logger_lichess.warning("Lichess : abandon depuis la liste — état de partie introuvable (%s).", game_id)
-        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
         return
 
     moves = moves_from_state(full_event.get("state") or {})
@@ -1448,7 +1448,7 @@ def abandon_lichess_game(action: dict) -> None:
             "Lichess : abandon depuis la liste refusé par Lichess (%s, %s) : %s.",
             game_id, "annulation" if aborting else "abandon", exc,
         )
-        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning"})
+        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
         return
 
     logger_lichess.info(

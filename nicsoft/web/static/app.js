@@ -1947,17 +1947,27 @@ socket.on("game_over", (data) => {
   // Fin de partie provoquée par l'adversaire (issue #331, point 4) — LED
   // allumées côté serveur jusqu'à l'acquittement ci-dessous (bouton "J'ai
   // vu", voir le data-action lichess_ack_game_over).
-  _lichessShowOpponentEndBanner(!!data.opponent_caused_end, data.opponent_cause_key);
+  _lichessShowOpponentEndBanner(!!data.opponent_caused_end, data.opponent_cause_key, !!data.last_move_rejected);
   const fenToRender = reviewFens[reviewIdx] || currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
   renderBoard(fenToRender, null, null, null, null, null, null);
 });
 
-function _lichessShowOpponentEndBanner(show, causeKey) {
+function _lichessShowOpponentEndBanner(show, causeKey, lastMoveRejected) {
   const banner = document.getElementById("lichess-opponent-end-banner");
   if (!banner) return;
   banner.style.display = show ? "" : "none";
   const causeEl = document.getElementById("lichess-opponent-end-cause");
   if (causeEl) causeEl.textContent = (show && causeKey) ? t(causeKey) : "";
+  // Issue #347, partie 2, point 2 : dernier coup physique non accepté par
+  // Lichess (partie déjà terminée à sa réception) — précision affichée EN
+  // PLUS de la cause ci-dessus, jamais à sa place (évite de laisser croire
+  // à un simple coup refusé sans rapport avec la fin de partie).
+  const rejectedEl = document.getElementById("lichess-last-move-rejected-note");
+  if (rejectedEl) {
+    const showRejected = show && !!lastMoveRejected;
+    rejectedEl.style.display = showRejected ? "" : "none";
+    rejectedEl.textContent = showRejected ? t("lichess.dernier_coup_non_accepte") : "";
+  }
 }
 
 // ── SOCKETIO — initialisation des parties (pédagogique, HH) ─
@@ -2238,7 +2248,23 @@ function _lichessSetActionButtons(resignEnabled, drawEnabled, showHint, drawDisa
     // un no-op grisé en PERMANENCE (jamais seulement "pas encore votre
     // tour") — l'indication doit donc être différente et toujours visible,
     // pas seulement pendant l'attente habituelle.
-    hint.textContent = drawDisabledVsAi ? t("lichess.nulle_impossible_ia") : t("lichess.boutons_actifs_a_votre_tour");
+    // Issue #347, partie 1, point 2 : contre un humain, Abandonner est
+    // désormais toujours actif (resignEnabled toujours vrai) — seul
+    // Proposer nulle peut encore être grisé, pour une raison différente
+    // de « pas encore votre tour » (#321) : on propose nulle APRÈS avoir
+    // joué son coup, jamais avant (règle FIDE) — d'où un texte dédié,
+    // distinct du texte IA et du texte historique "pas encore votre
+    // tour" (resté pertinent contre l'IA, où les deux boutons restent
+    // liés au trait).
+    let text;
+    if (drawDisabledVsAi) {
+      text = t("lichess.nulle_impossible_ia");
+    } else if (!resignEnabled) {
+      text = t("lichess.boutons_actifs_a_votre_tour");
+    } else {
+      text = t("lichess.nulle_apres_son_coup");
+    }
+    hint.textContent = text;
     hint.style.display = (drawDisabledVsAi || showHint) ? "" : "none";
   }
 }
@@ -2512,11 +2538,21 @@ socket.on("lichess_promotion_needed", () => {
 });
 
 socket.on("lichess_move_refused", (data) => {
-  afficherToast(data.message ? t("lichess.coup_refuse_detail", { detail: data.message }) : t("lichess.coup_refuse"), "warning");
+  // Issue #347, partie 2, point 2 : n'arrive plus ici quand Lichess a
+  // refusé le coup parce que la partie venait de se terminer (relu côté
+  // serveur, voir LichessGame._handle_move_rejected) — seulement pour une
+  // vraie erreur (coup réellement illégal, désynchronisation...), donc
+  // toujours persistant (catégorie « coup refusé » — ne disparaît pas
+  // seul, l'utilisateur doit avoir le temps de le lire avant de corriger
+  // la position physique demandée).
+  afficherToastLichess(
+    data.message ? t("lichess.coup_refuse_detail", { detail: data.message }) : t("lichess.coup_refuse"),
+    "warning", true,
+  );
 });
 
 socket.on("lichess_toast", (data) => {
-  afficherToast(
+  afficherToastLichess(
     data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""),
     data.type || "info", !!data.persistent,
   );
@@ -2558,7 +2594,9 @@ socket.on("lichess_opponent_gone", (data) => {
   // bandeau/cadre viennent de disparaître ci-dessus, ce toast confirme
   // explicitement pourquoi (plutôt que de laisser l'utilisateur deviner).
   if (wasGone && !gone) {
-    afficherToast(t("lichess.adversaire_revenu"), "info");
+    // Issue #347, partie 2, point 1 : catégorie « adversaire parti » —
+    // persistant comme les autres messages importants du mode Lichess.
+    afficherToastLichess(t("lichess.adversaire_revenu"), "info", true);
   }
 });
 
@@ -2903,6 +2941,35 @@ function afficherToast(message, type, persistent) {
     toast.textContent = message;
     toast._timer = setTimeout(() => { toast.classList.remove("show"); }, 4000);
   }
+}
+
+// Issue #347, partie 2, point 1 : durée des toasts du MODE LICHESS
+// seulement (Alain alterne échiquier physique et écran, et ne lisait
+// jusqu'ici qu'une partie du message avant qu'il ne disparaisse) — durée
+// minimale nettement plus longue que les 4000 ms fixes d'afficherToast()
+// ci-dessus, et proportionnelle à la longueur du texte pour les messages
+// plus longs. Les autres modes gardent leur durée fixe INCHANGÉE (seul le
+// DOM partagé #toast est commun — voir le correctif CSS de largeur
+// max/retour à la ligne, nécessaire pour tous les modes et documenté dans
+// le rapport de clôture). `persistent` (coup refusé, adversaire parti,
+// erreurs, connexion perdue/retrouvée — jamais limité par une durée,
+// fermé par l'utilisateur ou remplacé par l'événement suivant) passe
+// directement à afficherToast(), qui gère déjà ce mode.
+const LICHESS_TOAST_MIN_MS = 7000;
+const LICHESS_TOAST_MS_PER_CHAR = 90;
+const LICHESS_TOAST_MAX_MS = 15000;
+
+function afficherToastLichess(message, type, persistent) {
+  afficherToast(message, type, persistent);
+  if (persistent) return;
+  const toast = document.getElementById("toast");
+  if (!toast) return;
+  const duration = Math.min(
+    LICHESS_TOAST_MAX_MS,
+    Math.max(LICHESS_TOAST_MIN_MS, (message || "").length * LICHESS_TOAST_MS_PER_CHAR),
+  );
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => { toast.classList.remove("show"); }, duration);
 }
 
 function _updateActionButtons() {

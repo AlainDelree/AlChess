@@ -414,16 +414,20 @@ def test_tick_resume_setup_signale_les_cases_en_erreur_et_allume_les_led(monkeyp
 
 
 def test_tick_resume_setup_position_deja_correcte_reprend_immediatement(monkeypatch):
-    # Adversaire humain ici (voir issue #327, point 5 : Proposer nulle reste
-    # grisé en permanence contre l'IA — ce test veut les deux boutons actifs).
+    # Adversaire humain ici — Abandonner actif en permanence contre un
+    # humain (issue #347) ; Proposer nulle reste grisé en permanence contre
+    # l'IA (issue #327, point 5, non concerné ici).
     game, board, events = _make_resuming_game(monkeypatch, opponent_is_ai=False)
     board.current_fen = game.board.board_fen() + " w - - 0 1"
     game._tick_physical()
     assert game._resume_pending is False
     assert not any(e["active"] for e in _events_of(events, "lichess_resume_setup"))
     # Noir au trait ici (1 coup joué par les blancs), utilisateur noir :
-    # c'est à lui de jouer, position confirmée → boutons actifs.
-    assert game._compute_action_buttons() == (True, True)
+    # c'est à lui de jouer, position confirmée → Abandonner actif. Proposer
+    # nulle reste grisé (issue #347, partie 1, point 2) : le dernier coup
+    # joué était celui de l'adversaire, l'utilisateur n'a pas encore joué
+    # le sien dans cette fenêtre.
+    assert game._compute_action_buttons() == (True, False)
 
 
 def test_tick_resume_setup_match_puis_coup_utilisateur_detecte(monkeypatch):
