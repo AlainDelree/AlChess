@@ -867,6 +867,23 @@ function _drawOneReviewArrow(svg, size, from, to, color, label, widthRatio, coin
   const p2 = boardSquareCenter(to, size);
   if (p1.x === p2.x && p1.y === p2.y) return;
   const strokeWidth = size * widthRatio;
+  if (coincidence) {
+    // Coup joué = aussi l'une des 3 meilleures lignes (issue #339) : un
+    // halo orange plus large, dessiné SOUS la flèche colorée (même tracé,
+    // même pointe via le marqueur agrandi d'autant que le trait), entoure
+    // tout son corps et sa pointe sans en changer la couleur ni le numéro.
+    const outline = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    outline.setAttribute("x1", p1.x);
+    outline.setAttribute("y1", p1.y);
+    outline.setAttribute("x2", p2.x);
+    outline.setAttribute("y2", p2.y);
+    outline.setAttribute("stroke", REVIEW_ARROW_PLAYED_COLOR);
+    outline.setAttribute("stroke-width", strokeWidth + size * 0.07);
+    outline.setAttribute("stroke-linecap", "round");
+    outline.setAttribute("marker-end", "url(#board-arrowhead-outline)");
+    outline.classList.add("review-arrow-line-outline");
+    svg.appendChild(outline);
+  }
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("x1", p1.x);
   line.setAttribute("y1", p1.y);
