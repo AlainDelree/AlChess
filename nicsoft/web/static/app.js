@@ -2672,10 +2672,13 @@ function lichessAbortedReplay() {
 }
 
 socket.on("swap_color_hh", (data) => {
-  const topName = document.getElementById("player-top-name");
-  const botName = document.getElementById("player-bottom-name");
-  topName.textContent = _localPlayerName(data.black, "config.noirs");
-  botName.textContent = _localPlayerName(data.white, "config.blancs");
+  // Issue #348 : écrit haut/bas selon l'orientation réelle de l'échiquier
+  // (_boardFlipped), via la même fonction que l'écran d'analyse (#345) —
+  // ce changement de camp peut survenir alors que le plateau est retourné.
+  _reviewSetTopBottomNames(
+    _localPlayerName(data.white, "config.blancs"),
+    _localPlayerName(data.black, "config.noirs")
+  );
 });
 
 socket.on("history", (data) => {
@@ -3262,11 +3265,14 @@ function ouvrirModalAbandonner() {
   }
   if (_gameMode === "humain") {
     document.getElementById("modal-title").textContent = t("modal.qui_abandonne");
-    // Mettre les vrais noms sur les boutons
+    // Mettre les vrais noms sur les boutons — issue #348 : lus selon
+    // l'orientation réelle de l'échiquier (_boardFlipped), via la fonction
+    // déjà factorisée par #345, pas en supposant Blanc toujours en bas.
     const btnBlanc = document.getElementById("modal-btn-blanc");
     const btnNoir  = document.getElementById("modal-btn-noir");
-    const nomBlanc = document.getElementById("player-bottom-name")?.textContent || t("config.blancs");
-    const nomNoir  = document.getElementById("player-top-name")?.textContent  || t("config.noirs");
+    const { white: nomBlancRaw, black: nomNoirRaw } = _reviewWhiteBlackFromTopBottom();
+    const nomBlanc = nomBlancRaw || t("config.blancs");
+    const nomNoir  = nomNoirRaw  || t("config.noirs");
     if (btnBlanc) { btnBlanc.textContent = t("modal.abandonner_nom", {nom: nomBlanc}); }
     if (btnNoir)  { btnNoir.textContent  = t("modal.abandonner_nom", {nom: nomNoir}); }
     if (std)  std.style.display  = "none";
