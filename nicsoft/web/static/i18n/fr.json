@@ -134,6 +134,7 @@
   "game.legende.fleche_2": "2ᵉ coup du moteur",
   "game.legende.fleche_3": "3ᵉ coup du moteur",
   "game.legende.fleche_jouee": "Coup joué",
+  "game.legende.fleche_contour": "Contour orange : coup joué",
   "game.label.fleches_afficher": "Afficher les flèches",
   "game.label.calcul_en_cours": "Calcul…",
   "game.label.fleches_indisponibles": "Lignes indisponibles (moteur introuvable ?)",

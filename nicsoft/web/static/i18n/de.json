@@ -134,6 +134,7 @@
   "game.legende.fleche_2": "2. Zug der Engine",
   "game.legende.fleche_3": "3. Zug der Engine",
   "game.legende.fleche_jouee": "Gespielter Zug",
+  "game.legende.fleche_contour": "Orangener Rahmen: gespielter Zug",
   "game.label.fleches_afficher": "Pfeile anzeigen",
   "game.label.calcul_en_cours": "Berechnung…",
   "game.label.fleches_indisponibles": "Linien nicht verfügbar (Engine nicht gefunden?)",

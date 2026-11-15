@@ -707,6 +707,10 @@
               <marker id="board-arrowhead-played" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                 <path d="M0,0 L10,5 L0,10 Z" fill="#e67e22"></path>
               </marker>
+              <!-- Halo de coïncidence (issue #339) : pointe orange agrandie, dessinée sous la pointe colorée pour l'entourer. -->
+              <marker id="board-arrowhead-outline" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#e67e22"></path>
+              </marker>
             </defs>
           </svg>
           <div class="coord-file" id="coord-file"></div>
@@ -929,6 +933,7 @@
           <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-2"></span><span data-i18n="game.legende.fleche_2">2ᵉ coup du moteur</span></span>
           <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-3"></span><span data-i18n="game.legende.fleche_3">3ᵉ coup du moteur</span></span>
           <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-played"></span><span data-i18n="game.legende.fleche_jouee">Coup joué</span></span>
+          <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-outline"></span><span data-i18n="game.legende.fleche_contour">Contour orange : coup joué</span></span>
         </div>
         <ul id="review-arrows-list" class="review-arrows-list"></ul>
       </div>
