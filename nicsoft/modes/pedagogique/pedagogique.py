@@ -354,16 +354,19 @@ class Game(threading.Thread):
         # Notifier le navigateur
         send_event("game_over", {"result": result, "reason": reason or "Fin de partie", "source": "niclink", "skip": skip_save})
         # Reconstruire l'historique depuis get_history() — fiable même après chess.Board(fen)
+        # FEN complet (pas board_fen()) : l'écran d'analyse envoie ces
+        # positions au moteur pour les flèches des meilleurs coups (#335),
+        # qui a besoin du bon camp au trait — issue #338.
         history = get_history()[0]
         _hist_board = chess.Board()
-        _hist_fens  = [_hist_board.board_fen()]
+        _hist_fens  = [_hist_board.fen()]
         _hist_moves = []
         for m in history:
             try:
                 mv = chess.Move.from_uci(m.get("uci", ""))
                 if mv in _hist_board.legal_moves:
                     _hist_board.push(mv)
-                    _hist_fens.append(_hist_board.board_fen())
+                    _hist_fens.append(_hist_board.fen())
                     _hist_moves.append({
                         "san":    m.get("san", ""),
                         "uci":    m.get("uci", ""),

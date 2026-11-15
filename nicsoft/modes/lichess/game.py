@@ -1804,14 +1804,20 @@ class LichessGame(threading.Thread):
         return "game.fin_partie_default", {}
 
     def _history_from_board(self):
+        """FEN complet (pas board_fen()) : l'écran d'analyse commun envoie
+        ces positions au moteur pour les flèches des meilleurs coups
+        (#335), qui a besoin du bon camp au trait — issue #338. Sans
+        impact sur la règle de fair-play (#333) : le moteur n'est jamais
+        sollicité pendant une partie Lichess en cours, seulement sur cet
+        écran d'analyse ouvert une fois la partie terminée."""
         b = chess.Board()
-        fens = [b.board_fen()]
+        fens = [b.fen()]
         moves = []
         for mv in self.board.move_stack:
             san = san_ep(b, mv)
             col = "white" if b.turn == chess.WHITE else "black"
             b.push(mv)
-            fens.append(b.board_fen())
+            fens.append(b.fen())
             moves.append({"san": san, "uci": mv.uci(), "color": col, "qualite": None})
         return fens, moves
 

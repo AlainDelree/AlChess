@@ -4006,10 +4006,18 @@ function parsePgn(pgn) {
     const white  = _localPlayerName(chess.header().White, "config.blancs");
     const black  = _localPlayerName(chess.header().Black, "config.noirs");
     const result = chess.header().Result || "*";
-    // Reconstruire les FEN et la liste des coups
-    const history = chess.history({ verbose: true });
-    const chess2  = new Chess();
-    const fens    = [chess2.fen().split(" ")[0]];
+    // Reconstruire les FEN et la liste des coups — chess2 repart de la même
+    // position de départ que `chess` (balise [FEN] du PGN si présente,
+    // ex. partie collée commençant par les Noirs), sinon la position de
+    // départ standard ne vaut que pour une partie normale.
+    const history  = chess.history({ verbose: true });
+    const startFen = chess.header().FEN || undefined;
+    const chess2   = startFen ? new Chess(startFen) : new Chess();
+    // FEN complet (tour, roque...), pas la seule disposition des pièces :
+    // l'écran d'analyse envoie ces positions au moteur pour les flèches
+    // des meilleurs coups (#335), qui a besoin du bon camp au trait —
+    // issue #338.
+    const fens    = [chess2.fen()];
     const moves   = [];
    // Extraire les commentaires depuis le PGN brut
     const commentRegex = /\{([^}]*)\}/g;
@@ -4029,7 +4037,7 @@ function parsePgn(pgn) {
       else if (comment.includes("?") || comment.toLowerCase().includes("imprecision")) qualite = "imprecision";
       moves.push({ san: m.san, uci: m.from + m.to + (m.promotion || ""), color: m.color === "w" ? "white" : "black", qualite });
       chess2.move(m);
-      fens.push(chess2.fen().split(" ")[0]);
+      fens.push(chess2.fen());
     }
     // Peupler la révision
     reviewFens  = fens;

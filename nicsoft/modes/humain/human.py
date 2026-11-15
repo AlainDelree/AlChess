@@ -1024,15 +1024,18 @@ class GameWeb(threading.Thread):
 
 
     def _build_history_from_stack(self):
-        """Reconstruit history_fen et history_moves depuis self.board.move_stack."""
+        """Reconstruit history_fen et history_moves depuis self.board.move_stack.
+        FEN complet (pas board_fen()) : l'écran d'analyse envoie ces
+        positions au moteur pour les flèches des meilleurs coups (#335),
+        qui a besoin du bon camp au trait — issue #338."""
         b = chess.Board()
-        fens  = [b.board_fen()]
+        fens  = [b.fen()]
         moves = []
         for mv in self.board.move_stack:
             san = san_ep(b, mv)
             col = "white" if b.turn == chess.WHITE else "black"
             b.push(mv)
-            fens.append(b.board_fen())
+            fens.append(b.fen())
             moves.append({"san": san, "uci": mv.uci(), "color": col, "qualite": None})
         return fens, moves
 

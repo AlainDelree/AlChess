@@ -142,15 +142,32 @@ class ReviewMultiPVService:
             return {"lines": [], "error": str(e)}
         try:
             lines = engine.get_multipv(board, n=N_LINES, depth=DEPTH)
-            for line in lines:
-                try:
-                    line["san"] = board.san(chess.Move.from_uci(line["move"]))
-                except Exception:
-                    line["san"] = line["move"]
-            return {"lines": lines}
         except Exception as e:
             logger.error(f"Erreur get_multipv (review_multipv) : {e}")
             return {"lines": [], "error": str(e)}
+        # Garde-fou (issue #338) : si un coup renvoyé par le moteur n'est
+        # pas jouable par le camp au trait dans la position affichée (FEN
+        # erroné en amont, position voisine mélangée...), ne tracer AUCUNE
+        # flèche de meilleur coup plutôt que des flèches fausses — jamais
+        # un sous-ensemble partiel, qui laisserait croire que le reste est
+        # fiable.
+        for line in lines:
+            try:
+                move = chess.Move.from_uci(line["move"])
+            except Exception:
+                move = None
+            if move is None or move not in board.legal_moves:
+                logger.warning(
+                    f"review_multipv : coup {line.get('move')} illégal pour le "
+                    f"camp au trait de {fen} — flèches des meilleurs coups ignorées."
+                )
+                return {"lines": [], "error": "coup illégal pour la position affichée"}
+        for line in lines:
+            try:
+                line["san"] = board.san(chess.Move.from_uci(line["move"]))
+            except Exception:
+                line["san"] = line["move"]
+        return {"lines": lines}
 
     def _ensure_engine(self):
         if self._engine is None:
