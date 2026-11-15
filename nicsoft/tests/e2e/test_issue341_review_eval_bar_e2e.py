@@ -345,9 +345,15 @@ def test_etat_neutre_pendant_calcul_puis_defilement_rapide(at_menu):
     _retour_menu(at_menu)
 
 
-# ── Mode Lichess : aucun moteur, la barre n'apparaît pas ──────────────────
+# ── Partie Lichess terminée : la barre reste présente (issue #345) ───────
+# Avant #345, _reviewUpdateEvalBar() masquait la barre dès que
+# `_gameSource === "lichess"`, pensée à l'origine (#341) pour la règle de
+# fair-play Lichess (#333) — mais cette fonction n'est de toute façon
+# jamais atteinte pendant une partie Lichess EN COURS (écran "game_over"
+# uniquement). Une fois la partie terminée, la barre doit au contraire
+# rester visible comme pour toute autre source.
 
-def test_absente_en_mode_lichess(at_menu):
+def test_presente_apres_partie_lichess_terminee(at_menu):
     _charger_pgn_colle(at_menu, _PGN)
     _reset_state(at_menu)
     _injecter_resultat(at_menu, 0, {
@@ -357,7 +363,7 @@ def test_absente_en_mode_lichess(at_menu):
     assert _bar_state(at_menu)["display"] != "none"
 
     at_menu.evaluate("() => { _gameSource = 'lichess'; renderReview(); }")
-    assert _bar_state(at_menu)["display"] == "none"
+    assert _bar_state(at_menu)["display"] != "none"
 
     at_menu.evaluate("() => { _gameSource = 'niclink'; }")
     _retour_menu(at_menu)
@@ -393,7 +399,13 @@ def test_barre_ne_deplace_pas_navigation(at_menu):
     présent avant chaque mesure : sans cette précaution, un vrai moteur
     disponible sur la machine de test pourrait répondre entre deux mesures
     et faire bouger d'autres éléments du panneau (ex. bouton "meilleur
-    coup") pour une raison sans rapport avec la barre elle-même."""
+    coup") pour une raison sans rapport avec la barre elle-même.
+
+    Depuis #345, `_gameSource` ne masque plus la barre (elle reste
+    toujours visible sur l'écran d'analyse, voir test_presente_apres_
+    partie_lichess_terminee) : la bascule présent/absent ci-dessous se
+    fait donc directement sur le résultat en cache (null = pas de FEN
+    affiché, cas qui masque réellement la barre)."""
     _charger_pgn_colle(at_menu, _PGN)
     _reset_state(at_menu)
     _injecter_resultat(at_menu, 0, {
@@ -402,10 +414,10 @@ def test_barre_ne_deplace_pas_navigation(at_menu):
     })
     box_avec_barre = at_menu.locator("#btn-review-next").bounding_box()
 
-    at_menu.evaluate("() => { _gameSource = 'lichess'; renderReview(); }")  # barre masquée
+    at_menu.evaluate("() => { _reviewUpdateEvalBar(null, null); }")  # barre masquée
     box_sans_barre = at_menu.locator("#btn-review-next").bounding_box()
 
-    at_menu.evaluate("() => { _gameSource = 'niclink'; renderReview(); }")  # barre réaffichée
+    at_menu.evaluate("() => { renderReview(); }")  # barre réaffichée (relit le cache)
     box_avec_barre_2 = at_menu.locator("#btn-review-next").bounding_box()
 
     assert box_avec_barre == box_sans_barre == box_avec_barre_2
