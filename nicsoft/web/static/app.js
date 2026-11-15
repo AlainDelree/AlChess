@@ -821,9 +821,11 @@ function _reviewAnnulerAnalyseEnCours() {
 }
 
 // `skip` : true pour ne jamais lancer d'analyse pour la partie qui vient
-// d'être chargée (ex. partie Lichess qui vient de se terminer — #335/#341
-// désactivent déjà les autres aides moteur pour ce cas, même symétrie ici)
-// — l'analyse déjà en cours pour une AUTRE partie est quand même arrêtée.
+// d'être chargée — l'analyse déjà en cours pour une AUTRE partie est quand
+// même arrêtée. Plus aucun appelant ne passe `true` depuis #345 (l'ancien
+// appel le faisait pour toute partie de source Lichess, y compris une fois
+// terminée — régression corrigée) ; le paramètre reste disponible pour un
+// futur appelant qui aurait un vrai besoin de sauter l'analyse automatique.
 function _reviewMaybeAutoAnalyse(skip) {
   const movesUci = reviewMoves.map(m => m.uci).filter(Boolean);
   const key = movesUci.length ? _reviewGameKey(reviewMoves) : null;
@@ -1675,10 +1677,16 @@ socket.on("app_state", (data) => {
     const cardNavSave = document.getElementById("card-nav-save");
     if (cardNavSave) cardNavSave.style.display = "";
     _updateActionButtons();
-    // Lancement automatique de l'analyse complète (issue #342) — jamais
-    // pour une partie Lichess (même symétrie que #335/#341, qui désactivent
-    // déjà les autres aides moteur pour toute partie de source Lichess).
-    _reviewMaybeAutoAnalyse(data.source === "lichess");
+    // Lancement automatique de l'analyse complète (issue #342) — y compris
+    // pour une partie Lichess qui vient de se terminer (issue #345) : la
+    // règle de fair-play (#333) interdit tout moteur pendant une partie
+    // Lichess EN COURS, jamais après — cet écran n'est de toute façon
+    // atteint qu'une fois l'état serveur passé à "game_over" (garde
+    // explicite dans server.py::on_analyser_pgn, défense en profondeur).
+    // L'ancien appel passait `data.source === "lichess"` comme `skip`,
+    // ce qui désactivait l'analyse automatique même une fois la partie
+    // terminée — régression corrigée par #345.
+    _reviewMaybeAutoAnalyse(false);
   }
   if (data.state === "retranscription") {
     // Masqué par défaut à chaque ouverture de l'écran — le serveur réaffiche
@@ -3159,9 +3167,9 @@ function qualiteAnnotation(qualite, delta_cp) {
 function telechargerPgn() {
   // Reconstruire le PGN avec commentaires
   let pgn = "";
-  // Headers
-  const white = document.getElementById("player-bottom-name").textContent;
-  const black = document.getElementById("player-top-name").textContent;
+  // Headers — issue #345 : Blancs/Noirs lus selon l'orientation réelle de
+  // l'échiquier (haut/bas ne correspond pas toujours à Noir/Blanc).
+  const { white, black } = _reviewWhiteBlackFromTopBottom();
   const result = document.getElementById("gameover-result").textContent.trim() || "*";
   pgn += `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n\n`;
   // Coups
@@ -3183,8 +3191,8 @@ function telechargerPgn() {
   URL.revokeObjectURL(url);
 }
 function sauvegarderNicLink() {
-  const white  = document.getElementById("player-bottom-name").textContent;
-  const black  = document.getElementById("player-top-name").textContent;
+  // Issue #345 : Blancs/Noirs lus selon l'orientation réelle de l'échiquier.
+  const { white, black } = _reviewWhiteBlackFromTopBottom();
   const result = document.getElementById("gameover-result").textContent.trim() || "*";
   // Reconstruire le PGN enrichi
   let moves_pgn = "";
@@ -3440,6 +3448,25 @@ function updateMaterial(fen) {
   }
 }
 
+// Issue #345 : le nom affiché de chaque côté de l'échiquier (écran
+// d'analyse) doit toujours suivre l'orientation réelle — le joueur dont les
+// pièces sont en bas est affiché en bas. Non flipped (par défaut, Blancs en
+// bas) : haut=Noir, bas=Blanc. Flipped (Noirs en bas) : haut=Blanc, bas=Noir.
+// `_reviewSetTopBottomNames()` écrit les deux cases depuis Blancs/Noirs
+// connus (ex. en-têtes PGN) ; `_reviewWhiteBlackFromTopBottom()` fait
+// l'inverse (lit les deux cases pour reconstruire Blancs/Noirs, utilisé pour
+// écrire les en-têtes PGN téléchargés/sauvegardés/mis au classeur).
+function _reviewSetTopBottomNames(white, black) {
+  document.getElementById("player-top-name").textContent    = _boardFlipped ? white : black;
+  document.getElementById("player-bottom-name").textContent = _boardFlipped ? black : white;
+}
+
+function _reviewWhiteBlackFromTopBottom() {
+  const top    = document.getElementById("player-top-name")?.textContent    || "";
+  const bottom = document.getElementById("player-bottom-name")?.textContent || "";
+  return _boardFlipped ? { white: top, black: bottom } : { white: bottom, black: top };
+}
+
 // ── Review ────────────────────────────────────────────────────────────────
 let reviewFens   = [];
 let reviewMoves  = [];
@@ -3544,12 +3571,19 @@ function _reviewApplyLinesResult(result, playedUci, playedSan) {
 // cours ou pas encore demandé) ou le résultat en cache pour `fen`
 // ({lines, error, terminal, bar_fraction, bar_text}). Indépendante de la
 // case « Afficher les flèches » (_reviewArrowsEnabled) : appelée à chaque
-// fois, que la case soit cochée ou non. Absente en mode Lichess (#333) —
-// aucun moteur n'y tourne jamais, donc jamais de résultat à afficher.
+// fois, que la case soit cochée ou non.
+// Issue #345 : plus de garde sur `_gameSource === "lichess"` ici — cette
+// fonction n'est de toute façon jamais atteinte pendant une partie Lichess
+// EN COURS (écran d'analyse accessible uniquement depuis l'état serveur
+// `game_over`, voir socket.on("app_state")) ; la garde #341/#333 d'origine
+// visait cette seule règle de fair-play, pas l'écran d'analyse une fois la
+// partie terminée — où la barre doit au contraire toujours être présente,
+// comme pour toute autre source (#342 lance désormais l'analyse d'office
+// pour une partie Lichess terminée aussi).
 function _reviewUpdateEvalBar(result, fen) {
   const bar = document.getElementById("review-eval-bar");
   if (!bar) return;
-  if (_gameSource === "lichess" || !fen) {
+  if (!fen) {
     bar.style.display = "none";
     return;
   }
@@ -4350,9 +4384,11 @@ function parsePgn(pgn) {
     // n'est non-"bon" mais où relancer l'analyse serait quand même inutile).
     const dejaAnalyse = allComments.length === history.length && allComments.some(c => c.includes("cp"));
     _isAnalysed = dejaAnalyse || moves.some(m => m.qualite && m.qualite !== "bon");
-    // Afficher les noms
-    document.getElementById("player-top-name").textContent    = black;
-    document.getElementById("player-bottom-name").textContent = white;
+    // Afficher les noms (issue #345 : selon l'orientation réelle de
+    // l'échiquier, pas toujours "Noir en haut" — l'orientation peut être
+    // restée retournée depuis la partie précédente, ex. Lichess avec
+    // Alain aux Noirs).
+    _reviewSetTopBottomNames(white, black);
     document.getElementById("gameover-title").textContent  = t("game.revision_pgn");
     document.getElementById("gameover-result").textContent = result;
     document.getElementById("rv-game-info").textContent    = `${white} vs ${black}`;
@@ -6811,8 +6847,10 @@ function _basketLabel() {
 
 function _buildPgnForBasket() {
   if (!reviewMoves.length) return "";
-  const white  = document.getElementById("player-bottom-name")?.textContent || t("config.blancs");
-  const black  = document.getElementById("player-top-name")?.textContent    || t("config.noirs");
+  // Issue #345 : Blancs/Noirs lus selon l'orientation réelle de l'échiquier.
+  const names  = _reviewWhiteBlackFromTopBottom();
+  const white  = names.white || t("config.blancs");
+  const black  = names.black || t("config.noirs");
   const result = document.getElementById("gameover-result")?.textContent.trim() || "*";
   let pgn = `[White "${white}"]\n[Black "${black}"]\n[Result "${result}"]\n\n`;
   for (let i = 0; i < reviewMoves.length; i++) {

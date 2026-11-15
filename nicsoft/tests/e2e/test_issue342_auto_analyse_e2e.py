@@ -100,13 +100,19 @@ def test_pas_de_relance_si_partie_deja_analysee(at_menu):
     _retour_menu(at_menu)
 
 
-# ── Point 4 : jamais en mode Lichess ────────────────────────────────────────
+# ── Point 4 : jamais PENDANT une partie Lichess, mais oui après (#345) ──────
 
-def test_jamais_declenche_en_mode_lichess(at_menu):
-    """Simule l'état d'une partie Lichess en cours (_gameMode) puis arrive
-    quand même sur l'écran "game_over" avec data.source="lichess" — même
-    garde que #335/#341 (désactivation inconditionnelle des aides moteur
-    pour toute partie de source Lichess)."""
+def test_demarre_juste_apres_fin_de_partie_lichess(at_menu):
+    """Issue #345 : avant ce correctif, l'écran d'analyse passait
+    `data.source === "lichess"` comme `skip` à _reviewMaybeAutoAnalyse(),
+    ce qui désactivait l'analyse automatique même une fois la partie
+    terminée (régression). La règle de fair-play (#333) n'interdit un
+    moteur que PENDANT une partie Lichess en cours — jamais atteinte ici,
+    cet écran n'existant que depuis l'état serveur "game_over" (garde
+    explicite côté serveur, voir test_issue342_auto_analyse.py::
+    test_analyser_pgn_refuse_si_partie_lichess_en_cours). Une fois la
+    partie terminée, l'analyse doit démarrer d'office comme pour toute
+    autre source."""
     at_menu.evaluate("() => { _gameMode = 'lichess'; }")
     at_menu.evaluate(
         """(data) => { socket.listeners('app_state').forEach(h => h(data)); }""",
@@ -120,7 +126,7 @@ def test_jamais_declenche_en_mode_lichess(at_menu):
         },
     )
     actif = at_menu.evaluate("() => _analyseActive")
-    assert actif is False
+    assert actif is True
     at_menu.evaluate("() => { _gameMode = ''; }")
     _retour_menu(at_menu)
 
