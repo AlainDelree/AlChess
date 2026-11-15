@@ -377,9 +377,6 @@ document.addEventListener("click", (e) => {
     case "trigger_pgn_lib_file_input":
       document.getElementById("pgn-lib-file-input").click();
       break;
-    case "lancer_analyse":
-      lancerAnalyse();
-      break;
     case "jouer_sequence_review":
       jouerSequenceReview();
       break;
@@ -797,14 +794,68 @@ function fenToBoard(fen) {
   return grid;
 }
 
-function lancerAnalyse() {
-  const btn = document.getElementById("btn-analyser");
-  if (!btn || !btn._movesUci) return;
+// ── Analyse complète automatique de l'écran d'analyse (issue #342) ─────────
+// Remplace l'ancien bouton « Analyser la partie » : dès qu'une partie non
+// encore analysée est affichée (PGN collé/importé, bibliothèque, « Mes
+// parties AlChess », ou partie qui vient de se terminer), l'analyse
+// démarre d'elle-même, avec les mêmes paramètres qu'avant (profondeur du
+// moteur inchangée, longueur de séquence punitive lue dans le sélecteur
+// "Séquence"). Jamais pour une partie déjà analysée, jamais deux fois pour
+// la même partie, jamais pendant une partie Lichess en cours (garantie
+// architecturale : cet écran n'est atteint que depuis l'état "game_over",
+// jamais pendant une partie en ligne) — voir aussi le garde-fou serveur
+// explicite dans server.py::on_analyser_pgn.
+let _analyseGen            = 0;     // jeton envoyé/reçu — ignore les résultats tardifs d'une autre partie (#338)
+let _analyseActive         = false;
+let _analyseInProgressKey  = null;  // signature de la partie en cours d'analyse (anti-relance)
+
+function _reviewGameKey(moves) {
+  return moves.map(m => m.uci || "").join(",");
+}
+
+function _reviewAnnulerAnalyseEnCours() {
+  if (_analyseActive) socket.emit("annuler_analyse_pgn", { gen: _analyseGen });
+  _analyseActive        = false;
+  _analyseInProgressKey = null;
+  _reviewSetProgress(null);
+}
+
+// `skip` : true pour ne jamais lancer d'analyse pour la partie qui vient
+// d'être chargée (ex. partie Lichess qui vient de se terminer — #335/#341
+// désactivent déjà les autres aides moteur pour ce cas, même symétrie ici)
+// — l'analyse déjà en cours pour une AUTRE partie est quand même arrêtée.
+function _reviewMaybeAutoAnalyse(skip) {
+  const movesUci = reviewMoves.map(m => m.uci).filter(Boolean);
+  const key = movesUci.length ? _reviewGameKey(reviewMoves) : null;
+  if (_analyseActive && _analyseInProgressKey !== key) {
+    _reviewAnnulerAnalyseEnCours();
+  }
+  if (skip || !key || _isAnalysed) return;
+  if (_analyseActive && _analyseInProgressKey === key) return;  // déjà en cours pour cette partie
   const sel = document.getElementById("rv-seq-moves");
   const seqMoves = sel ? parseInt(sel.value) : 3;
-  btn.textContent = t("labo.btn.analyse_en_cours");
-  btn.disabled = true;
-  socket.emit("analyser_pgn", { moves: btn._movesUci, niveau: 20, seq_moves: seqMoves });
+  _analyseGen += 1;
+  _analyseActive        = true;
+  _analyseInProgressKey = key;
+  _reviewSetProgress(0);
+  socket.emit("analyser_pgn", { moves: movesUci, niveau: 20, seq_moves: seqMoves, gen: _analyseGen });
+}
+
+// pct : null (masquer/réinitialiser), nombre 0..100 (en cours) ou "done".
+function _reviewSetProgress(pct) {
+  const bar  = document.getElementById("review-analyse-progress-bar");
+  const text = document.getElementById("review-analyse-progress-text");
+  if (!bar || !text) return;
+  if (pct === null) {
+    bar.style.width  = "0%";
+    text.textContent = "";
+  } else if (pct === "done") {
+    bar.style.width  = "100%";
+    text.textContent = t("labo.btn.analyse_ok");
+  } else {
+    bar.style.width  = `${pct}%`;
+    text.textContent = t("labo.btn.analyse_pct", { pct });
+  }
 }
 
 function renderBoard(fen, from, to, bestFrom, bestTo, feedbackSq, feedbackClass) {
@@ -1601,12 +1652,11 @@ socket.on("app_state", (data) => {
     if (reviewFens.length > 0) { _setNavControls(true); renderReview(); }
     const cardNavSave = document.getElementById("card-nav-save");
     if (cardNavSave) cardNavSave.style.display = "";
-    // Assigner _movesUci au bouton analyser pour les parties NicLink (HH ou péda)
-    const btnA2 = document.getElementById("btn-analyser");
-    if (btnA2 && reviewMoves.length > 0) {
-      btnA2._movesUci = reviewMoves.map(m => m.uci).filter(Boolean);
-    }
     _updateActionButtons();
+    // Lancement automatique de l'analyse complète (issue #342) — jamais
+    // pour une partie Lichess (même symétrie que #335/#341, qui désactivent
+    // déjà les autres aides moteur pour toute partie de source Lichess).
+    _reviewMaybeAutoAnalyse(data.source === "lichess");
   }
   if (data.state === "retranscription") {
     // Masqué par défaut à chaque ouverture de l'écran — le serveur réaffiche
@@ -2788,20 +2838,26 @@ function afficherToast(message, type, persistent) {
 }
 
 function _updateActionButtons() {
-  const btnA     = document.getElementById("btn-analyser");
   const btnD     = document.getElementById("btn-telecharger");
   const btnV     = document.getElementById("btn-vider-analyse");
   const seqRow   = document.getElementById("rv-seq-row");
   const saveBlock = document.getElementById("card-save-block");
   const hasGame  = reviewFens.length > 1;
-  if (btnA)   btnA.style.display   = (hasGame && !_isAnalysed) ? "inline-block" : "none";
-  if (seqRow) seqRow.style.display = (hasGame && !_isAnalysed) ? "flex" : "none";
+  // Toujours visible tant qu'une partie est chargée (même déjà analysée) —
+  // permet de choisir la longueur de séquence AVANT de charger la partie
+  // suivante, l'analyse démarrant désormais d'office dès le chargement.
+  if (seqRow) seqRow.style.display = hasGame ? "flex" : "none";
   if (btnD)   btnD.style.display   = _isAnalysed ? "inline-block" : "none";
   if (btnV)   btnV.style.display   = hasGame ? "inline-block" : "none";
   if (saveBlock) saveBlock.style.display = hasGame ? "" : "none";
 }
 
 function _viderAnalyse() {
+  // Arrêter proprement une analyse automatique en cours pour la partie
+  // qu'on enlève (issue #342, point 5) — jamais relancée en boucle : rien
+  // ci-dessous ne recharge de partie, donc aucun nouvel appel à
+  // _reviewMaybeAutoAnalyse() ne suit ce nettoyage.
+  _reviewAnnulerAnalyseEnCours();
   reviewFens = []; reviewMoves = []; reviewIdx = 0;
   _isAnalysed = false;
   _stopAutoPlay();
@@ -2818,11 +2874,9 @@ function _viderAnalyse() {
   if (titre)  titre.textContent  = t("analyse.titre");
   if (result) result.textContent = "";
   if (info)   info.textContent   = t("analyse.importer_pgn");
-  const btnA      = document.getElementById("btn-analyser");
   const btnD      = document.getElementById("btn-telecharger");
   const btnV      = document.getElementById("btn-vider-analyse");
   const saveBlock = document.getElementById("card-save-block");
-  if (btnA) { btnA.style.display = "none"; btnA.textContent = t("labo.btn.analyser"); btnA.disabled = false; delete btnA._movesUci; }
   if (btnD) btnD.style.display = "none";
   if (btnV) btnV.style.display = "none";
   if (saveBlock) saveBlock.style.display = "none";
@@ -4203,8 +4257,12 @@ function parsePgn(pgn) {
     reviewIdx   = fens.length - 1;
     _basketSource = "Analyse";
     _analyseEmpty = false;
-    // Détecter si la partie est déjà analysée (au moins un coup non-"bon")
-    _isAnalysed = moves.some(m => m.qualite && m.qualite !== "bon");
+    // Détecter si la partie est déjà analysée : au moins un coup non-"bon",
+    // OU un commentaire NicLink complet avec évaluation chiffrée sur
+    // chaque coup (cas d'une partie parfaite déjà analysée, où aucun coup
+    // n'est non-"bon" mais où relancer l'analyse serait quand même inutile).
+    const dejaAnalyse = allComments.length === history.length && allComments.some(c => c.includes("cp"));
+    _isAnalysed = dejaAnalyse || moves.some(m => m.qualite && m.qualite !== "bon");
     // Afficher les noms
     document.getElementById("player-top-name").textContent    = black;
     document.getElementById("player-bottom-name").textContent = white;
@@ -4215,17 +4273,15 @@ function parsePgn(pgn) {
     renderReview();
     _updateActionButtons();
 
-    // Bouton Analyser
-    const btnAnalyse = document.getElementById("btn-analyser");
-    if (btnAnalyse) {
-      const dejaAnalyse = allComments.length === history.length && allComments.some(c => c.includes("cp"));
-      btnAnalyse.style.display = dejaAnalyse ? "none" : "inline-block";
-      btnAnalyse.textContent = t("labo.btn.analyser");
-      btnAnalyse.disabled = false;
-      btnAnalyse._movesUci = moves.map(m => m.uci);
-    }
     const btnVider = document.getElementById("btn-vider-analyse");
     if (btnVider) btnVider.style.display = "inline-block";
+
+    // Lancement automatique de l'analyse complète (issue #342) — jamais
+    // pour une partie Lichess en cours (architecturalement impossible ici,
+    // "Coller PGN"/bibliothèque ne sont accessibles que sur l'écran
+    // d'analyse) ; un PGN copié depuis Lichess reste au contraire le cas
+    // d'usage visé par cette issue (Alain l'a constaté sans analyse).
+    _reviewMaybeAutoAnalyse(false);
   } catch(e) {
     alert("Erreur lors du parsing PGN : " + e.message);
   }
@@ -4688,6 +4744,9 @@ function pauseReprendre() {
 
 // ── Init ──────────────────────────────────────────────────────────────────
 socket.on("analyse_coup", (data) => {
+  // Résultat tardif d'une analyse déjà abandonnée (autre partie chargée
+  // depuis) — jamais appliqué à la partie actuellement affichée (#338/#342).
+  if (data.gen !== undefined && data.gen !== _analyseGen) return;
   if (reviewMoves[data.index]) {
     reviewMoves[data.index].qualite          = data.qualite;
     reviewMoves[data.index].delta_cp         = data.delta_cp;
@@ -4695,21 +4754,16 @@ socket.on("analyse_coup", (data) => {
     reviewMoves[data.index].punishment_line  = data.punishment_line || [];
     reviewMoves[data.index].fen_avant_coup   = data.fen_avant_coup  || null;
   }
-
-  // Barre de progression
-  const btn = document.getElementById("btn-analyser");
-  if (btn) {
-    const pct = Math.round((data.index + 1) / data.total * 100);
-    btn.textContent = t("labo.btn.analyse_pct", {pct});
-    btn.style.background = `linear-gradient(to right, #4a4a8a ${pct}%, #2a2a4a ${pct}%)`;
-  }
+  _reviewSetProgress(Math.round((data.index + 1) / data.total * 100));
   renderReview();
 });
 
 socket.on("analyse_terminee", (data) => {
+  if (data.gen !== undefined && data.gen !== _analyseGen) return;
+  _analyseActive        = false;
+  _analyseInProgressKey = null;
   _isAnalysed = true;
-  const btn = document.getElementById("btn-analyser");
-  if (btn) { btn.textContent = t("labo.btn.analyse_ok"); btn.disabled = true; }
+  _reviewSetProgress("done");
   _updateActionButtons();
 });
 

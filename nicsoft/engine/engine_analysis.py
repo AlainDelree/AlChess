@@ -205,14 +205,22 @@ class EngineAnalysisMixin:
 
     def analyser_partie(self, moves_uci: list[str],
                         callback=None,
-                        seq_moves: int = 3) -> list[dict]:
+                        seq_moves: int = 3,
+                        should_continue=None) -> list[dict]:
         """
         Analyse une liste de coups UCI.
 
         Paramètres :
-          moves_uci : liste de coups UCI
-          callback  : fonction(idx, total, résultat) appelée après chaque coup
-          seq_moves : nombre de coups de la séquence punitive (3-5)
+          moves_uci       : liste de coups UCI
+          callback        : fonction(idx, total, résultat) appelée après chaque coup
+          seq_moves       : nombre de coups de la séquence punitive (3-5)
+          should_continue : fonction() -> bool, vérifiée avant chaque coup
+                            (issue #342) ; un retour False arrête l'analyse
+                            avant le coup courant (partie incomplète, jamais
+                            marquée comme terminée par l'appelant) — permet
+                            d'arrêter proprement une analyse automatique
+                            quand l'utilisateur change de partie ou quitte
+                            l'écran, sans attendre la fin complète.
 
         Retourne une liste de dict :
           [{"qualite": str, "delta_cp": int, "best_move": str | None,
@@ -223,6 +231,8 @@ class EngineAnalysisMixin:
         total     = len(moves_uci)
 
         for idx, uci in enumerate(moves_uci):
+            if should_continue is not None and not should_continue():
+                break
             try:
                 move = chess.Move.from_uci(uci)
                 fen_avant = board.fen()

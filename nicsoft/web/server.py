@@ -37,6 +37,16 @@ DEBUG_MODE = os.environ.get("NICLINK_LOG", "").upper() == "DEBUG"
 # Mode test — activé via variable d'environnement NICLINK_TEST=random
 TEST_MODE = os.environ.get("NICLINK_TEST", "")
 
+# Désactive l'analyse automatique complète de l'écran d'analyse (issue
+# #342) — réservé au serveur de test e2e (nicsoft/tests/e2e/conftest.py),
+# qui peut tourner sur une machine où un vrai Stockfish est installé par le
+# système (ex. /usr/games/stockfish) : sans ce garde-fou, charger n'importe
+# quel PGN pendant UN SEUL test e2e existant (#335/#338/#339/#341, qui
+# utilisent tous « Coller PGN ») suffirait à démarrer un vrai moteur en
+# arrière-plan, jamais voulu pendant les tests automatisés. Jamais définie
+# en usage normal — n'affecte donc jamais Alain.
+SKIP_AUTO_ANALYSE = os.environ.get("ALCHESS_SKIP_AUTO_ANALYSE", "") == "1"
+
 # Clé secrète Flask — générée aléatoirement au premier lancement puis
 # persistée dans data/ (hors dépôt, voir .gitignore) pour rester stable
 # entre les redémarrages (issue #202).
@@ -689,15 +699,59 @@ def on_save_pgn_externe(data):
     logger.info(f"[WEB] PGN externe sauvegardé : {final_path}")
     socketio.emit("pgn_sauvegarde", {"path": final_path})
 
+# Analyse complète automatique de l'écran d'analyse (issue #342) — une
+# seule analyse à la fois (l'écran n'affiche qu'une partie à la fois) :
+# `_analyse_cancel_event`, préparé à chaque nouvelle demande, est mis à 1
+# par `annuler_analyse_pgn` (changement de partie, retour menu, "Vider
+# l'analyse") pour arrêter proprement le fil en cours ; `gen` (jeton envoyé
+# par le client) est réémis tel quel dans analyse_coup/analyse_terminee
+# pour que le client ignore un résultat tardif d'une autre partie (leçon
+# #338).
+_analyse_lock = threading.Lock()
+_analyse_cancel_event = None
+
+
+def _review_lines_pending() -> bool:
+    """True si le service de lignes à la demande (#335) a une requête en
+    attente de calcul — n'instancie jamais le moteur de ce service (pas
+    d'effet de bord), lu seulement s'il existe déjà. Utilisé par l'analyse
+    complète automatique pour lui céder temporairement la priorité plutôt
+    que de faire tourner deux moteurs à pleine charge en même temps
+    (issue #342, point 6)."""
+    service = _review_multipv_service
+    return service.has_pending() if service is not None else False
+
+
 @socketio.on("analyser_pgn")
 def on_analyser_pgn(data):
-    """Reçoit une liste de coups UCI et les analyse via EngineManager."""
-    import threading, json, pathlib
+    """Reçoit une liste de coups UCI et les analyse via EngineManager.
+
+    Jamais pendant une partie Lichess en cours (issue #342, point 4) : en
+    plus de la garantie architecturale (l'écran d'analyse, donc ce calcul,
+    n'est de toute façon jamais atteint pendant une partie Lichess en
+    cours — voir test_issue333_lichess_no_engine.py et
+    nicsoft/engine/review_multipv.py), un garde-fou explicite ici refuse
+    toute demande hors de l'état serveur `game_over` (celui de l'écran
+    d'analyse) — défense en profondeur, en plus de l'appel client qui ne
+    peut en pratique survenir que depuis cet écran."""
+    import json
+    import time
     from nicsoft.engine.engine_manager import EngineManager, find_stockfish
+
+    if SKIP_AUTO_ANALYSE:
+        logger.info("[WEB] analyser_pgn ignoré (ALCHESS_SKIP_AUTO_ANALYSE=1)")
+        return
+
+    if _app_state != "game_over":
+        logger.warning(
+            f"[WEB] analyser_pgn refusé hors écran d'analyse (_app_state={_app_state!r})"
+        )
+        return
 
     logger.info(f"[WEB] analyser_pgn reçu: {len(data.get('moves', []))} coups")
     moves_uci  = data.get("moves", [])
     engine_elo = data.get("engine_elo", 1500)
+    gen        = data.get("gen")
 
     # Lire le chemin moteur depuis config.json
     cfg_path = DATA_DIR / "config.json"
@@ -713,13 +767,29 @@ def on_analyser_pgn(data):
     if not engine_path:
         engine_path = find_stockfish() or "stockfish"
 
+    global _analyse_cancel_event
+    cancel_event = threading.Event()
+    with _analyse_lock:
+        if _analyse_cancel_event is not None:
+            _analyse_cancel_event.set()  # analyse précédente (autre partie) : on l'arrête
+        _analyse_cancel_event = cancel_event
+
     def run():
+        global _analyse_cancel_event
         total = len(moves_uci)
         manager = None
         try:
             manager = EngineManager(engine_path, engine_elo=engine_elo, analyse_active=True)
             seq_moves = data.get("seq_moves", 3)
             def callback(idx, total, res):
+                if cancel_event.is_set():
+                    return
+                # Priorité aux lignes à la demande (#335, point 6 de #342) :
+                # une courte pause coopérative entre deux coups si une
+                # requête de ligne attend, pour ne jamais retarder les
+                # flèches/la barre d'évaluation que l'utilisateur regarde.
+                if _review_lines_pending():
+                    time.sleep(0.2)
                 logger.debug(f"[ANALYSE] coup {idx+1}/{total}: {res['qualite']}")
                 socketio.emit("analyse_coup", {
                     "index":           idx,
@@ -729,17 +799,39 @@ def on_analyser_pgn(data):
                     "best_move":       res["best_move"],
                     "punishment_line": res.get("punishment_line", []),
                     "fen_avant_coup":  res.get("fen_avant_coup", ""),
+                    "gen":             gen,
                 })
-            manager.analyser_partie(moves_uci, callback=callback, seq_moves=seq_moves)
-            socketio.emit("analyse_terminee", {"total": total})
+            manager.analyser_partie(
+                moves_uci, callback=callback, seq_moves=seq_moves,
+                should_continue=lambda: not cancel_event.is_set(),
+            )
+            # Une analyse annulée en cours de route est incomplète — ne
+            # jamais l'annoncer comme terminée (issue #342, point 5).
+            if not cancel_event.is_set():
+                socketio.emit("analyse_terminee", {"total": total, "gen": gen})
         except Exception as e:
             logger.error(f"Erreur analyse PGN: {e}", exc_info=True)
-            socketio.emit("analyse_terminee", {"total": total, "error": str(e)})
+            if not cancel_event.is_set():
+                socketio.emit("analyse_terminee", {"total": total, "error": str(e), "gen": gen})
         finally:
             if manager:
                 manager.quit()
+            with _analyse_lock:
+                if _analyse_cancel_event is cancel_event:
+                    _analyse_cancel_event = None
 
     threading.Thread(target=run, daemon=True).start()
+
+
+@socketio.on("annuler_analyse_pgn")
+def on_annuler_analyse_pgn(_data):
+    """Arrête proprement l'analyse complète automatique en cours (issue
+    #342, point 5) — changement de partie, sortie de l'écran d'analyse ou
+    retour au menu. Le fil `run()` ci-dessus ferme le moteur (manager.quit())
+    dès qu'il détecte l'annulation, sans attendre la fin de la partie."""
+    with _analyse_lock:
+        if _analyse_cancel_event is not None:
+            _analyse_cancel_event.set()
 
 # Service de calcul à la demande des 3 meilleures lignes + préchargement
 # (issue #335) — un seul moteur réutilisé pour tout l'écran d'analyse,

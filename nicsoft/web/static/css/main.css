@@ -1610,6 +1610,13 @@
 .game-gameover-nav-label { font-size:0.72rem; text-transform:uppercase; letter-spacing:2px; color:#3a5a7a; font-weight:700; }
 .game-gameover-move-info { font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; color:#3a5a7a; font-weight:700; }
 .game-gameover-move-san { text-align:center; font-size:1.6rem; font-weight:bold; color:#1a2a3a; margin-bottom:10px; min-height:2rem; }
+/* Avancement de l'analyse automatique (issue #342) — hauteur toujours
+   fixe (texte vide + barre à 0% quand rien n'est en cours) pour ne jamais
+   déplacer le coup/les boutons en dessous (régression #332). */
+.game-gameover-analyse-progress-row { display:flex; align-items:center; gap:6px; height:12px; margin-bottom:6px; }
+.game-gameover-analyse-progress-track { flex:1; height:4px; border-radius:2px; background:#d8e0e8; overflow:hidden; }
+.game-gameover-analyse-progress-fill { height:100%; width:0%; background:#e94560; transition:width 0.2s; }
+.game-gameover-analyse-progress-text { font-size:0.68rem; color:#3a5a7a; white-space:nowrap; min-width:0; }
 .game-gameover-best-move-row { margin-bottom:8px; }
 .game-gameover-best-move-btn { width:100%; margin-bottom:0; }
 .game-gameover-best-move-san { text-align:center; font-size:0.9rem; color:#3a5a7a; margin-top:6px; }

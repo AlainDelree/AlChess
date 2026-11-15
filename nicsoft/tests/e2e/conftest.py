@@ -177,6 +177,14 @@ def server_url(tmp_path_factory):
     # reste inoffensif à garder (issue #324) si un test futur repointe un
     # jour ALCHESS_DIR vers le vrai dossier.
     env["ALCHESS_SKIP_SINGLE_INSTANCE"] = "1"
+    # Issue #342 : l'écran d'analyse lance désormais l'analyse complète
+    # automatiquement dès qu'une partie est chargée (ex. "Coller PGN",
+    # utilisé par de nombreux tests e2e sans rapport avec l'analyse
+    # elle-même, #335/#338/#339/#341) — sans ce garde-fou, un vrai
+    # Stockfish installé par le système sur la machine de test (ex.
+    # /usr/games/stockfish) serait réellement exécuté en arrière-plan par
+    # CHAQUE test e2e qui charge un PGN, jamais voulu en test automatisé.
+    env["ALCHESS_SKIP_AUTO_ANALYSE"] = "1"
 
     proc = subprocess.Popen(
         [PYTHON, "-m", "nicsoft.web"],

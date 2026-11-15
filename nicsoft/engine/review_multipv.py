@@ -155,6 +155,14 @@ class ReviewMultiPVService:
         with self._cv:
             return self._cache.get(fen)
 
+    def has_pending(self) -> bool:
+        """True si une position attend encore d'être calculée — utilisé
+        par l'analyse complète automatique (issue #342) pour lui céder la
+        priorité plutôt que de saturer le même cœur CPU que les lignes à
+        la demande (issue #335)."""
+        with self._cv:
+            return bool(self._queue)
+
     def stop(self):
         """Arrête le fil de calcul et ferme le moteur. Non appelé
         automatiquement — le service vit tant que le processus serveur vit,

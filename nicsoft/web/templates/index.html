@@ -890,6 +890,16 @@
           <span class="game-gameover-nav-label" data-i18n="game.h2.navigation">Navigation</span>
           <span id="review-move-info" class="game-gameover-move-info"></span>
         </div>
+        <!-- Avancement de l'analyse automatique (issue #342) — hauteur
+             toujours réservée (jamais display:none), pour ne jamais
+             déplacer la navigation ni les boutons en dessous (régression
+             #332) quand l'analyse démarre, progresse ou se termine. -->
+        <div id="review-analyse-progress-row" class="game-gameover-analyse-progress-row">
+          <div class="game-gameover-analyse-progress-track">
+            <div id="review-analyse-progress-bar" class="game-gameover-analyse-progress-fill"></div>
+          </div>
+          <span id="review-analyse-progress-text" class="game-gameover-analyse-progress-text"></span>
+        </div>
         <!-- Coup actuel centré, grand -->
         <div id="review-move-san" class="game-gameover-move-san"></div>
         <!-- Meilleur coup : place toujours réservée (grisé si indisponible) pour que la
@@ -1023,7 +1033,6 @@
             <option value="5">5 coups</option>
           </select>
         </div>
-        <button class="btn btn-reprendre game-gameover-hidden-init" id="btn-analyser" data-action="lancer_analyse" data-i18n="labo.btn.analyser">🔍 Analyser la partie</button>
         <button class="btn game-gameover-hidden-init game-gameover-btn-sequence" id="btn-rv-sequence" data-action="jouer_sequence_review" data-i18n="game.btn.sequence">🎬 Voir la séquence</button>
         <button class="btn btn-reprendre game-gameover-hidden-init" id="btn-telecharger" data-action="telecharger_pgn" data-i18n="labo.btn.telecharger">⬇️ Télécharger PGN analysé</button>
         <button class="btn btn-continuer game-gameover-hidden-init" id="btn-vider-analyse" data-action="vider_analyse" data-i18n="labo.btn.vider">🗑 Enlever la partie chargée</button>

@@ -161,8 +161,6 @@
   "labo.titre": "Laboratoire",
   "labo.btn.blancs": "♔ Blancs",
   "labo.btn.noirs": "♚ Noirs",
-  "labo.btn.analyser": "🔍 Analyser la partie",
-  "labo.btn.analyse_en_cours": "⏳ Analyse en cours...",
   "labo.btn.analyse_pct": "⏳ Analyse... {pct}%",
   "labo.btn.analyse_ok": "✓ Analysé",
   "labo.btn.telecharger": "⬇️ Télécharger PGN analysé",
