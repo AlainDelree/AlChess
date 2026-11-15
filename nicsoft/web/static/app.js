@@ -995,6 +995,16 @@ function flipBoard() {
   // Re-rendre la position courante
   const fen = currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
   renderBoard(fen, null, null, null, null, null, null);
+  // Issue #341 : réoriente la barre d'évaluation (blanche/noire en haut)
+  // sur l'écran d'analyse — depuis le cache déjà en mémoire, jamais une
+  // nouvelle requête moteur. flipBoard() est partagé par tous les écrans
+  // (jeu, labo...) : ne touche la barre que si l'écran d'analyse est bien
+  // affiché, pour ne jamais l'y faire apparaître à tort ailleurs.
+  const panelGameover = document.getElementById("panel-gameover");
+  if (panelGameover && panelGameover.style.display !== "none") {
+    const reviewFen = reviewFens[reviewIdx];
+    _reviewUpdateEvalBar(reviewFen ? (_reviewLinesCache[reviewFen] || null) : null, reviewFen);
+  }
 }
 
 // ── Échiquier review ──────────────────────────────────────────────────────
@@ -1529,8 +1539,13 @@ socket.on("app_state", (data) => {
   document.getElementById("panel-pause").style.display    = data.state === "paused"                     ? "flex" : "none";
   analyseLlmSetToggleVisible(isAnalyseReview);
   // Flèches d'analyse (issue #335) : disparaissent proprement en quittant
-  // l'écran d'analyse (retour menu, nouvelle partie...).
-  if (!isAnalyseReview) _reviewClearArrowsUI();
+  // l'écran d'analyse (retour menu, nouvelle partie...). Barre d'évaluation
+  // (issue #341) : même nettoyage, sinon elle resterait visible pendant
+  // une partie en cours (ex. écran "playing").
+  if (!isAnalyseReview) {
+    _reviewClearArrowsUI();
+    _reviewUpdateEvalBar(null, null);
+  }
   if (data.state === "config" && data.last_player) {
     document.getElementById("cfg-player").value = data.last_player;
   }
@@ -3344,8 +3359,15 @@ function _reviewClearArrowsUI() {
   if (list)   list.innerHTML = "";
 }
 
+// Issue #341 : évaluation toujours du point de vue des Blancs — "#N" pour
+// un mat des Blancs, "-#N" pour un mat des Noirs (jamais converti en
+// centipions), sinon les pions signés à deux décimales. `line.score_text`
+// est déjà formaté ainsi côté serveur (review_multipv.py,
+// format_eval_blancs()) — utilisé en priorité ; secours local si absent
+// (ex. données injectées par un test e2e sans passer par le serveur).
 function _reviewFormatScore(line) {
-  if (line.mate != null) return (line.mate > 0 ? "#" : "#-") + Math.abs(line.mate);
+  if (line.score_text != null) return line.score_text;
+  if (line.mate != null) return (line.mate > 0 ? "#" : "-#") + Math.abs(line.mate);
   if (line.cp   != null) {
     const v = (line.cp / 100).toFixed(2);
     return (line.cp > 0 ? "+" : "") + v;
@@ -3402,32 +3424,89 @@ function _reviewApplyLinesResult(result, playedUci, playedSan) {
   _reviewRenderLinesList(result.lines, playedUci, playedSan);
 }
 
-// Demande/affiche les flèches pour la position actuellement affichée —
-// appelé depuis renderReview() à chaque changement de coup. Calcul à la
-// demande avec mémoire des résultats déjà calculés (fen déjà en cache =
-// aucune requête réseau) ; sinon indicateur "calcul…" immédiat puis
-// demande serveur avec préchargement des positions voisines.
+// Issue #341 : met à jour la barre d'évaluation verticale de l'écran
+// d'analyse à partir du même résultat déjà calculé que les flèches/légende
+// (jamais un second calcul moteur) — `result` peut être null (calcul en
+// cours ou pas encore demandé) ou le résultat en cache pour `fen`
+// ({lines, error, terminal, bar_fraction, bar_text}). Indépendante de la
+// case « Afficher les flèches » (_reviewArrowsEnabled) : appelée à chaque
+// fois, que la case soit cochée ou non. Absente en mode Lichess (#333) —
+// aucun moteur n'y tourne jamais, donc jamais de résultat à afficher.
+function _reviewUpdateEvalBar(result, fen) {
+  const bar = document.getElementById("review-eval-bar");
+  if (!bar) return;
+  if (_gameSource === "lichess" || !fen) {
+    bar.style.display = "none";
+    return;
+  }
+  bar.style.display = "flex";
+  bar.classList.toggle("review-eval-bar-flipped", _boardFlipped);
+  const whiteSeg   = document.getElementById("review-eval-bar-white");
+  const blackSeg   = document.getElementById("review-eval-bar-black");
+  const labelWhite = document.getElementById("review-eval-bar-label-white");
+  const labelBlack = document.getElementById("review-eval-bar-label-black");
+
+  if (!result || result.bar_fraction === null || result.bar_fraction === undefined) {
+    bar.classList.add("review-eval-bar-neutral");
+    if (whiteSeg)   whiteSeg.style.flexGrow   = "1";
+    if (blackSeg)   blackSeg.style.flexGrow   = "1";
+    if (labelWhite) labelWhite.textContent    = "";
+    if (labelBlack) labelBlack.textContent    = "";
+    const attente = t("game.label.calcul_en_cours");
+    bar.title = attente;
+    bar.setAttribute("aria-label", attente);
+    return;
+  }
+
+  bar.classList.remove("review-eval-bar-neutral");
+  const frac = Math.max(0, Math.min(1, result.bar_fraction));
+  if (whiteSeg) whiteSeg.style.flexGrow = String(Math.max(0.0001, frac));
+  if (blackSeg) blackSeg.style.flexGrow = String(Math.max(0.0001, 1 - frac));
+  const texte = result.bar_text || "";
+  // Le chiffre figure seulement côté du camp qui gagne (issue #341 point 3).
+  if (labelWhite) labelWhite.textContent = frac >= 0.5 ? texte : "";
+  if (labelBlack) labelBlack.textContent = frac <  0.5 ? texte : "";
+  const titre = t("game.eval_bar.titre", { score: texte || "0.00" });
+  bar.title = titre;
+  bar.setAttribute("aria-label", titre);
+}
+
+// Demande/affiche les flèches, la légende ET la barre d'évaluation pour la
+// position actuellement affichée — appelé depuis renderReview() à chaque
+// changement de coup. Calcul à la demande avec mémoire des résultats déjà
+// calculés (fen déjà en cache = aucune requête réseau) ; sinon indicateur
+// "calcul…" immédiat puis demande serveur avec préchargement des positions
+// voisines. Issue #341 : la récupération/la barre ne dépendent PAS de la
+// case « Afficher les flèches » (_reviewArrowsEnabled) — seules les
+// flèches et la légende en dépendent, pour que la barre reste utile même
+// quand on les masque (ex. défilement rapide des coups).
 function _reviewUpdateArrows() {
-  if (!_reviewArrowsEnabled) { _reviewClearArrowsUI(); return; }
   const fen = reviewFens[reviewIdx];
-  if (!fen) { _reviewClearArrowsUI(); return; }
+  if (!fen) { _reviewClearArrowsUI(); _reviewUpdateEvalBar(null, fen); return; }
   const playedMove = reviewMoves[reviewIdx]; // coup joué DEPUIS cette position
   const playedUci  = playedMove ? playedMove.uci : null;
   const playedSan  = playedMove ? playedMove.san : null;
 
   const cached = _reviewLinesCache[fen];
   if (cached) {
-    _reviewApplyLinesResult(cached, playedUci, playedSan);
+    if (_reviewArrowsEnabled) _reviewApplyLinesResult(cached, playedUci, playedSan);
+    else _reviewClearArrowsUI();
+    _reviewUpdateEvalBar(cached, fen);
     return;
   }
 
-  clearReviewArrows();
-  const status = document.getElementById("review-arrows-status");
-  const legend = document.getElementById("review-arrows-legend");
-  const list   = document.getElementById("review-arrows-list");
-  if (legend) legend.style.display = "none";
-  if (list)   list.innerHTML = "";
-  if (status) { status.textContent = t("game.label.calcul_en_cours"); status.style.display = "block"; }
+  if (_reviewArrowsEnabled) {
+    clearReviewArrows();
+    const status = document.getElementById("review-arrows-status");
+    const legend = document.getElementById("review-arrows-legend");
+    const list   = document.getElementById("review-arrows-list");
+    if (legend) legend.style.display = "none";
+    if (list)   list.innerHTML = "";
+    if (status) { status.textContent = t("game.label.calcul_en_cours"); status.style.display = "block"; }
+  } else {
+    _reviewClearArrowsUI();
+  }
+  _reviewUpdateEvalBar(null, fen); // état neutre pendant le calcul
 
   if (!_reviewLinesPending[fen]) {
     _reviewLinesPending[fen] = true;
@@ -3442,15 +3521,26 @@ function _reviewUpdateArrows() {
 socket.on("review_lines_result", (data) => {
   if (!data || !data.fen) return;
   const fen = data.fen;
-  const result = { lines: data.lines || [], error: data.error || null };
+  const result = {
+    lines: data.lines || [], error: data.error || null,
+    terminal: data.terminal || null,
+    bar_fraction: (data.bar_fraction === undefined) ? null : data.bar_fraction,
+    bar_text: data.bar_text || null,
+  };
   _reviewLinesCache[fen] = result;
   delete _reviewLinesPending[fen];
-  // Ignoré si la position affichée a changé depuis la demande (issue #335 —
-  // "annulé ou ignoré si l'utilisateur change de position") : le résultat
-  // reste en cache pour une prochaine visite de cette position.
-  if (!_reviewArrowsEnabled || reviewFens[reviewIdx] !== fen) return;
+  // Ignoré si la position affichée a changé depuis la demande (issue #335/
+  // #338 — "un résultat arrivé tard pour une autre position n'est jamais
+  // affiché") : le résultat reste en cache pour une prochaine visite de
+  // cette position (flèches, légende ET barre).
+  if (reviewFens[reviewIdx] !== fen) return;
   const playedMove = reviewMoves[reviewIdx];
-  _reviewApplyLinesResult(result, playedMove ? playedMove.uci : null, playedMove ? playedMove.san : null);
+  if (_reviewArrowsEnabled) {
+    _reviewApplyLinesResult(result, playedMove ? playedMove.uci : null, playedMove ? playedMove.san : null);
+  } else {
+    _reviewClearArrowsUI();
+  }
+  _reviewUpdateEvalBar(result, fen);
 });
 
 function reviewPrev() {

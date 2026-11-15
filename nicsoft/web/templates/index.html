@@ -682,6 +682,21 @@
   </div>
 
   <div id="board-container">
+    <div id="board-row">
+      <!-- Barre d'évaluation de l'écran d'analyse (issue #341) : à côté de
+           l'échiquier, jamais à l'intérieur de #board-align — ne déplace
+           donc jamais les coordonnées/flèches de #335, calées sur
+           .board-pos. Masquée par défaut (affichée seulement sur l'écran
+           d'analyse, hors mode Lichess, voir renderReview()). -->
+      <div id="review-eval-bar" class="review-eval-bar review-eval-bar-neutral" style="display:none;"
+           role="img" title="" aria-label="">
+        <div id="review-eval-bar-black" class="review-eval-bar-seg review-eval-bar-black">
+          <span id="review-eval-bar-label-black" class="review-eval-bar-label"></span>
+        </div>
+        <div id="review-eval-bar-white" class="review-eval-bar-seg review-eval-bar-white">
+          <span id="review-eval-bar-label-white" class="review-eval-bar-label"></span>
+        </div>
+      </div>
     <div id="board-align">
       <div class="player-row" id="player-row-top">
         <span id="player-top-name">—</span>
@@ -735,6 +750,7 @@
         <span id="clock-bottom" class="lichess-clock" style="display:none;"></span>
         <button id="btn-flip" data-action="flip_board" class="game-btn-flip" title="Noirs en bas">⇅</button>
       </div>
+    </div>
     </div>
   </div>
 

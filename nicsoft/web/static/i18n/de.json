@@ -138,6 +138,7 @@
   "game.label.fleches_afficher": "Pfeile anzeigen",
   "game.label.calcul_en_cours": "Berechnung…",
   "game.label.fleches_indisponibles": "Linien nicht verfügbar (Engine nicht gefunden?)",
+  "game.eval_bar.titre": "Bewertung: {score} (aus Sicht von Weiß)",
   "game.h2.tour": "Aktueller Zug",
   "game.h2.analyse": "Analyse",
   "game.btn.meilleur": "💡 Besten Zug anzeigen",

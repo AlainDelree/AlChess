@@ -138,6 +138,7 @@
   "game.label.fleches_afficher": "Show arrows",
   "game.label.calcul_en_cours": "Calculating…",
   "game.label.fleches_indisponibles": "Lines unavailable (engine not found?)",
+  "game.eval_bar.titre": "Evaluation: {score} (White's point of view)",
   "game.h2.tour": "Current turn",
   "game.h2.analyse": "Analysis",
   "game.btn.meilleur": "💡 See best move",

@@ -898,6 +898,60 @@
       stroke-width: 2;
       fill: none;
     }
+
+    /* Barre d'évaluation de l'écran d'analyse (issue #341) : à côté de
+       l'échiquier, dans #board-row — ajoutée EN PLUS de #board-align
+       (jamais à l'intérieur), pour ne jamais déplacer les coordonnées ou
+       les flèches de #335 calées sur .board-pos. Masquée par défaut ;
+       affichée uniquement sur l'écran d'analyse, hors mode Lichess, par
+       _reviewUpdateEvalBar() (app.js). */
+    #board-row { display: flex; align-items: stretch; gap: 6px; }
+    .review-eval-bar {
+      display: flex;
+      flex-direction: column;
+      width: 22px;
+      flex-shrink: 0;
+      border: 1px solid #333;
+      border-radius: 4px;
+      overflow: hidden;
+      cursor: default;
+    }
+    /* Échiquier retourné (noirs en bas) : le dessus de la barre doit
+       rester le camp du haut de l'échiquier (issue #341 point 3) — inverse
+       l'ordre visuel sans changer l'ordre des éléments dans le DOM. */
+    .review-eval-bar.review-eval-bar-flipped { flex-direction: column-reverse; }
+    .review-eval-bar-seg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+      flex-basis: 0;
+      min-height: 0;
+      transition: flex-grow 0.4s ease;
+      overflow: hidden;
+    }
+    .review-eval-bar-black { background: #2b2b2b; }
+    .review-eval-bar-white { background: #ececec; }
+    .review-eval-bar-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      line-height: 1;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      white-space: nowrap;
+    }
+    .review-eval-bar-black .review-eval-bar-label { color: #f0f0f0; }
+    .review-eval-bar-white .review-eval-bar-label { color: #1a2a3a; }
+    /* État neutre : calcul en cours, aucune ligne disponible, ou aucun
+       résultat encore reçu (issue #341 point 5) — discret, sans chiffre. */
+    .review-eval-bar-neutral .review-eval-bar-black,
+    .review-eval-bar-neutral .review-eval-bar-white { background: #7a8aa0; }
+
+    @media (max-width: 700px) {
+      .review-eval-bar { width: 16px; }
+      .review-eval-bar-label { font-size: 0.52rem; }
+    }
+
     .jfilt-btn {
       background: #a0b8d0;
       border: 1px solid #333;

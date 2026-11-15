@@ -12,9 +12,22 @@ nicsoft/core/game_manager_modes/lichess.py — voir
 test_issue333_lichess_no_engine.py, qui interdit ce module explicitement) :
 l'écran d'analyse post-partie est un écran commun qui ne s'ouvre qu'une
 fois la partie terminée, jamais pendant une partie Lichess en cours.
+
+Issue #341 — évaluation point de vue Blancs + barre d'évaluation :
+`EngineAnalysisMixin.get_multipv()` (nicsoft/engine/engine_analysis.py)
+renvoie `cp`/`mate` relatifs au camp AU TRAIT dans la position analysée
+(`score.pov(board.turn)`), jamais absolus. `_compute()` les reconvertit
+ici en point de vue des Blancs — seule convention utilisée ensuite par la
+légende et la barre — et calcule en plus un texte lisible (`score_text`,
+"#N"/"-#N" pour un mat, jamais converti en centipions) et une fraction de
+barre (`bar_fraction`, 0..1, part des Blancs) à partir de la meilleure
+ligne. Position terminale (mat/pat/nulle automatique) : détectée via
+`board.outcome()` avant tout appel moteur — jamais un calcul moteur pour
+une position sans coup légal.
 """
 
 import logging
+import math
 import threading
 from collections import deque
 
@@ -27,6 +40,61 @@ logger = logging.getLogger("ReviewMultiPV")
 # pas de nouveau réglage utilisateur.
 N_LINES = 3
 DEPTH = 12
+
+# Barre d'évaluation (issue #341) : mêmes constantes que la barre déjà
+# existante de l'écran Labo (`laboUpdateEvalBar()`, nicsoft/web/static/app.js)
+# — plafond à 10 pions, courbe sigmoïde — pour une seule convention visuelle
+# dans toute l'application, même si cette barre-ci est calculée côté Python
+# (testable sans navigateur) plutôt que côté JS comme celle du Labo.
+EVAL_BAR_CAP_PAWNS = 10.0
+_EVAL_BAR_SLOPE = 0.004
+MATE_SYMBOL = "#"
+
+
+def _pov_vers_blancs(cp, mate, white_to_move):
+    """Reconvertit cp/mate (relatifs au camp au trait) en point de vue des
+    Blancs — positif = avantage Blancs, négatif = avantage Noirs."""
+    if white_to_move:
+        return cp, mate
+    return (None if cp is None else -cp), (None if mate is None else -mate)
+
+
+def format_eval_blancs(cp_white, mate_white):
+    """Texte lisible d'une évaluation déjà exprimée point de vue Blancs :
+    "#N" pour un mat des Blancs en N coups, "-#N" pour un mat des Noirs —
+    jamais un mat converti en centipions — sinon la valeur en pions à deux
+    décimales, signée ("+1.23", "-0.45"), "0.00" pour l'égalité exacte.
+    Retourne None si aucune évaluation n'est disponible."""
+    if mate_white is not None:
+        n = abs(mate_white)
+        return f"{MATE_SYMBOL}{n}" if mate_white > 0 else f"-{MATE_SYMBOL}{n}"
+    if cp_white is None:
+        return None
+    pawns = cp_white / 100.0
+    if cp_white > 0:
+        return f"+{pawns:.2f}"
+    if cp_white < 0:
+        return f"{pawns:.2f}"
+    return "0.00"
+
+
+def eval_bar_fraction(cp_white, mate_white, cap_pawns=EVAL_BAR_CAP_PAWNS):
+    """Fraction (0..1) de la hauteur de la barre occupée par les Blancs —
+    0.5 égalité, 1.0 Blancs gagnants (mat en leur faveur), 0.0 symétrique
+    pour les Noirs. Courbe douce (sigmoïde) jusqu'à `cap_pawns` pions ;
+    au-delà (ou mat), plafond net à 1.0/0.0 — barre pleine du côté
+    gagnant, comme demandé (issue #341 point 3)."""
+    if mate_white is not None:
+        return 1.0 if mate_white > 0 else 0.0
+    if cp_white is None:
+        return 0.5
+    cap_cp = cap_pawns * 100.0
+    if cp_white >= cap_cp:
+        return 1.0
+    if cp_white <= -cap_cp:
+        return 0.0
+    frac = 2.0 / (1.0 + math.exp(-_EVAL_BAR_SLOPE * cp_white)) - 1.0
+    return 0.5 + 0.5 * frac
 
 
 class ReviewMultiPVService:
@@ -130,21 +198,40 @@ class ReviewMultiPVService:
                     logger.error(f"Erreur callback review_multipv : {e}")
 
     def _compute(self, fen):
+        empty_no_bar = {"lines": [], "terminal": None, "bar_fraction": None, "bar_text": None}
         try:
             board = chess.Board(fen)
         except Exception as e:
             logger.warning(f"FEN invalide pour review_multipv : {e}")
-            return {"lines": [], "error": str(e)}
+            return {**empty_no_bar, "error": str(e)}
+
+        # Position terminale (mat/pat/nulle automatique, issue #341 point 5) :
+        # la barre montre directement le résultat sans jamais interroger le
+        # moteur (aucun coup légal de toute façon pour un mat/pat).
+        outcome = board.outcome(claim_draw=False)
+        if outcome is not None:
+            if outcome.winner is None:
+                return {
+                    "lines": [], "error": None, "terminal": "draw",
+                    "bar_fraction": 0.5, "bar_text": "½",
+                }
+            white_wins = outcome.winner is True
+            return {
+                "lines": [], "error": None, "terminal": "checkmate",
+                "bar_fraction": 1.0 if white_wins else 0.0,
+                "bar_text": MATE_SYMBOL if white_wins else f"-{MATE_SYMBOL}",
+            }
+
         try:
             engine = self._ensure_engine()
         except Exception as e:
             logger.error(f"Moteur indisponible pour review_multipv : {e}")
-            return {"lines": [], "error": str(e)}
+            return {**empty_no_bar, "error": str(e)}
         try:
             lines = engine.get_multipv(board, n=N_LINES, depth=DEPTH)
         except Exception as e:
             logger.error(f"Erreur get_multipv (review_multipv) : {e}")
-            return {"lines": [], "error": str(e)}
+            return {**empty_no_bar, "error": str(e)}
         # Garde-fou (issue #338) : si un coup renvoyé par le moteur n'est
         # pas jouable par le camp au trait dans la position affichée (FEN
         # erroné en amont, position voisine mélangée...), ne tracer AUCUNE
@@ -161,13 +248,31 @@ class ReviewMultiPVService:
                     f"review_multipv : coup {line.get('move')} illégal pour le "
                     f"camp au trait de {fen} — flèches des meilleurs coups ignorées."
                 )
-                return {"lines": [], "error": "coup illégal pour la position affichée"}
+                return {**empty_no_bar, "error": "coup illégal pour la position affichée"}
+        # Issue #341 : get_multipv() renvoie cp/mate relatifs au camp au
+        # trait (board.turn) — reconvertis ici en point de vue des Blancs,
+        # seule convention utilisée par la légende et la barre, avec le
+        # texte déjà formaté ("#N"/"-#N" pour un mat, jamais en centipions).
+        white_to_move = board.turn
         for line in lines:
             try:
                 line["san"] = board.san(chess.Move.from_uci(line["move"]))
             except Exception:
                 line["san"] = line["move"]
-        return {"lines": lines}
+            cp_white, mate_white = _pov_vers_blancs(line.get("cp"), line.get("mate"), white_to_move)
+            line["cp"] = cp_white
+            line["mate"] = mate_white
+            line["score_text"] = format_eval_blancs(cp_white, mate_white)
+        if lines:
+            bar_fraction = eval_bar_fraction(lines[0]["cp"], lines[0]["mate"])
+            bar_text = lines[0]["score_text"]
+        else:
+            bar_fraction = None
+            bar_text = None
+        return {
+            "lines": lines, "error": None, "terminal": None,
+            "bar_fraction": bar_fraction, "bar_text": bar_text,
+        }
 
     def _ensure_engine(self):
         if self._engine is None:

@@ -789,15 +789,15 @@ def on_review_request_lines(data):
     par FEN (reparcourir les coups ne recalcule rien) et précalcule en
     arrière-plan les positions voisines (prev_fen/next_fen) envoyées par le
     client. Ne bloque jamais la requête socketio (calcul dans le fil dédié
-    de ReviewMultiPVService) ; ignoré si la case "Afficher les flèches" est
-    décochée côté config (garde-fou serveur en plus du client)."""
-    from nicsoft.core.config_manager import load_config
+    de ReviewMultiPVService).
 
+    Issue #341 : n'est plus bloqué par la case "Afficher les flèches"
+    (show_review_arrows) — la barre d'évaluation réutilise ce même calcul
+    et doit rester active même si cette case est décochée, seule la case
+    continuant de contrôler l'affichage des flèches/légende côté client."""
     data = data or {}
     fen = data.get("fen", "")
     if not fen:
-        return
-    if not load_config().get("show_review_arrows", True):
         return
     service = _get_review_multipv_service()
     neighbor_fens = [data.get("prev_fen"), data.get("next_fen")]

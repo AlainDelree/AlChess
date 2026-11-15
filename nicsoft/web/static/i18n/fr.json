@@ -138,6 +138,7 @@
   "game.label.fleches_afficher": "Afficher les flèches",
   "game.label.calcul_en_cours": "Calcul…",
   "game.label.fleches_indisponibles": "Lignes indisponibles (moteur introuvable ?)",
+  "game.eval_bar.titre": "Évaluation : {score} (point de vue des Blancs)",
   "game.h2.tour": "Tour en cours",
   "game.h2.analyse": "Analyse",
   "game.btn.meilleur": "💡 Voir le meilleur coup",
