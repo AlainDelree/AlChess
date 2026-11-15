@@ -43,6 +43,10 @@ LICHESS_FILES = sorted(LICHESS_DIR.glob("*.py")) + [LICHESS_LAUNCHER]
 # lecture de chaque fichier de nicsoft/engine/ (grep de leurs imports,
 # 14/11/2026) : seuls ceux-ci importent `chess.engine` ou localisent un
 # exécutable moteur (`engine_detection.find_stockfish/find_lc0/find_rodent`).
+# `review_multipv` (issue #335, écran d'analyse post-partie commun) ajouté
+# en défense : il construit un EngineManager, jamais utilisé ni importable
+# depuis le mode Lichess (l'écran d'analyse ne s'ouvre qu'une fois la
+# partie terminée, jamais pendant une partie Lichess en cours).
 _FORBIDDEN_ENGINE_SUBMODULES = (
     "nicsoft.engine.analyse",
     "nicsoft.engine.engine_analysis",
@@ -51,6 +55,7 @@ _FORBIDDEN_ENGINE_SUBMODULES = (
     "nicsoft.engine.engine_manager",
     "nicsoft.engine.maia_engine",
     "nicsoft.engine.move_quality",
+    "nicsoft.engine.review_multipv",
     "nicsoft.engine.rodent_engine",
     "nicsoft.engine.uci_engine",
 )

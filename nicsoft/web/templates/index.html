@@ -690,8 +690,25 @@
       </div>
       <div id="board-wrapper">
         <div class="coord-rank" id="coord-rank"></div>
-        <div>
+        <div class="board-pos">
           <div id="board"></div>
+          <!-- Flèches d'analyse post-partie : 3 meilleures lignes + coup joué (issue #335) -->
+          <svg id="board-arrows" class="board-arrows-svg">
+            <defs>
+              <marker id="board-arrowhead-1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#2ecc71"></path>
+              </marker>
+              <marker id="board-arrowhead-2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#3498db"></path>
+              </marker>
+              <marker id="board-arrowhead-3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#95a5a6"></path>
+              </marker>
+              <marker id="board-arrowhead-played" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#e67e22"></path>
+              </marker>
+            </defs>
+          </svg>
           <div class="coord-file" id="coord-file"></div>
         </div>
       </div>
@@ -899,6 +916,21 @@
           <button class="btn btn-reprendre game-gameover-save-btn" data-action="save_alchess" data-i18n="common.sauvegarder">💾 Sauvegarder dans AlChess</button>
           <button class="btn game-gameover-basket-btn" data-action="basket_add" data-i18n="retrans.btn.corbeille">🗂️ Ajouter au classeur</button>
         </div>
+      </div>
+      <!-- Flèches d'analyse : 3 meilleures lignes + coup joué (issue #335) -->
+      <div class="card game-gameover-card" id="card-review-arrows">
+        <div class="review-arrows-toggle-row">
+          <input type="checkbox" id="review-arrows-toggle" checked onchange="reviewToggleArrows(this.checked)">
+          <label for="review-arrows-toggle" data-i18n="game.label.fleches_afficher">Afficher les flèches</label>
+        </div>
+        <div id="review-arrows-status" class="review-arrows-status" style="display:none;"></div>
+        <div id="review-arrows-legend" class="review-arrows-legend" style="display:none;">
+          <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-1"></span><span data-i18n="game.legende.fleche_1">1ᵉ coup du moteur</span></span>
+          <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-2"></span><span data-i18n="game.legende.fleche_2">2ᵉ coup du moteur</span></span>
+          <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-3"></span><span data-i18n="game.legende.fleche_3">3ᵉ coup du moteur</span></span>
+          <span class="review-arrow-legend-item"><span class="review-arrow-swatch review-arrow-swatch-played"></span><span data-i18n="game.legende.fleche_jouee">Coup joué</span></span>
+        </div>
+        <ul id="review-arrows-list" class="review-arrows-list"></ul>
       </div>
       <!-- Actions analyse + retour menu -->
       <div class="card game-gameover-actions-card">
