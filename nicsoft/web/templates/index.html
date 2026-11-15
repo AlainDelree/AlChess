@@ -471,22 +471,28 @@
   <!-- Zone scrollable -->
   <div class="cfg-hh-scroll">
 
-    <p class="lichess-cfg-disclaimer" data-i18n="config.lichess.disclaimer">Partie amicale, sans classement — toutes les aides (moteur, analyse, coups suggérés) sont désactivées pendant la partie.</p>
+    <p class="lichess-cfg-disclaimer" data-i18n="config.lichess.disclaimer">Classée ou amicale, toutes les aides (moteur, analyse, coups suggérés) sont désactivées pendant la partie.</p>
 
-    <!-- Choix du type de partie (issue #327, point 1) -->
+    <!-- Choix du type de partie (issue #327, point 1 ; classé issue #344, point 1) —
+         « Contre un humain » présélectionné, case « Partie classée » cochée par
+         défaut (sans objet contre l'IA, toujours amicale). -->
     <div class="card cfg-hh-card">
       <h2 data-i18n="config.h2.adversaire">Adversaire</h2>
       <div class="color-btns">
-        <button class="color-btn selected" id="cfg-lichess-opponent-ai" data-action="select_opponent_type_lichess" data-opponent-type="ai" data-i18n="config.lichess.adversaire_ia">🤖 Contre l'IA</button>
-        <button class="color-btn" id="cfg-lichess-opponent-human" data-action="select_opponent_type_lichess" data-opponent-type="human" data-i18n="config.lichess.adversaire_humain">🧑 Contre un humain</button>
+        <button class="color-btn" id="cfg-lichess-opponent-ai" data-action="select_opponent_type_lichess" data-opponent-type="ai" data-i18n="config.lichess.adversaire_ia">🤖 Contre l'IA</button>
+        <button class="color-btn selected" id="cfg-lichess-opponent-human" data-action="select_opponent_type_lichess" data-opponent-type="human" data-i18n="config.lichess.adversaire_humain">🧑 Contre un humain</button>
       </div>
-      <div class="cfg-elo-caption" id="cfg-lichess-opponent-human-note" style="display:none;" data-i18n="config.lichess.rated_plus_tard">Partie amicale seulement pour l'instant — les parties classées viendront plus tard.</div>
+      <div class="cfg-elo-caption" id="cfg-lichess-opponent-ai-note" style="display:none;" data-i18n="config.lichess.ia_jamais_classee">Contre l'IA : toujours une partie amicale, Lichess ne classe pas les parties contre son ordinateur.</div>
+      <div id="cfg-lichess-rated-row" class="lichess-beep-toggle-row">
+        <input type="checkbox" id="cfg-lichess-rated" class="lichess-beep-checkbox" checked onchange="lichessToggleRated(this.checked)">
+        <label for="cfg-lichess-rated" data-i18n="config.lichess.classee">Partie classée</label>
+      </div>
     </div>
 
     <div class="cfg-hh-players-grid">
 
       <!-- Niveau IA (masqué contre un humain) -->
-      <div class="card cfg-hh-card" id="cfg-lichess-niveau-card">
+      <div class="card cfg-hh-card" id="cfg-lichess-niveau-card" style="display:none;">
         <h2 data-i18n="config.h2.niveau_ia">Niveau de l'IA Lichess</h2>
         <div class="cfg-elo-row">
           <button class="cfg-elo-btn" data-action="lichess_adjust_level" data-delta="-1">-1</button>
@@ -878,6 +884,8 @@
           <span id="gameover-result" class="game-gameover-result"></span>
         </div>
         <div id="rv-game-info" class="game-gameover-info-text"></div>
+        <!-- Classée/amicale + variation de cote si fournie par Lichess (issue #344, point 3) -->
+        <div id="rv-lichess-rated-info" class="game-gameover-info-text" style="display:none;"></div>
         <div id="lichess-opponent-end-banner" class="lichess-info-banner lichess-banner-danger" style="display:none;">
           <span id="lichess-opponent-end-cause"></span>
           <button class="btn btn-reprendre" id="btn-lichess-ack-game-over" data-action="lichess_ack_game_over" data-i18n="lichess.jai_vu">J'ai vu</button>

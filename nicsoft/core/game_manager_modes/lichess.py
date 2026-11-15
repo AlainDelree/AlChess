@@ -488,9 +488,11 @@ def launch_lichess(config: dict) -> None:
         return
 
     # Issue #327, point 1 : choix du type de partie sur l'écran Lichess —
-    # "ai" (comportement inchangé ci-dessous) ou "human" (recherche d'un
-    # adversaire humain, voir _launch_lichess_human plus bas). Jamais classé
-    # ("rated") dans cette livraison — partie amicale seulement.
+    # "ai" (comportement inchangé ci-dessous, toujours amicale : Lichess ne
+    # classe jamais une partie contre son IA, aucun paramètre "rated" sur
+    # /api/challenge/ai) ou "human" (recherche d'un adversaire humain, voir
+    # _launch_lichess_human plus bas — classée ou amicale selon le choix de
+    # l'écran, issue #344 point 2).
     if (config.get("opponent_type") or "ai") == "human":
         _launch_lichess_human(config, token)
         return
@@ -721,8 +723,15 @@ def _run_lichess(token, level, clock_limit_s, clock_increment_s, chosen_color, c
 # `display_color` ci-dessous) : l'orientation réelle (échiquier, noms,
 # pendules) n'est appliquée qu'au vrai début de partie, une fois la couleur
 # confirmée par Lichess (LichessGame/lichess_init, déjà basé sur cette
-# couleur confirmée, inchangé par cette issue). Rated=False toujours
-# (seek.py) — partie amicale seulement (point 1).
+# couleur confirmée, inchangé par cette issue).
+#
+# Issue #344, point 2 : `rated` est transmis tel quel à seek.py/board-seek
+# depuis le choix de l'écran (case « Partie classée », cochée par défaut,
+# sans objet contre l'IA) — aucune restriction de cadence supplémentaire
+# liée au classé (voir seek.py::start()). La valeur réellement confirmée
+# par Lichess (champ `rated` du premier gameFull, jamais cette variable
+# locale) est celle utilisée partout ailleurs (affichage, journal) — voir
+# modes/lichess/game.py::_apply_game_full.
 
 # Vitesses Lichess acceptées pour une recherche humaine (point 1 ; établi
 # dans #326, repris ici) — jamais Blitz ni Bullet.
@@ -800,9 +809,14 @@ def _launch_lichess_human(config: dict, token: str) -> None:
 
     chosen_color = config.get("color", "random")
     player_name = (config.get("player") or "Vous").strip() or "Vous"
+    # Issue #344, point 2 : défaut prudent à False (jamais une partie
+    # classée involontaire) si le champ venait à manquer — l'écran envoie
+    # toujours ce champ explicitement (case cochée par défaut côté
+    # interface, voir app.js::startGameLichess).
+    rated = bool(config.get("rated", False))
     logger_lichess.info(
         f"Lichess : recherche d'adversaire humain demandée — cadence={cadence_key} "
-        f"couleur={chosen_color} joueur={player_name}"
+        f"couleur={chosen_color} joueur={player_name} classée={rated}"
     )
 
     web_server._app_state = "connecting"
@@ -811,6 +825,7 @@ def _launch_lichess_human(config: dict, token: str) -> None:
     t = threading.Thread(
         target=_run_lichess_human,
         args=(token, clock_limit_s, clock_increment_s, chosen_color, cadence_key, player_name, _error),
+        kwargs={"rated": rated},
         daemon=True,
     )
     t.start()
@@ -831,7 +846,7 @@ def _launch_lichess_human(config: dict, token: str) -> None:
 
 
 def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, cadence_key,
-                        player_name, _error=None):
+                        player_name, _error=None, rated=False):
     from nicsoft.modes.lichess.game import LichessGame
     from nicsoft.modes.lichess.game_log import GameLog
     from nicsoft.modes.lichess.seek import SeekSession
@@ -894,8 +909,10 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
         seek_session = SeekSession(client, game_log=game_log)
 
         web_server._app_state = "lichess_seeking"
-        set_app_state("lichess_seeking", {"cadence": cadence_key, "color": requested_color or "random"})
-        seek_session.start(clock_limit_s / 60.0, clock_increment_s, requested_color)
+        set_app_state("lichess_seeking", {
+            "cadence": cadence_key, "color": requested_color or "random", "rated": rated,
+        })
+        seek_session.start(clock_limit_s / 60.0, clock_increment_s, requested_color, rated)
 
         last_tick_sent = 0.0
         found_game = None

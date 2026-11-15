@@ -110,6 +110,21 @@ _RANKS_5_6_LIT = ["00000000"] * 4 + ["11111111"] * 2 + ["00000000"] * 2  # centr
 # rapport de clôture.
 _DOUBLE_BEEP_GAP_S = 0.3
 
+# Issue #344, point 3bis : signal bip/LED de DÉBUT de partie — distinct des
+# signaux « adversaire parti »/« réclamation possible » (#331/#340, qui
+# réutilisent set_all_leds() avec des patterns persistants) et des
+# indicateurs de tour (sig_num 2/3, driver.py, jamais utilisés par ce
+# module). Posté via nl_inst.signal_lights() (driver.py) plutôt qu'un fil
+# minuté séparé : la file LED est unique et ordonnée (un seul fil
+# travailleur, voir driver.py::_led_worker_loop) — poster ce signal juste
+# avant un éventuel affichage normal du premier coup adverse (cas des
+# noirs, _apply_new_moves appelé juste après dans _apply_game_full) le fait
+# attendre son tour plutôt que d'effacer prématurément l'affichage suivant,
+# ce qu'un minuteur sur un fil séparé ne garantirait pas. Jamais testé sur
+# le vrai échiquier (aucun matériel disponible pour cette issue), voir
+# rapport de clôture.
+_GAME_START_SIG_NUM = 7
+
 # Clé i18n de la cause affichée sur le bandeau de fin de partie provoquée
 # par l'adversaire (issue #331, point 4) — statut Lichess brut -> clé.
 _OPPONENT_END_CAUSE_KEYS = {
@@ -378,6 +393,12 @@ class LichessGame(threading.Thread):
         self._known_user_color = known_user_color if known_user_color in ("white", "black") else ""
         self.opponent_name = ""
         self.opponent_rating = None
+        # Vrai pour une partie classée — lu dans le champ `rated` du
+        # premier gameFull, jamais une valeur devinée localement (issue
+        # #344, point 3 : toujours confirmé par Lichess, qu'il s'agisse
+        # d'une partie contre un humain ou contre l'IA, où il reste
+        # toujours faux).
+        self.rated = False
 
         self._moves_applied = 0
         self._status = "created"
@@ -475,6 +496,12 @@ class LichessGame(threading.Thread):
         self._resume_pending = resuming
         self._resume_setup_active = False
         self._resume_led_squares = []
+        # Issue #344, point 3bis : vrai dès que le signal de début de
+        # partie (bip + LED distincts) a été émis — jamais émis à une
+        # reprise (_resume_pending) ni répété si un gameFull revient (ex.
+        # reconnexion réseau mi-partie, voir _apply_game_full) : une seule
+        # fois par VRAIE partie lancée par ce lanceur.
+        self._game_start_signal_sent = False
 
         # Déduit de la présence d'`aiLevel` (voir _apply_game_full) — vrai
         # dans toute partie lancée par AlChess aujourd'hui (seul "contre
@@ -858,6 +885,31 @@ class LichessGame(threading.Thread):
         if load_config().get("lichess_beep_opponent_move"):
             self._hardware_beep(reason, double=double)
 
+    def _signal_game_start(self) -> None:
+        """Issue #344, point 3bis : signal bip/LED de DÉBUT de partie —
+        appelé une seule fois par vraie partie (voir _game_start_signal_sent
+        dans _apply_game_full, jamais à une reprise ni à une reconnexion),
+        pour toute partie Lichess (IA ou humain, classée ou amicale). Ni la
+        case « Bip quand l'adversaire joue » (_maybe_beep_opponent, qui ne
+        concerne que les coups adverses) ni l'acquittement utilisateur ne
+        s'appliquent ici : toujours émis, jamais conditionnel. Signification
+        selon la couleur de l'utilisateur (aucune pièce n'a encore été
+        déplacée à cet instant — même position initiale pour les deux
+        camps) : Blancs, « à vous de jouer » (rien d'autre à l'écran avant
+        votre premier coup) ; Noirs, « la partie a commencé » (le premier
+        coup adverse, déjà présent ou imminent, suit normalement via
+        _apply_new_moves — voir le commentaire de _GAME_START_SIG_NUM pour
+        l'ordre d'affichage)."""
+        try:
+            self.nl_inst.beep()
+            self.nl_inst.signal_lights(_GAME_START_SIG_NUM)
+        except Exception as exc:
+            logger.debug("Signal de début de partie (bip/LED) échoué : %s", exc)
+        self._game_log.state_change(
+            f"signal de début de partie émis (bip + LED) — couleur_utilisateur={self.user_color}, "
+            f"classée={self.rated}."
+        )
+
     def _set_opponent_alert_leds(self, pattern: list, desc: str, reason: str) -> None:
         """Poste un pattern LED d'alerte persistant (jamais d'extinction
         automatique) — factorise ce que faisait _light_opponent_half() pour
@@ -1195,11 +1247,19 @@ class LichessGame(threading.Thread):
         else:
             self.opponent_name = opponent_dict.get("name") or opponent_dict.get("id") or ""
             self.opponent_rating = opponent_dict.get("rating")
+        # Issue #344, point 3 : `rated` vient toujours de Lichess (champ
+        # requis du schéma GameFullEvent), jamais deviné localement — faux
+        # pour toute partie contre l'IA (confirmé par la lecture de la doc
+        # officielle, aucun paramètre "rated" sur /api/challenge/ai).
+        self.rated = bool(event.get("rated"))
         self._game_log.state_change(
             f"gameFull reçu — couleur_utilisateur={self.user_color}, adversaire_ia={self._opponent_is_ai}, "
-            f"adversaire={self.opponent_name!r} (cote={self.opponent_rating}), "
+            f"adversaire={self.opponent_name!r} (cote={self.opponent_rating}), classée={self.rated}, "
             f"niveau={self.level}, cadence={self.clock_limit_s}+{self.clock_increment_s}."
         )
+        if not self._resume_pending and not self._game_start_signal_sent:
+            self._game_start_signal_sent = True
+            self._signal_game_start()
         state = event.get("state") or {}
         self._log_game_state_received(state)
         # Issue #334, point 6 : une demande de reprise de coup de
@@ -1240,6 +1300,7 @@ class LichessGame(threading.Thread):
             "opponent_name": self.opponent_name,
             "opponent_rating": self.opponent_rating,
             "opponent_is_ai": self._opponent_is_ai,
+            "rated": self.rated,
         })
         self._reset_clock_from_state(state)
         if self.user_color == "black" and self._moves_applied >= 1:
@@ -2061,15 +2122,58 @@ class LichessGame(threading.Thread):
                     _OPPONENT_END_CAUSE_KEYS.get(self._status, _OPPONENT_END_CAUSE_DEFAULT_KEY)
                     if self.opponent_caused_end else None
                 ),
+                "rated": self.rated,
             }
             send_event("game_over", payload)
             if not skip:
                 set_app_state("game_over", payload)
             if unexpected:
                 self._notify_unexpected_end()
+            if self.rated and is_real_end_status:
+                self._maybe_fetch_rating_diff()
         except Exception as exc:
             logger.error("Lichess : notification de fin de partie échouée : %s", exc)
             self._game_log.exception(exc, context="_finalize (notification de fin de partie)")
+
+    def _maybe_fetch_rating_diff(self) -> None:
+        """Issue #344, point 3 : « si Lichess fournit la variation de cote
+        en fin de partie, l'afficher ; sinon se contenter du résultat, sans
+        rien inventer. » Tentative en meilleur effort, dans un fil dédié
+        (jamais bloquant pour _finalize ni pour l'écran de fin de partie,
+        déjà affiché par send_event("game_over", ...) ci-dessus) — voir
+        GameClient.fetch_rating_diff pour le détail (le flux de partie lui-
+        même ne porte jamais cette information, seul le flux général
+        d'évènements le fait, à la clôture réelle de la partie côté
+        Lichess). Rien n'est envoyé au navigateur si la valeur n'arrive
+        pas à temps ou pas du tout — jamais de valeur devinée."""
+        def _worker():
+            try:
+                my_diff, opponent_diff = self.client.fetch_rating_diff(self.game_id)
+            except Exception as exc:
+                # fetch_rating_diff() ne devrait jamais lever (meilleur
+                # effort déjà garanti en interne) — défense en profondeur
+                # identique à seek.py::_read_event_stream : une exception
+                # imprévue dans ce fil secondaire ne doit jamais rester
+                # seulement visible dans le terminal, ni faire planter quoi
+                # que ce soit (l'écran de fin de partie est déjà affiché).
+                logger.error(
+                    "Lichess : exception imprévue pendant la lecture de la variation de cote.",
+                    exc_info=True,
+                )
+                self._game_log.exception(exc, context="fil de lecture de la variation de cote")
+                return
+            if my_diff is None and opponent_diff is None:
+                self._game_log.state_change(
+                    "variation de cote non obtenue (absente, réseau, ou délai dépassé)."
+                )
+                return
+            self._game_log.state_change(
+                f"variation de cote reçue — joueur={my_diff}, adversaire={opponent_diff}."
+            )
+            send_event("lichess_rating_diff", {
+                "rating_diff": my_diff, "opponent_rating_diff": opponent_diff,
+            })
+        threading.Thread(target=_worker, daemon=True, name="lichess_rating_diff").start()
 
     def _is_unexpected_end(self) -> bool:
         """Vrai pour un statut de fin ni demandé par l'utilisateur

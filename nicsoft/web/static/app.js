@@ -1617,6 +1617,10 @@ socket.on("app_state", (data) => {
   }
   if (data.state === "config_lichess") {
     socket.emit("config_get", {});
+    // Issue #344, point 1 : « Contre un humain » présélectionné et
+    // « Partie classée » cochée par défaut à CHAQUE ouverture de cet écran
+    // (pas seulement au premier chargement de la page).
+    selectOpponentTypeLichess("human");
     // Retour à l'écran de configuration forcé par un échec de création de
     // partie après le premier coup physique (issue #311, point 1) — les
     // réglages déjà saisis restent dans les champs (SPA, rien à restaurer).
@@ -1646,6 +1650,17 @@ socket.on("app_state", (data) => {
     }
     // Mettre à jour _gameSource si présent dans le payload
     if (data.source) _gameSource = data.source;
+    // Issue #344, point 3 : « classée »/« amicale » affiché à la fin de la
+    // partie aussi, avec la variation de cote si Lichess la fournit à temps
+    // (voir socket.on("lichess_rating_diff", ...) plus bas — jamais de
+    // valeur inventée si elle n'arrive pas).
+    if (data.source === "lichess" && typeof data.rated === "boolean") {
+      _lichessRatedInfo = { rated: data.rated, ratingDiff: null, opponentRatingDiff: null };
+      _lichessRenderRatedInfo();
+    } else {
+      _lichessRatedInfo = null;
+      _lichessRenderRatedInfo();
+    }
     // Toujours utiliser l'historique du serveur — source de vérité absolue
     if (data.history_fen && data.history_fen.length > 0) {
       reviewFens = data.history_fen;
@@ -2092,6 +2107,40 @@ function _lichessSetClocksVisible(visible) {
   if (clockBottom) clockBottom.style.display = visible ? "" : "none";
 }
 
+// Issue #344, point 3 : classée/amicale + variation de cote à l'écran de
+// fin de partie — `ratingDiff`/`opponentRatingDiff` restent `null` tant que
+// Lichess ne les a pas fournis (voir socket.on("lichess_rating_diff", ...)
+// ci-dessous) ; jamais affichés avant d'être réellement reçus.
+let _lichessRatedInfo = null;
+
+function _lichessRenderRatedInfo() {
+  const el = document.getElementById("rv-lichess-rated-info");
+  if (!el) return;
+  if (!_lichessRatedInfo) {
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+  let text = _lichessRatedInfo.rated ? t("lichess.badge_classee") : t("lichess.badge_amicale");
+  if (_lichessRatedInfo.rated && typeof _lichessRatedInfo.ratingDiff === "number") {
+    const sign = _lichessRatedInfo.ratingDiff > 0 ? "+" : "";
+    text += ` (${sign}${_lichessRatedInfo.ratingDiff})`;
+  }
+  el.textContent = text;
+  el.style.display = "";
+}
+
+// Poussé par game.py::_maybe_fetch_rating_diff, en meilleur effort et
+// uniquement pour une partie classée réellement terminée — jamais si
+// Lichess ne la fournit pas à temps (voir son commentaire).
+socket.on("lichess_rating_diff", (data) => {
+  if (!_lichessRatedInfo) return;
+  _lichessRatedInfo.ratingDiff = typeof data.rating_diff === "number" ? data.rating_diff : null;
+  _lichessRatedInfo.opponentRatingDiff =
+    typeof data.opponent_rating_diff === "number" ? data.opponent_rating_diff : null;
+  _lichessRenderRatedInfo();
+});
+
 // Case « Bip quand l'adversaire joue » (issue #331, point 1) — visible
 // seulement pendant une partie Lichess (IA ou humain), cochable/
 // décochable à tout moment, effet immédiat (le serveur relit la config à
@@ -2267,9 +2316,13 @@ socket.on("lichess_init", (data) => {
   botName.style.color = "#1a2a3a";
   document.body.setAttribute("style", "background: #d8e4f0 !important;");
   renderBoard(currentFen, null, null, null, null, null, null);
-  document.getElementById("game-subtitle").textContent = isWhite
+  // Issue #344, point 3 : « classée »/« amicale » affiché dès l'écran de
+  // jeu, pas seulement à la fin — jamais déduit localement, toujours
+  // `data.rated` tel que confirmé par Lichess (voir game.py::_apply_game_full).
+  const ratedBadge = data.rated ? t("lichess.badge_classee") : t("lichess.badge_amicale");
+  document.getElementById("game-subtitle").textContent = (isWhite
     ? `${playerLabel} ${t("game.contre")} ${opponentLabel}`
-    : `${opponentLabel} ${t("game.contre")} ${playerLabel}`;
+    : `${opponentLabel} ${t("game.contre")} ${playerLabel}`) + ` — ${ratedBadge}`;
   updateWdlBar(null);
   const wdlBar = document.getElementById("wdl-bar-container");
   if (wdlBar) wdlBar.style.display = "none";
@@ -3672,7 +3725,14 @@ function startGameHH() {
 // ── CONFIG LICHESS (issue #309 ; choix IA/humain issue #327) ──────────────
 
 let _lichessColor = "random";
-let _lichessOpponentType = "ai";
+// Issue #344, point 1 : « Contre un humain » présélectionné à l'ouverture
+// de l'écran (décision d'Alain) — réaffirmé explicitement à chaque entrée
+// sur l'écran, voir le bloc `data.state === "config_lichess"` plus bas.
+let _lichessOpponentType = "human";
+// Case « Partie classée », cochée par défaut, sans objet contre l'IA
+// (toujours amicale côté Lichess) — rétablie à "cochée" chaque fois qu'on
+// revient sur « Contre un humain » (voir selectOpponentTypeLichess).
+let _lichessRated = true;
 
 function selectColorLichess(c) {
   _lichessColor = c;
@@ -3682,16 +3742,33 @@ function selectColorLichess(c) {
 }
 
 // Issue #327, point 1 : bascule IA/humain sur l'écran de configuration —
-// masque le niveau d'IA (sans objet contre un humain) et affiche le rappel
-// "amicale seulement, classé plus tard".
+// masque le niveau d'IA (sans objet contre un humain). Issue #344, point 1 :
+// la case « Partie classée » n'a de sens que contre un humain — masquée et
+// désactivée contre l'IA (toujours envoyée comme amicale, voir
+// startGameLichess), rétablie cochée chaque fois qu'on revient sur
+// « Contre un humain ».
 function selectOpponentTypeLichess(type) {
   _lichessOpponentType = type === "human" ? "human" : "ai";
   document.getElementById("cfg-lichess-opponent-ai")?.classList.toggle("selected", _lichessOpponentType === "ai");
   document.getElementById("cfg-lichess-opponent-human")?.classList.toggle("selected", _lichessOpponentType === "human");
   const niveauCard = document.getElementById("cfg-lichess-niveau-card");
   if (niveauCard) niveauCard.style.display = _lichessOpponentType === "human" ? "none" : "";
-  const humanNote = document.getElementById("cfg-lichess-opponent-human-note");
-  if (humanNote) humanNote.style.display = _lichessOpponentType === "human" ? "" : "none";
+  const aiNote = document.getElementById("cfg-lichess-opponent-ai-note");
+  if (aiNote) aiNote.style.display = _lichessOpponentType === "ai" ? "" : "none";
+  const ratedRow = document.getElementById("cfg-lichess-rated-row");
+  const ratedCheckbox = document.getElementById("cfg-lichess-rated");
+  if (_lichessOpponentType === "human") {
+    if (ratedRow) ratedRow.style.display = "";
+    if (ratedCheckbox) { ratedCheckbox.disabled = false; ratedCheckbox.checked = true; }
+    _lichessRated = true;
+  } else {
+    if (ratedRow) ratedRow.style.display = "none";
+    if (ratedCheckbox) ratedCheckbox.disabled = true;
+  }
+}
+
+function lichessToggleRated(checked) {
+  _lichessRated = !!checked;
 }
 
 function lichessClampLevel() {
@@ -3717,6 +3794,9 @@ function startGameLichess() {
   sendAction({
     type: "start_lichess", level, cadence, color: _lichessColor, player,
     opponent_type: _lichessOpponentType,
+    // Issue #344, point 1 : sans objet contre l'IA — toujours amicale,
+    // quel que soit l'état mémorisé de la case (masquée dans ce cas).
+    rated: _lichessOpponentType === "human" ? _lichessRated : false,
   });
 }
 

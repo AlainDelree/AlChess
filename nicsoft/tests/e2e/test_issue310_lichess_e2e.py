@@ -120,6 +120,12 @@ def at_config_lichess(at_menu):
         "}"
     )
     _declencher_lichess_resumable(at_menu, {"available": False, "games": []})
+    # Issue #344, point 1 : « Contre un humain » est désormais présélectionné
+    # (masque la carte « Niveau de l'IA » testée ci-dessous) — cette suite
+    # porte sur la mise en page de l'écran, pas sur le choix par défaut :
+    # on bascule explicitement sur « Contre l'IA » pour retrouver l'état
+    # testé par #310 (tous les champs, y compris le niveau, visibles).
+    at_menu.evaluate("selectOpponentTypeLichess('ai')")
     return at_menu
 
 

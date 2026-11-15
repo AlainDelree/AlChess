@@ -76,18 +76,24 @@ class SeekSession:
         self._found = False
         self._lock = threading.Lock()
 
-    def start(self, clock_limit_minutes, clock_increment_s: int, color: str = "") -> None:
+    def start(self, clock_limit_minutes, clock_increment_s: int, color: str = "", rated: bool = False) -> None:
         """Tente d'ouvrir les deux flux ; en cas d'échec (réseau, jeton
         refusé...), pousse un seul évènement {"type": "error", ...} et ne
         démarre aucun fil de lecture — jamais de blocage silencieux (issue
-        #327, point 3)."""
+        #327, point 3). `rated` (issue #344, point 2) transmis tel quel à
+        board/seek — aucune restriction de cadence supplémentaire liée au
+        classé : lecture de doc/specs/tags/board/api-board-seek.yaml
+        (dépôt lichess-org/api, lue le 15/11/2026) confirme que `rated` est
+        un simple booléen indépendant des contraintes de cadence (toujours
+        Rapide/Classique, voir _HUMAN_SEEK_ALLOWED_SPEEDS côté appelant) et
+        qu'aucune restriction de cote n'est documentée pour cette route."""
         try:
             self._event_handle = self._client.open_event_stream()
         except (TransportHTTPError, TransportNetworkError, TransportTimeoutError) as exc:
             self._push_error(exc, "ouverture du flux d'évènements")
             return
         try:
-            self._seek_handle = self._client.open_seek_stream(clock_limit_minutes, clock_increment_s, color)
+            self._seek_handle = self._client.open_seek_stream(clock_limit_minutes, clock_increment_s, color, rated)
         except (TransportHTTPError, TransportNetworkError, TransportTimeoutError) as exc:
             self._event_handle.close()
             self._push_error(exc, "ouverture de la recherche")
@@ -95,11 +101,11 @@ class SeekSession:
         if self._game_log is not None:
             self._game_log.state_change(
                 f"recherche d'adversaire démarrée — cadence={clock_limit_minutes}+{clock_increment_s} min, "
-                f"couleur={color or 'aléatoire'}."
+                f"couleur={color or 'aléatoire'}, classée={rated}."
             )
         logger.info(
-            "Lichess : recherche d'adversaire humain démarrée (cadence=%s+%s, couleur=%s).",
-            clock_limit_minutes, clock_increment_s, color or "aléatoire",
+            "Lichess : recherche d'adversaire humain démarrée (cadence=%s+%s, couleur=%s, classée=%s).",
+            clock_limit_minutes, clock_increment_s, color or "aléatoire", rated,
         )
         threading.Thread(target=self._read_event_stream, daemon=True).start()
         threading.Thread(target=self._read_seek_stream, daemon=True).start()

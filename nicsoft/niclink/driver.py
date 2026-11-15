@@ -436,6 +436,12 @@ and turned on?"
         elif sig_num == 6:
             sig = np.array(["11000011","11011011","00011000","01100110",
                             "01100110","00011000","11011011","11000011"], dtype=np.str_)
+        elif sig_num == 7:
+            # Signal de début de partie Lichess (issue #344, point 3bis) —
+            # échiquier entièrement allumé, volontairement distinct de tous
+            # les autres (1-6 : partiels) pour ne jamais être confondu avec
+            # un signal « adversaire » en cours de partie.
+            sig = np.array(["11111111"] * 8, dtype=np.str_)
         else:
             return
         self._led_queue.put(("signal", sig, 1.5))

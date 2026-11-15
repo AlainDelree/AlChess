@@ -103,6 +103,13 @@ def _started(game, user_color="white", opponent_is_ai=True):
         game._known_user_color = user_color
     game._apply_game_full({"white": white, "black": black, "state": {"status": "started", "moves": ""}})
     assert game.user_color == user_color
+    # Remis à zéro après la mise en place (issue #344, point 3bis : le
+    # signal de début de partie bipe une fois dans _apply_game_full
+    # ci-dessus) — les tests de cette suite portent sur des bips/LED
+    # déclenchés APRÈS ce point, jamais sur ce signal lui-même (couvert par
+    # test_issue344_lichess_rated.py).
+    if hasattr(game.nl_inst, "beep_count"):
+        game.nl_inst.beep_count = 0
 
 
 # ═══════════════════════════════════════════════════════════════════════

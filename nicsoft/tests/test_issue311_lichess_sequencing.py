@@ -403,7 +403,8 @@ def test_signal_sonore_premier_coup_ia_pour_les_noirs(monkeypatch):
         "white": {"aiLevel": 1}, "black": {"id": "alain"},
         "state": {"status": "started", "moves": "e2e4"},
     })
-    assert board.beeped == 1
+    # 1 (signal de début de partie, issue #344 point 3bis) + 1 (premier coup IA).
+    assert board.beeped == 2
 
 
 # ── 6e. Pendules figées avant les premiers coups des deux camps (#322) ───────
@@ -481,7 +482,9 @@ def test_pas_de_signal_sonore_pour_les_blancs(monkeypatch):
         "white": {"id": "alain"}, "black": {"aiLevel": 1},
         "state": {"status": "started", "moves": ""},
     })
-    assert board.beeped == 0
+    # Aucun bip de premier coup IA (c'est à l'utilisateur de jouer) — seul le
+    # signal de début de partie (issue #344 point 3bis) a bipé une fois.
+    assert board.beeped == 1
 
 
 # ── Nulle : refus même pendant le tour de l'utilisateur ───────────────────────

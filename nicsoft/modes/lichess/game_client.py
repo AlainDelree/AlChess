@@ -179,6 +179,58 @@ class GameClient:
         même doc que claim_victory ci-dessus, même condition de délai."""
         self._request("POST", f"{API_BASE}/board/game/{game_id}/claim-draw")
 
+    # ── Variation de cote en fin de partie classée (issue #344, point 3) ──
+
+    def fetch_rating_diff(self, game_id: str, timeout_s: float = 6.0):
+        """Meilleur effort : ouvre brièvement le flux général d'évènements
+        (/api/stream/event, le même que seek.py utilise avant la partie)
+        et attend l'évènement `gameFinish` correspondant à `game_id`, pour
+        y lire la variation de cote. Établi par lecture de
+        doc/specs/examples/stream-gameFinish.json.yaml (dépôt
+        lichess-org/api, lue le 15/11/2026) : la partie elle-même (flux
+        /api/board/game/stream/{id}, voir stream_game ci-dessous) ne porte
+        JAMAIS cette information — seul ce flux général le fait, et
+        seulement à la clôture réelle de la partie côté Lichess (délai non
+        garanti par la documentation).
+
+        Retourne (ma_variation, variation_adversaire) — deux entiers, ou
+        (None, None) si indisponible, en erreur, ou si `timeout_s` est
+        dépassé avant de voir l'évènement. Ne lève jamais d'exception
+        (jamais invoqué sur le fil principal de la partie — voir
+        game.py::_maybe_fetch_rating_diff, qui l'appelle dans un fil
+        dédié) ; `handle.close()`, posté par un minuteur depuis UN AUTRE
+        fil pendant que ce fil-ci est bloqué dans `handle.lines()`, est le
+        même mécanisme déjà utilisé par seek.py (cancel()/close()) pour
+        interrompre une lecture bloquante sans attendre sa fin naturelle."""
+        try:
+            handle = self.open_event_stream()
+        except (TransportHTTPError, TransportNetworkError, TransportTimeoutError):
+            return None, None
+        timer = threading.Timer(timeout_s, handle.close)
+        timer.daemon = True
+        timer.start()
+        try:
+            for line in handle.lines():
+                if not line.strip():
+                    continue
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if event.get("type") != "gameFinish":
+                    continue
+                game = event.get("game") or {}
+                if (game.get("id") or game.get("gameId")) != game_id:
+                    continue
+                opponent = game.get("opponent") or {}
+                return game.get("ratingDiff"), opponent.get("ratingDiff")
+        except (TransportNetworkError, TransportTimeoutError):
+            pass
+        finally:
+            timer.cancel()
+            handle.close()
+        return None, None
+
     # ── Recherche d'un adversaire humain (issue #327, points 2/3) ────────
 
     def _open_stream_logged(self, method: str, url: str, fields: dict | None = None):
