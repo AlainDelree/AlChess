@@ -44,6 +44,17 @@ def test_contre_un_humain_preselectionne(at_config_lichess_defaults):
     assert "selected" not in (page.locator("#cfg-lichess-opponent-ai").get_attribute("class") or "")
 
 
+def test_contre_un_humain_affiche_a_gauche_de_contre_ia(at_config_lichess_defaults):
+    """Issue #346 : « Contre un humain » (présélectionné) doit s'afficher à
+    gauche de « Contre l'IA » dans la carte Adversaire."""
+    page = at_config_lichess_defaults
+    ids = page.evaluate(
+        "() => Array.from(document.getElementById('cfg-lichess-opponent-human').parentElement.children).map(b => b.id)"
+    )
+    assert ids == ["cfg-lichess-opponent-human", "cfg-lichess-opponent-ai"]
+    assert "selected" in (page.locator("#cfg-lichess-opponent-human").get_attribute("class") or "")
+
+
 def test_case_classee_cochee_par_defaut_et_visible(at_config_lichess_defaults):
     page = at_config_lichess_defaults
     checkbox = page.locator("#cfg-lichess-rated")
