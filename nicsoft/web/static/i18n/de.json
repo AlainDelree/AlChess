@@ -733,6 +733,7 @@
   "config.lichess.classee": "Gewertete Partie",
   "lichess.badge_classee": "Gewertete Partie",
   "lichess.badge_amicale": "Freundschaftliche Partie",
+  "lichess.nouvelle_cote": "neue Wertung: {rating}",
   "lichess.recherche.titre": "🔎 Suche nach einem Gegner…",
   "lichess.recherche.temps_ecoule": "Verstrichene Zeit: {time}",
   "lichess.recherche.explication": "Die Suche bleibt aktiv, solange dieser Bildschirm geöffnet ist.",

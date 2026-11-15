@@ -733,6 +733,7 @@
   "config.lichess.classee": "Rated game",
   "lichess.badge_classee": "Rated game",
   "lichess.badge_amicale": "Casual game",
+  "lichess.nouvelle_cote": "new rating: {rating}",
   "lichess.recherche.titre": "🔎 Looking for an opponent…",
   "lichess.recherche.temps_ecoule": "Time elapsed: {time}",
   "lichess.recherche.explication": "The search stays active as long as this screen is open.",

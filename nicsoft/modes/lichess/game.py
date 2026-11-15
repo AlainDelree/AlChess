@@ -229,6 +229,19 @@ def pgn_time_control(clock_limit_s: int, clock_increment_s: int) -> str:
     return f"{clock_limit_s}+{clock_increment_s}"
 
 
+def pgn_cadence_folder_name(clock_limit_s: int, clock_increment_s: int) -> str:
+    """Nom de sous-dossier « <minutes>+<incrément en secondes> » (issue
+    #349, partie 2, point 1) — ex. "10+0", "15+10", "90+30". Chiffres et
+    "+" seulement : sûr pour tous les systèmes de fichiers (y compris
+    Windows, qui interdit `< > : " / \\ | ? *` mais accepte "+"). Dérivé
+    directement de la cadence confirmée de la partie (`clock_limit_s`/
+    `clock_increment_s`, jamais de `cadence_key`, qui peut être vide pour
+    une reprise — voir LichessGame.__init__)."""
+    minutes = max(0, int(clock_limit_s)) // 60
+    increment = max(0, int(clock_increment_s))
+    return f"{minutes}+{increment}"
+
+
 def first_move_deadline_s(expiration: dict, elapsed_s: float):
     """Secondes restantes avant l'annulation Lichess du premier coup,
     lues dans le champ `expiration` (idleMillis/millisToMove) d'un message
@@ -309,16 +322,26 @@ def opponent_pgn_name(level: int) -> str:
 
 def build_pgn_headers(game_id: str, user_name: str, user_color: str, level: int,
                        clock_limit_s: int, clock_increment_s: int, result: str,
-                       date_utc: str, opponent_name: str = "", event_label: str = "") -> dict:
+                       date_utc: str, opponent_name: str = "", event_label: str = "",
+                       user_rating=None, opponent_rating=None) -> dict:
     """`opponent_name`/`event_label` (issue #327, point 6) permettent de
     nommer un adversaire HUMAIN réel (nom Lichess) au lieu du nom d'IA par
     défaut — jamais fournis pour une partie contre l'IA (comportement
-    inchangé, voir game_manager_modes/lichess.py et _save_pgn ci-dessous)."""
+    inchangé, voir game_manager_modes/lichess.py et _save_pgn ci-dessous).
+
+    `user_rating`/`opponent_rating` (issue #349, partie 1, point 2) :
+    en-têtes standard WhiteElo/BlackElo, écrits seulement quand la cote
+    correspondante est connue (jamais "0" ni une valeur devinée) — affectés
+    au bon en-tête selon `user_color`, pour que l'écran « Révision PGN »
+    les retrouve dans l'ordre standard quelle que soit l'orientation de
+    l'échiquier au moment de l'affichage."""
     opp_name = opponent_name or opponent_pgn_name(level)
     user_name = user_name or "Vous"
     white = user_name if user_color == "white" else opp_name
     black = opp_name if user_color == "white" else user_name
-    return {
+    white_rating = user_rating if user_color == "white" else opponent_rating
+    black_rating = opponent_rating if user_color == "white" else user_rating
+    headers = {
         "Event": event_label or f"Lichess, amicale contre l'IA niveau {level}",
         "Site": f"https://lichess.org/{game_id}",
         "Date": date_utc,
@@ -327,6 +350,11 @@ def build_pgn_headers(game_id: str, user_name: str, user_color: str, level: int,
         "Result": result,
         "TimeControl": pgn_time_control(clock_limit_s, clock_increment_s),
     }
+    if white_rating is not None:
+        headers["WhiteElo"] = str(white_rating)
+    if black_rating is not None:
+        headers["BlackElo"] = str(black_rating)
+    return headers
 
 
 # ── Boucle de jeu ────────────────────────────────────────────────────────────
@@ -394,6 +422,23 @@ class LichessGame(threading.Thread):
         self._known_user_color = known_user_color if known_user_color in ("white", "black") else ""
         self.opponent_name = ""
         self.opponent_rating = None
+        self.opponent_provisional = False
+        # Issue #349, partie 1, point 1 : ma propre cote — toujours lue
+        # dans le gameFull (champ `rating` de MON côté, white/black selon
+        # `user_color`), jamais devinée ; absente contre un adversaire
+        # anonyme ou si Lichess ne la fournit pas (ex. compte sans cote
+        # dans cette cadence). `user_provisional` suit la même convention
+        # que `opponent_provisional` ci-dessus (point d'interrogation
+        # affiché côté interface, jamais calculé ici).
+        self.user_rating = None
+        self.user_provisional = False
+        # Identifiant Lichess (champ `id`, minuscules canonique) de
+        # l'utilisateur, lu dans ce même gameFull — utilisé UNIQUEMENT pour
+        # la lecture publique de la nouvelle cote en fin de partie classée
+        # (issue #349, partie 1, point 3 : /api/user/<id>, aucun jeton
+        # nécessaire) ; jamais affiché, jamais journalisé au-delà de ce qui
+        # l'est déjà pour l'adversaire.
+        self._my_username = ""
         # Vrai pour une partie classée — lu dans le champ `rated` du
         # premier gameFull, jamais une valeur devinée localement (issue
         # #344, point 3 : toujours confirmé par Lichess, qu'il s'agisse
@@ -1303,12 +1348,24 @@ class LichessGame(threading.Thread):
             # planter ; conserve la couleur déjà connue si elle existe.
             self.user_color = self.user_color or "white"
         opponent_dict = black if self.user_color == "white" else white
+        self_dict = white if self.user_color == "white" else black
         if self._opponent_is_ai:
             self.opponent_name = opponent_pgn_name(self.level)
             self.opponent_rating = None
+            self.opponent_provisional = False
         else:
             self.opponent_name = opponent_dict.get("name") or opponent_dict.get("id") or ""
             self.opponent_rating = opponent_dict.get("rating")
+            self.opponent_provisional = bool(opponent_dict.get("provisional"))
+        # Issue #349, partie 1, point 1 : MA cote — toujours lue du côté
+        # qui est le mien dans ce gameFull (jamais devinée), qu'il
+        # s'agisse d'une partie classée/amicale contre un humain OU contre
+        # l'IA (mon côté porte toujours `rating`/`provisional`, seul le
+        # côté adverse porte `aiLevel` à la place). None si absente (ex.
+        # compte sans cote dans cette cadence) — jamais affiché comme 0.
+        self.user_rating = self_dict.get("rating")
+        self.user_provisional = bool(self_dict.get("provisional"))
+        self._my_username = (self_dict.get("id") or self_dict.get("name") or "").strip()
         # Issue #344, point 3 : `rated` vient toujours de Lichess (champ
         # requis du schéma GameFullEvent), jamais deviné localement — faux
         # pour toute partie contre l'IA (confirmé par la lecture de la doc
@@ -1316,8 +1373,9 @@ class LichessGame(threading.Thread):
         self.rated = bool(event.get("rated"))
         self._game_log.state_change(
             f"gameFull reçu — couleur_utilisateur={self.user_color}, adversaire_ia={self._opponent_is_ai}, "
-            f"adversaire={self.opponent_name!r} (cote={self.opponent_rating}), classée={self.rated}, "
-            f"niveau={self.level}, cadence={self.clock_limit_s}+{self.clock_increment_s}."
+            f"adversaire={self.opponent_name!r} (cote={self.opponent_rating}), ma_cote={self.user_rating}, "
+            f"classée={self.rated}, niveau={self.level}, "
+            f"cadence={self.clock_limit_s}+{self.clock_increment_s}."
         )
         if not self._resume_pending and not self._game_start_signal_sent:
             self._game_start_signal_sent = True
@@ -1361,7 +1419,13 @@ class LichessGame(threading.Thread):
             # (IA, ou compte anonyme côté Lichess).
             "opponent_name": self.opponent_name,
             "opponent_rating": self.opponent_rating,
+            "opponent_provisional": self.opponent_provisional,
             "opponent_is_ai": self._opponent_is_ai,
+            # Issue #349, partie 1, point 1 : MA cote, même convention que
+            # ci-dessus (None si inconnue — jamais devinée ; point
+            # d'interrogation affiché côté interface si provisoire).
+            "user_rating": self.user_rating,
+            "user_provisional": self.user_provisional,
             "rated": self.rated,
         })
         self._reset_clock_from_state(state)
@@ -2216,16 +2280,30 @@ class LichessGame(threading.Thread):
         # PGN — jamais pour l'IA (opponent_name vide alors, build_pgn_headers
         # retombe sur l'ancien nom d'IA par défaut).
         opponent_name = "" if self._opponent_is_ai else self.opponent_name
-        event_label = (
-            f"Lichess, amicale contre l'IA niveau {self.level}" if self._opponent_is_ai
-            else "Lichess, amicale contre un humain"
-        )
+        cadence_folder_name = pgn_cadence_folder_name(self.clock_limit_s, self.clock_increment_s)
+        # Issue #349, partie 2, points 1/3 : une partie classée est rangée
+        # à part (Lichess/Classée/<cadence>/, jamais mêlée aux amicales) et
+        # son en-tête Event le dit explicitement — jamais "amicale" pour
+        # une partie classée (c'était le cas avant cette issue : l'en-tête
+        # disait toujours "amicale", `self.rated` n'étant pas encore
+        # consulté ici). Toujours amicale pour l'IA (jamais classée côté
+        # Lichess, voir `self.rated` ci-dessus dans _apply_game_full).
+        if self.rated:
+            game_type = f"Classée/{cadence_folder_name}"
+            event_label = f"Lichess, classée ({cadence_folder_name}) contre un humain"
+        elif self._opponent_is_ai:
+            game_type = "Amicale"
+            event_label = f"Lichess, amicale contre l'IA niveau {self.level}"
+        else:
+            game_type = "Amicale"
+            event_label = "Lichess, amicale contre un humain"
         headers = build_pgn_headers(
             self.game_id, self.player_name, self.user_color or "white", self.level,
             self.clock_limit_s, self.clock_increment_s, result, date_utc,
             opponent_name=opponent_name, event_label=event_label,
+            user_rating=self.user_rating, opponent_rating=self.opponent_rating,
         )
-        final_path = build_final_path("Lichess", "Amicale", headers["White"], headers["Black"])
+        final_path = build_final_path("Lichess", game_type, headers["White"], headers["Black"])
         try:
             build_and_save_pgn(headers=headers, moves=list(self.board.move_stack), output_path=final_path)
             logger.info("Lichess : PGN enregistré (%s).", final_path)
@@ -2318,50 +2396,77 @@ class LichessGame(threading.Thread):
             if unexpected:
                 self._notify_unexpected_end()
             if self.rated and is_real_end_status:
-                self._maybe_fetch_rating_diff()
+                self._maybe_fetch_new_rating()
         except Exception as exc:
             logger.error("Lichess : notification de fin de partie échouée : %s", exc)
             self._game_log.exception(exc, context="_finalize (notification de fin de partie)")
 
-    def _maybe_fetch_rating_diff(self) -> None:
-        """Issue #344, point 3 : « si Lichess fournit la variation de cote
-        en fin de partie, l'afficher ; sinon se contenter du résultat, sans
-        rien inventer. » Tentative en meilleur effort, dans un fil dédié
-        (jamais bloquant pour _finalize ni pour l'écran de fin de partie,
-        déjà affiché par send_event("game_over", ...) ci-dessus) — voir
-        GameClient.fetch_rating_diff pour le détail (le flux de partie lui-
-        même ne porte jamais cette information, seul le flux général
-        d'évènements le fait, à la clôture réelle de la partie côté
-        Lichess). Rien n'est envoyé au navigateur si la valeur n'arrive
-        pas à temps ou pas du tout — jamais de valeur devinée."""
+    # Délais (s) de la lecture de la nouvelle cote ci-dessous — "court
+    # délai d'attente" demandé par l'issue #349, partie 1, point 3 : un
+    # premier essai après un court délai (le temps que Lichess recalcule
+    # les deux cotes côté serveur), puis UNE seule nouvelle tentative si la
+    # cote lue est encore identique à celle de départ.
+    _NEW_RATING_INITIAL_DELAY_S = 1.5
+    _NEW_RATING_RETRY_DELAY_S = 4.0
+
+    def _maybe_fetch_new_rating(self) -> None:
+        """Issue #349, partie 1, point 3 : « nouvelle cote » et variation
+        par rapport à la cote de départ, en fin de partie classée, en
+        meilleur effort. Remplace entièrement l'ancienne lecture ajoutée
+        par #344 (GameClient.fetch_rating_diff, retirée — voir rapport de
+        clôture #349 pour la discussion garder/remplacer/compléter) : celle-
+        ci rouvrait le flux général d'évènements et attendait un évènement
+        `gameFinish` dont la doc officielle ne garantit ni l'arrivée ni le
+        délai — Alain avait déjà constaté qu'elle manquait souvent. Cette
+        version-ci lit `GameClient.fetch_my_rating` (lecture PUBLIQUE de
+        /api/user/<id>, aucun jeton ni scope supplémentaire nécessaire),
+        pour la cote de la cadence jouée — une opération bien plus simple
+        à réessayer. Tentative dans un fil dédié (jamais bloquant pour
+        _finalize ni pour l'écran de fin de partie déjà affiché par
+        send_event("game_over", ...) ci-dessus) ; rien n'est envoyé au
+        navigateur si la valeur n'arrive pas, reste douteuse (jamais
+        d'entier), ou si `self.user_rating`/`self._my_username` sont
+        inconnus — jamais de valeur devinée."""
+        username = self._my_username
+        start_rating = self.user_rating
+        if not username or start_rating is None:
+            self._game_log.state_change(
+                "nouvelle cote non tentée (identifiant ou cote de départ inconnus)."
+            )
+            return
+        speed_key = speed_key_for_clock(self.clock_limit_s, self.clock_increment_s)
+
         def _worker():
             try:
-                my_diff, opponent_diff = self.client.fetch_rating_diff(self.game_id)
+                time.sleep(self._NEW_RATING_INITIAL_DELAY_S)
+                new_rating = self.client.fetch_my_rating(username, speed_key)
+                if new_rating == start_rating:
+                    time.sleep(self._NEW_RATING_RETRY_DELAY_S)
+                    new_rating = self.client.fetch_my_rating(username, speed_key)
             except Exception as exc:
-                # fetch_rating_diff() ne devrait jamais lever (meilleur
+                # fetch_my_rating() ne devrait jamais lever (meilleur
                 # effort déjà garanti en interne) — défense en profondeur
                 # identique à seek.py::_read_event_stream : une exception
                 # imprévue dans ce fil secondaire ne doit jamais rester
                 # seulement visible dans le terminal, ni faire planter quoi
                 # que ce soit (l'écran de fin de partie est déjà affiché).
                 logger.error(
-                    "Lichess : exception imprévue pendant la lecture de la variation de cote.",
+                    "Lichess : exception imprévue pendant la lecture de la nouvelle cote.",
                     exc_info=True,
                 )
-                self._game_log.exception(exc, context="fil de lecture de la variation de cote")
+                self._game_log.exception(exc, context="fil de lecture de la nouvelle cote")
                 return
-            if my_diff is None and opponent_diff is None:
+            if not isinstance(new_rating, int):
                 self._game_log.state_change(
-                    "variation de cote non obtenue (absente, réseau, ou délai dépassé)."
+                    "nouvelle cote non obtenue (absente, réseau, ou délai dépassé)."
                 )
                 return
+            diff = new_rating - start_rating
             self._game_log.state_change(
-                f"variation de cote reçue — joueur={my_diff}, adversaire={opponent_diff}."
+                f"nouvelle cote reçue — {new_rating} (variation {diff:+d})."
             )
-            send_event("lichess_rating_diff", {
-                "rating_diff": my_diff, "opponent_rating_diff": opponent_diff,
-            })
-        threading.Thread(target=_worker, daemon=True, name="lichess_rating_diff").start()
+            send_event("lichess_new_rating", {"new_rating": new_rating, "rating_diff": diff})
+        threading.Thread(target=_worker, daemon=True, name="lichess_new_rating").start()
 
     def _is_unexpected_end(self) -> bool:
         """Vrai pour un statut de fin ni demandé par l'utilisateur

@@ -12,7 +12,6 @@ de garde explicite. Les défauts d'affichage de l'écran de configuration
 (bouton présélectionné, case cochée/masquée) sont couverts côté navigateur
 par test_issue344_lichess_rated_e2e.py — ce fichier couvre le serveur.
 """
-import json
 import sys
 import time
 
@@ -66,20 +65,6 @@ class _RatedCapturingHumanGameClient(_HumanGameClient):
     def open_seek_stream(self, *a, **kw):
         self.seek_calls.append((a, kw))
         return _FakeHandleForClient([""])
-
-
-class _EventStreamTransport:
-    """Faux transport ne portant que open_stream() (issue #344, point 3 —
-    GameClient.fetch_rating_diff n'utilise que cette méthode)."""
-
-    def __init__(self, lines=None, open_error=None):
-        self._lines = list(lines or [])
-        self._open_error = open_error
-
-    def open_stream(self, method, url, token, fields=None):
-        if self._open_error is not None:
-            raise self._open_error
-        return FakeStreamHandle(self._lines)
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -306,51 +291,40 @@ def test_signal_emis_pour_partie_classee_comme_amicale(monkeypatch):
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# 4. Variation de cote en fin de partie classée (point 3) — meilleur
-#    effort, jamais inventée si absente.
+# 4. Nouvelle cote en fin de partie classée (point 3) — meilleur effort,
+#    jamais inventée si absente. La lecture elle-même (GameClient.
+#    fetch_my_rating, lecture publique /api/user/<id>) et son orchestration
+#    (LichessGame._maybe_fetch_new_rating, court délai + une seule
+#    nouvelle tentative) ont été entièrement REMPLACÉES par l'issue #349,
+#    partie 1, point 3 — voir son rapport de clôture pour la discussion
+#    garder/remplacer/compléter, et
+#    nicsoft/tests/test_issue349_lichess_rating_cadence.py pour la
+#    couverture détaillée de la nouvelle implémentation. Ce qui reste ici
+#    ne couvre plus que le déclenchement depuis _finalize() (classée vs
+#    amicale), avec la cote de départ connue (voir _apply_game_full).
 # ═══════════════════════════════════════════════════════════════════════
 
-def test_fetch_rating_diff_trouve_le_gamefinish_correspondant():
-    line_autre_partie = json.dumps({
-        "type": "gameFinish", "game": {"id": "autre", "ratingDiff": 99, "opponent": {"ratingDiff": -99}},
-    })
-    line_notre_partie = json.dumps({
-        "type": "gameFinish",
-        "game": {"id": "gid1", "gameId": "gid1", "ratingDiff": 7, "opponent": {"ratingDiff": -7}},
-    })
-    transport = _EventStreamTransport([line_autre_partie, line_notre_partie])
-    client = GameClient("lip_test", transport=transport)
-    assert client.fetch_rating_diff("gid1", timeout_s=2.0) == (7, -7)
-
-
-def test_fetch_rating_diff_absente_renvoie_none_none_sans_exception():
-    transport = _EventStreamTransport(["", "", ""])  # flux fermé sans jamais voir gameFinish
-    client = GameClient("lip_test", transport=transport)
-    assert client.fetch_rating_diff("gid1", timeout_s=2.0) == (None, None)
-
-
-def test_fetch_rating_diff_erreur_ouverture_renvoie_none_none_sans_exception():
-    from nicsoft.modes.lichess.transport import TransportNetworkError
-    transport = _EventStreamTransport(open_error=TransportNetworkError("coupure"))
-    client = GameClient("lip_test", transport=transport)
-    assert client.fetch_rating_diff("gid1", timeout_s=2.0) == (None, None)
-
-
 def test_finalize_classee_terminee_declenche_fetch_et_pousse_l_evenement(monkeypatch):
+    from nicsoft.modes.lichess.game import LichessGame
+    monkeypatch.setattr(LichessGame, "_NEW_RATING_INITIAL_DELAY_S", 0.01)
+    monkeypatch.setattr(LichessGame, "_NEW_RATING_RETRY_DELAY_S", 0.01)
     board = _AlertBoard()
     game, client, events, states, _ = _make_game(monkeypatch, nl_inst=board)
-    _started(game, "white", opponent_is_ai=False)
-    game.rated = True
-    monkeypatch.setattr(client, "fetch_rating_diff", lambda game_id, timeout_s=6.0: (12, -12))
+    game._known_user_color = "white"
+    game._apply_game_full({
+        "white": {"id": "alain", "rating": 1400}, "black": {"id": "opp"}, "rated": True,
+        "state": {"status": "started", "moves": ""},
+    })
+    monkeypatch.setattr(client, "fetch_my_rating", lambda username, speed_key: 1412)
     game._apply_game_state({"status": "resign", "moves": "", "winner": "black"})
     game._finalize()
 
     for _ in range(100):
-        if any(t == "lichess_rating_diff" for t, _ in events):
+        if any(t == "lichess_new_rating" for t, _ in events):
             break
         time.sleep(0.02)
-    diff_events = [d for t, d in events if t == "lichess_rating_diff"]
-    assert diff_events and diff_events[-1] == {"rating_diff": 12, "opponent_rating_diff": -12}
+    new_rating_events = [d for t, d in events if t == "lichess_new_rating"]
+    assert new_rating_events and new_rating_events[-1] == {"new_rating": 1412, "rating_diff": 12}
 
 
 def test_finalize_amicale_ne_declenche_jamais_le_fetch(monkeypatch):
@@ -358,12 +332,12 @@ def test_finalize_amicale_ne_declenche_jamais_le_fetch(monkeypatch):
     game, client, events, states, _ = _make_game(monkeypatch, nl_inst=board)
     _started(game, "white", opponent_is_ai=False)
     called = []
-    monkeypatch.setattr(client, "fetch_rating_diff", lambda *a, **kw: called.append(1) or (None, None))
+    monkeypatch.setattr(client, "fetch_my_rating", lambda *a, **kw: called.append(1))
     game._apply_game_state({"status": "resign", "moves": "", "winner": "black"})
     game._finalize()
     time.sleep(0.15)
     assert called == []
-    assert not any(t == "lichess_rating_diff" for t, _ in events)
+    assert not any(t == "lichess_new_rating" for t, _ in events)
 
 
 # ═══════════════════════════════════════════════════════════════════════

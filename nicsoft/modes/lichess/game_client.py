@@ -22,6 +22,7 @@ générateur indépendant.
 import json
 import threading
 import time
+import urllib.parse
 
 from nicsoft.modes.lichess.errors import (
     LichessApiError,
@@ -179,57 +180,44 @@ class GameClient:
         même doc que claim_victory ci-dessus, même condition de délai."""
         self._request("POST", f"{API_BASE}/board/game/{game_id}/claim-draw")
 
-    # ── Variation de cote en fin de partie classée (issue #344, point 3) ──
+    # ── Nouvelle cote en fin de partie classée (issue #349, partie 1, point 3) ──
+    # Remplace l'ancienne fetch_rating_diff (issue #344, point 3, retirée) —
+    # voir le rapport de clôture #349 pour la discussion garder/remplacer/
+    # compléter : cette ancienne méthode ouvrait le flux général
+    # d'évènements et attendait un évènement `gameFinish` dont la doc
+    # officielle ne garantit ni l'arrivée ni le délai (Alain l'avait déjà
+    # constatée manquante). Celle-ci lit une route PUBLIQUE bien plus
+    # simple à réessayer.
 
-    def fetch_rating_diff(self, game_id: str, timeout_s: float = 6.0):
-        """Meilleur effort : ouvre brièvement le flux général d'évènements
-        (/api/stream/event, le même que seek.py utilise avant la partie)
-        et attend l'évènement `gameFinish` correspondant à `game_id`, pour
-        y lire la variation de cote. Établi par lecture de
-        doc/specs/examples/stream-gameFinish.json.yaml (dépôt
-        lichess-org/api, lue le 15/11/2026) : la partie elle-même (flux
-        /api/board/game/stream/{id}, voir stream_game ci-dessous) ne porte
-        JAMAIS cette information — seul ce flux général le fait, et
-        seulement à la clôture réelle de la partie côté Lichess (délai non
-        garanti par la documentation).
-
-        Retourne (ma_variation, variation_adversaire) — deux entiers, ou
-        (None, None) si indisponible, en erreur, ou si `timeout_s` est
-        dépassé avant de voir l'évènement. Ne lève jamais d'exception
-        (jamais invoqué sur le fil principal de la partie — voir
-        game.py::_maybe_fetch_rating_diff, qui l'appelle dans un fil
-        dédié) ; `handle.close()`, posté par un minuteur depuis UN AUTRE
-        fil pendant que ce fil-ci est bloqué dans `handle.lines()`, est le
-        même mécanisme déjà utilisé par seek.py (cancel()/close()) pour
-        interrompre une lecture bloquante sans attendre sa fin naturelle."""
+    def fetch_my_rating(self, username: str, speed_key: str):
+        """GET /api/user/<username> (route PUBLIQUE de la doc officielle
+        lichess-org/api, doc/specs/tags/users/api-user-username.yaml, lue
+        le 15/11/2026 : « No OAuth and no scope is required » — aucun
+        jeton ni droit supplémentaire nécessaire ; le jeton de cette
+        instance est tout de même envoyé dans l'en-tête, comme pour toute
+        autre requête de ce client, sans que cela ne change rien pour
+        cette route). Retourne la cote entière de `username` dans la
+        catégorie de cadence `speed_key` (voir speed_key_for_clock, game.py),
+        ou None si absente, en erreur (réseau, HTTP, jeton), ou si la
+        réponse est inattendue — ne lève jamais (meilleur effort, voir
+        game.py::_maybe_fetch_new_rating, qui l'appelle dans un fil dédié
+        et gère lui-même le court délai + la seule nouvelle tentative)."""
+        if not username or not speed_key:
+            return None
         try:
-            handle = self.open_event_stream()
-        except (TransportHTTPError, TransportNetworkError, TransportTimeoutError):
-            return None, None
-        timer = threading.Timer(timeout_s, handle.close)
-        timer.daemon = True
-        timer.start()
+            # quote() : défense en profondeur — `username` vient du champ
+            # `id` du gameFull (format Lichess normalement déjà propre),
+            # jamais inséré tel quel dans le chemin de l'URL.
+            body = self._request("GET", f"{API_BASE}/user/{urllib.parse.quote(username, safe='')}")
+        except (LichessApiError, LichessAuthError, LichessNetworkError, LichessRateLimitError):
+            return None
         try:
-            for line in handle.lines():
-                if not line.strip():
-                    continue
-                try:
-                    event = json.loads(line)
-                except ValueError:
-                    continue
-                if event.get("type") != "gameFinish":
-                    continue
-                game = event.get("game") or {}
-                if (game.get("id") or game.get("gameId")) != game_id:
-                    continue
-                opponent = game.get("opponent") or {}
-                return game.get("ratingDiff"), opponent.get("ratingDiff")
-        except (TransportNetworkError, TransportTimeoutError):
-            pass
-        finally:
-            timer.cancel()
-            handle.close()
-        return None, None
+            data = json.loads(body.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError, AttributeError):
+            return None
+        perf = (data.get("perfs") or {}).get(speed_key) or {}
+        rating = perf.get("rating")
+        return rating if isinstance(rating, int) else None
 
     # ── Recherche d'un adversaire humain (issue #327, points 2/3) ────────
 

@@ -1657,7 +1657,7 @@ socket.on("app_state", (data) => {
     // (voir socket.on("lichess_rating_diff", ...) plus bas — jamais de
     // valeur inventée si elle n'arrive pas).
     if (data.source === "lichess" && typeof data.rated === "boolean") {
-      _lichessRatedInfo = { rated: data.rated, ratingDiff: null, opponentRatingDiff: null };
+      _lichessRatedInfo = { rated: data.rated, newRating: null, ratingDiff: null };
       _lichessRenderRatedInfo();
     } else {
       _lichessRatedInfo = null;
@@ -2125,10 +2125,11 @@ function _lichessSetClocksVisible(visible) {
   if (clockBottom) clockBottom.style.display = visible ? "" : "none";
 }
 
-// Issue #344, point 3 : classée/amicale + variation de cote à l'écran de
-// fin de partie — `ratingDiff`/`opponentRatingDiff` restent `null` tant que
-// Lichess ne les a pas fournis (voir socket.on("lichess_rating_diff", ...)
-// ci-dessous) ; jamais affichés avant d'être réellement reçus.
+// Issue #344, point 3 / #349, partie 1, point 3 : classée/amicale +
+// nouvelle cote (et sa variation) à l'écran de fin de partie —
+// `newRating`/`ratingDiff` restent `null` tant que Lichess ne les a pas
+// fournis (voir socket.on("lichess_new_rating", ...) ci-dessous) ; jamais
+// affichés avant d'être réellement reçus.
 let _lichessRatedInfo = null;
 
 function _lichessRenderRatedInfo() {
@@ -2140,22 +2141,25 @@ function _lichessRenderRatedInfo() {
     return;
   }
   let text = _lichessRatedInfo.rated ? t("lichess.badge_classee") : t("lichess.badge_amicale");
-  if (_lichessRatedInfo.rated && typeof _lichessRatedInfo.ratingDiff === "number") {
-    const sign = _lichessRatedInfo.ratingDiff > 0 ? "+" : "";
-    text += ` (${sign}${_lichessRatedInfo.ratingDiff})`;
+  if (_lichessRatedInfo.rated && typeof _lichessRatedInfo.newRating === "number") {
+    let suffix = `${_lichessRatedInfo.newRating}`;
+    if (typeof _lichessRatedInfo.ratingDiff === "number") {
+      const sign = _lichessRatedInfo.ratingDiff > 0 ? "+" : "";
+      suffix += ` (${sign}${_lichessRatedInfo.ratingDiff})`;
+    }
+    text += " — " + t("lichess.nouvelle_cote", { rating: suffix });
   }
   el.textContent = text;
   el.style.display = "";
 }
 
-// Poussé par game.py::_maybe_fetch_rating_diff, en meilleur effort et
+// Poussé par game.py::_maybe_fetch_new_rating, en meilleur effort et
 // uniquement pour une partie classée réellement terminée — jamais si
 // Lichess ne la fournit pas à temps (voir son commentaire).
-socket.on("lichess_rating_diff", (data) => {
+socket.on("lichess_new_rating", (data) => {
   if (!_lichessRatedInfo) return;
+  _lichessRatedInfo.newRating = typeof data.new_rating === "number" ? data.new_rating : null;
   _lichessRatedInfo.ratingDiff = typeof data.rating_diff === "number" ? data.rating_diff : null;
-  _lichessRatedInfo.opponentRatingDiff =
-    typeof data.opponent_rating_diff === "number" ? data.opponent_rating_diff : null;
   _lichessRenderRatedInfo();
 });
 
@@ -2290,6 +2294,15 @@ function lichessSubmitPromotion(piece) {
   _lichessShowBanner("lichess-promotion-row", false);
 }
 
+// Issue #349, partie 1, point 1 : format de cote commun à l'adversaire et
+// à l'utilisateur — "" si inconnue (jamais "0" ni une valeur devinée),
+// sinon " (1327)" ou " (1327?)" pour une cote provisoire, exactement comme
+// lichess.org affiche un point d'interrogation après une cote provisoire.
+function _lichessRatingSuffix(rating, provisional) {
+  if (!Number.isFinite(rating)) return "";
+  return ` (${rating}${provisional ? "?" : ""})`;
+}
+
 function _lichessFormatClock(ms) {
   const totalSeconds = Math.max(0, Math.round((ms || 0) / 1000));
   const mm = Math.floor(totalSeconds / 60);
@@ -2331,9 +2344,13 @@ socket.on("lichess_init", (data) => {
   // (jamais innerHTML), ce qui suffit déjà à empêcher toute injection HTML.
   const opponentLabel = data.opponent_is_ai
     ? t("lichess.ia_niveau", { level: _lichessLevel })
-    : (data.opponent_rating
-        ? `${data.opponent_name || t("lichess.adversaire_inconnu")} (${data.opponent_rating})`
-        : (data.opponent_name || t("lichess.adversaire_inconnu")));
+    : (data.opponent_name || t("lichess.adversaire_inconnu")) + _lichessRatingSuffix(data.opponent_rating, data.opponent_provisional);
+  // Issue #349, partie 1, point 1 : MA cote, même format que celle de
+  // l'adversaire ci-dessus — toujours celle fournie par Lichess au
+  // démarrage de la partie (jamais devinée), y compris contre l'IA (si
+  // Lichess la fournit) et après une reprise (L2b, même évènement
+  // lichess_init).
+  const playerLabelWithRating = playerLabel + _lichessRatingSuffix(data.user_rating, data.user_provisional);
   // L'échiquier de l'écran est orienté du point de vue de l'utilisateur
   // (issue #315, point 1) : la rangée du haut montre toujours l'adversaire
   // et celle du bas l'utilisateur, pour les deux couleurs (point 2) — voir
@@ -2345,7 +2362,7 @@ socket.on("lichess_init", (data) => {
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
   topName.textContent = opponentLabel;
-  botName.textContent = playerLabel;
+  botName.textContent = playerLabelWithRating;
   topName.style.color = "#3a5a7a";
   botName.style.color = "#1a2a3a";
   document.body.setAttribute("style", "background: #d8e4f0 !important;");
@@ -2355,8 +2372,8 @@ socket.on("lichess_init", (data) => {
   // `data.rated` tel que confirmé par Lichess (voir game.py::_apply_game_full).
   const ratedBadge = data.rated ? t("lichess.badge_classee") : t("lichess.badge_amicale");
   document.getElementById("game-subtitle").textContent = (isWhite
-    ? `${playerLabel} ${t("game.contre")} ${opponentLabel}`
-    : `${opponentLabel} ${t("game.contre")} ${playerLabel}`) + ` — ${ratedBadge}`;
+    ? `${playerLabelWithRating} ${t("game.contre")} ${opponentLabel}`
+    : `${opponentLabel} ${t("game.contre")} ${playerLabelWithRating}`) + ` — ${ratedBadge}`;
   updateWdlBar(null);
   const wdlBar = document.getElementById("wdl-bar-container");
   if (wdlBar) wdlBar.style.display = "none";
@@ -4409,9 +4426,17 @@ function parsePgn(pgn) {
       return;
     }
     // Extraire les métadonnées
-    const white  = _localPlayerName(chess.header().White, "config.blancs");
-    const black  = _localPlayerName(chess.header().Black, "config.noirs");
-    const result = chess.header().Result || "*";
+    const headers = chess.header();
+    // Issue #349, partie 1, point 2 : cotes WhiteElo/BlackElo du PGN
+    // (écrites par build_pgn_headers côté serveur quand Lichess les
+    // fournit), affichées dans le même format que partout ailleurs —
+    // jamais recalculées ni devinées, absentes si l'en-tête l'est aussi
+    // (parseInt("", 10) -> NaN, donc pas un nombre -> aucun suffixe).
+    const whiteElo = parseInt(headers.WhiteElo, 10);
+    const blackElo = parseInt(headers.BlackElo, 10);
+    const white  = _localPlayerName(headers.White, "config.blancs") + _lichessRatingSuffix(whiteElo, false);
+    const black  = _localPlayerName(headers.Black, "config.noirs") + _lichessRatingSuffix(blackElo, false);
+    const result = headers.Result || "*";
     // Reconstruire les FEN et la liste des coups — chess2 repart de la même
     // position de départ que `chess` (balise [FEN] du PGN si présente,
     // ex. partie collée commençant par les Noirs), sinon la position de

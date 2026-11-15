@@ -733,6 +733,7 @@
   "config.lichess.classee": "Partie classée",
   "lichess.badge_classee": "Partie classée",
   "lichess.badge_amicale": "Partie amicale",
+  "lichess.nouvelle_cote": "nouvelle cote : {rating}",
   "lichess.recherche.titre": "🔎 Recherche d'un adversaire…",
   "lichess.recherche.temps_ecoule": "Temps écoulé : {time}",
   "lichess.recherche.explication": "La recherche reste active tant que cet écran est ouvert.",
