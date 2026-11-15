@@ -992,19 +992,26 @@ function flipBoard() {
   _lichessClockRowsSwapped = !_lichessClockRowsSwapped;
   if (_lichessLastClockData) _lichessRenderClock(_lichessLastClockData);
   // material est géré par updateMaterial() qui tient compte de _boardFlipped
-  // Re-rendre la position courante
-  const fen = currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
-  renderBoard(fen, null, null, null, null, null, null);
-  // Issue #341 : réoriente la barre d'évaluation (blanche/noire en haut)
-  // sur l'écran d'analyse — depuis le cache déjà en mémoire, jamais une
-  // nouvelle requête moteur. flipBoard() est partagé par tous les écrans
-  // (jeu, labo...) : ne touche la barre que si l'écran d'analyse est bien
-  // affiché, pour ne jamais l'y faire apparaître à tort ailleurs.
+  // Issue #343 : sur l'écran d'analyse (panel-gameover), la position à
+  // afficher est reviewFens[reviewIdx] — PAS currentFen, qui n'est jamais mis
+  // à jour par le chemin "Analyse → Coller PGN" (ni par la reprise d'une
+  // partie jouée dans AlChess, qui alimente reviewFens de la même façon) et
+  // reste donc à sa valeur par défaut (position de départ). renderReview()
+  // redessine pièces, dernier coup, flèches et légende dans la nouvelle
+  // orientation, et réoriente la barre d'évaluation (issue #341) — tout
+  // depuis le cache déjà en mémoire (_reviewLinesCache), jamais une nouvelle
+  // requête moteur. reviewIdx n'est pas modifié : l'historique et le titre
+  // de navigation restent inchangés. flipBoard() est partagé par tous les
+  // écrans (jeu, labo...) : ce chemin ne s'applique que si l'écran d'analyse
+  // est bien affiché.
   const panelGameover = document.getElementById("panel-gameover");
   if (panelGameover && panelGameover.style.display !== "none") {
-    const reviewFen = reviewFens[reviewIdx];
-    _reviewUpdateEvalBar(reviewFen ? (_reviewLinesCache[reviewFen] || null) : null, reviewFen);
+    renderReview();
+    return;
   }
+  // Autres écrans : re-rendre la position courante depuis currentFen
+  const fen = currentFen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+  renderBoard(fen, null, null, null, null, null, null);
 }
 
 // ── Échiquier review ──────────────────────────────────────────────────────
