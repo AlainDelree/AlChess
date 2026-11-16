@@ -493,6 +493,8 @@ def main():
                 gm.launch_humain(action)
             elif atype == "start_lichess":
                 gm.launch_lichess(action)
+            elif atype == "start_lichess_puzzle":
+                gm.launch_lichess_puzzle(action)
             elif atype == "start_lichess_resume":
                 gm.launch_lichess_resume(action)
             elif atype == "lichess_abandon_ongoing":

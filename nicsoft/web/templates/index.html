@@ -473,6 +473,17 @@
 
     <p class="lichess-cfg-disclaimer" data-i18n="config.lichess.disclaimer">Classée ou amicale, toutes les aides (moteur, analyse, coups suggérés) sont désactivées pendant la partie.</p>
 
+    <!-- Problèmes (puzzles) Lichess — issue #354, étape A. Carte autonome,
+         pas de configuration (angle par défaut, un problème après l'autre) :
+         un seul clic lance directement la session, sans passer par le
+         formulaire adversaire/cadence/couleur ci-dessous (sans objet pour
+         un problème). -->
+    <div class="card cfg-hh-card">
+      <h2 data-i18n="config.lichess.probleme_titre">🧩 Problèmes</h2>
+      <p class="outil-desc" data-i18n="config.lichess.probleme_desc">Résolvez les problèmes Lichess un par un sur votre échiquier physique — aucune aide, angle par défaut.</p>
+      <button class="btn btn-reprendre" data-action="start_lichess_puzzle" data-i18n="config.lichess.probleme_btn">▶ Jouer un problème</button>
+    </div>
+
     <!-- Choix du type de partie (issue #327, point 1 ; classé issue #344, point 1 ;
          ordre issue #346) — « Contre un humain » présélectionné et affiché à
          gauche (défaut), case « Partie classée » cochée par défaut (sans objet
@@ -1076,10 +1087,18 @@
   <div class="pos-init-panel">
     <div class="card">
       <h2 class="card-title-lg" data-i18n="pos_init.titre">Position incorrecte</h2>
-      <div class="pos-init-texte" data-i18n-html="pos_init.texte_html">
+      <div class="pos-init-texte" id="pos-init-texte-standard" data-i18n-html="pos_init.texte_html">
         Le plateau n'est pas en position initiale.<br>
         Rangez toutes les pièces à leur place de départ.<br><br>
         La partie démarrera automatiquement dès que la position sera correcte.
+      </div>
+      <!-- Problèmes Lichess (issue #354) : position de départ ARBITRAIRE
+           (celle du problème), jamais la position de départ standard —
+           texte dédié, affiché à la place du texte ci-dessus quand
+           data.puzzle est vrai (voir socket.on("app_state", ...)). -->
+      <div class="pos-init-texte" id="pos-init-texte-puzzle" style="display:none;" data-i18n-html="lichess.puzzle_mise_en_place_texte">
+        Mettez en place la position affichée sur l'échiquier physique.<br><br>
+        Le problème démarrera automatiquement dès que la position sera correcte.
       </div>
       <div class="pos-init-attente">
         <div class="pos-init-spinner"></div>
@@ -1097,6 +1116,65 @@
     </div>
   </div>
 </div>
+
+<!-- ── Écran Problèmes (puzzles) Lichess — issue #354 (étapes A/B/C) ──
+     Échiquier orienté du point de vue du solveur (data.color) ; tant que
+     le problème n'est pas résolu, les thèmes ne sont jamais transmis par
+     le serveur (voir puzzle_game.py::_result_payload) — rien à masquer
+     explicitement ici. Pas de clock/nulle/abandon (sans objet pour un
+     problème) : seuls Retour au menu (toujours disponible) et les boutons
+     de fin de problème sont présents. -->
+<div id="screen-lichess-puzzle" class="screen-board-layout">
+  <div></div>
+  <div class="pos-init-board-col">
+    <div class="pos-init-label">
+      <span>♟</span><span data-i18n="pos_init.adversaire">Adversaire</span>
+    </div>
+    <div id="board-lichess-puzzle"></div>
+    <div class="pos-init-label">
+      <span>♙</span><span data-i18n="pos_init.joueur">Joueur</span>
+    </div>
+  </div>
+  <div class="pos-init-panel">
+    <div class="card">
+      <h2 class="card-title-lg" data-i18n="lichess.puzzle.titre">🧩 Problème Lichess</h2>
+      <div id="lichess-puzzle-rating" class="lichess-puzzle-rating"></div>
+      <div id="lichess-puzzle-turn-banner" class="pos-init-attente">
+        <span id="lichess-puzzle-turn-text"></span>
+      </div>
+
+      <div id="lichess-puzzle-wait-replication" class="lichess-info-banner" style="display:none;" data-i18n="lichess.puzzle.en_attente_reproduction">Reproduisez le coup indiqué sur l'échiquier physique.</div>
+      <div id="lichess-puzzle-illegal-position" class="lichess-info-banner lichess-banner-danger" style="display:none;"></div>
+      <div id="lichess-puzzle-board-lost" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reconnexion_echiquier">Reconnexion de l'échiquier…</div>
+
+      <div id="lichess-puzzle-promotion-row" class="lichess-promotion-row" style="display:none;">
+        <p data-i18n="lichess.choisir_promotion">Promotion — choisissez la pièce :</p>
+        <button class="btn" data-action="lichess_puzzle_promotion" data-piece="q" data-i18n="lichess.promotion.dame">Dame</button>
+        <button class="btn" data-action="lichess_puzzle_promotion" data-piece="r" data-i18n="lichess.promotion.tour">Tour</button>
+        <button class="btn" data-action="lichess_puzzle_promotion" data-piece="b" data-i18n="lichess.promotion.fou">Fou</button>
+        <button class="btn" data-action="lichess_puzzle_promotion" data-piece="n" data-i18n="lichess.promotion.cavalier">Cavalier</button>
+      </div>
+
+      <div id="lichess-puzzle-result" style="display:none;">
+        <h3 id="lichess-puzzle-result-title"></h3>
+        <div id="lichess-puzzle-result-themes" class="lichess-puzzle-themes"></div>
+        <div id="lichess-puzzle-rating-change"></div>
+        <div id="lichess-puzzle-submit-error" class="lichess-info-banner lichess-banner-danger" style="display:none;">
+          <div data-i18n="lichess.puzzle.envoi_echoue">Envoi du résultat échoué — pas encore de nouvel essai.</div>
+          <button class="btn" data-action="lichess_puzzle_retry_submit" data-i18n="lichess.puzzle.reessayer_envoi">Réessayer l'envoi</button>
+        </div>
+        <div id="lichess-puzzle-solution-banner" style="display:none;" data-i18n="lichess.puzzle.solution_titre">Solution en cours de démonstration…</div>
+        <div id="lichess-puzzle-result-actions">
+          <button id="lichess-puzzle-btn-solution" class="btn" data-action="lichess_puzzle_view_solution" style="display:none;" data-i18n="lichess.puzzle.voir_solution">Voir la solution</button>
+          <button class="btn btn-reprendre" data-action="lichess_puzzle_next" data-i18n="lichess.puzzle.suivant">Problème suivant ▶</button>
+        </div>
+      </div>
+
+      <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:16px;">← Retour au menu</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── Écran Exercices — sélection ── -->
 <div id="screen-exercices">
 

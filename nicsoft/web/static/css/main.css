@@ -1817,3 +1817,12 @@
 .lichess-ongoing-game-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .lichess-ongoing-game-note { font-size:0.85rem; color:#5a4a1a; font-style:italic; }
 .outils-wiki-result { display:none; margin-top:12px; }
+
+/* Écran Problèmes Lichess (issue #354) */
+.lichess-puzzle-rating { font-size:0.9rem; color:#5a6b7a; margin-bottom:6px; }
+#lichess-puzzle-turn-text { font-weight:700; color:#1a2a3a; }
+#lichess-puzzle-result { margin-top:14px; padding-top:10px; border-top:1px solid #dde3ea; }
+#lichess-puzzle-result-title { margin:0 0 6px; }
+.lichess-puzzle-themes { font-size:0.85rem; color:#5a6b7a; margin-bottom:6px; }
+#lichess-puzzle-rating-change { font-size:0.9rem; color:#1a2a3a; margin-bottom:10px; }
+#lichess-puzzle-result-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }

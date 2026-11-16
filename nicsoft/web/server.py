@@ -630,7 +630,7 @@ def on_action(data):
             explorer_cleanup()
         # Mettre dans action_queue seulement si un thread actif écoute
         if prev_state in ("playing", "connecting", "game_over", "paused", "labo",
-                          "exercice_running", "retrans_playing"):
+                          "exercice_running", "retrans_playing", "lichess_puzzle_playing"):
             action_queue.put(data)
         return
     # Retour sélection exercices — même pattern que back_menu
@@ -643,7 +643,8 @@ def on_action(data):
     if atype == "reconnect_board":
         threading.Thread(target=_reconnect_board, daemon=True).start()
         return
-    if _app_state in ("playing", "connecting", "game_over", "paused", "labo", "exercice_running", "retrans_playing"):
+    if _app_state in ("playing", "connecting", "game_over", "paused", "labo", "exercice_running",
+                      "retrans_playing", "lichess_puzzle_playing"):
         action_queue.put(data)
     else:
         # menu, config, exercices, exercice_running → boucle principale

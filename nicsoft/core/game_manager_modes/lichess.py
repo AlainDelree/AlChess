@@ -1456,3 +1456,246 @@ def abandon_lichess_game(action: dict) -> None:
         "annulée" if aborting else "abandonnée", game_id, len(moves),
     )
     check_lichess_resumable()
+
+
+# ── Problèmes (puzzles) Lichess — issue #354, étape A ───────────────────────
+#
+# Périmètre volontairement minimal (décision d'Alain) : un problème après
+# l'autre, angle par défaut (pas de choix de thème), pas de séries/Storm/
+# Racer/Streak, jamais de reprise d'un problème déjà vu. Réutilise le
+# lanceur existant au maximum (_open_board_with_retry,
+# _reconnect_board_or_menu, _discard_stale_browser_actions,
+# _BackMenuDuringWait, _menu_toast_data) — seule la boucle de jeu elle-même
+# (modes/lichess/puzzle_game.py::PuzzleGame) diffère de LichessGame, faute
+# d'adversaire/flux réseau continu (toute la solution est connue d'avance,
+# voir puzzle_client.py, livré par #351).
+
+def _wait_initial_position_lichess_puzzle(nl_inst, target_fen: str, color: str) -> None:
+    """Variante de _wait_initial_position_lichess pour une position de
+    départ ARBITRAIRE (celle du problème, jamais la position de départ
+    standard) — même mécanique par ailleurs (sans limite de temps,
+    annulable par "back_menu", reconnexion automatique sur lecture vide
+    prolongée). Contrairement à _wait_initial_position_lichess/
+    _wait_initial_position_web, le payload envoyé à l'écran porte la
+    position CIBLE (`target_board_fen`), pas la lecture physique courante
+    — l'écran générique "position_initiale" se contente d'afficher le FEN
+    reçu tel quel (voir app.js), mais le texte d'accompagnement suppose par
+    défaut la position de départ standard (non valable ici) : le payload
+    porte donc aussi `puzzle: True`, pour qu'app.js affiche un texte dédié
+    (clé lichess.puzzle_mise_en_place_texte) plutôt que celui des parties."""
+    target_board_fen = target_fen.strip().split()[0] if target_fen else chess.Board().board_fen()
+    first_check = True
+    empty_since = None
+    while True:
+        if get_app_state() == "menu":
+            raise _BackMenuDuringWait()
+        board_fen = _read_board_fen_once(nl_inst)
+        board_lost = not board_fen or not _board_module_connected(nl_inst)
+        if board_lost:
+            if empty_since is None:
+                empty_since = time.monotonic()
+            elif time.monotonic() - empty_since >= _BOARD_LOST_EMPTY_S:
+                _reconnect_board_or_menu(nl_inst)
+                empty_since = None
+                first_check = True
+            else:
+                time.sleep(0.2)
+            continue
+        empty_since = None
+        if board_fen == target_board_fen:
+            nl_inst.turn_off_all_leds()
+            time.sleep(0.3)
+            return
+        if first_check:
+            first_check = False
+            try:
+                nl_inst.signal_lights(1)
+            except Exception as e:
+                logger_lichess.debug(f"signal_lights cosmétique a échoué (problème Lichess) : {e}")
+        set_app_state("position_initiale", {"fen": target_board_fen, "color": color, "puzzle": True})
+        time.sleep(0.5)
+
+
+def launch_lichess_puzzle(config: dict) -> None:
+    """Lance une session de problèmes (carte « Problèmes » de l'écran
+    Lichess) — comme launch_lichess, exécute tout de façon synchrone dans
+    un thread dédié que ce lanceur attend (t.join()) : à son retour, la
+    session est déjà terminée (retour au menu demandé par l'utilisateur ou
+    erreur). Vérifie D'ABORD les droits du jeton (puzzle:read/puzzle:write)
+    via test_token() — jamais d'échec silencieux si l'un des deux manque
+    (issue #354, étape A)."""
+    current_state = web_server._app_state
+    if current_state not in ("menu", "config_lichess"):
+        logger.info(f"Lancement problème Lichess refusé : mode déjà actif ({current_state}).")
+        send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
+        return
+
+    token = (load_config().get("lichess_token") or "").strip()
+    if not token:
+        web_server._app_state = "menu"
+        set_app_state("menu", _menu_toast_data("toast.lichess_no_token"))
+        return
+
+    from nicsoft.modes.lichess.client import test_token
+    check = test_token(token)
+    if check.get("status") != "ok":
+        key = "toast.lichess_rate_limited" if check.get("status") == "rate_limited" else "toast.lichess_invalid_token"
+        web_server._app_state = "config_lichess"
+        set_app_state("config_lichess", _menu_toast_data(key))
+        return
+    missing = []
+    if not check.get("has_puzzle_read"):
+        missing.append("puzzle:read")
+    if not check.get("has_puzzle_write"):
+        missing.append("puzzle:write")
+    if missing:
+        logger_lichess.info(
+            "Lichess : problèmes refusés — droit(s) manquant(s) sur le jeton : %s.", ", ".join(missing),
+        )
+        web_server._app_state = "config_lichess"
+        set_app_state("config_lichess", _menu_toast_data(
+            "toast.lichess_puzzle_missing_scope", {"scopes": ", ".join(missing)}, persistent=True,
+        ))
+        return
+
+    player_name = (config.get("player") or "Vous").strip() or "Vous"
+    logger_lichess.info(f"Lichess : lancement session de problèmes demandé — joueur={player_name}.")
+
+    web_server._app_state = "connecting"
+    set_app_state("connecting")
+    _error = {"occurred": False, "toast_key": None, "return_to": "config_lichess"}
+    t = threading.Thread(target=_run_lichess_puzzle, args=(token, player_name, _error), daemon=True)
+    t.start()
+    t.join()
+    if _error["occurred"]:
+        time.sleep(1.0)
+        target_state = _error.get("return_to") or "menu"
+        web_server._app_state = target_state
+        set_app_state(target_state, _menu_toast_data(
+            _error["toast_key"] or "toast.lichess_error",
+            _error.get("toast_vars"), _error.get("toast_persistent", False),
+        ))
+    elif web_server._app_state != "menu":
+        web_server._app_state = "menu"
+        set_app_state("menu")
+    if web_server._app_state == "menu":
+        threading.Thread(target=check_board_presence_silent, daemon=True).start()
+
+
+def _run_lichess_puzzle(token, player_name, _error=None):
+    from nicsoft.modes.lichess.puzzle_game import PuzzleGame, solver_color_for_fen, PUZZLE_LOGS_DIR
+    from nicsoft.modes.lichess.puzzle_client import get_next_puzzle
+    from nicsoft.modes.lichess.game_log import GameLog
+
+    _STATUS_TOAST_KEYS = {
+        "invalid": "toast.lichess_invalid_token",
+        "missing_scope": "toast.lichess_puzzle_missing_scope",
+        "rate_limited": "toast.lichess_rate_limited",
+        "network_error": "toast.lichess_network_error",
+    }
+
+    nl_inst = None
+    game_log = None
+    try:
+        game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
+        game_log.state_change(f"Session de problèmes Lichess démarrée — joueur={player_name}.")
+        nl_inst = _open_board_with_retry("NicLink_lichess_puzzle")
+        while True:
+            game_log.state_change("Demande du prochain problème (GET /api/puzzle/next).")
+            puzzle = get_next_puzzle(token)
+            status = puzzle.get("status")
+            if status != "ok":
+                game_log.state_change(f"Problème non obtenu — statut={status}.")
+                if _error is not None:
+                    _error["occurred"] = True
+                    _error["toast_key"] = _STATUS_TOAST_KEYS.get(status, "toast.lichess_error")
+                    _error["return_to"] = "config_lichess"
+                return
+            game_log.state_change(
+                "Problème reçu — id=%s, cote=%s, nb_coups_solution=%d, position_mise_en_place=%s, "
+                "premier_coup_adverse=%s." % (
+                    puzzle["puzzle_id"], puzzle.get("rating"), len(puzzle["solution"]),
+                    puzzle["setup_fen"], puzzle.get("opponent_first_move") or "(aucun)",
+                )
+            )
+            solver_color = solver_color_for_fen(puzzle.get("fen") or puzzle["setup_fen"])
+            _wait_initial_position_lichess_puzzle(nl_inst, puzzle["setup_fen"], solver_color)
+            game_log.state_change("Position de mise en place confirmée.")
+            set_nl_inst_ref(nl_inst)
+            _discard_stale_browser_actions()
+
+            game = PuzzleGame(nl_inst, token, puzzle, player_name=player_name, game_log=game_log)
+            web_server._app_state = "lichess_puzzle_playing"
+            set_app_state("lichess_puzzle_playing", {
+                "fen": game.board.fen(), "color": solver_color,
+                "puzzle_id": puzzle["puzzle_id"], "rating": puzzle.get("rating"),
+            })
+            game.animate_opponent_first_move()
+            outcome = game.run()
+            if outcome == "back_menu":
+                return
+            # "next_puzzle" : reboucle — nouveau problème, nouvelle mise en
+            # place physique, sans jamais repasser par le menu (issue #354,
+            # étape C).
+    except _BackMenuDuringWait:
+        pass
+    except LichessAuthError as e:
+        logger_lichess.error(f"Jeton Lichess refusé pendant les problèmes (HTTP {e.status_code}).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = ("toast.lichess_puzzle_missing_scope" if e.status_code == 403
+                                    else "toast.lichess_invalid_token")
+            _error["return_to"] = "config_lichess"
+    except LichessRateLimitError:
+        logger_lichess.warning("Limite de requêtes Lichess atteinte (problèmes).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_rate_limited"
+            _error["return_to"] = "config_lichess"
+    except (LichessNetworkError, LichessApiError) as e:
+        logger_lichess.error(f"Erreur Lichess pendant les problèmes : {e}")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_network_error"
+            _error["return_to"] = "config_lichess"
+    except SystemExit as e:
+        if "board connection error" in str(e):
+            logger.error("Erreur problèmes Lichess : échiquier non détecté.")
+            if _error is not None:
+                _error["occurred"] = True
+                _error["toast_key"] = "toast.board_not_found"
+                _error["return_to"] = "config_lichess"
+            send_event("board_error", {"message": "Échiquier non détecté — vérifiez l'USB et allumez le plateau."})
+    except ConnectionError as e:
+        logger.error(f"Erreur de connexion échiquier (problèmes Lichess) : {e}")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.board_not_found"
+            _error["return_to"] = "config_lichess"
+        send_event("board_error", {"message": str(e)})
+    except Exception as e:
+        logger.error(f"Erreur inattendue — problèmes Lichess : {e}")
+        import traceback
+        traceback.print_exc()
+        if game_log is not None:
+            game_log.exception(e, context="_run_lichess_puzzle")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_error"
+            _error["return_to"] = "config_lichess"
+        send_event("popup", {"message": f"Erreur : {e}"})
+    finally:
+        if nl_inst:
+            try:
+                nl_inst.turn_off_all_leds()
+            except Exception as e:
+                logger.debug(f"Extinction LEDs (fin problèmes Lichess) échouée : {e}")
+            try:
+                nl_inst.disconnect()
+                logger_lichess.info("Lichess (problèmes) : échiquier physique libéré.")
+            except Exception as e:
+                logger.warning(f"Déconnexion échiquier échouée (problèmes Lichess) : {e}")
+        if web_server._app_state != "menu":
+            web_server._app_state = "menu"
+        if game_log is not None:
+            game_log.close()

@@ -153,6 +153,22 @@ document.addEventListener("click", (e) => {
     case "start_game_lichess":
       startGameLichess();
       break;
+    case "start_lichess_puzzle":
+      startLichessPuzzle();
+      break;
+    case "lichess_puzzle_promotion":
+      sendAction({ type: "lichess_puzzle_promotion_choice", piece: el.dataset.piece });
+      _lichessPuzzleShowPromotion(false);
+      break;
+    case "lichess_puzzle_view_solution":
+      sendAction({ type: "lichess_puzzle_view_solution" });
+      break;
+    case "lichess_puzzle_next":
+      sendAction({ type: "lichess_puzzle_next" });
+      break;
+    case "lichess_puzzle_retry_submit":
+      sendAction({ type: "lichess_puzzle_retry_submit" });
+      break;
     case "lichess_resume_game":
       lichessResumeGame(el.dataset.gameId);
       break;
@@ -1595,8 +1611,31 @@ socket.on("app_state", (data) => {
     _buildBoardPosInit(orientationIsFlipped(data.color));
     renderBoardPosInit(data.fen);
   }
+  // Problèmes Lichess (issue #354) : texte dédié (position arbitraire,
+  // jamais la position de départ standard) à la place du texte générique.
+  const posInitTexteStd = document.getElementById("pos-init-texte-standard");
+  const posInitTextePuzzle = document.getElementById("pos-init-texte-puzzle");
+  if (posInitTexteStd) posInitTexteStd.style.display = (data.state === "position_initiale" && data.puzzle) ? "none" : "";
+  if (posInitTextePuzzle) posInitTextePuzzle.style.display = (data.state === "position_initiale" && data.puzzle) ? "" : "none";
   const posInitLichessBackBtn = document.getElementById("pos-init-lichess-back-btn");
-  if (posInitLichessBackBtn) posInitLichessBackBtn.style.display = (data.state === "position_initiale" && _gameMode === "lichess") ? "" : "none";
+  if (posInitLichessBackBtn) posInitLichessBackBtn.style.display = (data.state === "position_initiale" && (_gameMode === "lichess" || _gameMode === "lichess_puzzle")) ? "" : "none";
+  // Écran Problèmes Lichess — distinct de "playing" (pas de pendule, pas de
+  // flux adverse en direct : voir puzzle_game.py::PuzzleGame).
+  const screenLichessPuzzle = document.getElementById("screen-lichess-puzzle");
+  if (screenLichessPuzzle) screenLichessPuzzle.style.display = data.state === "lichess_puzzle_playing" ? "flex" : "none";
+  if (data.state === "lichess_puzzle_playing" && data.fen) {
+    _lichessPuzzleFlipped = orientationIsFlipped(data.color);
+    _buildBoardPosInit(_lichessPuzzleFlipped, "board-lichess-puzzle", "lp");
+    _renderLichessPuzzleBoard(data.fen);
+    _lichessPuzzleShowPromotion(false);
+    _lichessPuzzleHideBanners();
+    const resultBox = document.getElementById("lichess-puzzle-result");
+    if (resultBox) resultBox.style.display = "none";
+    const ratingEl = document.getElementById("lichess-puzzle-rating");
+    if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
+    const turnText = document.getElementById("lichess-puzzle-turn-text");
+    if (turnText) turnText.textContent = t(data.color === "white" ? "lichess.puzzle.a_vous_de_jouer_blancs" : "lichess.puzzle.a_vous_de_jouer_noirs");
+  }
   const screenLichessWaitFirstMove = document.getElementById("screen-lichess-wait-first-move");
   if (screenLichessWaitFirstMove) screenLichessWaitFirstMove.style.display = data.state === "lichess_wait_first_move" ? "flex" : "none";
   if (data.state === "lichess_wait_first_move") {
@@ -3989,6 +4028,144 @@ function startGameLichess() {
     rated: _lichessOpponentType === "human" ? _lichessRated : false,
   });
 }
+
+// ── Problèmes (puzzles) Lichess — issue #354 ────────────────────────────
+// Carte autonome de l'écran config_lichess : aucune configuration côté
+// navigateur (angle par défaut, pas de cadence/couleur à choisir — c'est
+// le problème lui-même qui impose la position et la couleur à jouer).
+
+function startLichessPuzzle() {
+  _basketSource = "Lichess";
+  _gameMode = "lichess_puzzle";
+  const player = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
+  sendAction({ type: "start_lichess_puzzle", player });
+}
+
+// Peint les pièces d'un FEN sur la grille construite par _buildBoardPosInit
+// (cellPrefix "lp") — sans comparaison à la position de départ standard
+// (contrairement à renderBoardPosInit, dédiée aux parties) : une position
+// de problème n'a aucune raison de ressembler à la position initiale, toute
+// case "différente" y serait presque toujours fausse.
+function _renderLichessPuzzleBoard(fen) {
+  const grid = fenToBoard(fen);
+  for (let rank = 7; rank >= 0; rank--) {
+    for (let file = 0; file < 8; file++) {
+      const id = `${file}-${rank}`;
+      const sq = document.getElementById(`lp-${id}`);
+      if (!sq) continue;
+      const piece = grid[id];
+      sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
+    }
+  }
+}
+
+function _lichessPuzzleShowPromotion(show) {
+  const row = document.getElementById("lichess-puzzle-promotion-row");
+  if (row) row.style.display = show ? "" : "none";
+}
+
+function _lichessPuzzleHideBanners() {
+  ["lichess-puzzle-wait-replication", "lichess-puzzle-illegal-position", "lichess-puzzle-board-lost"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+}
+
+// État local minimal — seulement ce qui ne peut pas être redérivé d'un
+// évènement reçu (orientation de l'échiquier, déjà fixée à l'entrée dans
+// l'écran et jamais recalculée coup par coup).
+let _lichessPuzzleFlipped = false;
+
+socket.on("lichess_puzzle_move", (data) => {
+  _lichessPuzzleHideBanners();
+  if (data.fen) _renderLichessPuzzleBoard(data.fen);
+  const turnText = document.getElementById("lichess-puzzle-turn-text");
+  if (turnText) {
+    turnText.textContent = t(data.color === "white" ? "lichess.puzzle.a_vous_de_jouer_blancs" : "lichess.puzzle.a_vous_de_jouer_noirs");
+  }
+});
+
+socket.on("lichess_puzzle_position_wait", (_data) => {
+  const el = document.getElementById("lichess-puzzle-wait-replication");
+  if (el) el.style.display = "";
+});
+
+socket.on("lichess_puzzle_position_ok", (_data) => {
+  const el = document.getElementById("lichess-puzzle-wait-replication");
+  if (el) el.style.display = "none";
+});
+
+socket.on("lichess_puzzle_illegal_position", (data) => {
+  const el = document.getElementById("lichess-puzzle-illegal-position");
+  if (!el) return;
+  if (data.active) {
+    el.textContent = t("lichess.puzzle.position_illegale");
+    el.style.display = "";
+  } else {
+    el.style.display = "none";
+  }
+});
+
+socket.on("lichess_puzzle_promotion_needed", (_data) => {
+  _lichessPuzzleShowPromotion(true);
+});
+
+socket.on("lichess_puzzle_board_lost", (_data) => {
+  const el = document.getElementById("lichess-puzzle-board-lost");
+  if (el) el.style.display = "";
+});
+
+socket.on("lichess_puzzle_board_ok", (_data) => {
+  const el = document.getElementById("lichess-puzzle-board-lost");
+  if (el) el.style.display = "none";
+});
+
+socket.on("lichess_puzzle_toast", (data) => {
+  afficherToast(t(data.message_key, data.vars || {}), data.type || "info", !!data.persistent);
+});
+
+socket.on("lichess_puzzle_solution_move", (data) => {
+  _lichessPuzzleHideBanners();
+  if (data.fen) _renderLichessPuzzleBoard(data.fen);
+  const banner = document.getElementById("lichess-puzzle-solution-banner");
+  if (banner) banner.style.display = "";
+});
+
+socket.on("lichess_puzzle_result", (data) => {
+  _lichessPuzzleShowPromotion(false);
+  _lichessPuzzleHideBanners();
+  const resultBox = document.getElementById("lichess-puzzle-result");
+  if (resultBox) resultBox.style.display = "";
+  const solutionBanner = document.getElementById("lichess-puzzle-solution-banner");
+  if (solutionBanner) solutionBanner.style.display = "none";
+
+  const title = document.getElementById("lichess-puzzle-result-title");
+  if (title) title.textContent = t(data.win ? "lichess.puzzle.resultat_gagne" : "lichess.puzzle.resultat_perdu");
+
+  const themesEl = document.getElementById("lichess-puzzle-result-themes");
+  if (themesEl) {
+    themesEl.textContent = (data.themes && data.themes.length)
+      ? `${t("lichess.puzzle.themes_titre")} ${data.themes.join(", ")}` : "";
+  }
+
+  const ratingEl = document.getElementById("lichess-puzzle-rating-change");
+  if (ratingEl) {
+    const parts = [];
+    if (typeof data.rating_before === "number") parts.push(t("lichess.puzzle.cote_avant", { rating: data.rating_before }));
+    if (typeof data.rating_after === "number") parts.push(t("lichess.puzzle.cote_apres", { rating: data.rating_after }));
+    if (typeof data.rating_diff === "number") {
+      const signed = data.rating_diff > 0 ? `+${data.rating_diff}` : `${data.rating_diff}`;
+      parts.push(t("lichess.puzzle.cote_variation", { diff: signed }));
+    }
+    ratingEl.textContent = parts.join(" — ");
+  }
+
+  const errBox = document.getElementById("lichess-puzzle-submit-error");
+  if (errBox) errBox.style.display = data.submit_pending ? "" : "none";
+
+  const solutionBtn = document.getElementById("lichess-puzzle-btn-solution");
+  if (solutionBtn) solutionBtn.style.display = data.can_view_solution ? "" : "none";
+});
 
 // ── Partie(s) Lichess en cours (issue #323 ; étendu à la liste complète,
 //    une seule partie à la fois, par l'issue #325) ─────────────────────────

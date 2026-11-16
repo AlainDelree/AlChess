@@ -15,6 +15,7 @@ from nicsoft.core.game_manager_modes.humain import launch_humain, _run_humain
 from nicsoft.core.game_manager_modes.lichess import (
     launch_lichess, _run_lichess, launch_lichess_resume, _run_lichess_resume,
     check_lichess_resumable, abandon_lichess_game,
+    launch_lichess_puzzle, _run_lichess_puzzle,
 )
 from nicsoft.core.game_manager_modes.retranscription import launch_retranscription
 from nicsoft.core.game_manager_modes.exercices import (
@@ -32,6 +33,7 @@ from nicsoft.core.game_manager_modes.explorer import (
 __all__ = [
     "get_nl_inst_ref", "get_virtual_mode", "set_virtual_mode",
     "launch_pedagogique", "launch_humain", "launch_lichess", "launch_lichess_resume",
+    "launch_lichess_puzzle",
     "check_lichess_resumable", "abandon_lichess_game", "launch_retranscription",
     "launch_exercices", "start_exercice", "start_drill",
     "launch_labo",

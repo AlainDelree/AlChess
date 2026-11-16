@@ -66,6 +66,9 @@ BUSY_STATES = frozenset({
     "lichess_seeking",
     "retrans_playing",
     "exercice_running",
+    # Session de problèmes Lichess (issue #354) — échiquier physique déjà
+    # ouvert dès le premier problème, comme une partie classique.
+    "lichess_puzzle_playing",
 })
 
 # Délai d'attente d'un arrêt propre avant de forcer (secondes).
