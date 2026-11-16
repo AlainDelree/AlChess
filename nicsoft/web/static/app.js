@@ -1868,12 +1868,15 @@ socket.on("board_warning", (data) => {
 socket.on("feedback", (data) => { showFeedback(data); });
 
 socket.on("swap_color", (data) => {
+  // Issue #350 : changement de camp en Pédagogique — écrit haut/bas selon
+  // l'orientation réelle de l'échiquier (_boardFlipped), via la même
+  // fonction que l'écran d'analyse (#345) et le changement de camp HH
+  // (#348, swap_color_hh), plutôt que de supposer "haut=Noir, bas=Blanc".
   const isWhite  = data.color === "white";
   const opponent = data.opponent || `Stockfish ~${data.level * 100}elo`;
+  _reviewSetTopBottomNames(isWhite ? data.player : opponent, isWhite ? opponent : data.player);
   const topName  = document.getElementById("player-top-name");
   const botName  = document.getElementById("player-bottom-name");
-  topName.textContent = isWhite ? opponent : data.player;
-  botName.textContent = isWhite ? data.player : opponent;
   topName.style.color = "#3a5a7a";
   botName.style.color = "#1a2a3a";
 });
@@ -1984,11 +1987,14 @@ socket.on("init", (data) => {
   currentFen   = data.fen || currentFen;
   const isWhite   = data.color === "white";
   const opponent  = data.opponent || `Stockfish ~${data.elo || data.level * 100}elo`;
+  // Issue #350 : début de partie Pédagogique — écrit haut/bas selon
+  // l'orientation réelle de l'échiquier (_boardFlipped), via la même
+  // fonction que l'écran d'analyse (#345) et l'initialisation HH (#348),
+  // plutôt que de supposer "haut=Noir, bas=Blanc".
+  _reviewSetTopBottomNames(isWhite ? data.player : opponent, isWhite ? opponent : data.player);
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
-  topName.textContent = isWhite ? opponent : data.player;
-  botName.textContent = isWhite ? data.player : opponent;
-  // Couleur du nom selon les pièces jouées : noir=gris, blanc=clair
+  // Couleur du nom selon la position haut/bas (purement positionnel, pas lié au camp)
   topName.style.color = "#3a5a7a";
   botName.style.color = "#1a2a3a";
 
@@ -2048,10 +2054,15 @@ socket.on("init_hh", (data) => {
   reviewMoves = [];
   reviewIdx   = 0;
   currentFen  = data.fen || currentFen;
+  // Issue #350 : même défaut que le "init" Pédagogique — écrit haut/bas
+  // selon l'orientation réelle de l'échiquier (_boardFlipped), via la même
+  // fonction que #345/#348, plutôt que de supposer "haut=Noir, bas=Blanc".
+  _reviewSetTopBottomNames(
+    _localPlayerName(data.white, "config.blancs"),
+    _localPlayerName(data.black, "config.noirs")
+  );
   const topName = document.getElementById("player-top-name");
   const botName = document.getElementById("player-bottom-name");
-  topName.textContent  = _localPlayerName(data.black, "config.noirs");
-  botName.textContent  = _localPlayerName(data.white, "config.blancs");
   topName.style.color  = "#3a5a7a";
   botName.style.color  = "#1a2a3a";
   { const wh = esc(_localPlayerName(data.white, "config.blancs")), bl = esc(_localPlayerName(data.black, "config.noirs"));
@@ -3393,9 +3404,12 @@ function ouvrirModalNulle() {
     btn.className   = "btn btn-reprendre";
     btn.onclick = () => { fermerModal(); sendAction({ type: "nulle_hh" }); };
   } else {
+    // Issue #350 : lu selon l'orientation réelle de l'échiquier
+    // (_boardFlipped), via la même fonction que #345/#348, plutôt que de
+    // supposer "Blanc en bas" pour retrouver le nom de l'adversaire.
     const isWhite = currentPlayerColor === "white";
-    const opponentEl = document.getElementById(isWhite ? "player-top-name" : "player-bottom-name");
-    const opponent = opponentEl?.textContent || t("config.moteur");
+    const { white, black } = _reviewWhiteBlackFromTopBottom();
+    const opponent = (isWhite ? black : white) || t("config.moteur");
     document.getElementById("modal-title").textContent = t("modal.nulle_stockfish_titre", {opponent});
     btn.textContent = t("modal.proposer_nulle");
     btn.className   = "btn";
