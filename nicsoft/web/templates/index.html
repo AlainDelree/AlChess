@@ -798,13 +798,16 @@
         </div>
         <!-- Issue #334, points 1-4 : adversaire parti — décompte recalculé
              par le serveur, boutons grisés jusqu'à la fin du délai annoncé
-             par Lichess (claim-victory/claim-draw), "J'ai vu" n'éteint que
-             le signal bip/LED (le bandeau reste affiché). -->
+             par Lichess (claim-victory/claim-draw). Issue #351, point 0a :
+             bouton renommé « Éteindre les LED » (il n'éteint que le signal
+             bip/LED, le bandeau et les boutons de réclamation restent
+             affichés/disponibles) — l'ancien nom « J'ai vu » laissait croire
+             à tort qu'il fermait aussi les réclamations. -->
         <div id="lichess-opponent-gone-banner" class="lichess-info-banner lichess-banner-danger lichess-draw-offer-banner" style="display:none;">
           <span id="lichess-opponent-gone-seconds"></span>
           <button class="btn btn-warning" id="btn-lichess-claim-victory" data-action="lichess_claim_victory" disabled data-i18n="lichess.reclamer_victoire">Réclamer la victoire</button>
           <button class="btn btn-warning" id="btn-lichess-claim-draw" data-action="lichess_claim_draw" disabled data-i18n="lichess.reclamer_nulle">Réclamer la nulle</button>
-          <button class="btn btn-reprendre" data-action="lichess_opponent_gone_ack" data-i18n="lichess.jai_vu">J'ai vu</button>
+          <button class="btn btn-reprendre" data-action="lichess_opponent_gone_ack" data-i18n="lichess.eteindre_leds" data-i18n-title="lichess.eteindre_leds_title" title="Éteint uniquement le signal LED/bip ; les boutons de réclamation restent disponibles.">Éteindre les LED</button>
         </div>
         <div id="lichess-promotion-row" class="lichess-promotion-row" style="display:none;">
           <span data-i18n="lichess.choisir_promotion">Promotion — choisissez la pièce :</span>

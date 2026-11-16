@@ -211,5 +211,26 @@ def test_position_terminale_pat_barre_a_moitie_sans_moteur():
     result = service._compute(board.fen())
 
     assert result["lines"] == []
+    # Issue #351, point 0c : le pat est désormais distingué des autres
+    # nulles automatiques (matériel insuffisant, répétition, 50 coups...),
+    # pour que l'écran d'analyse affiche "Pat" plutôt que "Lignes
+    # indisponibles" — voir test_issue351_lichess_corrections.py.
+    assert result["terminal"] == "stalemate"
+    assert result["bar_fraction"] == 0.5
+    assert result["bar_text"] == "½"
+
+
+def test_position_terminale_nulle_hors_pat_reste_draw_sans_moteur():
+    """Nulle automatique qui n'est PAS un pat (ici matériel insuffisant,
+    roi seul contre roi seul) : `terminal` reste "draw" — seul le pat
+    reçoit sa propre valeur (issue #351, point 0c)."""
+    board = chess.Board("8/8/8/4k3/8/4K3/8/8 w - - 0 1")
+    outcome = board.outcome(claim_draw=False)
+    assert outcome is not None and outcome.winner is None
+    assert not board.is_stalemate()
+    service = ReviewMultiPVService(lambda: _FakeEngineJamaisAppele())
+    result = service._compute(board.fen())
+
+    assert result["lines"] == []
     assert result["terminal"] == "draw"
     assert result["bar_fraction"] == 0.5

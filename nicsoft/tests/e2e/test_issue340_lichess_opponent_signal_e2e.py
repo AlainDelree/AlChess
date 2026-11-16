@@ -4,7 +4,8 @@ nicsoft/tests/e2e/test_issue340_lichess_opponent_signal_e2e.py — AlChess
 Issue #340, point 3/7 : cadre visible autour de l'échiquier de l'écran tant
 que l'adversaire est parti — couleur distincte dès que la réclamation
 devient possible, disparition avec le signal (retour de l'adversaire ou
-acquittement « J'ai vu »), et court message au retour de l'adversaire.
+acquittement « Éteindre les LED », renommé par l'issue #351 point 0a — ex
+« J'ai vu »), et court message au retour de l'adversaire.
 Ceci ne peut pas être vérifié côté Python (pure logique DOM/CSS côté
 navigateur) — même technique que test_issue310/321_lichess_e2e.py :
 événements socket "lichess_opponent_gone" simulés en invoquant directement
@@ -82,8 +83,9 @@ def test_cadre_depart_puis_reclamable_puis_disparait_au_retour(at_game_lichess):
 
 
 def test_cadre_disparait_sur_j_ai_vu_sans_attendre_le_serveur(at_game_lichess):
-    """Le bandeau reste affiché après « J'ai vu » (comportement #334
-    inchangé), mais le cadre — qui suit le signal bip/LED, pas le bandeau —
+    """Le bandeau reste affiché après « Éteindre les LED » (comportement
+    #334 inchangé ; bouton renommé par l'issue #351 point 0a, ex « J'ai
+    vu »), mais le cadre — qui suit le signal bip/LED, pas le bandeau —
     doit disparaître immédiatement, localement, sans attendre un
     événement serveur dédié (issue #340, point 3)."""
     page = at_game_lichess

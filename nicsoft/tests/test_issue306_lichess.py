@@ -76,6 +76,10 @@ def test_test_token_valide_avec_board_play(monkeypatch):
         "account": "alain",
         "scopes": ["board:play", "email:read"],
         "has_board_play": True,
+        # Issue #351, étape L3 : ajout de has_puzzle_read/has_puzzle_write —
+        # ce jeton n'a aucun des deux droits des problèmes.
+        "has_puzzle_read": False,
+        "has_puzzle_write": False,
     }
 
 

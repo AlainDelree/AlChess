@@ -219,8 +219,13 @@ class ReviewMultiPVService:
         outcome = board.outcome(claim_draw=False)
         if outcome is not None:
             if outcome.winner is None:
+                # Issue #351, point 0c : le pat est distingué des autres
+                # nulles automatiques (matériel insuffisant, répétition,
+                # 50 coups...) pour que l'écran d'analyse affiche "Pat"
+                # plutôt que le message générique "lignes indisponibles".
+                terminal = "stalemate" if outcome.termination == chess.Termination.STALEMATE else "draw"
                 return {
-                    "lines": [], "error": None, "terminal": "draw",
+                    "lines": [], "error": None, "terminal": terminal,
                     "bar_fraction": 0.5, "bar_text": "½",
                 }
             white_wins = outcome.winner is True

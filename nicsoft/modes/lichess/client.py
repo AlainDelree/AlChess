@@ -31,6 +31,15 @@ from nicsoft.utils.net_safety import ensure_https
 TOKEN_TEST_URL = "https://lichess.org/api/token/test"
 PLAYING_GAMES_URL = "https://lichess.org/api/account/playing"
 BOARD_PLAY_SCOPE = "board:play"
+# Issue #351, étape L3 : droits exigés par l'API Puzzle (doc officielle
+# lichess-org/api, spec OpenAPI https://lichess.org/openapi.yaml, lue le
+# 16/11/2026 — operationId apiPuzzleNext : security puzzle:read ;
+# apiPuzzleBatchSolve : security puzzle:write). Distincts de board:play —
+# le jeton d'Alain (droit de jouer seulement) doit être recréé avec ces
+# deux droits supplémentaires pour accéder aux problèmes (voir
+# puzzle_client.py et le rapport de clôture).
+PUZZLE_READ_SCOPE = "puzzle:read"
+PUZZLE_WRITE_SCOPE = "puzzle:write"
 
 _TIMEOUT_S = 10
 # Délai court (issue #323, point 1) : cet appel se fait à l'ouverture du
@@ -112,10 +121,16 @@ def _user_agent() -> str:
 
 def test_token(token: str) -> dict:
     """Interroge /api/token/test avec `token`. Retourne un dict :
-      {"status": "ok", "account": str, "scopes": [str, ...], "has_board_play": bool}
+      {"status": "ok", "account": str, "scopes": [str, ...], "has_board_play": bool,
+       "has_puzzle_read": bool, "has_puzzle_write": bool}
       {"status": "invalid"}
       {"status": "rate_limited"}
       {"status": "network_error"}
+
+    `has_puzzle_read`/`has_puzzle_write` (issue #351, étape L3) : utilisés
+    par le menu « Problèmes Lichess » pour détecter un jeton valide mais
+    sans les droits des problèmes (voir puzzle_client.py) — jamais un appel
+    séparé, ce test de jeton existant suffit à connaître tous les droits.
     """
     ensure_https(TOKEN_TEST_URL)
     req = urllib.request.Request(
@@ -154,6 +169,8 @@ def test_token(token: str) -> dict:
         "account": entry.get("userId", ""),
         "scopes": scopes,
         "has_board_play": BOARD_PLAY_SCOPE in scopes,
+        "has_puzzle_read": PUZZLE_READ_SCOPE in scopes,
+        "has_puzzle_write": PUZZLE_WRITE_SCOPE in scopes,
     }
 
 

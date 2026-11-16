@@ -1940,6 +1940,13 @@ socket.on("game_over", (data) => {
     _lichessSetClocksVisible(false);
     _lichessHideStatusBanners();
     _lichessSetBeepToggleVisible(false);
+    // Issue #351, point 0b : plus aucun message persistant du mode Lichess
+    // sur l'écran d'analyse — on ferme le toast en cours (remplacé par le
+    // résultat affiché juste en-dessous) et on bloque tout nouveau message
+    // Lichess qui arriverait après coup (voir les gardes sur _lichessGameOver).
+    const toastEl = document.getElementById("toast");
+    if (toastEl) toastEl.classList.remove("show");
+    _lichessGameOver = true;
   }
   const gameTitle = data.title_key
     ? t(data.title_key, data.title_vars || {})
@@ -2122,6 +2129,13 @@ let _lichessOpponentGoneDrawClaimable = false;
 // retour de l'adversaire. Remis à faux à chaque NOUVEAU départ (transition
 // gone=false -> gone=true), jamais par un simple re-rendu de la même période.
 let _lichessOpponentGoneSignalAcked = false;
+// Issue #351, point 0b : vrai dès que la partie Lichess en cours est
+// terminée côté client (socket.on("game_over") ci-dessous) — empêche tout
+// message persistant du mode Lichess (toast générique, bandeau "adversaire
+// de retour"...) reçu après coup (flux Lichess qui se termine, événements
+// en vol) de s'afficher sur l'écran d'analyse. Remis à faux au lancement
+// d'une nouvelle partie Lichess (socket.on("lichess_init")).
+let _lichessGameOver = false;
 let _lichessReplaySettings = null;
 // Vrai quand un retournement manuel (flipBoard) a échangé les rangées de
 // noms haut/bas par rapport à la convention initiale (haut=adversaire,
@@ -2339,6 +2353,7 @@ socket.on("lichess_init", (data) => {
   _lichessClockRowsSwapped = false;
   _lichessLastClockData = null;
   _pendingMove = null;
+  _lichessGameOver = false;
   // Coups déjà joués avant l'écran de jeu (issue #325, point 5) — une
   // reprise envoie son historique dans history_fen/history_moves ; une
   // partie normale les envoie vides (aucun coup joué encore), donc ce
@@ -2580,6 +2595,11 @@ socket.on("lichess_move_refused", (data) => {
 });
 
 socket.on("lichess_toast", (data) => {
+  // Issue #351, point 0b : un message Lichess (réseau, position...) qui
+  // arrive après la fin de la partie (flux encore en vol) ne doit jamais
+  // s'afficher sur l'écran d'analyse — il n'est plus pertinent une fois le
+  // résultat connu.
+  if (_lichessGameOver) return;
   afficherToastLichess(
     data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""),
     data.type || "info", !!data.persistent,
@@ -2608,6 +2628,10 @@ function _lichessRenderOpponentGoneBanner() {
 }
 
 socket.on("lichess_opponent_gone", (data) => {
+  // Issue #351, point 0b : flux Lichess encore en vol après la fin de la
+  // partie — ignoré une fois sur l'écran d'analyse (bandeau et toast ne
+  // doivent plus y réapparaître).
+  if (_lichessGameOver) return;
   const gone = !!data.gone;
   const wasGone = _lichessOpponentGoneActive;
   if (gone && !wasGone) _lichessOpponentGoneSignalAcked = false;  // nouveau départ
@@ -3659,7 +3683,14 @@ function _reviewApplyLinesResult(result, playedUci, playedSan) {
     if (legend) legend.style.display = "none";
     if (list)   list.innerHTML = "";
     if (status) {
-      status.textContent = t("game.label.fleches_indisponibles");
+      // Issue #351, point 0c : une position terminale (mat/pat) n'a tout
+      // simplement aucun coup à calculer — ce n'est pas un problème moteur,
+      // le message générique ne reste donc que pour un vrai échec du moteur
+      // (result.terminal absent/null).
+      const terminalKey = result && result.terminal === "checkmate" ? "game.label.fleches_mat"
+        : result && result.terminal === "stalemate" ? "game.label.fleches_pat"
+        : "game.label.fleches_indisponibles";
+      status.textContent = t(terminalKey);
       status.style.display = "block";
     }
     return;

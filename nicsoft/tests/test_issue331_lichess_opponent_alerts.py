@@ -13,8 +13,8 @@ via conftest.py) :
   2. mémorisation de l'état de cette case, sans effet sur le jeton Lichess ;
   3. abandon, nulle proposée, temps écoulé, mat de l'adversaire : LED de la
      bonne moitié de l'échiquier pour chacune des deux orientations ;
-  4. acquittement (réponse à la nulle, ou bouton « J'ai vu ») qui éteint
-     les LED ;
+  4. acquittement (réponse à la nulle, ou bouton « Éteindre les LED »,
+     renommé par l'issue #351 point 0a, ex « J'ai vu ») qui éteint les LED ;
   5. aucun signal (bip ou LED moitié-adversaire) pour les coups ou la fin
      de partie provoqués par l'UTILISATEUR lui-même (mat qu'il délivre,
      nulle qu'il accepte, abandon/annulation qu'il demande).
