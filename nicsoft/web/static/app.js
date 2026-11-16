@@ -990,6 +990,17 @@ function _drawOneReviewArrow(svg, size, from, to, color, label, widthRatio, coin
   svg.appendChild(text);
 }
 
+// Issue #352, point 5 : la flèche 1 (meilleur coup) est toujours affichée ;
+// les flèches 2 et 3 ne sont des recommandations que si elles restent dans
+// le même écart que les marques ?!/?/?? de l'écran d'analyse par rapport à
+// la meilleure ligne (`within_gap`, calculé côté serveur dans
+// review_multipv.py — jamais recalculé ici). Champ absent (ex. ancien
+// format injecté par un test) → affichée par défaut, pour ne pas casser un
+// résultat qui ne porte pas encore ce champ.
+function _reviewLineWithinGap(line, index) {
+  return index === 0 || line.within_gap !== false;
+}
+
 // Dessine jusqu'à 3 flèches pour les meilleures lignes moteur (vert/bleu/
 // gris, numérotées 1/2/3, la première plus marquée) + une flèche orange
 // pour le coup réellement joué depuis cette position, sauf s'il coïncide
@@ -1004,9 +1015,14 @@ function drawReviewArrows(lines, playedUci) {
   if (!size) return;
 
   const safeLines = (lines || []).slice(0, 3);
-  const playedIsTop = playedUci && safeLines.some(l => l.move === playedUci);
+  const shownLines = safeLines.filter(_reviewLineWithinGap);
+  const playedIsTop = playedUci && shownLines.some(l => l.move === playedUci);
 
+  // L'indice i (couleur, numéro 1/2/3) reste celui de la ligne dans
+  // safeLines, pas sa position après filtrage — une ligne 3 filtrée ne
+  // doit jamais faire porter son numéro/sa couleur à une autre ligne.
   safeLines.forEach((line, i) => {
+    if (!_reviewLineWithinGap(line, i)) return;
     const [from, to] = uciToAlgebraic(line.move);
     if (!from || !to) return;
     const isPlayed = playedUci && line.move === playedUci;
@@ -3654,7 +3670,12 @@ function _reviewRenderLinesList(lines, playedUci, playedSan) {
     return;
   }
   if (legend) legend.style.display = "flex";
+  // Issue #352, point 5 : même règle que les flèches sur l'échiquier —
+  // une ligne 2/3 hors de l'écart commun n'est pas listée non plus (elle
+  // n'est pas une recommandation si elle est nettement inférieure à la
+  // meilleure).
   lines.slice(0, 3).forEach((line, i) => {
+    if (!_reviewLineWithinGap(line, i)) return;
     const li = document.createElement("li");
     li.style.color = REVIEW_ARROW_COLORS[i];
     li.textContent = `${i + 1}. ${line.san || line.move} (${_reviewFormatScore(line)})`;

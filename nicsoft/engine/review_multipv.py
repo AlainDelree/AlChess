@@ -33,13 +33,21 @@ from collections import deque
 
 import chess
 
+from nicsoft.engine.move_quality import (
+    ECART_BON,
+    REVIEW_DEPTH,
+    REVIEW_N_LINES,
+    winrate_from_eval,
+)
+
 logger = logging.getLogger("ReviewMultiPV")
 
-# Nombre de lignes et profondeur alignés sur get_multipv()/get_punishment_line()
-# (nicsoft/engine/engine_analysis.py, déjà utilisés par l'écran d'analyse) —
-# pas de nouveau réglage utilisateur.
-N_LINES = 3
-DEPTH = 12
+# Nombre de lignes et profondeur — issue #352 : UNE seule valeur partagée
+# avec les marques ?!/?/?? de l'écran d'analyse (move_quality.py,
+# importées aussi par EngineAnalysisMixin dans engine_analysis.py), pas un
+# réglage séparé pour les flèches.
+N_LINES = REVIEW_N_LINES
+DEPTH = REVIEW_DEPTH
 
 # Barre d'évaluation (issue #341) : mêmes constantes que la barre déjà
 # existante de l'écran Labo (`laboUpdateEvalBar()`, nicsoft/web/static/app.js)
@@ -262,6 +270,18 @@ class ReviewMultiPVService:
                     f"camp au trait de {fen} — flèches des meilleurs coups ignorées."
                 )
                 return {**empty_no_bar, "error": "coup illégal pour la position affichée"}
+        # Issue #352, point 5 : écart commun avec les marques ?!/?/?? de
+        # l'écran d'analyse — une ligne 2/3 n'est une recommandation que si
+        # elle reste dans ce même écart par rapport à la meilleure ligne (la
+        # flèche 1 est toujours affichée, elle). Calculé ici du point de
+        # vue du camp au trait (avant la reconversion Blancs ci-dessous) —
+        # peu importe que les Blancs ou les Noirs soient au trait, l'écart
+        # en chances de gain reste le même dans les deux cas.
+        best_cp_mover, best_mate_mover = lines[0]["cp"], lines[0]["mate"]
+        wr_best_mover = winrate_from_eval(best_cp_mover, best_mate_mover)
+        for line in lines:
+            wr_line = winrate_from_eval(line.get("cp"), line.get("mate"))
+            line["within_gap"] = (wr_best_mover - wr_line) < ECART_BON
         # Issue #341 : get_multipv() renvoie cp/mate relatifs au camp au
         # trait (board.turn) — reconvertis ici en point de vue des Blancs,
         # seule convention utilisée par la légende et la barre, avec le

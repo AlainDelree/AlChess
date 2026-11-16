@@ -205,9 +205,13 @@ def test_legende_signes_corrects_dont_mat_lent(at_menu):
     _reset_state(at_menu)
     _injecter_resultat(at_menu, 0, {
         "lines": [
-            {"move": "d2d4", "san": "d4", "cp": None, "mate": 1,  "score_text": "#1"},
-            {"move": "g1f3", "san": "Nf3", "cp": None, "mate": 5, "score_text": "#5"},
-            {"move": "a2a3", "san": "a3",  "cp": -120, "mate": None, "score_text": "-1.20"},
+            {"move": "d2d4", "san": "d4", "cp": None, "mate": 1,  "score_text": "#1",  "within_gap": True},
+            {"move": "g1f3", "san": "Nf3", "cp": None, "mate": 5, "score_text": "#5",  "within_gap": True},
+            # within_gap forcé à True : ce test vérifie le FORMAT (signes,
+            # notation #N) des 3 lignes, pas le filtrage par écart (issue
+            # #352) — sans ce champ, la 3e ligne (loin derrière les deux
+            # mats) serait masquée et l'assertion "-1.20" ci-dessous échouerait.
+            {"move": "a2a3", "san": "a3",  "cp": -120, "mate": None, "score_text": "-1.20", "within_gap": True},
         ],
         "bar_fraction": 1.0, "bar_text": "#1",
     })

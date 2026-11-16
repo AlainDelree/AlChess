@@ -11,9 +11,34 @@ import logging
 import chess
 import chess.engine
 
-from nicsoft.engine.move_quality import classifier_coup
+from nicsoft.engine.move_quality import (
+    classifier_coup_winrate,
+    REVIEW_DEPTH,
+    REVIEW_N_LINES,
+)
 
 logger = logging.getLogger("EngineManager")
+
+# Valeur conventionnelle (centipions) représentant un mat, pour
+# l'affichage seulement — jamais utilisée pour classer un coup (la
+# classification se fait en chances de gain, voir move_quality.py). Même
+# plafond que la barre d'évaluation de l'écran d'analyse (10 pions,
+# EVAL_BAR_CAP_PAWNS dans review_multipv.py) plutôt qu'une valeur énorme et
+# artificielle — un "999cp" reste lisible, un "99455cp" ressemblerait à un bug.
+_MATE_CP_AFFICHAGE = 1_000
+
+
+def _cp_equiv_affichage(cp: int | None, mate: int | None) -> int:
+    if mate is not None:
+        return (_MATE_CP_AFFICHAGE - abs(mate)) if mate > 0 else -(_MATE_CP_AFFICHAGE - abs(mate))
+    return cp if cp is not None else 0
+
+
+def _delta_cp_affichage(best_cp, best_mate, played_cp, played_mate) -> int:
+    """Perte approximative en centipions, pour l'affichage seulement (ex.
+    "123cp" à côté du symbole ?!/?/??) — jamais la base de la
+    classification elle-même, qui se fait en chances de gain."""
+    return max(0, _cp_equiv_affichage(best_cp, best_mate) - _cp_equiv_affichage(played_cp, played_mate))
 
 
 class EngineAnalysisMixin:
@@ -70,13 +95,33 @@ class EngineAnalysisMixin:
                 return {"cp": None, "mate": None, "wdl": None, "best_move": None}
 
     def evaluate_move(self, board: chess.Board, move: chess.Move,
-                      depth: int = 8) -> tuple[str, int, str | None]:
+                      depth: int = 8, n_lines: int = REVIEW_N_LINES,
+                      ) -> tuple[str, int, str | None]:
         """
-        Évalue la qualité d'un coup joué.
+        Évalue la qualité d'un coup joué — issue #352 : réutilise EXACTEMENT
+        la même recherche que les flèches de l'écran d'analyse
+        (`get_multipv`, même profondeur), jamais un calcul séparé à une
+        profondeur différente. Si le coup joué ne fait pas partie des
+        `n_lines` meilleures lignes, il est évalué par une recherche
+        restreinte à ce seul coup (`root_moves`) à la MÊME profondeur —
+        toujours la même méthode, jamais un raccourci moins profond.
+
+        La perte est mesurée en chances de gain (voir
+        `move_quality.classifier_coup_winrate`), du point de vue du joueur
+        qui a joué (blancs comme noirs) : `get_multipv` renvoie déjà ses
+        évaluations du point de vue du camp au trait sur la position AVANT
+        le coup, donc aucune inversion de signe n'est nécessaire ni risquée
+        ici (contrairement à l'ancienne implémentation, qui évaluait la
+        position après coup puis inversait le signe à la main).
 
         Retourne (qualite, delta_cp, best_move_uci) :
           - qualite    : "bon" / "imprecision" / "erreur" / "blunder"
-          - delta_cp   : perte en centipawns (0 = parfait)
+          - delta_cp   : perte approximative en centipawns (0 = parfait),
+                         pour l'affichage seulement — un mat gagné ou perdu
+                         y est représenté par une valeur conventionnelle
+                         très grande, jamais la vraie classification (qui
+                         se fait sur la perte en chances de gain, pas sur
+                         ce nombre)
           - best_move  : meilleur coup UCI si différent du coup joué, sinon None
         """
         if not self._analyse_active:
@@ -84,56 +129,47 @@ class EngineAnalysisMixin:
 
         try:
             joueur = board.turn
-
-            # Évaluation AVANT le coup
-            eval_avant = self.evaluate(board, depth=depth)
-            cp_avant   = eval_avant["cp"]
-            best_move  = eval_avant["best_move"]
-
-
-            if cp_avant is None:
-                # Position de mat : bon coup par défaut
+            lines = self.get_multipv(board, n=n_lines, depth=depth)
+            if not lines:
                 return "bon", 0, None
 
-            # Évaluation APRÈS le coup
-            board_apres = board.copy()
-            board_apres.push(move)
-            eval_apres = self.evaluate(board_apres, depth=depth)
-            cp_apres   = eval_apres["cp"]
+            best_cp, best_mate = lines[0]["cp"], lines[0]["mate"]
+            best_move_uci = lines[0]["move"]
 
-            if cp_apres is None:
-                # Mat après le coup : excellent
-                return "bon", 0, None
+            played_cp = played_mate = None
+            for line in lines:
+                if line["move"] == move.uci():
+                    played_cp, played_mate = line["cp"], line["mate"]
+                    break
 
-            # La perte est vue du point de vue du joueur avant son coup.
-            # cp_avant est le score du point de vue du joueur avant son coup ;
-            # cp_apres est le score du point de vue de l'adversaire après le
-            # coup, donc on l'inverse pour comparer les deux du même point de vue.
-            delta = max(0, cp_avant - (-cp_apres))
-
-            qualite = classifier_coup(delta)
-            best    = best_move if best_move and best_move != move.uci() else None
-
-            # Si coup mauvais mais pas de meilleur coup alternatif trouvé,
-            # relancer en MultiPV réglé à 2 pour obtenir le vrai meilleur coup
-            if qualite != "bon" and best is None:
-                try:
-                    with self._lock_eval:
-                        info_mpv = self._engine_eval.analyse(
-                            board,
-                            chess.engine.Limit(depth=depth),
-                            multipv=2,
+            if played_cp is None and played_mate is None:
+                # Coup joué hors des n_lines meilleures lignes : même
+                # profondeur, même méthode (recherche restreinte à ce seul
+                # coup), pas un calcul séparé plus rapide/moins profond.
+                with self._lock_eval:
+                    if not self._engine_eval:
+                        return "bon", 0, None
+                    try:
+                        info = self._engine_eval.analyse(
+                            board, chess.engine.Limit(depth=depth),
+                            root_moves=[move], info=chess.engine.INFO_SCORE,
                         )
-                    if isinstance(info_mpv, list):
-                        for entry in info_mpv:
-                            pv = entry.get("pv", [])
-                            if pv and pv[0].uci() != move.uci():
-                                best = pv[0].uci()
-                                break
-                except Exception as e:
-                    logger.warning(f"MultiPV fallback échoué : {e}")
+                        score = info.get("score")
+                    except Exception as e:
+                        logger.warning(f"evaluate_move (root_moves) échoué : {e}")
+                        score = None
+                if score is not None:
+                    pov = score.pov(joueur)
+                    if pov.is_mate():
+                        played_mate = pov.mate()
+                    else:
+                        played_cp = pov.score()
 
-            return qualite, delta, best
+            qualite, _perte = classifier_coup_winrate(best_cp, best_mate, played_cp, played_mate)
+            best = best_move_uci if best_move_uci != move.uci() else None
+            delta_cp = _delta_cp_affichage(best_cp, best_mate, played_cp, played_mate)
+
+            return qualite, delta_cp, best
 
         except Exception as e:
             logger.error(f"Erreur evaluate_move : {e}")
@@ -163,8 +199,8 @@ class EngineAnalysisMixin:
                 logger.error(f"Erreur get_punishment_line : {e}")
                 return []
 
-    def get_multipv(self, board: chess.Board, n: int = 3,
-                    depth: int = 12) -> list[dict]:
+    def get_multipv(self, board: chess.Board, n: int = REVIEW_N_LINES,
+                    depth: int = REVIEW_DEPTH) -> list[dict]:
         """
         Retourne les n meilleurs coups avec leur évaluation.
         Utile pour l'écran d'analyse.
@@ -236,7 +272,11 @@ class EngineAnalysisMixin:
             try:
                 move = chess.Move.from_uci(uci)
                 fen_avant = board.fen()
-                qualite, delta, best = self.evaluate_move(board, move, depth=8)
+                # Issue #352 : même profondeur que les flèches (REVIEW_DEPTH)
+                # — c'est cette analyse qui alimente les marques ?!/?/?? de
+                # l'écran d'analyse après partie, affichées en même temps
+                # que les flèches/la barre d'évaluation (review_multipv.py).
+                qualite, delta, best = self.evaluate_move(board, move, depth=REVIEW_DEPTH)
                 # Calculer la séquence punitive pour les coups non-bons
                 punishment_line = []
                 if qualite != "bon" and best:
