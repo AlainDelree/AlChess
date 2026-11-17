@@ -1,0 +1,11 @@
+# AlChess — Analyse après partie
+
+Lire avant toute tâche touchant `nicsoft/engine/review_multipv.py`, `nicsoft/engine/analyse.py`, ou l'écran `#panel-gameover`.
+
+## Architecture et calcul
+`nicsoft/engine/review_multipv.py` (flèches/barre d'évaluation) n'est **jamais** importé par `modes/lichess/*` — gardé par le même test AST que le fair-play (voir `lichess.md`). Si un coup renvoyé par le moteur n'est pas légal pour le camp au trait reçu, aucune flèche n'est renvoyée (jamais un sous-ensemble partiel). Positions terminales (mat/pat/nulle) détectées via `board.outcome()` **avant** tout appel moteur. Évaluation toujours convertie du point de vue des **Blancs** avant affichage (le moteur renvoie par défaut du point de vue du camp au trait). Barre d'évaluation calculée et affichée indépendamment de la case « Afficher les flèches ». Détail : CHANGELOG.md (#335,#338,#341).
+
+Analyse automatique complète lancée d'office à l'ouverture de l'écran (plus de bouton « Analyser »), annulable, jamais pendant une partie Lichess **en cours** (garde serveur : refuse si `_app_state != "game_over"`) — **mais** la barre/l'analyse automatique restent toujours actives sur l'écran d'analyse d'une partie Lichess **terminée** (confusion corrigée par #345). `ALCHESS_SKIP_AUTO_ANALYSE=1` désactive l'analyse automatique pour les tests (sinon un vrai Stockfish serait lancé). Les marques ?!/?/?? et les flèches partagent une seule recherche moteur (`evaluate_move` réutilise `get_multipv`/`REVIEW_DEPTH`/`REVIEW_N_LINES`), jamais deux calculs séparés (#352). Détail : CHANGELOG.md (#341,#342,#345,#352).
+
+## Orientation des noms
+Tout code qui affecte `player-top-name`/`player-bottom-name` doit passer par `_reviewSetTopBottomNames()`/`_reviewWhiteBlackFromTopBottom()` (app.js) — jamais assigner Blancs=bas/Noirs=haut en dur. Bug récurrent trouvé et corrigé à chaque fois dans un nouvel endroit : `parsePgn()` (#345), modal d'abandon HH + `swap_color_hh` (#348), mode Pédagogique `init`/`swap_color`/nulle (#350) — le résultat de partie/PGN n'est jamais affecté (dérivé côté serveur), seul l'affichage l'était. Vérifier ce point pour tout nouveau code qui affiche un nom de joueur. Détail : CHANGELOG.md (#345,#348,#350).

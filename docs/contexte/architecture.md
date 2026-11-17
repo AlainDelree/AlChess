@@ -1,0 +1,13 @@
+# AlChess — Architecture et invariants généraux
+
+Lire avant toute tâche qui touche à plusieurs modes, à l'infrastructure serveur, ou au câblage frontend/backend.
+
+- **ARC-001** : `core/modes/niclink/utils/engine` n'importent jamais `nicsoft.web` ; ils passent par `core/ihm_port.py` (backend branché au démarrage par `nicsoft.web.alchess`, neutre sinon). Garde : `test_no_web_import.py`.
+- `board.move_stack` = source de vérité ; `chess.Board(fen)` l'efface → reconstruire depuis l'historique. Le FEN transmis doit toujours être **complet** (`board.fen()`), jamais la seule disposition des pièces (`board.board_fen()`) — un FEN tronqué remet le trait aux Blancs par défaut et fait calculer un moteur pour le mauvais camp (bug réel, #338). Détail : CHANGELOG.md (#338).
+- `on_action` : chaque `sendAction({type:X})` JS a son `elif atype == "X"` correspondant dans `alchess.py` — un handler manquant est ignoré silencieusement.
+- i18n : clé ajoutée **simultanément** dans `fr/en/de.json` (`static/i18n/`) ; allemand incertain → valeur anglaise, jamais absente.
+- Tout texte externe (PGN, noms, messages serveur, réponses LLM, Lichess) → `esc()` ou `textContent`, jamais brut dans `innerHTML`. Garde : `test_issue303_html_escaping.py`.
+- Aucun secret n'est envoyé au navigateur (clé LLM, jeton Lichess) : le serveur ne renvoie qu'un indicateur de présence (+ indice 4 derniers caractères si valeur ≥ 12). Garde : `test_issue304_security.py`.
+- Démarrage serveur : ne jamais abaisser le niveau du `file_handler` partagé du root logger sans donner à `werkzeug` son propre handler console (sinon `Running on http://...` disparaît) ; `server.py::start_server()` affiche toujours l'adresse via `print(..., flush=True)`. Détail : CHANGELOG.md (#312).
+- Arrêt du processus : un seul chemin de sortie — tout arrêt interne envoie SIGTERM au process lui-même (jamais `os._exit()` depuis un fil daemon), pour toujours traverser `_handle_termination_signal` (`alchess.py`) et ses `atexit` (ModemManager, marqueur d'instance). Jamais deux chemins de sortie concurrents. Détail : CHANGELOG.md (#337).
+- **Instance unique** : `alchess.py::main()` appelle `single_instance.resolve_startup()` en premier geste. Marqueur `DATA_DIR/server_instance.json` (pid/port), supprimé à la sortie si le PID correspond encore. Reconnaissance d'un process AlChess : PID vivant **ET** ligne de commande contenant `nicsoft.web` (jamais le seul nom du programme). Partie en cours = `GET /instance_status` sur `_app_state` ∈ `single_instance.BUSY_STATES` ; état non confirmable → refus par précaution. Arrêt toujours par PID exact (jamais par nom). `ALCHESS_SKIP_SINGLE_INSTANCE=1` désactive tout ça pour les serveurs de test. Garde : `test_issue320_single_instance.py`. Détail : CHANGELOG.md (#320,#324).

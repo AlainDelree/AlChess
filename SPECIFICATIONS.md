@@ -363,7 +363,7 @@ Bouton 🎲 dans le menu → génère une configuration aléatoire → sauvegard
 | `TACHES.md` | Bugs actifs et fonctionnalités à venir |
 | `TESTS.md` | Checklist de régression |
 | `TEST_RESULTATS.md` | Résultats des sessions de test avec dates |
-| `HISTORIQUE_BUGS.md` | Bugs résolus avec causes racines |
+| `docs/contexte/historique_bugs.md` | Bugs résolus avec causes racines |
 | `CLAUDE.md` | Instructions pour Claude Code |
 | `INSTALLATION_ALCHESS.md` | Guide d'installation sur nouveau PC |
 | `CONTRIBUTING.md` | Guide de contribution |
