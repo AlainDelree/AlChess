@@ -57,7 +57,7 @@ Navigateur     →  SocketIO action           →  server.py   →  queues     �
 | `nicsoft/web/static/app.js` | Toute la logique frontend (SPA vanilla JS) |
 | `nicsoft/web/templates/index.html` | Interface HTML unique |
 | `nicsoft/niclink/driver.py` | Driver USB Chessnut Air — thread `_fen_reader_thread` |
-| `nicsoft/niclink/_niclink.cpython-*.so` | Extension C++ compilée (EasyLinkSDK) |
+| `nicsoft/niclink/hid_backend.py` | Backend USB HID Python pur (hidapi), remplace l'ancienne extension C++ `_niclink.so` |
 | `nicsoft/niclink/virtual_board.py` | Simulation d'échiquier sans hardware |
 
 ### Machine d'état (`_app_state`)
@@ -292,9 +292,9 @@ Les boutons marqués `data-needs-board` sont désactivés si l'échiquier physiq
 ### Fichiers de traduction
 ```
 nicsoft/web/static/i18n/
-  fr.json   (515 clés)
-  en.json   (515 clés)
-  de.json   (515 clés)
+  fr.json   (847 clés)
+  en.json   (847 clés)
+  de.json   (847 clés)
 ```
 
 ### Notation des coups
@@ -335,7 +335,7 @@ La protection du travail repose sur git : commits ciblés, retour arrière par g
 | Smoke test | Manuel (checklist `TESTS.md`) | 5 min |
 | Régression complète | Manuel (checklist `TESTS.md`) | 20 min |
 | Tests unitaires état | `pytest nicsoft/tests/test_app_state.py` (25 tests) | automatisé |
-| Tests E2E | `pytest nicsoft/tests/e2e/` (42 tests Playwright) | automatisé |
+| Tests E2E | `pytest nicsoft/tests/e2e/` (203 tests Playwright) | automatisé |
 
 ### Mode test aléatoire
 ```bash
