@@ -133,7 +133,6 @@ La protection du travail repose sur git : commits ciblés après chaque étape s
 | `TACHES.md` | Bugs connus et fonctionnalités à venir |
 | `TESTS.md` | Checklist de régression (smoke test + régression complète) |
 | `TEST_RESULTATS.md` | Résultats des sessions de test avec dates |
-| `docs/contexte/historique_bugs.md` | Bugs résolus avec causes racines (avant le système d'issues) |
 | `CONTEXTE.md` | Contexte projet court — règles, architecture, conventions, index des fichiers de `docs/contexte/<domaine>.md` |
 | `INSTALLATION_ALCHESS.md` | Guide d'installation (sections 4b/4c pour le quirk USB) |
 

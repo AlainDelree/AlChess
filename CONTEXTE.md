@@ -28,7 +28,6 @@ Début session : `git status`, branche `master`, `TESTS.md`. Tests : `python -m 
 - `analyse_post_partie.md` — calcul flèches/éval, orientation des noms. Lire avant toute tâche sur `review_multipv.py`/écran d'analyse.
 - `moteurs.md` — détection Stockfish/Maia/Rodent. Lire avant toute tâche sur `engine_manager.py`.
 - `gros_fichiers_audit.md` — règle ARC-004 (pas de découpage pour la taille seule), `.audit.json`. Lire avant de proposer une exception d'audit.
-- `historique_bugs.md` — 1 bug non tranché (BUG-011) + bugs non repris par `CHANGELOG.md`. Lire pour éviter de réintroduire un bug déjà connu.
 
 Fichiers de référence (cités par section) : `TESTS.md`, `INSTALLATION_ALCHESS.md`, `I18N.md`, `THIRD_PARTY_NOTICES.md`, `CLAUDE.md` (auto-chargé).
 

@@ -155,4 +155,4 @@ Ces séquences sont candidates pour des tests d'état serveur (`pytest`) :
 
 **Smoke test** : cocher après chaque commit avant de continuer.  
 **Régression complète** : cocher avant chaque version "stable" ou distribution.  
-**Nouveau bug trouvé** : ajouter dans `docs/contexte/historique_bugs.md` + ajouter le test correspondant ici.
+**Nouveau bug trouvé** : si le piège est généralisable, ajouter une ligne de règle dans le fichier de domaine concerné (`docs/contexte/<domaine>.md`) ; dans tous les cas, ajouter le test correspondant ici.

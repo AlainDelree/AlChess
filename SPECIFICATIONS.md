@@ -236,6 +236,33 @@ Tous les moteurs sont gérés via le protocole UCI par `nicsoft/engine/engine_ma
 
 ---
 
+### 5.8 Lichess
+
+**Objectif** : jouer une vraie partie Lichess — contre l'IA Lichess ou contre un adversaire humain réel — ou s'entraîner aux problèmes Lichess, coup par coup sur l'échiquier physique.
+
+**Configuration (partie)** :
+- Adversaire : IA Lichess (niveau 1 à 8) ou recherche d'un adversaire humain réel.
+- Partie classée ou amicale (classée disponible seulement contre un humain — Lichess ne classe jamais les parties contre son IA).
+- Cadence : 10+0, 15+10 (par défaut), 30+0, 60+0 ou 90+30.
+- Couleur : Blancs / Noirs / Aléatoire (le tirage aléatoire est fait par Lichess lui-même, jamais localement).
+- Nom du joueur.
+
+**Comportement en partie** :
+- Échiquier physique requis — Lichess ne se joue pas en mode virtuel.
+- Aucune aide pendant la partie : moteur, analyse, explorateur d'ouvertures, exercices et suggestion de coup sont tous inaccessibles (règle de fair-play imposée par Lichess).
+- Abandon disponible à tout moment. Proposition de nulle disponible contre un humain ; grisée contre l'IA, qui l'ignore systématiquement.
+- Une reprise est proposée automatiquement en arrivant sur l'écran Lichess si une partie reprenable est en cours.
+
+**Fin de partie** :
+- Écran de fin habituel, complété pour une partie classée par la nouvelle cote Lichess (la vôtre, et celle de l'adversaire si humain).
+- PGN sauvegardée automatiquement, rangée par cadence : `Lichess/Classée/<cadence>/` pour les parties classées, `Lichess/Amicale/` pour les amicales.
+
+**Problèmes (puzzles)** :
+- Accessibles séparément, sans configuration : un problème Lichess après l'autre, mis en place sur l'échiquier physique, sans aide.
+- Cote du problème affichée ; résolu dès qu'un coup gagnant est joué, même hors solution officielle en cas de mat.
+
+---
+
 ## 6. Interface utilisateur
 
 ### Structure générale
@@ -363,7 +390,6 @@ Bouton 🎲 dans le menu → génère une configuration aléatoire → sauvegard
 | `TACHES.md` | Bugs actifs et fonctionnalités à venir |
 | `TESTS.md` | Checklist de régression |
 | `TEST_RESULTATS.md` | Résultats des sessions de test avec dates |
-| `docs/contexte/historique_bugs.md` | Bugs résolus avec causes racines |
 | `CLAUDE.md` | Instructions pour Claude Code |
 | `INSTALLATION_ALCHESS.md` | Guide d'installation sur nouveau PC |
 | `CONTRIBUTING.md` | Guide de contribution |
