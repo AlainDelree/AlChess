@@ -2305,6 +2305,13 @@ function _lichessHideStatusBanners() {
   if (illegalBanner) illegalBanner.style.display = "none";
   const drawWaitMsg = document.getElementById("lichess-draw-wait-msg");
   if (drawWaitMsg) drawWaitMsg.style.display = "none";
+  // Issue #360 : une mise en place de reprise abandonnée (jamais de
+  // lichess_resume_setup {active:false} reçu) laissait ce drapeau à true,
+  // masquant à tort la bannière de décompte du premier coup de la partie
+  // suivante (_lichessUpdateFirstMoveBanner, condition plus bas).
+  const resumeSetupBanner = document.getElementById("lichess-resume-setup");
+  if (resumeSetupBanner) resumeSetupBanner.style.display = "none";
+  _lichessResumeSetupActive = false;
   _lichessFirstMoveDeadlineSeconds = null;
   _lichessFirstMoveDeadlineEstimated = false;
   _lichessFirstMoveDeadlineBannerActive = false;
@@ -2433,6 +2440,11 @@ socket.on("lichess_init", (data) => {
   _lichessLastClockData = null;
   _pendingMove = null;
   _lichessGameOver = false;
+  // Issue #360 : une partie précédente est toujours terminée à ce stade —
+  // ne jamais laisser une mise en place de reprise abandonnée masquer la
+  // bannière de décompte du premier coup de CETTE partie (voir aussi le
+  // reset dans _lichessHideStatusBanners(), appelée plus bas).
+  _lichessResumeSetupActive = false;
   // Coups déjà joués avant l'écran de jeu (issue #325, point 5) — une
   // reprise envoie son historique dans history_fen/history_moves ; une
   // partie normale les envoie vides (aucun coup joué encore), donc ce

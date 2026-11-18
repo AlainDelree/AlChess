@@ -205,13 +205,9 @@ def test_mise_en_place_affiche_le_bandeau_et_les_cases_rouges(at_game_lichess_re
     })
     assert page.locator("#lichess-resume-setup").is_visible()
     assert page.locator("#board .sq-error").count() > 0
-    # Désactiver avant la fin du test (issue #359) : `_lichessResumeSetupActive`
-    # (app.js) n'est remis à false ni par _lichessHideStatusBanners() ni par
-    # lichess_init — laissé actif, il masque à tort la bannière de décompte du
-    # premier coup (_lichessUpdateFirstMoveBanner) dans tout test e2e suivant
-    # sur la même page `session`-scoped, selon l'ordre d'exécution
-    # (pytest-randomly, reproduit avec --randomly-seed=1).
-    _declencher_evenement_socket_client(page, "lichess_resume_setup", {"active": False})
+    # Issue #360 : plus besoin de désactiver manuellement ici —
+    # _lichessHideStatusBanners() et lichess_init remettent désormais
+    # _lichessResumeSetupActive à false (corrigé après le diagnostic #359).
 
 
 def test_mise_en_place_masquee_une_fois_la_position_correcte(at_game_lichess_resume):
@@ -238,3 +234,36 @@ def test_boutons_abandon_nulle_restent_desactives_pendant_la_mise_en_place(at_ga
     # avant tout lichess_action_buttons.
     assert page.locator("#btn-resign").is_disabled()
     assert page.locator("#btn-nulle").is_disabled()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# 3. Drapeau _lichessResumeSetupActive remis à false (issue #360, suite au
+#    diagnostic #359) — une mise en place abandonnée (jamais de
+#    lichess_resume_setup {active:false}) ne doit pas masquer à tort la
+#    bannière de décompte du premier coup de la partie suivante.
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_mise_en_place_abandonnee_ne_masque_pas_le_decompte_partie_suivante(at_game_lichess_resume):
+    page = at_game_lichess_resume
+    # Mise en place de reprise jamais terminée (pas de {"active": False}) —
+    # reproduit un retour au menu pendant la reconstruction de la position.
+    _declencher_evenement_socket_client(page, "lichess_resume_setup", {
+        "active": True,
+        "expected_fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR",
+        "physical_fen": "8/8/8/8/8/8/8/8",
+    })
+    assert page.locator("#lichess-resume-setup").is_visible()
+
+    # Nouvelle partie (lichess_init) — doit remettre le drapeau à false.
+    _declencher_evenement_socket_client(
+        page, "lichess_init",
+        {"fen": FEN_DEPART.split(" ")[0], "color": "white", "level": 2, "player": "Testeur e2e"},
+    )
+    assert page.locator("#lichess-resume-setup").is_hidden()
+
+    # Le décompte du premier coup de cette nouvelle partie doit s'afficher
+    # normalement — pas masqué par l'ancien drapeau laissé actif (#359).
+    _declencher_evenement_socket_client(
+        page, "lichess_first_move_deadline", {"active": True, "seconds": 27, "estimated": True},
+    )
+    assert page.locator("#lichess-first-move-deadline").is_visible()
