@@ -250,16 +250,18 @@ Tous les moteurs sont gérés via le protocole UCI par `nicsoft/engine/engine_ma
 **Comportement en partie** :
 - Échiquier physique requis — Lichess ne se joue pas en mode virtuel.
 - Aucune aide pendant la partie : moteur, analyse, explorateur d'ouvertures, exercices et suggestion de coup sont tous inaccessibles (règle de fair-play imposée par Lichess).
-- Abandon disponible à tout moment. Proposition de nulle disponible contre un humain ; grisée contre l'IA, qui l'ignore systématiquement.
+- Abandon : à tout moment contre un humain ; contre l'IA, seulement à votre tour. Proposition de nulle : contre un humain, après votre propre coup ; toujours grisée contre l'IA, qui l'ignore.
+- Pendant la partie, votre cote et celle de l'adversaire s'affichent à côté des noms.
 - Une reprise est proposée automatiquement en arrivant sur l'écran Lichess si une partie reprenable est en cours.
 
 **Fin de partie** :
-- Écran de fin habituel, complété pour une partie classée par la nouvelle cote Lichess (la vôtre, et celle de l'adversaire si humain).
+- Écran de fin habituel, complété pour une partie classée par votre nouvelle cote Lichess et sa variation.
 - PGN sauvegardée automatiquement, rangée par cadence : `Lichess/Classée/<cadence>/` pour les parties classées, `Lichess/Amicale/` pour les amicales.
 
 **Problèmes (puzzles)** :
 - Accessibles séparément, sans configuration : un problème Lichess après l'autre, mis en place sur l'échiquier physique, sans aide.
-- Cote du problème affichée ; résolu dès qu'un coup gagnant est joué, même hors solution officielle en cas de mat.
+- Cote de problèmes affichée avant et après chaque résultat. Un problème est résolu quand toute la solution est jouée (un coup qui mate est aussi accepté s'il diffère de la solution).
+- Les résultats sont envoyés à Lichess en classé : votre cote de problèmes Lichess évolue ; elle est distincte de votre cote de parties.
 
 ---
 
