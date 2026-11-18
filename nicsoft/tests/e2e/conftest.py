@@ -267,3 +267,32 @@ def at_menu(page):
         page.evaluate("sendAction({type: 'back_menu'})")
         page.wait_for_selector("#screen-menu", state="visible", timeout=5000)
     return page
+
+
+# Fichiers e2e dont les tests supposent explicitement de s'exécuter dans leur
+# ordre de déclaration, parce qu'ils partagent un état mutable non réinitialisé
+# entre tests (serveur et page Playwright `session`-scoped, voir `page` plus
+# haut) : `test_outils_exercices_e2e.py` teste la corbeille de session
+# (`_session_basket`, nicsoft/web/server.py) vide avant tout ajout, et le
+# panel Explorer/l'import PGN avant toute interaction qui les ouvre/remplit.
+# pytest-randomly (issue #359 — échec non reproductible signalé pendant #354,
+# reproduit ici avec --randomly-seed=1 et --randomly-seed=2) mélange librement
+# l'ordre des tests d'un même module, ce qui casse cette hypothèse. Hook
+# normal (pas wrapper) : il s'exécute après le shuffle de pytest-randomly,
+# comme documenté dans pytest_randomly._reorganize_items (pattern utilisé par
+# pytest-django pour regrouper par-dessus l'ordre mélangé) — ne modifie que
+# les positions déjà occupées par ce fichier, sans toucher à l'ordre des
+# autres fichiers e2e.
+_FICHIERS_ORDRE_FIGE = {"test_outils_exercices_e2e.py"}
+
+
+def pytest_collection_modifyitems(items):
+    positions = [
+        i for i, item in enumerate(items)
+        if os.path.basename(item.location[0]) in _FICHIERS_ORDRE_FIGE
+    ]
+    if not positions:
+        return
+    ordonnes = sorted((items[i] for i in positions), key=lambda item: item.location[1])
+    for position, item in zip(positions, ordonnes):
+        items[position] = item

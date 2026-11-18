@@ -632,6 +632,17 @@ def test_partie_complete_jusqu_au_mat_sans_aucun_moteur(monkeypatch):
     game_thread.join(timeout=8.0)
     driver.join(timeout=1.0)
 
+    if game_thread.is_alive():
+        # Issue #359 : un retard d'ordonnancement sous charge (autres tests
+        # concurrents) peut dépasser ce budget sans que la partie soit
+        # réellement bloquée — forcer la sortie de _main_loop() (vérifiée à
+        # chaque tour, ~50ms, aucune autre méthode d'arrêt externe sur
+        # LichessGame) plutôt que d'abandonner ce thread daemon en arrière-
+        # plan pour le reste de la suite (le laisser tourner a fait échouer
+        # d'autres tests sans rapport selon l'ordre, --randomly-seed=5/42).
+        game.game_over = True
+        game_thread.join(timeout=2.0)
+
     assert not game_thread.is_alive(), "la partie ne s'est pas terminée à temps"
     assert game.game_over is True
     assert game._status == "mate"

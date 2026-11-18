@@ -205,6 +205,13 @@ def test_mise_en_place_affiche_le_bandeau_et_les_cases_rouges(at_game_lichess_re
     })
     assert page.locator("#lichess-resume-setup").is_visible()
     assert page.locator("#board .sq-error").count() > 0
+    # Désactiver avant la fin du test (issue #359) : `_lichessResumeSetupActive`
+    # (app.js) n'est remis à false ni par _lichessHideStatusBanners() ni par
+    # lichess_init — laissé actif, il masque à tort la bannière de décompte du
+    # premier coup (_lichessUpdateFirstMoveBanner) dans tout test e2e suivant
+    # sur la même page `session`-scoped, selon l'ordre d'exécution
+    # (pytest-randomly, reproduit avec --randomly-seed=1).
+    _declencher_evenement_socket_client(page, "lichess_resume_setup", {"active": False})
 
 
 def test_mise_en_place_masquee_une_fois_la_position_correcte(at_game_lichess_resume):
