@@ -9,11 +9,14 @@ bouton « Continuer » des exercices, affichage du coup adverse sans FEN,
 cf. ancien historique_bugs.md, trié par #358).
 
 Garde-fou SANS NAVIGATEUR ni matériel (analyse statique du source, sur le
-modèle de test_issue303_html_escaping.py). Quatre évènements émis par le
-code actuel n'ont aujourd'hui aucun gestionnaire JS : violations connues,
-non corrigées par cette issue (voir CHANGELOG-359.md) et donc explicitement
-mises en liste blanche ci-dessous. Ce test échoue seulement si un NOUVEL
-évènement (hors liste blanche) est émis sans gestionnaire JS.
+modèle de test_issue303_html_escaping.py). Les quatre violations connues à
+la date de #359 (voir CHANGELOG-359.md) ont été corrigées par #360 :
+`undo_confirmed`/`undo_impossible`/`undo_wait_position` ont désormais un
+gestionnaire JS (message court sur #turn-info, clés i18n fr/en/de) ;
+`exercice_turn` n'est plus émis (statut déjà affiché par les évènements
+voisins `exercice_wait_position`/`exercice_adv_move`, aucune information
+supplémentaire perdue). Liste blanche vide à ce jour. Ce test échoue
+désormais si un NOUVEL évènement est émis sans gestionnaire JS.
 
 Ne couvre que les évènements désignés par une chaîne littérale au premier
 argument (le cas réel de tout le code actuel) — un nom construit
@@ -27,14 +30,10 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 NICSOFT_DIR = REPO_ROOT / "nicsoft"
 APP_JS = NICSOFT_DIR / "web" / "static" / "app.js"
 
-# Violations connues à la date de l'issue #359 — détail (fichier, ligne) dans
-# le rapport de clôture et CHANGELOG-359.md, non corrigées ici.
-_EVENEMENTS_EN_LISTE_BLANCHE = {
-    "exercice_turn",      # nicsoft/modes/exercices/exercices.py
-    "undo_confirmed",     # nicsoft/modes/humain/human.py
-    "undo_impossible",    # nicsoft/modes/humain/human.py
-    "undo_wait_position", # nicsoft/modes/humain/human.py
-}
+# Violations connues à la date de l'issue #359, toutes corrigées par #360
+# (détail : CHANGELOG-360.md) — liste blanche vide, conservée pour accueillir
+# une future violation authentiquement sans usage côté client.
+_EVENEMENTS_EN_LISTE_BLANCHE = set()
 
 _EMIT_RE = re.compile(r"(?:send_event|emit)\(\s*\"([a-zA-Z_0-9]+)\"")
 _JS_HANDLER_RE = re.compile(r"socket\.(?:on|once)\(\s*[\"']([a-zA-Z_0-9]+)[\"']")

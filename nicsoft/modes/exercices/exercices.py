@@ -1020,13 +1020,10 @@ class ExerciceSession:
 
             # Tour humain ou adversaire ?
             if self.board.turn == self.human_color:
-                # Tour humain
-                send_event("exercice_turn", {
-                    "color": "white" if self.human_color == chess.WHITE else "black",
-                    "fen":   self.board.board_fen(),
-                    "in_book": True,
-                })
-
+                # Tour humain — statut déjà affiché par exercice_wait_position
+                # (premier tour) ou exercice_adv_move (après un coup adverse) ;
+                # pas d'évènement dédié ici (issue #359/#360 : aucun gestionnaire
+                # JS, aucune information supplémentaire à transmettre).
                 move = self._wait_human_move()
                 if move is None:
                     return

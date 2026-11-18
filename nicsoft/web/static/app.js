@@ -1842,6 +1842,30 @@ socket.on("undo_move", (data) => {
   if (_virtualMode) _virtSyncChess(data.full_fen || data.fen);
 });
 
+socket.on("undo_impossible", (data) => {
+  const turnInfo = document.getElementById("turn-info");
+  if (turnInfo) {
+    turnInfo.textContent = _i18nMsg(data) || t("game.undo_impossible");
+    turnInfo.className = "warning";
+  }
+});
+
+socket.on("undo_wait_position", (data) => {
+  const turnInfo = document.getElementById("turn-info");
+  if (turnInfo) {
+    turnInfo.textContent = _i18nMsg(data) || t("game.undo_wait_position");
+    turnInfo.className = "warning";
+  }
+});
+
+socket.on("undo_confirmed", (data) => {
+  const turnInfo = document.getElementById("turn-info");
+  if (turnInfo) {
+    turnInfo.textContent = _i18nMsg(data) || t("game.undo_confirmed");
+    turnInfo.className = "";
+  }
+});
+
 socket.on("move", (data) => {
   const laboScreen = document.getElementById("screen-labo");
   if (laboScreen && laboScreen.style.display !== "none") {

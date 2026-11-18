@@ -754,7 +754,10 @@ class GameWeb(threading.Thread):
                         self._undo_pending = True
                         self.nl_inst.kill_switch.set()
                     else:
-                        send_event("undo_impossible", {"message": "Pas de coup à annuler."})
+                        send_event("undo_impossible", {
+                            "message": "Pas de coup à annuler.",
+                            "message_key": "game.undo_impossible",
+                        })
                     return
                 elif atype == "back_menu":
                     self._abandon_demande    = True
@@ -1207,12 +1210,17 @@ class GameWeb(threading.Thread):
                         phys = (self.nl_inst.current_fen or "").strip().split()[0]
                         if phys == expected:
                             self.nl_inst.turn_off_all_leds()
-                            send_event("undo_confirmed", {"fen": expected})
+                            send_event("undo_confirmed", {
+                                "fen": expected,
+                                "message": "Coup annulé.",
+                                "message_key": "game.undo_confirmed",
+                            })
                             confirmed = True
                         else:
                             send_event("undo_wait_position", {
                                 "fen": expected,
                                 "message": "Position incorrecte — replacez la pièce d'abord.",
+                                "message_key": "game.undo_wait_position",
                             })
                     elif atype == "back_menu":
                         self._abandon_demande   = True
