@@ -31,6 +31,7 @@ from nicsoft.core.ihm_port import (
     get_action_queue, app_state_proxy as _web_server,
 )
 from nicsoft.niclink import NicLinkManager
+from nicsoft.niclink.nl_exceptions import ExitNicLink
 from nicsoft.core.config_manager import read_json_with_defaults
 
 logger = logging.getLogger("NL play Human")
@@ -40,6 +41,14 @@ ch.setFormatter(formatter)
 logger.handlers.clear()
 logger.addHandler(ch)
 logger.setLevel(logging.INFO)
+
+
+class BackMenuExit(Exception):
+    """Levée pour un retour au menu propre depuis GameWeb (HH) — même
+    schéma que modes/pedagogique/pedagogique.py, remplace un sys.exit(0)
+    dont l'innocuité dépendait d'un except SystemExit à vocation différente
+    (issue #358/#360)."""
+
 
 CONFIG_FILE = DATA_DIR / "config.json"
 DEFAULT_CONFIG = {"turn_signal": "beep", "game_type": "Serious"}
@@ -825,11 +834,10 @@ class GameWeb(threading.Thread):
         try:
             move = self.nl_inst.await_move()
             tlog("[TIMING] await_move: %.2fs — move=%s", time.time()-_t_await, move)
+        except ExitNicLink as exc:
+            logger.info(f"await_move interrompu (pause/abandon/retour menu): {exc}")
         except Exception as exc:
-            if self.nl_inst.kill_switch.is_set():
-                logger.info(f"await_move interrompu (pause/abandon/retour menu): {exc}")
-            else:
-                logger.error(f"await_move a echoue, coup non detecte: {exc}")
+            logger.error(f"await_move a echoue, coup non detecte: {exc}")
         finally:
             watch_stop.set()
             watcher.join(timeout=1.0)
@@ -1082,7 +1090,7 @@ class GameWeb(threading.Thread):
             })
         else:
             # back_menu : sortie immédiate, le menu est déjà affiché
-            sys.exit(0)
+            raise BackMenuExit()
 
     # ── Fin de partie ─────────────────────────────────────────────────────
 

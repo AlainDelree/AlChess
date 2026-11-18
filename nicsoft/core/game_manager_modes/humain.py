@@ -55,7 +55,7 @@ def launch_humain(config):
 
 
 def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
-    from nicsoft.modes.humain.human import GameWeb
+    from nicsoft.modes.humain.human import GameWeb, BackMenuExit
     nl_inst = None
     try:
         nl_inst = create_board(virtual=virtual, logger_name="NicLink_humain")
@@ -86,6 +86,8 @@ def _run_humain(white_name, black_name, game_type, _error=None, virtual=False):
         if game.game_over and web_server._app_state != "game_over":
             web_server._app_state = "game_over"
 
+    except BackMenuExit:
+        pass  # retour au menu demandé par l'utilisateur — pas une erreur
     except SystemExit as e:
         if "board connection error" in str(e):
             logger.error("Erreur mode humain : échiquier non détecté.")
