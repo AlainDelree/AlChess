@@ -1475,14 +1475,16 @@ def _wait_initial_position_lichess_puzzle(nl_inst, target_fen: str, color: str) 
     départ ARBITRAIRE (celle du problème, jamais la position de départ
     standard) — même mécanique par ailleurs (sans limite de temps,
     annulable par "back_menu", reconnexion automatique sur lecture vide
-    prolongée). Contrairement à _wait_initial_position_lichess/
-    _wait_initial_position_web, le payload envoyé à l'écran porte la
-    position CIBLE (`target_board_fen`), pas la lecture physique courante
-    — l'écran générique "position_initiale" se contente d'afficher le FEN
-    reçu tel quel (voir app.js), mais le texte d'accompagnement suppose par
-    défaut la position de départ standard (non valable ici) : le payload
-    porte donc aussi `puzzle: True`, pour qu'app.js affiche un texte dédié
-    (clé lichess.puzzle_mise_en_place_texte) plutôt que celui des parties."""
+    prolongée). Comme _wait_initial_position_lichess/_wait_initial_position_web,
+    le payload envoyé à l'écran porte la lecture physique COURANTE
+    (`board_fen`), pas la position cible figée — sinon les cases rouges de
+    l'écran de mise en place ne se mettent jamais à jour au fil du placement
+    (bug réel, issue #361). La position cible est transmise séparément
+    (`expected_fen`), puisqu'elle est arbitraire ici (pas la position de
+    départ standard que `renderBoardPosInit` compare par défaut — voir
+    app.js) ; le payload porte aussi `puzzle: True`, pour qu'app.js affiche
+    un texte dédié (clé lichess.puzzle_mise_en_place_texte) plutôt que celui
+    des parties."""
     target_board_fen = target_fen.strip().split()[0] if target_fen else chess.Board().board_fen()
     first_check = True
     empty_since = None
@@ -1512,7 +1514,9 @@ def _wait_initial_position_lichess_puzzle(nl_inst, target_fen: str, color: str) 
                 nl_inst.signal_lights(1)
             except Exception as e:
                 logger_lichess.debug(f"signal_lights cosmétique a échoué (problème Lichess) : {e}")
-        set_app_state("position_initiale", {"fen": target_board_fen, "color": color, "puzzle": True})
+        set_app_state("position_initiale", {
+            "fen": board_fen, "expected_fen": target_board_fen, "color": color, "puzzle": True,
+        })
         time.sleep(0.5)
 
 

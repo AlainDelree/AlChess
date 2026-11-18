@@ -1609,7 +1609,10 @@ socket.on("app_state", (data) => {
     // déjà résolue côté serveur — issue #315, point 3) ; blancs en bas par
     // défaut pour les autres modes qui partagent cet écran.
     _buildBoardPosInit(orientationIsFlipped(data.color));
-    renderBoardPosInit(data.fen);
+    // Problèmes Lichess (issue #361) : position cible ARBITRAIRE (celle du
+    // problème, transmise via expected_fen), jamais la position de départ
+    // standard que renderBoardPosInit compare par défaut.
+    renderBoardPosInit(data.fen, "pi", data.puzzle ? data.expected_fen : undefined);
   }
   // Problèmes Lichess (issue #354) : texte dédié (position arbitraire,
   // jamais la position de départ standard) à la place du texte générique.
@@ -3193,10 +3196,10 @@ function _buildBoardPosInit(flipped, boardId = "board-pos-init", cellPrefix = "p
   }
 }
 
-function renderBoardPosInit(fen, cellPrefix = "pi") {
+function renderBoardPosInit(fen, cellPrefix = "pi", expectedFen) {
   const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
   const grid        = fenToBoard(fen);
-  const gridInit    = fenToBoard(INITIAL_FEN);
+  const gridInit    = fenToBoard(expectedFen || INITIAL_FEN);
   for (let rank = 7; rank >= 0; rank--) {
     for (let file = 0; file < 8; file++) {
       const id  = `${file}-${rank}`;

@@ -175,6 +175,72 @@ def test_animate_opponent_first_move_noop_si_absent(monkeypatch):
     assert _events_of(events, "lichess_puzzle_move") == []
 
 
+# ── Mise en place (issue #361) : les écarts envoyés à l'écran doivent ──────
+# refléter la lecture physique COURANTE (pas la position cible figée), pour
+# que les cases rouges se mettent à jour pièce par pièce — avant ce
+# correctif, _wait_initial_position_lichess_puzzle envoyait toujours
+# target_board_fen, jamais la lecture physique : l'écran restait figé.
+
+class _FakeBoardProgressif:
+    """Renvoie une lecture différente à chaque appel de get_fen() —
+    simule un placement de pièces progressif sur l'échiquier physique."""
+
+    def __init__(self, readings):
+        self._readings = readings
+        self._i = 0
+
+    def get_fen(self):
+        fen = self._readings[min(self._i, len(self._readings) - 1)]
+        self._i += 1
+        return fen + " w - - 0 1"
+
+    def turn_off_all_leds(self):
+        pass
+
+    def signal_lights(self, n):
+        pass
+
+
+def test_wait_initial_position_puzzle_envoie_la_lecture_physique_courante(monkeypatch):
+    monkeypatch.setattr(lichess_launcher.time, "sleep", lambda s: None)
+    monkeypatch.setattr(lichess_launcher, "get_app_state", lambda: "connecting")
+    sent = []
+    monkeypatch.setattr(
+        lichess_launcher, "set_app_state", lambda state, data=None: sent.append((state, data)),
+    )
+
+    target_fen = chess.Board().fen()  # position cible arbitraire du problème
+    target_board_fen = target_fen.split()[0]
+    # Deux pièces manquantes, puis une seule, puis la position complète
+    # (déclenche le retour de la fonction, sans nouvelle émission).
+    readings = [
+        "rnbqkbnr/pppppppp/8/8/8/8/PPP1P1PP/RNBQKBNR",
+        "rnbqkbnr/pppppppp/8/8/8/8/PPP1PPPP/RNBQKBNR",
+        target_board_fen,
+    ]
+    board = _FakeBoardProgressif(readings)
+
+    lichess_launcher._wait_initial_position_lichess_puzzle(board, target_fen, "white")
+
+    payloads = [d for (state, d) in sent if state == "position_initiale"]
+    assert len(payloads) == 2  # jamais pour la position déjà correcte (3e lecture)
+    # Chaque "fen" envoyé est bien la lecture physique de CE tour-ci, pas
+    # une valeur figée — reproduction directe du bug #361.
+    assert payloads[0]["fen"] == readings[0]
+    assert payloads[1]["fen"] == readings[1]
+    assert payloads[0]["expected_fen"] == target_board_fen
+    assert payloads[1]["expected_fen"] == target_board_fen
+    assert payloads[0]["puzzle"] is True
+    # Les écarts signalés diminuent jusqu'à zéro au fil du placement.
+    diffs = [
+        len(lichess_launcher._squares_differing(p["fen"], p["expected_fen"]))
+        for p in payloads
+    ]
+    assert diffs[0] == 2
+    assert diffs[1] == 1
+    assert diffs[0] > diffs[1]
+
+
 # ── Étape B : coups, promotion, coup faux, mat alternatif ───────────────────
 
 def test_coup_correct_puis_reponse_adverse_forcee_puis_victoire(monkeypatch):
