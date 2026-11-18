@@ -4084,9 +4084,13 @@ function startLichessPuzzle() {
 // (cellPrefix "lp") — sans comparaison à la position de départ standard
 // (contrairement à renderBoardPosInit, dédiée aux parties) : une position
 // de problème n'a aucune raison de ressembler à la position initiale, toute
-// case "différente" y serait presque toujours fausse.
-function _renderLichessPuzzleBoard(fen) {
+// case "différente" y serait presque toujours fausse. `uci` (issue #361) :
+// coup à surbrillance (cases de départ/arrivée) — même mécanisme que
+// renderBoard() (classes "last-move-from"/"last-move-to"), converti via
+// uciToCoords() déjà utilisé pour #board.
+function _renderLichessPuzzleBoard(fen, uci) {
   const grid = fenToBoard(fen);
+  const [from, to] = uciToCoords(uci);
   for (let rank = 7; rank >= 0; rank--) {
     for (let file = 0; file < 8; file++) {
       const id = `${file}-${rank}`;
@@ -4094,6 +4098,9 @@ function _renderLichessPuzzleBoard(fen) {
       if (!sq) continue;
       const piece = grid[id];
       sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
+      sq.classList.remove("last-move-from", "last-move-to");
+      if (from && id === from) sq.classList.add("last-move-from");
+      if (to   && id === to)   sq.classList.add("last-move-to");
     }
   }
 }
@@ -4117,7 +4124,7 @@ let _lichessPuzzleFlipped = false;
 
 socket.on("lichess_puzzle_move", (data) => {
   _lichessPuzzleHideBanners();
-  if (data.fen) _renderLichessPuzzleBoard(data.fen);
+  if (data.fen) _renderLichessPuzzleBoard(data.fen, data.uci);
   const turnText = document.getElementById("lichess-puzzle-turn-text");
   if (turnText) {
     turnText.textContent = t(data.color === "white" ? "lichess.puzzle.a_vous_de_jouer_blancs" : "lichess.puzzle.a_vous_de_jouer_noirs");
@@ -4165,7 +4172,7 @@ socket.on("lichess_puzzle_toast", (data) => {
 
 socket.on("lichess_puzzle_solution_move", (data) => {
   _lichessPuzzleHideBanners();
-  if (data.fen) _renderLichessPuzzleBoard(data.fen);
+  if (data.fen) _renderLichessPuzzleBoard(data.fen, data.uci);
   const banner = document.getElementById("lichess-puzzle-solution-banner");
   if (banner) banner.style.display = "";
 });
