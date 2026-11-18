@@ -122,6 +122,38 @@ def test_solver_color_for_fen_noirs():
     assert solver_color_for_fen(board.fen()) == "black"
 
 
+# Issue #361, partie 2 : le camp du JOUEUR (annoncé dans le panneau, utilisé
+# pour l'orientation de l'échiquier) doit toujours être l'INVERSE du camp au
+# trait de la position de départ (setup_fen, avant le premier coup adverse)
+# — c'est l'adversaire qui joue depuis cette position-là, jamais le joueur.
+# `_run_lichess_puzzle` calcule ce camp via solver_color_for_fen(puzzle.fen),
+# PAS solver_color_for_fen(setup_fen) : fen est déjà la position APRÈS le
+# premier coup adverse (voir puzzle_client.py::_compute_setup_fen), donc au
+# trait du joueur — ces deux tests verrouillent cette relation dans les deux
+# sens.
+
+def test_camp_joueur_est_l_inverse_du_trait_de_la_position_de_depart_noirs():
+    """Position de départ au trait des Noirs (l'adversaire, Noir, joue le
+    premier coup de la solution depuis cette position) : le joueur résout
+    avec les Blancs."""
+    setup = chess.Board()
+    setup.push_uci("e2e4")
+    assert setup.turn == chess.BLACK
+    puzzle_board = chess.Board(setup.fen())
+    puzzle_board.push_uci("e7e5")  # premier coup adverse (Noir)
+    assert solver_color_for_fen(puzzle_board.fen()) == "white"
+
+
+def test_camp_joueur_est_l_inverse_du_trait_de_la_position_de_depart_blancs():
+    """Inverse : position de départ au trait des Blancs (l'adversaire,
+    Blanc, joue depuis cette position) : le joueur résout avec les Noirs."""
+    setup = chess.Board()
+    assert setup.turn == chess.WHITE
+    puzzle_board = chess.Board(setup.fen())
+    puzzle_board.push_uci("e2e4")  # premier coup adverse (Blanc)
+    assert solver_color_for_fen(puzzle_board.fen()) == "black"
+
+
 def test_first_move_squares_absent():
     assert first_move_squares(chess.Board().fen(), None) is None
 

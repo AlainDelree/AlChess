@@ -4122,13 +4122,18 @@ function _lichessPuzzleHideBanners() {
 // l'écran et jamais recalculée coup par coup).
 let _lichessPuzzleFlipped = false;
 
+// `data.color` ici désigne le camp qui vient de JOUER ce coup (adverse ou
+// solveur selon l'instant — voir puzzle_game.py::_evaluate_user_move/
+// animate_opponent_first_move), jamais le camp du joueur lui-même : ne
+// doit donc jamais mettre à jour #lichess-puzzle-turn-text, déjà réglé une
+// fois pour toutes par l'évènement app_state (lichess_puzzle_playing) et
+// invariant pendant tout le problème (issue #361, partie 2 — avant ce
+// correctif, cette ligne affichait le camp adverse juste après
+// animate_opponent_first_move, ex. « Noirs » alors que le joueur a les
+// Blancs).
 socket.on("lichess_puzzle_move", (data) => {
   _lichessPuzzleHideBanners();
   if (data.fen) _renderLichessPuzzleBoard(data.fen, data.uci);
-  const turnText = document.getElementById("lichess-puzzle-turn-text");
-  if (turnText) {
-    turnText.textContent = t(data.color === "white" ? "lichess.puzzle.a_vous_de_jouer_blancs" : "lichess.puzzle.a_vous_de_jouer_noirs");
-  }
 });
 
 socket.on("lichess_puzzle_position_wait", (_data) => {

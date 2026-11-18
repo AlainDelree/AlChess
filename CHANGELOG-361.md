@@ -33,3 +33,20 @@ mise en place → démarrage → coup adverse → écran de fin, échiquier
 carré et correctement dimensionné à chaque étape (un simple test
 largeur/hauteur non nulles ne suffisait pas à détecter la régression,
 vérifié en reproduisant le bug : 300×19200 passe un tel test).
+
+### 2. Camp annoncé erroné
+
+`socket.on("lichess_puzzle_move", ...)` (`app.js`) recalculait
+`#lichess-puzzle-turn-text` à partir de `data.color` — ce champ désigne
+le camp qui vient de JOUER ce coup précis (ex. l'adversaire, pour son
+premier coup forcé), jamais le camp fixe du joueur. Dès l'affichage du
+premier coup adverse, l'étiquette basculait donc sur le camp adverse
+(« Noirs » alors que le joueur a les Blancs). Le camp du joueur n'est
+plus mis à jour QUE par l'évènement `app_state` (`lichess_puzzle_
+playing`), qui l'envoie correctement une seule fois par problème
+(`solver_color`, déjà l'inverse du trait de `setup_fen` — vérifié par
+deux nouveaux tests unitaires). Tests ajoutés : 2 tests unitaires
+(camp inverse du trait de la position de départ, dans les deux sens)
++ 2 tests e2e (étiquette inchangée après l'affichage du coup adverse,
+Blancs et Noirs) — reproduction confirmée du bug en annulant
+temporairement le correctif.
