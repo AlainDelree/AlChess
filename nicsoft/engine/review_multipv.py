@@ -33,6 +33,7 @@ from collections import deque
 
 import chess
 
+from nicsoft.engine.board_utils import san_ep
 from nicsoft.engine.move_quality import (
     ECART_BON,
     REVIEW_DEPTH,
@@ -289,7 +290,7 @@ class ReviewMultiPVService:
         white_to_move = board.turn
         for line in lines:
             try:
-                line["san"] = board.san(chess.Move.from_uci(line["move"]))
+                line["san"] = san_ep(board, chess.Move.from_uci(line["move"]))
             except Exception:
                 line["san"] = line["move"]
             cp_white, mate_white = _pov_vers_blancs(line.get("cp"), line.get("mate"), white_to_move)

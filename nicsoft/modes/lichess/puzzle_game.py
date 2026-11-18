@@ -37,6 +37,7 @@ import chess
 
 from nicsoft.config import LOGS_DIR
 from nicsoft.core.ihm_port import send_event, get_action
+from nicsoft.engine.board_utils import san_ep
 from nicsoft.modes.lichess.game import legal_move_for_hardware, pending_promotion_move
 from nicsoft.modes.lichess.puzzle_client import submit_puzzle_result
 
@@ -410,7 +411,7 @@ class PuzzleGame:
     # ── Évaluation du coup joué ──────────────────────────────────────────
 
     def _evaluate_user_move(self, move: chess.Move) -> None:
-        san = self.board.san(move)
+        san = san_ep(self.board, move)
         uci = move.uci()
         board_before_fen = self.board.fen()
         board_after = self.board.copy(stack=False)
@@ -449,7 +450,7 @@ class PuzzleGame:
             logger.warning("Lichess problème : coup de solution illisible (%s) : %s", opponent_uci, exc)
             self._finish(win=True)
             return
-        opponent_san = self.board.san(opponent_move)
+        opponent_san = san_ep(self.board, opponent_move)
         self.board.push(opponent_move)
         self.solved_index += 1
         self._log(f"réponse adverse forcée jouée — {opponent_uci} ({opponent_san}).")
@@ -546,7 +547,7 @@ class PuzzleGame:
             except Exception as exc:
                 logger.warning("Lichess problème : coup de solution illisible (%s) : %s", uci, exc)
                 break
-            san = target_board.san(move)
+            san = san_ep(target_board, move)
             color = "white" if target_board.turn == chess.WHITE else "black"
             target_board.push(move)
             self._beep()

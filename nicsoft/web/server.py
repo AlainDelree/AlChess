@@ -995,6 +995,7 @@ def on_outils_san_to_uci(data):
     """Convertit une ligne PGN SAN → liste UCI."""
     import io as _io, sys as _sys
     import chess, chess.pgn
+    from nicsoft.engine.board_utils import san_ep
     pgn_text = data.get("pgn", "")
     _cap = _io.StringIO()
     _old = _sys.stderr
@@ -1011,7 +1012,7 @@ def on_outils_san_to_uci(data):
     node = game
     while node.variations:
         node = node.variations[0]
-        moves.append({"san": board.san(node.move), "uci": node.move.uci()})
+        moves.append({"san": san_ep(board, node.move), "uci": node.move.uci()})
         board.push(node.move)
     emit("outils_san_to_uci_result", {"ok": True, "moves": moves})
 

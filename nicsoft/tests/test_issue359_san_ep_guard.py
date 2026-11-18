@@ -8,15 +8,16 @@ passant (24 occurrences remplacées à l'époque, cf. ancien
 historique_bugs.md, trié par #358).
 
 Garde-fou SANS NAVIGATEUR ni matériel (analyse statique du source, sur le
-modèle de test_issue303_html_escaping.py). Neuf fichiers appellent déjà
-`.san(` directement : huit outils d'import/export de livres d'ouvertures
-et utilitaires d'analyse post-partie (hors flux de partie live), et un
-neuvième — `modes/lichess/puzzle_game.py` — qui, lui, EST du flux live
-(coup/solution d'un puzzle envoyé en direct au navigateur) : ce sont des
-violations connues, non corrigées par cette issue (voir CHANGELOG-359.md)
-et donc explicitement mises en liste blanche ci-dessous. Ce test échoue
-seulement si un NOUVEAU fichier (hors liste blanche, hors `board_utils.py`
-lui-même, hors `tests/`) appelle `.san(` directement.
+modèle de test_issue303_html_escaping.py). À la date de l'issue #359, neuf
+fichiers appelaient `.san(` directement. Les trois touchant un flux
+affiché à l'utilisateur ont été corrigés par #360 : `modes/lichess/
+puzzle_game.py` (flux live d'un puzzle), `engine/review_multipv.py` et
+`web/server.py` (valeurs uniquement affichées, jamais comparées/stockées —
+vérifié avant correction). Restent en liste blanche les six outils
+d'import/export de livres d'ouvertures (`modes/exercices/*`), hors
+périmètre de #360 (consigne explicite). Ce test échoue si un NOUVEAU
+fichier (hors liste blanche, hors `board_utils.py` lui-même, hors
+`tests/`) appelle `.san(` directement.
 """
 import re
 from pathlib import Path
@@ -27,13 +28,11 @@ NICSOFT_DIR = REPO_ROOT / "nicsoft"
 # Définit san_ep() lui-même : seul endroit autorisé à appeler board.san().
 _SAN_EP_DEFINITION_FILE = NICSOFT_DIR / "engine" / "board_utils.py"
 
-# Violations connues à la date de l'issue #359 — outils d'import/export de
-# livres d'ouvertures et utilitaires d'analyse post-partie (hors flux de
-# partie live), SAUF modes/lichess/puzzle_game.py qui, lui, est du flux
-# live (coup/solution d'un puzzle envoyé en direct au navigateur). Listées
-# dans le rapport de clôture #359, non corrigées ici (hors périmètre de
-# cette issue). Toute diminution de cette liste (fichier corrigé) est
-# bienvenue ; toute augmentation doit passer par san_ep() à la place.
+# Violations connues à la date de l'issue #359, restantes après #360 :
+# outils d'import/export de livres d'ouvertures, hors périmètre de #360
+# (consigne explicite de la tâche). Toute diminution de cette liste
+# (fichier corrigé) est bienvenue ; toute augmentation doit passer par
+# san_ep() à la place.
 _FICHIERS_EN_LISTE_BLANCHE = {
     "modes/exercices/add_ouverture.py",
     "modes/exercices/explore_book_import.py",
@@ -41,9 +40,6 @@ _FICHIERS_EN_LISTE_BLANCHE = {
     "modes/exercices/explore_book_web.py",
     "modes/exercices/eco_import_import.py",
     "modes/exercices/import_lignes.py",
-    "modes/lichess/puzzle_game.py",
-    "engine/review_multipv.py",
-    "web/server.py",
 }
 
 _SAN_CALL_RE = re.compile(r"\.san\(")
