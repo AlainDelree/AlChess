@@ -480,7 +480,15 @@
          un problème). -->
     <div class="card cfg-hh-card">
       <h2 data-i18n="config.lichess.probleme_titre">🧩 Problèmes</h2>
-      <p class="outil-desc" data-i18n="config.lichess.probleme_desc">Résolvez les problèmes Lichess un par un sur votre échiquier physique — aucune aide, angle par défaut.</p>
+      <p class="outil-desc" data-i18n="config.lichess.probleme_desc">Résolvez les problèmes Lichess un par un — aucune aide, angle par défaut.</p>
+      <!-- Choix du mode (issue #364) : "Échiquier" (défaut, inchangé) ou
+           "Sur l'écran" (mode virtuel, sans échiquier physique) — mémorisé
+           dans localStorage (selectPuzzleModeLichess, app.js), jamais côté
+           serveur. -->
+      <div class="color-btns">
+        <button class="color-btn selected" id="cfg-lichess-puzzle-mode-board" data-action="select_puzzle_mode_lichess" data-puzzle-mode="board" data-i18n="config.lichess.probleme_mode_echiquier">♟️ Échiquier</button>
+        <button class="color-btn" id="cfg-lichess-puzzle-mode-virtual" data-action="select_puzzle_mode_lichess" data-puzzle-mode="virtual" data-i18n="config.lichess.probleme_mode_virtuel">🖥️ Sur l'écran</button>
+      </div>
       <button class="btn btn-reprendre" data-action="start_lichess_puzzle" data-i18n="config.lichess.probleme_btn">▶ Jouer un problème</button>
     </div>
 
@@ -1157,6 +1165,12 @@
         <span id="lichess-puzzle-turn-text"></span>
       </div>
 
+      <!-- Mode virtuel (issue #364) : consigne adaptée, affichée à la place
+           de l'invitation à reproduire le coup physiquement (jamais les
+           deux à la fois — _lichessPuzzleHideBanners() cache la bannière
+           ci-dessous, inutile en mode virtuel puisqu'aucun évènement
+           lichess_puzzle_position_wait n'est jamais émis par VirtualPuzzleGame). -->
+      <div id="lichess-puzzle-virtual-instructions" class="lichess-info-banner" style="display:none;" data-i18n="lichess.puzzle_virtuel_instructions">Cliquez sur une pièce, puis sur la case d'arrivée.</div>
       <div id="lichess-puzzle-wait-replication" class="lichess-info-banner" style="display:none;" data-i18n="lichess.puzzle.en_attente_reproduction">Reproduisez le coup indiqué sur l'échiquier physique.</div>
       <div id="lichess-puzzle-illegal-position" class="lichess-info-banner lichess-banner-danger" style="display:none;"></div>
       <div id="lichess-puzzle-board-lost" class="lichess-info-banner" style="display:none;" data-i18n="lichess.reconnexion_echiquier">Reconnexion de l'échiquier…</div>

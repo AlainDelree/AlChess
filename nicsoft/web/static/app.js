@@ -153,6 +153,9 @@ document.addEventListener("click", (e) => {
     case "start_game_lichess":
       startGameLichess();
       break;
+    case "select_puzzle_mode_lichess":
+      selectPuzzleModeLichess(el.dataset.puzzleMode);
+      break;
     case "start_lichess_puzzle":
       startLichessPuzzle();
       break;
@@ -1652,6 +1655,18 @@ socket.on("app_state", (data) => {
     if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
     const turnText = document.getElementById("lichess-puzzle-turn-text");
     if (turnText) turnText.textContent = t(data.color === "white" ? "lichess.puzzle.a_vous_de_jouer_blancs" : "lichess.puzzle.a_vous_de_jouer_noirs");
+    // Mode virtuel (issue #364) : `data.virtual` vient du serveur
+    // (_run_lichess_puzzle_virtual) — jamais déduit de _lichessPuzzleMode
+    // seul, qui n'est qu'une préférence de LANCEMENT, pas l'état réel de
+    // la session en cours. Nouveau problème : désactivé jusqu'au premier
+    // "lichess_puzzle_your_turn" (coup adverse initial éventuel à montrer
+    // d'abord, voir animate_opponent_first_move côté serveur).
+    _puzzleVirtualActive = data.virtual === true;
+    _puzzleBoardFen      = data.fen;
+    _puzzleLegalMoves    = {};
+    _puzzleDeactivateBoard();
+    const virtualInstr = document.getElementById("lichess-puzzle-virtual-instructions");
+    if (virtualInstr) virtualInstr.style.display = _puzzleVirtualActive ? "" : "none";
   }
   const screenLichessWaitFirstMove = document.getElementById("screen-lichess-wait-first-move");
   if (screenLichessWaitFirstMove) screenLichessWaitFirstMove.style.display = data.state === "lichess_wait_first_move" ? "flex" : "none";
@@ -4109,11 +4124,26 @@ function startGameLichess() {
 // navigateur (angle par défaut, pas de cadence/couleur à choisir — c'est
 // le problème lui-même qui impose la position et la couleur à jouer).
 
+// Choix du mode des problèmes Lichess (issue #364) — "board" (échiquier
+// physique, défaut, inchangé) ou "virtual" (écran seul, sans échiquier) ;
+// mémorisé dans localStorage (seul mécanisme de préférence UI déjà en
+// place dans l'appli, voir niclink_show_legal) — jamais côté serveur, et
+// jamais écrit dans un dossier réel par les tests (localStorage de test).
+let _lichessPuzzleMode = localStorage.getItem("niclink_lichess_puzzle_mode") === "virtual" ? "virtual" : "board";
+
+function selectPuzzleModeLichess(mode) {
+  _lichessPuzzleMode = (mode === "virtual") ? "virtual" : "board";
+  localStorage.setItem("niclink_lichess_puzzle_mode", _lichessPuzzleMode);
+  document.getElementById("cfg-lichess-puzzle-mode-board")?.classList.toggle("selected", _lichessPuzzleMode === "board");
+  document.getElementById("cfg-lichess-puzzle-mode-virtual")?.classList.toggle("selected", _lichessPuzzleMode === "virtual");
+}
+selectPuzzleModeLichess(_lichessPuzzleMode);  // synchronise les boutons avec la préférence mémorisée
+
 function startLichessPuzzle() {
   _basketSource = "Lichess";
   _gameMode = "lichess_puzzle";
   const player = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
-  sendAction({ type: "start_lichess_puzzle", player });
+  sendAction({ type: "start_lichess_puzzle", player, puzzle_mode: _lichessPuzzleMode });
 }
 
 // Peint les pièces d'un FEN sur la grille construite par _buildBoardPosInit
@@ -4169,7 +4199,30 @@ let _lichessPuzzleFlipped = false;
 // Blancs).
 socket.on("lichess_puzzle_move", (data) => {
   _lichessPuzzleHideBanners();
-  if (data.fen) _renderLichessPuzzleBoard(data.fen, data.uci);
+  if (data.fen) {
+    _renderLichessPuzzleBoard(data.fen, data.uci);
+    _puzzleBoardFen = data.fen;
+  }
+});
+
+// Mode virtuel des problèmes Lichess (issue #364) — la main revient au
+// joueur : coups légaux fournis par le serveur (python-chess, jamais un
+// moteur, voir puzzle_game.py::_legal_moves_map), jamais en mode échiquier
+// (VirtualPuzzleGame seul à émettre cet évènement).
+socket.on("lichess_puzzle_your_turn", (data) => {
+  _puzzleLegalMoves = (data && data.legal_moves) || {};
+  if (_puzzleVirtualActive) _puzzleActivateBoard();
+});
+
+// Coup refusé côté serveur (garde-fou — l'interface ne propose déjà que
+// les destinations légales fournies ci-dessus) : jamais de pénalité, le
+// joueur peut réessayer immédiatement avec les mêmes coups légaux.
+socket.on("lichess_puzzle_virtual_illegal", (_data) => {
+  _puzzleClearHighlights();
+  _puzzleSelected = null;
+  _puzzleLegalDests = [];
+  afficherToast(t("lichess.puzzle_coup_illegal"), "warning");
+  if (_puzzleVirtualActive) _puzzleActivateBoard();
 });
 
 socket.on("lichess_puzzle_position_wait", (_data) => {
@@ -4221,6 +4274,7 @@ socket.on("lichess_puzzle_solution_move", (data) => {
 socket.on("lichess_puzzle_result", (data) => {
   _lichessPuzzleShowPromotion(false);
   _lichessPuzzleHideBanners();
+  _puzzleDeactivateBoard();  // plus aucun coup à jouer (résolu, raté, ou solution en cours)
   const resultBox = document.getElementById("lichess-puzzle-result");
   if (resultBox) resultBox.style.display = "";
   const solutionBanner = document.getElementById("lichess-puzzle-solution-banner");
@@ -7246,6 +7300,115 @@ function _virtSyncChess(fen) {
     }
   } catch(e) {
     _chessInstance = null;
+  }
+}
+
+// ── Échiquier cliquable des problèmes Lichess en mode virtuel (issue #364) ──
+//
+// Même principe que le bloc "Échiquier cliquable (mode virtuel)" ci-dessus
+// (clic en deux temps, dialog de promotion, classes CSS .virt-selected/
+// .virt-legal/.virt-legal-capture déjà injectées plus bas) mais SANS
+// chess.js : les coups légaux viennent exclusivement du serveur
+// (_puzzleLegalMoves, rempli par "lichess_puzzle_your_turn") — jamais
+// recalculés ici, conformément à la règle de fair-play Lichess ("les coups
+// légaux sont fournis par le serveur, jamais calculés avec un moteur").
+// État et fonctions dédiés (_puzzle*), distincts de _virtSelected/
+// _virtLegalDests/_chessInstance : un problème Lichess peut cohabiter avec
+// une autre partie en mode virtuel dans la même session navigateur.
+
+let _puzzleVirtualActive = false;   // true seulement pour LE problème en cours (data.virtual du serveur)
+let _puzzleLegalMoves    = {};      // { "e2": ["e3","e4"], ... } — fourni par le serveur
+let _puzzleBoardFen      = "";      // dernier FEN connu (board-only ou complet, peu importe ici)
+let _puzzleSelected      = null;    // case sélectionnée, coord interne "file-rank"
+let _puzzleLegalDests    = [];      // destinations légales (coords internes) pour la case sélectionnée
+
+function _puzzleClearHighlights() {
+  document.querySelectorAll(
+    "#board-lichess-puzzle .virt-selected, #board-lichess-puzzle .virt-legal, #board-lichess-puzzle .virt-legal-capture"
+  ).forEach(sq => sq.classList.remove("virt-selected", "virt-legal", "virt-legal-capture"));
+}
+
+function _puzzleActivateBoard() {
+  const board = document.getElementById("board-lichess-puzzle");
+  if (!board) return;
+  board.removeEventListener("click", _puzzleOnSquareClick);
+  board.addEventListener("click", _puzzleOnSquareClick);
+}
+
+function _puzzleDeactivateBoard() {
+  const board = document.getElementById("board-lichess-puzzle");
+  if (board) board.removeEventListener("click", _puzzleOnSquareClick);
+  _puzzleClearHighlights();
+  _puzzleSelected   = null;
+  _puzzleLegalDests = [];
+}
+
+// Détecte une promotion à partir du FEN connu (pion atteignant la dernière
+// rangée) — géométrie pure, jamais besoin de calculer les coups légaux.
+function _puzzleIsPromotion(fromAlg, toAlg) {
+  const grid  = fenToBoard(_puzzleBoardFen);
+  const piece = grid[_algToCoord(fromAlg)];
+  if (!piece || piece.toLowerCase() !== "p") return false;
+  return toAlg[1] === "8" || toAlg[1] === "1";
+}
+
+function _puzzleSendMove(fromAlg, toAlg, promo) {
+  sendAction({ type: "lichess_puzzle_virtual_move", from: fromAlg, to: toAlg, promotion: promo || "" });
+}
+
+function _puzzleOnSquareClick(e) {
+  const sq = e.target.closest(".square");
+  if (!sq || !sq.id.startsWith("lp-")) return;
+  const coord = sq.id.replace("lp-", "");
+  const alg   = _coordToAlg(coord);
+
+  if (_puzzleSelected === null) {
+    const dests = _puzzleLegalMoves[alg];
+    if (!dests || dests.length === 0) return;  // pas une pièce du joueur, ou sans coup légal
+
+    _puzzleSelected   = coord;
+    _puzzleLegalDests = dests.map(_algToCoord);
+
+    _puzzleClearHighlights();
+    sq.classList.add("virt-selected");
+    const grid = fenToBoard(_puzzleBoardFen);
+    _puzzleLegalDests.forEach(destCoord => {
+      const destSq = document.getElementById(`lp-${destCoord}`);
+      if (!destSq) return;
+      destSq.classList.add(grid[destCoord] ? "virt-legal-capture" : "virt-legal");
+    });
+  } else {
+    if (coord === _puzzleSelected) {
+      _puzzleClearHighlights();
+      _puzzleSelected = null;
+      _puzzleLegalDests = [];
+      return;
+    }
+
+    if (_puzzleLegalDests.includes(coord)) {
+      const fromAlg = _coordToAlg(_puzzleSelected);
+      const toAlg   = _coordToAlg(coord);
+      // Désactive immédiatement : le prochain clic légitime n'arrivera
+      // qu'au prochain "lichess_puzzle_your_turn" (coup correct + réponse
+      // adverse) ou jamais ("lichess_puzzle_result" si le problème se
+      // termine) — évite un second clic pendant que le serveur évalue.
+      _puzzleDeactivateBoard();
+      if (_puzzleIsPromotion(fromAlg, toAlg)) {
+        _virtAskPromotion(promo => _puzzleSendMove(fromAlg, toAlg, promo));
+      } else {
+        _puzzleSendMove(fromAlg, toAlg, "");
+      }
+    } else if (_puzzleLegalMoves[alg]) {
+      // Clic sur une autre pièce jouable — change la sélection.
+      _puzzleClearHighlights();
+      _puzzleSelected = null;
+      _puzzleLegalDests = [];
+      _puzzleOnSquareClick(e);
+    } else {
+      _puzzleClearHighlights();
+      _puzzleSelected = null;
+      _puzzleLegalDests = [];
+    }
   }
 }
 
