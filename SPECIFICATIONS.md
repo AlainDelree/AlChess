@@ -259,7 +259,7 @@ Tous les moteurs sont gérés via le protocole UCI par `nicsoft/engine/engine_ma
 - PGN sauvegardée automatiquement, rangée par cadence : `Lichess/Classée/<cadence>/` pour les parties classées, `Lichess/Amicale/` pour les amicales.
 
 **Problèmes (puzzles)** :
-- Accessibles séparément, sans configuration : un problème Lichess après l'autre, mis en place sur l'échiquier physique, sans aide.
+- Accessibles séparément, sans configuration (angle par défaut) : un problème Lichess après l'autre. Deux modes au choix (bouton « Échiquier » / « Sur l'écran », échiquier par défaut) : **Échiquier**, mis en place et joué sur le plateau physique ; **Sur l'écran**, joué entièrement à la souris, sans aucune mise en place ni échiquier connecté — mêmes règles dans les deux cas (coups légaux jamais calculés par un moteur).
 - Cote de problèmes affichée avant et après chaque résultat. Un problème est résolu quand toute la solution est jouée (un coup qui mate est aussi accepté s'il diffère de la solution).
 - Les résultats sont envoyés à Lichess en classé : votre cote de problèmes Lichess évolue ; elle est distincte de votre cote de parties.
 

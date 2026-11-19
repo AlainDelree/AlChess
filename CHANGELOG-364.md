@@ -1,5 +1,24 @@
 # Changelog — Issue #364
 
+## Problèmes Lichess : mode virtuel, partie 3/3 — fin de problème, "Voir la solution", documentation
+
+- Rien à ajouter côté code pour la fin de problème/« Voir la solution » :
+  déjà traité par la partie 1/3 (`_on_solution_rewind`, `_wait_for_board_fen`
+  surchargée en pause interruptible) — le bandeau de fin
+  (`#lichess-puzzle-end-banner`, « Problème terminé »/« Solution terminée »)
+  et « Problème suivant » sont du code PARTAGÉ avec le mode échiquier,
+  inchangé (#363). Cette partie ajoute les tests qui le vérifient
+  spécifiquement en mode virtuel.
+- Tests e2e : `nicsoft/tests/e2e/test_issue364_puzzle_virtuel_fin_e2e.py` —
+  rejeu de la solution mettant à jour l'échiquier cliquable sans attente
+  physique, « Retour au menu » disponible et fonctionnel pendant
+  l'affichage de la solution, « Problème suivant » relançant un nouveau
+  problème dans le MÊME mode (virtuel) avec un échiquier de nouveau actif
+  dès le `lichess_puzzle_your_turn` suivant.
+- Documentation : `docs/contexte/lichess.md` (2 lignes — mode virtuel,
+  emplacement du code) ; `SPECIFICATIONS.md` §5.8 (Problèmes : deux modes,
+  Échiquier/Sur l'écran). `CONTEXTE.md` inchangé (3535 car., sous la limite).
+
 ## Problèmes Lichess : mode virtuel (jouer à l'écran), partie 1/3 — logique de jeu (Python)
 
 Ajout du mode « Sur l'écran » pour les problèmes Lichess, en complément du
