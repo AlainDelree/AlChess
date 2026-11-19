@@ -3200,15 +3200,21 @@ function renderBoardPosInit(fen, cellPrefix = "pi", expectedFen) {
   const INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
   const grid        = fenToBoard(fen);
   const gridInit    = fenToBoard(expectedFen || INITIAL_FEN);
+  // Avec expectedFen (problème Lichess, cible arbitraire — issue #362) :
+  // dessine la cible, jamais la lecture physique courante (sinon l'écran
+  // montre ce que l'utilisateur a déjà posé au lieu de ce qu'il doit poser).
+  // Sans expectedFen (les 3 autres appelants, cible toujours = position de
+  // départ standard) : comportement inchangé, on dessine `fen`.
+  const gridToDraw = expectedFen ? gridInit : grid;
   for (let rank = 7; rank >= 0; rank--) {
     for (let file = 0; file < 8; file++) {
       const id  = `${file}-${rank}`;
       const sq  = document.getElementById(`${cellPrefix}-${id}`);
       if (!sq) continue;
-      const piece = grid[id];
+      const piece = gridToDraw[id];
       sq.innerHTML = piece ? (PIECES[piece] || esc(piece)) : "";
       const isLight = (rank + file) % 2 === 1;
-      // Case incorrecte = pièce actuelle différente de l'initiale
+      // Case incorrecte = lecture physique différente de la cible
       const correct = (grid[id] || "") === (gridInit[id] || "");
       if (!correct) {
         sq.className = `square ${isLight ? 'light' : 'dark'} pos-init-error`;
