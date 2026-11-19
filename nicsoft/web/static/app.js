@@ -1613,6 +1613,16 @@ socket.on("app_state", (data) => {
     // problème, transmise via expected_fen), jamais la position de départ
     // standard que renderBoardPosInit compare par défaut.
     renderBoardPosInit(data.fen, "pi", data.puzzle ? data.expected_fen : undefined);
+    // Coordonnées a-h / 1-8 : uniquement pour les problèmes Lichess (issue
+    // #363, partie 1) — jamais pour la mise en place générique partagée
+    // par les autres modes (pédagogique, humain...), pour ne rien y changer.
+    const piCoordRank = document.getElementById("pi-coord-rank");
+    const piCoordFile = document.getElementById("pi-coord-file");
+    if (piCoordRank && piCoordFile) {
+      if (data.puzzle) _setCoordLabels(piCoordRank, piCoordFile, orientationIsFlipped(data.color));
+      piCoordRank.style.display = data.puzzle ? "" : "none";
+      piCoordFile.style.display = data.puzzle ? "" : "none";
+    }
   }
   // Problèmes Lichess (issue #354) : texte dédié (position arbitraire,
   // jamais la position de départ standard) à la place du texte générique.
@@ -1629,6 +1639,10 @@ socket.on("app_state", (data) => {
   if (data.state === "lichess_puzzle_playing" && data.fen) {
     _lichessPuzzleFlipped = orientationIsFlipped(data.color);
     _buildBoardPosInit(_lichessPuzzleFlipped, "board-lichess-puzzle", "lp");
+    // Coordonnées a-h / 1-8, orientées comme l'échiquier (issue #363,
+    // partie 1) — restent affichées jusqu'à l'écran de fin inclus, mêmes
+    // éléments DOM, aucun autre appel nécessaire.
+    _setCoordLabels(document.getElementById("lp-coord-rank"), document.getElementById("lp-coord-file"), _lichessPuzzleFlipped);
     _renderLichessPuzzleBoard(data.fen);
     _lichessPuzzleShowPromotion(false);
     _lichessPuzzleHideBanners();
@@ -3193,6 +3207,22 @@ function _buildBoardPosInit(flipped, boardId = "board-pos-init", cellPrefix = "p
       sq.id = `${cellPrefix}-${file}-${rank}`;
       board.appendChild(sq);
     }
+  }
+}
+
+// Étiquettes a-h / 1-8 en marge — même mécanisme que buildBoard()/
+// exBuildBoard()/laboBuildBoard() (coord-rank/coord-file) : réutilisé ici
+// pour les échiquiers du mode problèmes Lichess (issue #363, partie 1).
+function _setCoordLabels(rankEl, fileEl, flipped) {
+  if (rankEl) {
+    rankEl.innerHTML = "";
+    const ranks = flipped ? [0,1,2,3,4,5,6,7] : [7,6,5,4,3,2,1,0];
+    ranks.forEach(r => { const s = document.createElement("span"); s.textContent = r + 1; rankEl.appendChild(s); });
+  }
+  if (fileEl) {
+    fileEl.innerHTML = "";
+    const files = flipped ? "hgfedcba".split("") : "abcdefgh".split("");
+    files.forEach(f => { const s = document.createElement("span"); s.textContent = f; fileEl.appendChild(s); });
   }
 }
 

@@ -1078,7 +1078,15 @@
     <div class="pos-init-label">
       <span>♟</span><span data-i18n="pos_init.adversaire">Adversaire</span>
     </div>
-    <div id="board-pos-init"></div>
+    <!-- Coordonnées a-h / 1-8 : affichées uniquement pour les problèmes
+         Lichess (data.puzzle), jamais pour la mise en place générique
+         partagée par les autres modes — voir socket.on("app_state", ...)
+         (issue #363, partie 1). -->
+    <div class="pos-init-board-row">
+      <div class="coord-rank" id="pi-coord-rank" style="display:none;"></div>
+      <div id="board-pos-init"></div>
+    </div>
+    <div class="coord-file" id="pi-coord-file" style="display:none;"></div>
     <div class="pos-init-label">
       <span>♙</span><span data-i18n="pos_init.joueur">Joueur</span>
     </div>
@@ -1130,7 +1138,13 @@
     <div class="pos-init-label">
       <span>♟</span><span data-i18n="pos_init.adversaire">Adversaire</span>
     </div>
-    <div id="board-lichess-puzzle"></div>
+    <!-- Coordonnées a-h / 1-8 — écran dédié aux problèmes, toujours
+         affichées (issue #363, partie 1). -->
+    <div class="pos-init-board-row">
+      <div class="coord-rank" id="lp-coord-rank"></div>
+      <div id="board-lichess-puzzle"></div>
+    </div>
+    <div class="coord-file" id="lp-coord-file"></div>
     <div class="pos-init-label">
       <span>♙</span><span data-i18n="pos_init.joueur">Joueur</span>
     </div>
