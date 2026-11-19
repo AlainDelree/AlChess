@@ -4229,6 +4229,21 @@ socket.on("lichess_puzzle_result", (data) => {
   const title = document.getElementById("lichess-puzzle-result-title");
   if (title) title.textContent = t(data.win ? "lichess.puzzle.resultat_gagne" : "lichess.puzzle.resultat_perdu");
 
+  // Indication explicite de fin de problème (issue #363, partie 2) — ce
+  // même évènement couvre les 3 cas sans qu'aucun état local supplémentaire
+  // ne soit nécessaire : résolu (data.win) ou raté pas encore démontré
+  // (can_view_solution=true, le problème reste terminé pour autant) →
+  // "Problème terminé" ; raté ET solution entièrement rejouée sur
+  // l'échiquier physique (can_view_solution redevient false seulement une
+  // fois ce rejeu terminé, voir puzzle_game.py::_show_solution) →
+  // "Solution terminée". Jamais un second envoi de résultat à Lichess : ce
+  // bandeau ne fait que refléter l'état déjà envoyé par le serveur.
+  const endBanner = document.getElementById("lichess-puzzle-end-banner");
+  if (endBanner) {
+    const soluceDemontree = !data.win && !data.can_view_solution;
+    endBanner.textContent = t(soluceDemontree ? "lichess.puzzle.solution_terminee" : "lichess.puzzle.termine");
+  }
+
   const themesEl = document.getElementById("lichess-puzzle-result-themes");
   if (themesEl) {
     themesEl.textContent = (data.themes && data.themes.length)

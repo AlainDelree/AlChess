@@ -20,3 +20,29 @@ Tests e2e ajoutés (`test_issue363_puzzle_coords_e2e.py`) : texte et ordre
 des coordonnées pour un problème aux Blancs et aux Noirs, à la mise en
 place et pendant le problème, + non-régression (coordonnées masquées hors
 problème sur l'écran de mise en place partagé).
+
+## Aucune indication de fin de problème après « Voir la solution »
+
+Constat (lecture du code avant correctif) : après un problème raté,
+« Voir la solution » ne se limite pas à un affichage — le serveur
+(`puzzle_game.py::_show_solution()`) rejoue chaque coup un par un et
+attend sa réplication physique sur l'échiquier avant de passer au
+suivant, puis réémet déjà un évènement `lichess_puzzle_result` une fois
+la boucle terminée (`can_view_solution` retombé à `False`). Mais ce
+second évènement ne changeait rien à l'écran : le titre restait
+« Problème raté » et le bouton de solution disparaissait silencieusement,
+sans aucun signal de fin — dans les 3 cas (résolu, raté, raté+solution),
+rien n'indiquait explicitement que le problème était terminé.
+
+Corrigé côté client uniquement (aucun second envoi de résultat à
+Lichess, déjà fait une seule fois par `_try_submit_pending()`) : un
+bandeau `#lichess-puzzle-end-banner`, dérivé de `win`/`can_view_solution`
+du payload déjà reçu — « Problème terminé » (résolu, ou raté pas encore
+démontré) / « Solution terminée » (raté + solution entièrement rejouée
+sur l'échiquier physique). Nouvelles clés i18n `lichess.puzzle.termine`
+et `lichess.puzzle.solution_terminee` (fr/en/de). Le bouton « Problème
+suivant » reste disponible dans tous les cas.
+
+Tests e2e ajoutés (`test_issue363_puzzle_fin_e2e.py`) : les 3 cas
+(résolu, raté, raté puis solution montrée), texte du bandeau et
+disponibilité des boutons à chaque fois.

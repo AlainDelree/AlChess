@@ -1171,6 +1171,11 @@
 
       <div id="lichess-puzzle-result" style="display:none;">
         <h3 id="lichess-puzzle-result-title"></h3>
+        <!-- Indication explicite de fin de problème (issue #363, partie 2)
+             — résolu, raté, ou raté suivi de « Voir la solution » : trois
+             cas, jamais plus d'un envoi de résultat à Lichess (déjà fait
+             avant ce bandeau, voir socket.on("lichess_puzzle_result")). -->
+        <div id="lichess-puzzle-end-banner" class="lichess-puzzle-end-banner"></div>
         <div id="lichess-puzzle-result-themes" class="lichess-puzzle-themes"></div>
         <div id="lichess-puzzle-rating-change"></div>
         <div id="lichess-puzzle-submit-error" class="lichess-info-banner lichess-banner-danger" style="display:none;">

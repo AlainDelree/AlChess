@@ -848,5 +848,7 @@
   "lichess.puzzle.voir_solution": "👁 View solution",
   "lichess.puzzle.suivant": "▶ Next puzzle",
   "lichess.puzzle.solution_titre": "Solution being demonstrated on the board…",
+  "lichess.puzzle.termine": "Puzzle finished.",
+  "lichess.puzzle.solution_terminee": "Solution finished.",
   "lichess.puzzle_menu_verrouille": "Lichess puzzle in progress — finish it before changing mode."
 }

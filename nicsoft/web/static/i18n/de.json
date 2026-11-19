@@ -848,5 +848,7 @@
   "lichess.puzzle.voir_solution": "👁 Lösung anzeigen",
   "lichess.puzzle.suivant": "▶ Nächste Aufgabe",
   "lichess.puzzle.solution_titre": "Lösung wird auf dem Brett vorgeführt…",
+  "lichess.puzzle.termine": "Aufgabe beendet.",
+  "lichess.puzzle.solution_terminee": "Lösung beendet.",
   "lichess.puzzle_menu_verrouille": "Lichess-Aufgabe läuft — beenden Sie sie, bevor Sie den Modus wechseln."
 }

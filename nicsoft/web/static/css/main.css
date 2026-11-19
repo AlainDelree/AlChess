@@ -1826,6 +1826,10 @@
 #lichess-puzzle-turn-text { font-weight:700; color:#1a2a3a; }
 #lichess-puzzle-result { margin-top:14px; padding-top:10px; border-top:1px solid #dde3ea; }
 #lichess-puzzle-result-title { margin:0 0 6px; }
+/* Indication de fin de problème (issue #363, partie 2) — discrète, même
+   esprit que .lichess-info-banner mais sans l'icône ℹ️ (ce n'est pas une
+   information de reconnexion/attente, juste un repère de fin). */
+.lichess-puzzle-end-banner { font-size:0.85rem; font-weight:600; color:#3a5a7a; margin:0 0 8px; }
 .lichess-puzzle-themes { font-size:0.85rem; color:#5a6b7a; margin-bottom:6px; }
 #lichess-puzzle-rating-change { font-size:0.9rem; color:#1a2a3a; margin-bottom:10px; }
 #lichess-puzzle-result-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }

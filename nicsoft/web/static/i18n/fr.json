@@ -848,5 +848,7 @@
   "lichess.puzzle.voir_solution": "👁 Voir la solution",
   "lichess.puzzle.suivant": "▶ Problème suivant",
   "lichess.puzzle.solution_titre": "Solution en cours de démonstration sur l'échiquier…",
+  "lichess.puzzle.termine": "Problème terminé.",
+  "lichess.puzzle.solution_terminee": "Solution terminée.",
   "lichess.puzzle_menu_verrouille": "Problème Lichess en cours — terminez-le avant de changer de mode."
 }
