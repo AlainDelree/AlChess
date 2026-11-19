@@ -27,6 +27,11 @@ clôture) : l'équivalence de notation de roque "altCastles" du même fichier
 (ex. "e1h1" vs "e1g1") — un artefact du client web (bibliothèque chessops),
 qui n'a pas de raison de s'appliquer à la réponse JSON de l'API REST
 publique (notation UCI standard, sans ambiguïté).
+
+Mode virtuel (issue #364) : VirtualPuzzleGame, en bas de ce fichier, hérite
+de PuzzleGame et ne redéfinit QUE ce qui dépendait du plateau physique —
+tout le suivi de la solution ci-dessus (y compris le mat hors solution)
+reste partagé à l'identique entre les deux modes.
 """
 
 import logging
@@ -462,6 +467,13 @@ class PuzzleGame:
         })
         self._wait_for_board_fen(self.board.board_fen())
 
+    def _on_solution_rewind(self, target_board: chess.Board) -> None:
+        """Point d'extension (issue #364) appelé juste avant d'attendre la
+        remise en place de la position d'avant le coup faux — no-op en mode
+        échiquier (le joueur reconstruit lui-même cette position
+        physiquement, voir _wait_for_board_fen juste après) ; VirtualPuzzleGame
+        le surcharge pour l'afficher à l'écran, où rien d'autre ne le ferait."""
+
     # ── Fin de problème — envoi du résultat ─────────────────────────────
 
     def _finish(self, win: bool) -> None:
@@ -540,6 +552,7 @@ class PuzzleGame:
         appelé pour une victoire (self.outcome == "solved")."""
         self._log("affichage de la solution demandé par l'utilisateur.")
         target_board = chess.Board(self._fail_point_fen)
+        self._on_solution_rewind(target_board)
         self._wait_for_board_fen(target_board.board_fen())
         for i, uci in enumerate(self._fail_remaining):
             try:
@@ -558,3 +571,134 @@ class PuzzleGame:
             })
             self._wait_for_board_fen(target_board.board_fen())
         self._log("solution entièrement rejouée sur l'échiquier.")
+
+
+# ── Mode virtuel (jouer à l'écran, sans échiquier physique) — issue #364 ────
+#
+# VirtualPuzzleGame hérite de PuzzleGame et réutilise tel quel tout ce qui ne
+# dépend pas du plateau physique : suivi de la solution, détection
+# résolu/raté, mat hors solution accepté (_evaluate_user_move), envoi unique
+# du résultat (_finish/_try_submit_pending), journal, enchaînement
+# ("Voir la solution"/"Problème suivant"/retour au menu) via
+# _wait_post_result_decision — AUCUNE de ces méthodes n'est redéfinie ici.
+# Seules les méthodes qui touchaient le plateau physique sont remplacées :
+# _tick_physical/_light_move/_beep (no-op : rien à lire ni à éclairer),
+# _wait_for_board_fen (devient une courte pause interruptible par retour au
+# menu — sert à la fois de délai avant le coup adverse affiché, de délai
+# entre la réponse du joueur et la réponse adverse forcée, et de délai entre
+# chaque coup de "Voir la solution") et _process_browser_actions (ajoute le
+# traitement du coup venu du navigateur, déjà complet — départ, arrivée,
+# pièce de promotion si besoin — donc jamais besoin du mécanisme
+# _pending_promotion/lichess_puzzle_promotion_needed, réservé à
+# l'ambiguïté propre à un plateau physique).
+
+_VIRTUAL_PAUSE_S = 0.6
+_VIRTUAL_PAUSE_STEP_S = 0.05
+
+
+def _legal_moves_map(board: chess.Board) -> dict:
+    """Coups légaux de `board`, regroupés par case de départ (notation
+    algébrique) — jamais calculés par un moteur, seulement par
+    python-chess (`board.legal_moves`), déjà la bibliothèque utilisée pour
+    toute validation côté serveur dans ce module. Les coups de promotion
+    (quatre entrées UCI pour la même case d'arrivée) sont fusionnés en une
+    seule destination : le choix de la pièce est un geste distinct côté
+    écran (sélecteur affiché une fois la case d'arrivée cliquée), pas une
+    case supplémentaire à marquer."""
+    moves: dict = {}
+    for mv in board.legal_moves:
+        frm = chess.square_name(mv.from_square)
+        to = chess.square_name(mv.to_square)
+        dests = moves.setdefault(frm, [])
+        if to not in dests:
+            dests.append(to)
+    return moves
+
+
+class VirtualPuzzleGame(PuzzleGame):
+    """Variante écran (sans échiquier physique) d'un problème Lichess —
+    voir l'en-tête de section ci-dessus pour ce qui est réutilisé tel quel
+    depuis PuzzleGame. `nl_inst` n'est jamais utilisé par les méthodes
+    surchargées ci-dessous : l'appelant (_run_lichess_puzzle_virtual,
+    game_manager_modes/lichess.py) construit cette classe avec `nl_inst=None`."""
+
+    def _tick_physical(self) -> None:
+        pass
+
+    def _light_move(self, from_square, to_square) -> None:
+        pass
+
+    def _beep(self) -> None:
+        pass
+
+    def _wait_for_board_fen(self, target_board_fen: str) -> None:
+        """Aucune réplication physique à attendre (la position affichée à
+        l'écran est toujours exacte) — devient une courte pause,
+        interrompue immédiatement par un retour au menu (même garde que la
+        version physique : _drain_back_menu_only, _BackMenuDuringPuzzle)."""
+        waited = 0.0
+        while waited < _VIRTUAL_PAUSE_S:
+            if self._drain_back_menu_only():
+                raise _BackMenuDuringPuzzle()
+            time.sleep(_VIRTUAL_PAUSE_STEP_S)
+            waited += _VIRTUAL_PAUSE_STEP_S
+
+    def _on_solution_rewind(self, target_board: chess.Board) -> None:
+        """Rien d'autre n'afficherait la position d'avant le coup faux à
+        l'écran (pas de plateau physique que le joueur remettrait lui-même
+        en place) — même évènement que pour un coup joué, sans coup à
+        marquer (uci omis, déjà un cas géré par app.js::_renderLichessPuzzleBoard)."""
+        send_event("lichess_puzzle_move", {"fen": target_board.fen()})
+
+    def animate_opponent_first_move(self) -> None:
+        super().animate_opponent_first_move()
+        if self.outcome is None:
+            self._send_your_turn()
+
+    def _evaluate_user_move(self, move: chess.Move) -> None:
+        super()._evaluate_user_move(move)
+        if self.outcome is None:
+            self._send_your_turn()
+
+    def _send_your_turn(self) -> None:
+        """Signale au navigateur que c'est au joueur de jouer et lui fournit
+        les coups légaux de la position courante (issue #364 : "les coups
+        légaux sont fournis par le serveur, jamais calculés avec un
+        moteur") — jamais envoyé en mode échiquier (évènement propre à ce
+        module, nouveau, avec son gestionnaire JS dédié, garde #359)."""
+        send_event("lichess_puzzle_your_turn", {"legal_moves": _legal_moves_map(self.board)})
+
+    def _process_browser_actions(self) -> bool:
+        while True:
+            action = get_action(timeout=0.0)
+            if action is None:
+                return False
+            atype = action.get("type", "")
+            if atype == "back_menu":
+                self.back_menu_requested = True
+                if self.outcome is None:
+                    self._log("retour au menu demandé — problème abandonné, aucun résultat envoyé.")
+                return True
+            if atype in _OTHER_MODE_ACTIONS:
+                send_event("lichess_puzzle_toast", {"message_key": "lichess.puzzle_menu_verrouille", "type": "warning"})
+                continue
+            if atype == "lichess_puzzle_virtual_move":
+                self._handle_virtual_move(action)
+
+    def _handle_virtual_move(self, action: dict) -> None:
+        if self.outcome is not None:
+            return
+        from_sq = (action.get("from") or "").strip().lower()
+        to_sq = (action.get("to") or "").strip().lower()
+        promotion = (action.get("promotion") or "").strip().lower()
+        promotion = promotion if promotion in ("q", "r", "b", "n") else ""
+        uci = from_sq + to_sq + promotion
+        try:
+            move = self.board.parse_uci(uci)
+        except Exception:
+            move = None
+        if move is None or move not in self.board.legal_moves:
+            self._log(f"coup virtuel illégal refusé — {from_sq}{to_sq}{promotion} (aucune pénalité).")
+            send_event("lichess_puzzle_virtual_illegal", {"from": from_sq, "to": to_sq})
+            return
+        self._evaluate_user_move(move)

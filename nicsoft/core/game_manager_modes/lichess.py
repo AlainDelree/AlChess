@@ -20,9 +20,13 @@ son premier coup (signal sonore + LED + compte à rebours, voir
 modes/lichess/game.py) et c'est alors à l'utilisateur de répondre dans le
 délai imposé par Lichess.
 
-Pas de mode virtuel pour Lichess (l'échiquier physique est requis) et
-aucun moteur d'échecs n'est importé ici ni dans nicsoft.modes.lichess.game
-(règle de fair-play Lichess).
+Pas de mode virtuel pour les PARTIES Lichess (l'échiquier physique est
+requis) et aucun moteur d'échecs n'est importé ici ni dans
+nicsoft.modes.lichess.game (règle de fair-play Lichess). Les PROBLÈMES
+(puzzles, section dédiée plus bas) ont en revanche un mode virtuel depuis
+l'issue #364 (_run_lichess_puzzle_virtual, sans échiquier) en plus du mode
+échiquier existant (_run_lichess_puzzle, inchangé) — même règle de
+fair-play dans les deux cas.
 """
 
 import logging
@@ -1527,7 +1531,14 @@ def launch_lichess_puzzle(config: dict) -> None:
     session est déjà terminée (retour au menu demandé par l'utilisateur ou
     erreur). Vérifie D'ABORD les droits du jeton (puzzle:read/puzzle:write)
     via test_token() — jamais d'échec silencieux si l'un des deux manque
-    (issue #354, étape A)."""
+    (issue #354, étape A).
+
+    `config["puzzle_mode"]` ("board", défaut, ou "virtual" — issue #364,
+    choix fait à l'écran Lichess, jamais mémorisé côté serveur : voir
+    app.js pour la préférence localStorage) sélectionne le lanceur réel —
+    _run_lichess_puzzle (échiquier physique, inchangé) ou
+    _run_lichess_puzzle_virtual (écran seul, aucun échiquier requis : ne
+    tente jamais _open_board_with_retry, contrairement à l'autre)."""
     current_state = web_server._app_state
     if current_state not in ("menu", "config_lichess"):
         logger.info(f"Lancement problème Lichess refusé : mode déjà actif ({current_state}).")
@@ -1563,12 +1574,16 @@ def launch_lichess_puzzle(config: dict) -> None:
         return
 
     player_name = (config.get("player") or "Vous").strip() or "Vous"
-    logger_lichess.info(f"Lichess : lancement session de problèmes demandé — joueur={player_name}.")
+    puzzle_mode = "virtual" if config.get("puzzle_mode") == "virtual" else "board"
+    logger_lichess.info(
+        f"Lichess : lancement session de problèmes demandé — joueur={player_name} mode={puzzle_mode}."
+    )
 
     web_server._app_state = "connecting"
     set_app_state("connecting")
     _error = {"occurred": False, "toast_key": None, "return_to": "config_lichess"}
-    t = threading.Thread(target=_run_lichess_puzzle, args=(token, player_name, _error), daemon=True)
+    target = _run_lichess_puzzle_virtual if puzzle_mode == "virtual" else _run_lichess_puzzle
+    t = threading.Thread(target=target, args=(token, player_name, _error), daemon=True)
     t.start()
     t.join()
     if _error["occurred"]:
@@ -1699,6 +1714,109 @@ def _run_lichess_puzzle(token, player_name, _error=None):
                 logger_lichess.info("Lichess (problèmes) : échiquier physique libéré.")
             except Exception as e:
                 logger.warning(f"Déconnexion échiquier échouée (problèmes Lichess) : {e}")
+        if web_server._app_state != "menu":
+            web_server._app_state = "menu"
+        if game_log is not None:
+            game_log.close()
+
+
+# ── Problèmes Lichess — mode virtuel (jouer à l'écran) — issue #364 ─────────
+#
+# Variante de _run_lichess_puzzle SANS aucun échiquier : jamais
+# _open_board_with_retry, jamais _wait_initial_position_lichess_puzzle
+# (aucune mise en place physique — le problème démarre directement), jamais
+# nl_inst (VirtualPuzzleGame n'y touche jamais, voir puzzle_game.py). Tout
+# le reste (droits du jeton déjà vérifiés par launch_lichess_puzzle, journal
+# dédié, boucle "next_puzzle", traitement des erreurs Lichess) reproduit
+# _run_lichess_puzzle à l'identique — dupliqué plutôt que partagé par un
+# paramètre, pour que les deux boucles restent indépendantes et que le mode
+# échiquier n'ait jamais besoin d'être relu en même temps que le mode
+# virtuel (voir rapport de clôture).
+
+def _run_lichess_puzzle_virtual(token, player_name, _error=None):
+    from nicsoft.modes.lichess.puzzle_game import VirtualPuzzleGame, solver_color_for_fen, PUZZLE_LOGS_DIR
+    from nicsoft.modes.lichess.puzzle_client import get_next_puzzle
+    from nicsoft.modes.lichess.game_log import GameLog
+
+    _STATUS_TOAST_KEYS = {
+        "invalid": "toast.lichess_invalid_token",
+        "missing_scope": "toast.lichess_puzzle_missing_scope",
+        "rate_limited": "toast.lichess_rate_limited",
+        "network_error": "toast.lichess_network_error",
+    }
+
+    game_log = None
+    try:
+        game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
+        game_log.state_change(f"Session de problèmes Lichess (mode virtuel) démarrée — joueur={player_name}.")
+        while True:
+            game_log.state_change("Demande du prochain problème (GET /api/puzzle/next).")
+            puzzle = get_next_puzzle(token)
+            status = puzzle.get("status")
+            if status != "ok":
+                game_log.state_change(f"Problème non obtenu — statut={status}.")
+                if _error is not None:
+                    _error["occurred"] = True
+                    _error["toast_key"] = _STATUS_TOAST_KEYS.get(status, "toast.lichess_error")
+                    _error["return_to"] = "config_lichess"
+                return
+            game_log.state_change(
+                "Problème reçu (virtuel) — id=%s, cote=%s, nb_coups_solution=%d, "
+                "premier_coup_adverse=%s." % (
+                    puzzle["puzzle_id"], puzzle.get("rating"), len(puzzle["solution"]),
+                    puzzle.get("opponent_first_move") or "(aucun)",
+                )
+            )
+            solver_color = solver_color_for_fen(puzzle.get("fen") or puzzle["setup_fen"])
+            _discard_stale_browser_actions()
+
+            game = VirtualPuzzleGame(None, token, puzzle, player_name=player_name, game_log=game_log)
+            web_server._app_state = "lichess_puzzle_playing"
+            set_app_state("lichess_puzzle_playing", {
+                "fen": game.board.fen(), "color": solver_color,
+                "puzzle_id": puzzle["puzzle_id"], "rating": puzzle.get("rating"),
+                "virtual": True,
+            })
+            game.animate_opponent_first_move()
+            outcome = game.run()
+            if outcome == "back_menu":
+                return
+            # "next_puzzle" : reboucle — nouveau problème, toujours en mode
+            # virtuel (issue #364 : "Problème suivant" relance dans le même
+            # mode que le précédent), sans jamais repasser par le menu.
+    except _BackMenuDuringWait:
+        pass
+    except LichessAuthError as e:
+        logger_lichess.error(f"Jeton Lichess refusé pendant les problèmes (virtuel, HTTP {e.status_code}).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = ("toast.lichess_puzzle_missing_scope" if e.status_code == 403
+                                    else "toast.lichess_invalid_token")
+            _error["return_to"] = "config_lichess"
+    except LichessRateLimitError:
+        logger_lichess.warning("Limite de requêtes Lichess atteinte (problèmes, virtuel).")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_rate_limited"
+            _error["return_to"] = "config_lichess"
+    except (LichessNetworkError, LichessApiError) as e:
+        logger_lichess.error(f"Erreur Lichess pendant les problèmes (virtuel) : {e}")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_network_error"
+            _error["return_to"] = "config_lichess"
+    except Exception as e:
+        logger.error(f"Erreur inattendue — problèmes Lichess (virtuel) : {e}")
+        import traceback
+        traceback.print_exc()
+        if game_log is not None:
+            game_log.exception(e, context="_run_lichess_puzzle_virtual")
+        if _error is not None:
+            _error["occurred"] = True
+            _error["toast_key"] = "toast.lichess_error"
+            _error["return_to"] = "config_lichess"
+        send_event("popup", {"message": f"Erreur : {e}"})
+    finally:
         if web_server._app_state != "menu":
             web_server._app_state = "menu"
         if game_log is not None:
