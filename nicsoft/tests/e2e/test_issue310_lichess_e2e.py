@@ -94,12 +94,15 @@ def _declencher_lichess_resumable(page, data):
 @pytest.fixture
 def at_config_lichess(at_menu):
     """Atteint l'écran de configuration Lichess sans dépendre de l'échiquier
-    physique ni d'un jeton Lichess enregistré (le bouton menu correspondant
-    est `disabled` tant que ces deux préconditions matérielles ne sont pas
-    réunies — cf. app.js ligne ~697-702). `sendAction` est une fonction JS
+    physique ni d'un jeton Lichess enregistré. Le bouton menu correspondant
+    n'est plus conditionné à l'échiquier (issue #365 — l'écran Lichess reste
+    accessible sans échiquier pour les problèmes en mode « Sur l'écran »),
+    mais reste `disabled` tant qu'aucun jeton n'est enregistré (cf.
+    app.js::_applyLichessCardState()). `sendAction` est une fonction JS
     globale qui émet directement l'action vers le serveur (`socket.emit`),
     sans passer par un clic DOM sur le bouton menu : elle n'est donc pas
-    bloquée par l'attribut `disabled` du bouton."""
+    bloquée par l'attribut `disabled` du bouton — le test reste valide avec
+    ou sans jeton enregistré dans l'environnement."""
     at_menu.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     at_menu.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
     # Issue #325, point 2 : détache le vrai gestionnaire socket.io de

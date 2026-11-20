@@ -742,20 +742,43 @@ function _applyBoardBadge() {
     if (_boardOk) colJouer.insertBefore(wrapHH, wrapLabo);
     else          colJouer.appendChild(wrapHH);
   }
+  // Partie Lichess réelle — nécessite toujours l'échiquier physique
+  // (inchangé), mais mis à jour ici aussi (pas seulement par la réponse
+  // config_data) pour refléter une connexion/déconnexion de l'échiquier
+  // survenue pendant que l'écran Lichess est déjà ouvert, sans recharger
+  // la page (issue #365).
+  const btnStartLichess = document.getElementById("btn-start-lichess");
+  if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken;
+
   _applyLichessCardState();
+  _applyLichessPuzzleBoardState();
 }
 
-// Carte menu Lichess — comme Humain contre Humain (échiquier physique requis,
-// pas de repli virtuel), avec en plus l'exigence d'un jeton personnel enregistré
-// (issue #309, point 1).
+// Carte menu Lichess — contrairement à Humain contre Humain, n'exige PAS
+// l'échiquier physique (issue #365) : l'écran Lichess reste accessible sans
+// échiquier pour jouer les problèmes en mode « Sur l'écran » (#364) ; seule
+// l'exigence d'un jeton personnel enregistré demeure (issue #309, point 1).
+// Ce qui exige réellement l'échiquier à l'intérieur de cet écran (parties,
+// problèmes en mode « Échiquier ») est grisé séparément, voir
+// _applyLichessPuzzleBoardState() et btn-start-lichess.
 function _applyLichessCardState() {
   const btn = document.querySelector('.menu-btn-lichess[data-mode="lichess"]');
   if (!btn) return;
-  const ok = _boardOk && _lichessHasToken;
-  btn.disabled = !ok;
-  if (!_boardOk) btn.title = t("menu.hh.requiert_echiquier");
-  else if (!_lichessHasToken) btn.title = t("menu.lichess.requiert_jeton");
-  else btn.title = "";
+  btn.disabled = !_lichessHasToken;
+  btn.title = _lichessHasToken ? "" : t("menu.lichess.requiert_jeton");
+}
+
+// Problèmes Lichess — le mode « Échiquier » exige l'échiquier physique,
+// jamais le mode « Sur l'écran » (issue #365). Appelée au choix du mode
+// (selectPuzzleModeLichess) et à chaque changement d'état de l'échiquier
+// (_applyBoardBadge, déclenchée par board_ok/board_error/board_reconnecting)
+// — aucun rechargement de page nécessaire.
+function _applyLichessPuzzleBoardState() {
+  const btn  = document.getElementById("btn-start-lichess-puzzle");
+  const hint = document.getElementById("lichess-puzzle-board-hint");
+  const needsBoard = _lichessPuzzleMode === "board" && !_boardOk;
+  if (btn)  btn.disabled = needsBoard;
+  if (hint) hint.classList.toggle("hidden", !needsBoard);
 }
 
 
@@ -4136,10 +4159,15 @@ function selectPuzzleModeLichess(mode) {
   localStorage.setItem("niclink_lichess_puzzle_mode", _lichessPuzzleMode);
   document.getElementById("cfg-lichess-puzzle-mode-board")?.classList.toggle("selected", _lichessPuzzleMode === "board");
   document.getElementById("cfg-lichess-puzzle-mode-virtual")?.classList.toggle("selected", _lichessPuzzleMode === "virtual");
+  _applyLichessPuzzleBoardState();
 }
 selectPuzzleModeLichess(_lichessPuzzleMode);  // synchronise les boutons avec la préférence mémorisée
 
 function startLichessPuzzle() {
+  // Garde-fou (issue #365) : le mode "Échiquier" ne doit jamais être lancé
+  // sans échiquier connecté, même si le bouton était réactivé par erreur —
+  // le mode "Sur l'écran" n'a lui aucune exigence d'échiquier.
+  if (_lichessPuzzleMode === "board" && !_boardOk) return;
   _basketSource = "Lichess";
   _gameMode = "lichess_puzzle";
   const player = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";

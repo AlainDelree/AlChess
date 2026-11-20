@@ -156,7 +156,7 @@
       </div>
 
       <div class="menu-btn-wrap" id="wrap-lichess">
-        <button class="menu-btn menu-btn-lichess" data-needs-board data-physical-only disabled data-action="send_mode" data-mode="lichess" data-i18n="menu.btn.lichess">♞ Lichess</button>
+        <button class="menu-btn menu-btn-lichess" disabled data-action="send_mode" data-mode="lichess" data-i18n="menu.btn.lichess">♞ Lichess</button>
         <div class="menu-btn-desc" id="desc-lichess" data-i18n="menu.desc.lichess">Jouez une partie amicale contre l'IA de Lichess sur votre échiquier physique. Coups, pendules et résultat sont synchronisés avec lichess.org — aucune aide pendant la partie.</div>
       </div>
 
@@ -453,7 +453,7 @@
   </div>
 
   <div id="board-warning-banner-config-lichess" class="board-warning-banner hidden" data-i18n="banner.board_absent_lichess">
-    Lichess se joue sur l'échiquier physique. Branchez-le, allumez-le, puis cliquez sur « Connecter ».
+    Les parties Lichess et les problèmes en mode « Échiquier » nécessitent l'échiquier physique. Branchez-le, allumez-le, puis cliquez sur « Connecter » — les problèmes « Sur l'écran » restent utilisables sans lui.
   </div>
 
   <!-- Partie(s) en cours (issue #323 ; liste complète issue #325) — masqué
@@ -489,7 +489,12 @@
         <button class="color-btn selected" id="cfg-lichess-puzzle-mode-board" data-action="select_puzzle_mode_lichess" data-puzzle-mode="board" data-i18n="config.lichess.probleme_mode_echiquier">♟️ Échiquier</button>
         <button class="color-btn" id="cfg-lichess-puzzle-mode-virtual" data-action="select_puzzle_mode_lichess" data-puzzle-mode="virtual" data-i18n="config.lichess.probleme_mode_virtuel">🖥️ Sur l'écran</button>
       </div>
-      <button class="btn btn-reprendre" data-action="start_lichess_puzzle" data-i18n="config.lichess.probleme_btn">▶ Jouer un problème</button>
+      <!-- Explication visible quand le mode "Échiquier" est choisi sans
+           échiquier connecté (issue #365) — mise à jour par
+           _applyLichessPuzzleBoardState() (app.js), sur le même mécanisme
+           d'état que le badge échiquier (board_ok/board_error). -->
+      <p id="lichess-puzzle-board-hint" class="outil-desc hidden" data-i18n="config.lichess.probleme_requiert_echiquier">Le mode « Échiquier » nécessite l'échiquier physique connecté — choisissez « Sur l'écran » pour jouer sans lui.</p>
+      <button class="btn btn-reprendre" id="btn-start-lichess-puzzle" data-action="start_lichess_puzzle" data-i18n="config.lichess.probleme_btn">▶ Jouer un problème</button>
     </div>
 
     <!-- Choix du type de partie (issue #327, point 1 ; classé issue #344, point 1 ;

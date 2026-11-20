@@ -1348,6 +1348,7 @@
 .outil-num { background:#e94560; color:#fff; border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; flex-shrink:0; }
 .outil-title { font-weight:700; font-size:1.05rem; color:#1a2a3a; }
 .outil-desc { color:#3a5a7a; font-size:0.88rem; margin-bottom:10px; }
+.outil-desc.hidden { display:none; }
 
 /* ── Écran intermédiaire "Ouvertures" ── */
 .ouvertures-header { width:100%; max-width:760px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
