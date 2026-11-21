@@ -767,6 +767,7 @@
   "lichess.proposer_nulle_titre": "Proposer la nulle à l'IA de Lichess ?",
   "lichess.menu_verrouille": "Partie Lichess en cours — terminez-la avant de changer de mode.",
   "lichess.erreur_reseau": "Connexion à Lichess impossible pour le moment.",
+  "lichess.erreur_reseau_retablie": "Connexion à Lichess rétablie.",
   "lichess.coup_refuse": "Lichess a refusé ce coup — remettez la pièce à sa place.",
   "lichess.coup_refuse_detail": "Lichess a refusé ce coup ({detail}) — remettez la pièce à sa place.",
   "lichess.attente_premier_coup.titre": "À vous de jouer !",

@@ -767,6 +767,7 @@
   "lichess.proposer_nulle_titre": "Der Lichess-KI ein Remis anbieten?",
   "lichess.menu_verrouille": "Lichess-Partie läuft — beenden Sie sie, bevor Sie den Modus wechseln.",
   "lichess.erreur_reseau": "Verbindung zu Lichess derzeit nicht möglich.",
+  "lichess.erreur_reseau_retablie": "Verbindung zu Lichess wiederhergestellt.",
   "lichess.coup_refuse": "Lichess hat diesen Zug abgelehnt — stellen Sie die Figur zurück.",
   "lichess.coup_refuse_detail": "Lichess hat diesen Zug abgelehnt ({detail}) — stellen Sie die Figur zurück.",
   "lichess.attente_premier_coup.titre": "Sie sind am Zug!",

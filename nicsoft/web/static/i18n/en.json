@@ -767,6 +767,7 @@
   "lichess.proposer_nulle_titre": "Offer a draw to the Lichess AI?",
   "lichess.menu_verrouille": "Lichess game in progress — finish it before switching modes.",
   "lichess.erreur_reseau": "Could not reach Lichess right now.",
+  "lichess.erreur_reseau_retablie": "Connection to Lichess restored.",
   "lichess.coup_refuse": "Lichess rejected this move — put the piece back.",
   "lichess.coup_refuse_detail": "Lichess rejected this move ({detail}) — put the piece back.",
   "lichess.attente_premier_coup.titre": "Your move!",

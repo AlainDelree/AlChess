@@ -60,3 +60,45 @@ lui-même (seul un bandeau éphémère apparaissait, via ce même bug).
   rapport avec cette issue, voir rapport de clôture).
 - Documentation : `docs/contexte/lichess.md` (1 ligne, règle réseau).
   `CONTEXTE.md` inchangé.
+
+## Partie 2 — Perte de connexion en pleine partie Lichess
+
+Constat (inspection bornée, détail dans le rapport de clôture) : le flux
+de partie (lecture des coups adverses) reprend déjà automatiquement avec
+des attentes croissantes (`RECONNECT_DELAYS_S`, `game_client.py`,
+inchangé) et affiche déjà un bandeau permanent dédié
+(`lichess-reconnecting-banner`, piloté par `lichess_reconnecting`/
+`lichess_reconnected`) — jamais vérifié bout en bout (LichessGame complet)
+avant cette issue. Un coup physique envoyé pendant une coupure n'est
+jamais perdu (réessayé automatiquement au tick suivant, ~50ms, tant qu'il
+n'est pas confirmé) ni dupliqué dangereusement (un double envoi accidentel
+est rejeté par Lichess sans fausse alerte, mécanisme #347 inchangé). Bug
+réel corrigé : le toast persistant « réseau indisponible » affiché lors
+d'un échec réseau (coup, abandon, nulle, réclamation) ne disparaissait
+jamais tout seul au retour du réseau — restait affiché indéfiniment même
+après une reprise réussie.
+
+- `nicsoft/modes/lichess/game.py` : `_report_network_error()`/
+  `_clear_network_error_if_active()` (nouveau drapeau
+  `_network_error_active`) — le toast persistant « réseau indisponible »
+  est désormais remplacé par un message de rétablissement
+  (`lichess.erreur_reseau_retablie`) dès la prochaine action réseau
+  réussie (`_submit_move`, `_safe_client_call`, `_safe_claim_call`,
+  `_safe_draw_offer_call`) — mécanisme réutilisé (toast déjà existant),
+  jamais un second canal.
+- i18n (fr/en/de) : `lichess.erreur_reseau_retablie`.
+- Tests : `nicsoft/tests/test_issue368_lichess_game_network_loss.py` —
+  coup physique en coupure (toast persistant puis rétablissement, jamais
+  deux coups différents envoyés) ; flux coupé puis reconnecté bout en bout
+  (bandeau permanent, jamais d'abandon automatique) ; flux définitivement
+  perdu (fin de partie propre, sans plantage).
+- Gaps identifiés, non corrigés (risque trop élevé pour une correction
+  bornée) — voir rapport de clôture pour le détail et une proposition :
+  (a) un double envoi après une RÉPONSE perdue (coup en fait accepté) peut
+  encore afficher un faux « coup refusé » après le délai de relecture du
+  flux si la partie continue (`_handle_move_rejected`) ; (b) pas de reprise
+  manuelle/stratégie de réclamation dédiée pour une coupure très longue ;
+  (c) pas de gestion du temps de réflexion pendant une coupure prolongée.
+- Documentation : aucune (comportement du flux inchangé, seul le
+  rattrapage du toast est nouveau — déjà couvert par la ligne de la
+  partie 1 dans `docs/contexte/lichess.md`). `CONTEXTE.md` inchangé.

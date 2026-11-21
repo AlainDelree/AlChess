@@ -637,6 +637,15 @@ class LichessGame(threading.Thread):
         self._stream_stop = threading.Event()
         self._stream_error = None
         self._last_board_read_ts = time.monotonic()
+        # Issue #368, partie 2 : un échec réseau lors d'un coup/une action
+        # (_submit_move, _safe_client_call, _safe_claim_call,
+        # _safe_draw_offer_call) affiche un toast PERSISTANT (inchangé) —
+        # mais rien ne le remplaçait auparavant une fois le réseau revenu :
+        # il restait affiché indéfiniment même après une reprise réussie.
+        # Ce drapeau mémorise qu'un tel toast est affiché, pour le
+        # remplacer par un message de rétablissement à la prochaine action
+        # réseau réussie (_report_network_error/_clear_network_error_if_active).
+        self._network_error_active = False
 
     def start(self):
         self.run()
@@ -842,14 +851,32 @@ class LichessGame(threading.Thread):
             # l'avait provoquée).
             self._user_initiated_end = True
 
+    def _report_network_error(self) -> None:
+        """Toast persistant « réseau indisponible » (inchangé, voir
+        lichess.md) — mémorise qu'il est affiché pour pouvoir le remplacer
+        par un message de rétablissement (issue #368, partie 2)."""
+        self._network_error_active = True
+        send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
+
+    def _clear_network_error_if_active(self) -> None:
+        """Remplace le toast « réseau indisponible » par un message de
+        rétablissement dès la prochaine action réseau réussie (issue #368,
+        partie 2) — sans ce remplacement, le toast persistant restait
+        affiché indéfiniment même après une reprise réussie, laissant
+        croire à une coupure toujours en cours."""
+        if self._network_error_active:
+            self._network_error_active = False
+            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau_retablie", "type": "success"})
+
     def _safe_client_call(self, fn) -> bool:
         try:
             fn()
+            self._clear_network_error_if_active()
             return True
         except LichessApiError as exc:
             send_event("lichess_move_refused", {"message": exc.api_message or str(exc)})
         except (LichessNetworkError, LichessRateLimitError):
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
+            self._report_network_error()
         return False
 
     def _safe_claim_call(self, fn, request_label: str) -> bool:
@@ -875,8 +902,9 @@ class LichessGame(threading.Thread):
             })
             return False
         except (LichessNetworkError, LichessRateLimitError):
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
+            self._report_network_error()
             return False
+        self._clear_network_error_if_active()
         logger.info("Lichess : %s envoyée — acceptée par Lichess.", request_label)
         self._game_log.state_change(f"{request_label} — envoyée, acceptée par Lichess.")
         return True
@@ -900,8 +928,9 @@ class LichessGame(threading.Thread):
             })
             return False
         except (LichessNetworkError, LichessRateLimitError):
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
+            self._report_network_error()
             return False
+        self._clear_network_error_if_active()
         return True
 
     def _request_resign_or_abort(self, reason: str = "demande utilisateur") -> bool:
@@ -2138,6 +2167,7 @@ class LichessGame(threading.Thread):
             # serait alors interprété à tort comme un refus de l'adversaire
             # (issue #316, point 1).
             self.client.play_move(self.game_id, uci, offer_draw=offer_draw)
+            self._clear_network_error_if_active()
             now = time.monotonic()
             elapsed_ms = int((now - self._last_move_event_ts) * 1000)
             self._last_move_event_ts = now
@@ -2160,8 +2190,18 @@ class LichessGame(threading.Thread):
         except LichessApiError as exc:
             self._handle_move_rejected(uci, exc)
         except (LichessNetworkError, LichessRateLimitError) as exc:
+            # Issue #368, partie 2 : le coup physique n'est PAS perdu — il
+            # reste détecté comme "différent de self.board" à chaque tick
+            # suivant (~50ms, _check_user_move) tant qu'il n'a pas été
+            # confirmé, donc réessayé automatiquement sans action de
+            # l'utilisateur jusqu'à ce que le réseau revienne (ou que la
+            # partie soit quittée). Un double envoi accidentel (réponse
+            # perdue après un envoi en réalité accepté) est sans risque :
+            # Lichess refuse le second essai (déjà son tour), et ce refus
+            # ambigu est déjà géré sans afficher de faux « coup refusé »
+            # (voir _handle_move_rejected/is_ambiguous_turn_or_over_error).
             self._game_log.state_change(f"coup physique {uci} — erreur réseau : {exc}.")
-            send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
+            self._report_network_error()
         # Le coup confirmé revient par le flux (gameState) et sera appliqué
         # par _apply_new_moves — jamais de mise à jour optimiste ici.
 
