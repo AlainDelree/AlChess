@@ -245,9 +245,15 @@ def test_bascule_echiquier_met_a_jour_les_boutons_sans_recharger(at_config_liche
     assert not page.locator("#btn-start-lichess").is_disabled()
     assert not page.locator("#board-warning-banner-config-lichess").is_visible()
 
+    # Depuis #366 (partie 2), une déconnexion pendant que l'écran reste
+    # ouvert bascule l'affichage sur « Sur l'écran » (préférence mémorisée
+    # inchangée) : le problème reste donc jouable tout de suite, même si
+    # « Échiquier » avait été sélectionné manuellement juste avant — seule
+    # la partie Lichess réelle (toujours liée à l'échiquier physique) se
+    # regrise.
     _declencher_evenement_socket_client(page, "board_error", {})
-    assert page.locator("#btn-start-lichess-puzzle").is_disabled()
-    assert page.locator("#lichess-puzzle-board-hint").is_visible()
+    assert not page.locator("#btn-start-lichess-puzzle").is_disabled()
+    assert not page.locator("#lichess-puzzle-board-hint").is_visible()
     assert page.locator("#btn-start-lichess").is_disabled()
     assert page.locator("#board-warning-banner-config-lichess").is_visible()
 

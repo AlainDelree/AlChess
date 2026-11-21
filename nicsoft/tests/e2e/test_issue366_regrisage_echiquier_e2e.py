@@ -60,28 +60,20 @@ def test_connecte_puis_deconnecte_puis_reconnecte(board_buttons_state):
     btn_hh_menu  = page.locator("button.menu-btn-humain")
     btn_hh_start = page.locator("#btn-start-hh")
 
-    # Simule aussi un écran Lichess avec jeton et mode problème "Échiquier"
-    # sélectionné, sans naviguer vers l'écran (élément présent dans le DOM
-    # indépendamment de l'écran affiché) — garde-fou de non-régression #365.
-    page.evaluate("() => { _lichessHasToken = true; _lichessPuzzleMode = 'board'; }")
-    btn_lichess_real   = page.locator("#btn-start-lichess")
-    btn_lichess_puzzle = page.locator("#btn-start-lichess-puzzle")
-    # L'écran Lichess n'est pas ouvert ici (aucune navigation, voir
-    # docstring) : son visuel (classe "hidden" de l'explication) est déjà
-    # entièrement couvert par test_issue365_lichess_sans_echiquier_e2e.py
-    # en contexte réel ; on vérifie ici seulement l'état `disabled`, commun
-    # aux deux mécanismes et indépendant de la visibilité de l'écran.
-    hint_puzzle_board_hidden = lambda: page.evaluate(
-        "() => document.getElementById('lichess-puzzle-board-hint').classList.contains('hidden')"
-    )
+    # Simule aussi un jeton enregistré, sans naviguer vers l'écran Lichess
+    # (élément présent dans le DOM indépendamment de l'écran affiché) —
+    # garde-fou de non-régression #365 pour la partie Lichess réelle, qui
+    # exige toujours l'échiquier physique quel que soit le mode des
+    # problèmes (celui-ci est couvert, y compris sa bascule automatique
+    # #366 partie 2, par test_issue365_lichess_sans_echiquier_e2e.py).
+    page.evaluate("() => { _lichessHasToken = true; }")
+    btn_lichess_real = page.locator("#btn-start-lichess")
 
     # Échiquier connecté : tout actif.
     _declencher_evenement_socket_client(page, "board_ok", {})
     assert not btn_hh_menu.is_disabled()
     assert not btn_hh_start.is_disabled()
     assert not btn_lichess_real.is_disabled()
-    assert not btn_lichess_puzzle.is_disabled()
-    assert hint_puzzle_board_hidden()
 
     # Déconnexion en cours de session : tout se regrise, pas seulement les
     # boutons Lichess déjà couverts par #365.
@@ -89,16 +81,12 @@ def test_connecte_puis_deconnecte_puis_reconnecte(board_buttons_state):
     assert btn_hh_menu.is_disabled()
     assert btn_hh_start.is_disabled()
     assert btn_lichess_real.is_disabled()
-    assert btn_lichess_puzzle.is_disabled()
-    assert not hint_puzzle_board_hidden()
 
     # Reconnexion : tout se réactive à nouveau.
     _declencher_evenement_socket_client(page, "board_ok", {})
     assert not btn_hh_menu.is_disabled()
     assert not btn_hh_start.is_disabled()
     assert not btn_lichess_real.is_disabled()
-    assert not btn_lichess_puzzle.is_disabled()
-    assert hint_puzzle_board_hidden()
 
 
 def test_reconnexion_perdue_board_reconnecting_regrise_aussi(board_buttons_state):

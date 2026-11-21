@@ -763,6 +763,7 @@ function _applyBoardBadge() {
   if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken;
 
   _applyLichessCardState();
+  _lichessPuzzleSyncDisplayMode();
   _applyLichessPuzzleBoardState();
 }
 
@@ -1743,6 +1744,11 @@ socket.on("app_state", (data) => {
     // « Partie classée » cochée par défaut à CHAQUE ouverture de cet écran
     // (pas seulement au premier chargement de la page).
     selectOpponentTypeLichess("human");
+    // Issue #366, partie 2 : sans échiquier connecté, « Sur l'écran » est
+    // sélectionné dès l'affichage pour que « Jouer un problème » soit
+    // utilisable tout de suite (sans écraser la préférence mémorisée).
+    _lichessPuzzleSyncDisplayMode();
+    _applyLichessPuzzleBoardState();
     // Retour à l'écran de configuration forcé par un échec de création de
     // partie après le premier coup physique (issue #311, point 1) — les
     // réglages déjà saisis restent dans les champs (SPA, rien à restaurer).
@@ -4160,16 +4166,58 @@ function startGameLichess() {
 // mémorisé dans localStorage (seul mécanisme de préférence UI déjà en
 // place dans l'appli, voir niclink_show_legal) — jamais côté serveur, et
 // jamais écrit dans un dossier réel par les tests (localStorage de test).
-let _lichessPuzzleMode = localStorage.getItem("niclink_lichess_puzzle_mode") === "virtual" ? "virtual" : "board";
+// `_lichessPuzzlePreferredMode` : préférence mémorisée, changée uniquement
+// par un clic explicite de l'utilisateur (selectPuzzleModeLichess).
+// `_lichessPuzzleMode` : mode effectif actuellement affiché/utilisé pour
+// lancer un problème — peut différer temporairement de la préférence
+// lorsque `_lichessPuzzleAutoVirtual` est vrai (issue #366, partie 2).
+let _lichessPuzzlePreferredMode = localStorage.getItem("niclink_lichess_puzzle_mode") === "virtual" ? "virtual" : "board";
+let _lichessPuzzleMode = _lichessPuzzlePreferredMode;
+let _lichessPuzzleAutoVirtual = false;
 
-function selectPuzzleModeLichess(mode) {
-  _lichessPuzzleMode = (mode === "virtual") ? "virtual" : "board";
-  localStorage.setItem("niclink_lichess_puzzle_mode", _lichessPuzzleMode);
+function _lichessPuzzleUpdateModeButtonsUI() {
   document.getElementById("cfg-lichess-puzzle-mode-board")?.classList.toggle("selected", _lichessPuzzleMode === "board");
   document.getElementById("cfg-lichess-puzzle-mode-virtual")?.classList.toggle("selected", _lichessPuzzleMode === "virtual");
+}
+
+function selectPuzzleModeLichess(mode) {
+  // Choix explicite de l'utilisateur : toujours respecté et mémorisé, y
+  // compris "Échiquier" sans échiquier connecté (l'explication reste alors
+  // affichée, voir _applyLichessPuzzleBoardState) — jamais écrasé par la
+  // bascule automatique ci-dessous.
+  _lichessPuzzleMode = (mode === "virtual") ? "virtual" : "board";
+  _lichessPuzzlePreferredMode = _lichessPuzzleMode;
+  _lichessPuzzleAutoVirtual = false;
+  localStorage.setItem("niclink_lichess_puzzle_mode", _lichessPuzzleMode);
+  _lichessPuzzleUpdateModeButtonsUI();
   _applyLichessPuzzleBoardState();
 }
 selectPuzzleModeLichess(_lichessPuzzleMode);  // synchronise les boutons avec la préférence mémorisée
+
+// Bascule d'affichage temporaire (issue #366, partie 2) : sans échiquier
+// connecté, "Sur l'écran" est sélectionné à la place de la préférence
+// mémorisée pour que "Jouer un problème" reste utilisable tout de suite —
+// jamais écrit dans localStorage (_lichessPuzzlePreferredMode inchangée).
+// Dès que l'échiquier est (re)connecté, le mode mémorisé est rétabli, SAUF
+// si l'utilisateur a entre-temps cliqué lui-même sur un mode (auto repassé
+// à faux par selectPuzzleModeLichess ci-dessus, qui a alors sa propre
+// valeur à respecter — jamais écrasée ici). Appelée à l'ouverture de
+// l'écran Lichess (app_state, état "config_lichess") et à chaque
+// changement d'état de l'échiquier (_applyBoardBadge, déclenchée par
+// board_ok/board_error/board_reconnecting).
+function _lichessPuzzleSyncDisplayMode() {
+  if (!_boardOk) {
+    if (_lichessPuzzleMode !== "virtual") {
+      _lichessPuzzleMode = "virtual";
+      _lichessPuzzleAutoVirtual = true;
+      _lichessPuzzleUpdateModeButtonsUI();
+    }
+  } else if (_lichessPuzzleAutoVirtual) {
+    _lichessPuzzleMode = _lichessPuzzlePreferredMode;
+    _lichessPuzzleAutoVirtual = false;
+    _lichessPuzzleUpdateModeButtonsUI();
+  }
+}
 
 function startLichessPuzzle() {
   // Garde-fou (issue #365) : le mode "Échiquier" ne doit jamais être lancé
