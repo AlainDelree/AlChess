@@ -432,6 +432,11 @@ def main():
                 # seule fois à l'ouverture de ce menu, jamais en boucle ;
                 # en arrière-plan pour ne jamais retarder l'affichage.
                 threading.Thread(target=gm.check_lichess_resumable, daemon=True).start()
+                # Disponibilité du réseau (issue #368, partie 1) — vérifiée à
+                # l'ouverture de l'écran ; les revérifications suivantes
+                # (minuterie, évènements de connexion du navigateur) passent
+                # par "lichess_network_check" ci-dessous.
+                threading.Thread(target=gm.check_lichess_network_status, daemon=True).start()
             elif atype == "lichess_menu_check":
                 # Bandeau du menu principal (issue #333, point 3) — même
                 # détection que ci-dessus, déclenchée une seule fois par le
@@ -442,6 +447,14 @@ def main():
                 # réseau indisponible) — en arrière-plan, jamais bloquant
                 # pour les autres modes.
                 threading.Thread(target=gm.check_lichess_resumable, daemon=True).start()
+            elif atype == "lichess_network_check":
+                # Revérification du réseau Lichess (issue #368, partie 1) —
+                # déclenchée par le navigateur à intervalle raisonnable tant
+                # que l'écran Lichess reste ouvert, et sur les évènements
+                # online/offline du navigateur ; une seule vérification à la
+                # fois (verrou non bloquant dans check_lichess_network_status
+                # lui-même), jamais de requêtes en rafale.
+                threading.Thread(target=gm.check_lichess_network_status, daemon=True).start()
             elif atype == "mode" and action.get("value") == "retranscription":
                 set_app_state("retranscription")
                 _check_retranscription_session()

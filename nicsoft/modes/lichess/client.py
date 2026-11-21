@@ -16,6 +16,7 @@ retournées, jamais le contenu de `token`.
 """
 
 import json
+import socket
 import urllib.error
 import urllib.request
 
@@ -123,9 +124,21 @@ def test_token(token: str) -> dict:
     """Interroge /api/token/test avec `token`. Retourne un dict :
       {"status": "ok", "account": str, "scopes": [str, ...], "has_board_play": bool,
        "has_puzzle_read": bool, "has_puzzle_write": bool}
-      {"status": "invalid"}
-      {"status": "rate_limited"}
-      {"status": "network_error"}
+      {"status": "invalid"}        — jeton refusé (Lichess a répondu, entrée absente/nulle)
+      {"status": "rate_limited"}   — 429
+      {"status": "network_error"}  — réseau réellement indisponible (DNS, connexion, délai dépassé)
+      {"status": "lichess_error"}  — Lichess a répondu mais avec une erreur HTTP inattendue (5xx...)
+
+    Distinction issue #368, partie 1 : avant cette issue, toute erreur HTTP
+    autre que 429 (donc une VRAIE réponse de Lichess, serveur en erreur) était
+    confondue avec "network_error" — et un appelant qui mappait tout statut
+    différent de "ok"/"rate_limited" sur le message « jeton refusé »
+    affichait ce message à tort quand la cause réelle était l'absence de
+    réseau (voir game_manager_modes/lichess.py::launch_lichess_puzzle). Ici,
+    seule une vraie absence de réponse (DNS, connexion refusée, délai
+    dépassé — `socket.timeout`/`URLError`) vaut "network_error" ; une
+    réponse HTTP d'erreur de Lichess (5xx) vaut "lichess_error", jamais
+    "network_error" ni "invalid".
 
     `has_puzzle_read`/`has_puzzle_write` (issue #351, étape L3) : utilisés
     par le menu « Problèmes Lichess » pour détecter un jeton valide mais
@@ -149,6 +162,10 @@ def test_token(token: str) -> dict:
     except urllib.error.HTTPError as exc:
         if exc.code == 429:
             return {"status": "rate_limited"}
+        # Lichess a bien répondu (réseau disponible) mais avec une erreur
+        # HTTP inattendue — jamais confondu avec l'absence de réseau.
+        return {"status": "lichess_error"}
+    except socket.timeout:
         return {"status": "network_error"}
     except urllib.error.URLError:
         return {"status": "network_error"}

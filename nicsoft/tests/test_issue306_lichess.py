@@ -115,9 +115,27 @@ def test_test_token_limite_requetes_429(monkeypatch):
 
 
 def test_test_token_autre_erreur_http(monkeypatch):
+    """Issue #368, partie 1 : une VRAIE réponse HTTP d'erreur de Lichess
+    (5xx — réseau donc disponible) n'est plus confondue avec l'absence de
+    réseau ("network_error") : statut dédié "lichess_error"."""
     def raise_500(req, timeout=None):
         raise urllib.error.HTTPError("https://lichess.org/api/token/test", 500, "Internal Error", {}, None)
     monkeypatch.setattr("urllib.request.urlopen", raise_500)
+    result = lichess_client.test_token("lip_quelconque")
+    assert result == {"status": "lichess_error"}
+
+
+def test_test_token_delai_depasse_socket_timeout(monkeypatch):
+    """Issue #368, partie 1 : un délai dépassé (`socket.timeout`, pas
+    nécessairement une `urllib.error.URLError`) ne doit jamais remonter
+    comme exception brute (sans quoi un appelant sans try/except — ex.
+    launch_lichess_puzzle — planterait) : classé "network_error" comme
+    toute autre absence de réseau."""
+    import socket as socket_mod
+
+    def raise_timeout(req, timeout=None):
+        raise socket_mod.timeout("délai dépassé")
+    monkeypatch.setattr("urllib.request.urlopen", raise_timeout)
     result = lichess_client.test_token("lip_quelconque")
     assert result == {"status": "network_error"}
 

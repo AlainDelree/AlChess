@@ -760,7 +760,7 @@ function _applyBoardBadge() {
   // survenue pendant que l'écran Lichess est déjà ouvert, sans recharger
   // la page (issue #365).
   const btnStartLichess = document.getElementById("btn-start-lichess");
-  if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken;
+  if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken || !_lichessNetworkAvailable;
 
   _applyLichessCardState();
   _lichessPuzzleSyncDisplayMode();
@@ -790,9 +790,67 @@ function _applyLichessPuzzleBoardState() {
   const btn  = document.getElementById("btn-start-lichess-puzzle");
   const hint = document.getElementById("lichess-puzzle-board-hint");
   const needsBoard = _lichessPuzzleMode === "board" && !_boardOk;
-  if (btn)  btn.disabled = needsBoard;
+  // Réseau indisponible (issue #368, partie 1) : grise le bouton dans les
+  // deux modes (Échiquier ET Sur l'écran), mais n'affiche jamais le hint
+  // "nécessite l'échiquier" pour cette cause — le bandeau réseau dédié
+  // (lichess-network-banner) explique déjà cette cause-là.
+  if (btn)  btn.disabled = needsBoard || !_lichessNetworkAvailable;
   if (hint) hint.classList.toggle("hidden", !needsBoard);
 }
+
+// Boutons/contrôles de l'écran Lichess qui exigent le réseau — mécanisme
+// générique `data-needs-network` (même pattern que `data-needs-board`,
+// issue #366), scopé à l'écran Lichess seul. btn-start-lichess et
+// btn-start-lichess-puzzle ne portent PAS cet attribut : ils sont déjà
+// gérés par des calculs dédiés ci-dessus (board ET jeton ET réseau
+// combinés) — leur ajouter aussi la boucle générique créerait un second
+// mécanisme écrasant parfois le premier selon l'ordre d'exécution.
+function _applyLichessNetworkState() {
+  const banner = document.getElementById("lichess-network-banner");
+  if (banner) banner.classList.toggle("hidden", _lichessNetworkAvailable);
+  document.querySelectorAll("#screen-config-lichess [data-needs-network]").forEach(el => {
+    el.disabled = !_lichessNetworkAvailable;
+  });
+  _applyBoardBadge();
+}
+
+// Déclenche une vérification serveur du réseau Lichess (issue #368, partie
+// 1) — une seule à la fois (_lichessNetworkCheckPending), jamais de
+// requêtes en rafale : un appel reçu pendant qu'une vérification est déjà
+// en cours est simplement ignoré, la minuterie ou le prochain évènement
+// online/offline en déclenchera une autre.
+let _lichessNetworkAvailable = true;  // supposé disponible jusqu'à preuve du contraire
+let _lichessNetworkCheckPending = false;
+let _lichessNetworkCheckTimer = null;
+let _onLichessConfigScreen = false;  // vrai tant que l'écran config_lichess est affiché
+const LICHESS_NETWORK_CHECK_INTERVAL_MS = 20000;
+
+function _lichessNetworkCheckNow() {
+  if (_lichessNetworkCheckPending) return;
+  _lichessNetworkCheckPending = true;
+  sendAction({ type: "lichess_network_check" });
+}
+
+socket.on("lichess_network_status", (data) => {
+  _lichessNetworkCheckPending = false;
+  _lichessNetworkAvailable = !!(data && data.available);
+  _applyLichessNetworkState();
+});
+
+// Évènements de connexion du navigateur (issue #368, partie 1, point c) —
+// ne déclenchent une vérification QUE si l'écran Lichess est ouvert (pas de
+// requête pour un changement de réseau survenu sur un autre écran).
+// "offline" grise immédiatement (retour local, sans attendre la réponse
+// serveur) ; la vérification serveur qui suit confirme/corrige.
+window.addEventListener("online", () => {
+  if (_onLichessConfigScreen) _lichessNetworkCheckNow();
+});
+window.addEventListener("offline", () => {
+  if (!_onLichessConfigScreen) return;
+  _lichessNetworkAvailable = false;
+  _applyLichessNetworkState();
+  _lichessNetworkCheckNow();
+});
 
 
 // ── ÉCHIQUIER — construction et rendu ─────────────────────
@@ -1756,6 +1814,21 @@ socket.on("app_state", (data) => {
       const msg = data.toast_message_key ? t(data.toast_message_key, data.toast_vars || {}) : data.toast_message;
       afficherToast(msg, data.toast_type || "warning", !!data.toast_persistent);
     }
+    // Réseau (issue #368, partie 1) : revérifié à CHAQUE arrivée réelle sur
+    // cet écran (pas seulement la toute première, contrairement au bandeau
+    // du menu principal) — une minuterie raisonnable tourne tant qu'il
+    // reste ouvert ; état déjà connu appliqué immédiatement en attendant la
+    // réponse de la vérification.
+    _applyLichessNetworkState();
+    if (!_onLichessConfigScreen) {
+      _onLichessConfigScreen = true;
+      _lichessNetworkCheckNow();
+      if (_lichessNetworkCheckTimer) clearInterval(_lichessNetworkCheckTimer);
+      _lichessNetworkCheckTimer = setInterval(_lichessNetworkCheckNow, LICHESS_NETWORK_CHECK_INTERVAL_MS);
+    }
+  } else if (_onLichessConfigScreen) {
+    _onLichessConfigScreen = false;
+    if (_lichessNetworkCheckTimer) { clearInterval(_lichessNetworkCheckTimer); _lichessNetworkCheckTimer = null; }
   }
 
   if (data.state === "game_over" && !data.skip) {
@@ -9050,7 +9123,8 @@ socket.on("config_data", (data) => {
   const banner = document.getElementById("board-warning-banner-config-lichess");
   if (banner) banner.classList.toggle("hidden", _boardOk);
   const btnStartLichess = document.getElementById("btn-start-lichess");
-  if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken;
+  if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken || !_lichessNetworkAvailable;
+  _applyLichessNetworkState();
   if (ttsOn)    ttsOn.checked  = !!data.tts_enabled;
   if (ttsRate)  ttsRate.value  = data.tts_rate || 150;
   if (ttsRateVal) ttsRateVal.textContent = data.tts_rate || 150;
@@ -9183,6 +9257,11 @@ socket.on("lichess_test_result", (data) => {
   } else if (status === "network_error") {
     result.className = "parametres-lichess-result is-error";
     result.textContent = t("parametres.lichess.resultat.reseau");
+  } else if (status === "lichess_error") {
+    // Issue #368, partie 1 : Lichess a répondu (réseau disponible) mais
+    // avec une erreur inattendue — jamais confondu avec un jeton refusé.
+    result.className = "parametres-lichess-result is-error";
+    result.textContent = t("parametres.lichess.resultat.erreur_lichess");
   } else {
     result.className = "parametres-lichess-result is-error";
     result.textContent = t("parametres.lichess.resultat.invalide");

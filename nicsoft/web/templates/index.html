@@ -456,6 +456,15 @@
     Les parties Lichess et les problèmes en mode « Échiquier » nécessitent l'échiquier physique. Branchez-le, allumez-le, puis cliquez sur « Connecter » — les problèmes « Sur l'écran » restent utilisables sans lui.
   </div>
 
+  <!-- Réseau indisponible (issue #368, partie 1) : bandeau permanent, même
+       emplacement/style que celui de l'échiquier absent ci-dessus — piloté
+       par _applyLichessNetworkState() (app.js), jamais par _boardError.
+       Caché par défaut (on suppose le réseau présent tant qu'aucune
+       vérification n'a prouvé le contraire). -->
+  <div id="lichess-network-banner" class="board-warning-banner hidden" data-i18n="banner.lichess_network_absent">
+    Pas de connexion internet : Lichess est indisponible (parties et problèmes). Vérifiez votre connexion — tout redevient actif automatiquement dès qu'elle est rétablie.
+  </div>
+
   <!-- Partie(s) en cours (issue #323 ; liste complète issue #325) — masqué
        par défaut, affiché uniquement si check_lichess_resumable() détecte
        au moins une partie en cours (une seule à la fois : le formulaire de
@@ -486,8 +495,8 @@
            dans localStorage (selectPuzzleModeLichess, app.js), jamais côté
            serveur. -->
       <div class="color-btns">
-        <button class="color-btn selected" id="cfg-lichess-puzzle-mode-board" data-action="select_puzzle_mode_lichess" data-puzzle-mode="board" data-i18n="config.lichess.probleme_mode_echiquier">♟️ Échiquier</button>
-        <button class="color-btn" id="cfg-lichess-puzzle-mode-virtual" data-action="select_puzzle_mode_lichess" data-puzzle-mode="virtual" data-i18n="config.lichess.probleme_mode_virtuel">🖥️ Sur l'écran</button>
+        <button class="color-btn selected" id="cfg-lichess-puzzle-mode-board" data-needs-network data-action="select_puzzle_mode_lichess" data-puzzle-mode="board" data-i18n="config.lichess.probleme_mode_echiquier">♟️ Échiquier</button>
+        <button class="color-btn" id="cfg-lichess-puzzle-mode-virtual" data-needs-network data-action="select_puzzle_mode_lichess" data-puzzle-mode="virtual" data-i18n="config.lichess.probleme_mode_virtuel">🖥️ Sur l'écran</button>
       </div>
       <!-- Explication visible quand le mode "Échiquier" est choisi sans
            échiquier connecté (issue #365) — mise à jour par
@@ -504,12 +513,12 @@
     <div class="card cfg-hh-card">
       <h2 data-i18n="config.h2.adversaire">Adversaire</h2>
       <div class="color-btns">
-        <button class="color-btn selected" id="cfg-lichess-opponent-human" data-action="select_opponent_type_lichess" data-opponent-type="human" data-i18n="config.lichess.adversaire_humain">🧑 Contre un humain</button>
-        <button class="color-btn" id="cfg-lichess-opponent-ai" data-action="select_opponent_type_lichess" data-opponent-type="ai" data-i18n="config.lichess.adversaire_ia">🤖 Contre l'IA</button>
+        <button class="color-btn selected" id="cfg-lichess-opponent-human" data-needs-network data-action="select_opponent_type_lichess" data-opponent-type="human" data-i18n="config.lichess.adversaire_humain">🧑 Contre un humain</button>
+        <button class="color-btn" id="cfg-lichess-opponent-ai" data-needs-network data-action="select_opponent_type_lichess" data-opponent-type="ai" data-i18n="config.lichess.adversaire_ia">🤖 Contre l'IA</button>
       </div>
       <div class="cfg-elo-caption" id="cfg-lichess-opponent-ai-note" style="display:none;" data-i18n="config.lichess.ia_jamais_classee">Contre l'IA : toujours une partie amicale, Lichess ne classe pas les parties contre son ordinateur.</div>
       <div id="cfg-lichess-rated-row" class="lichess-beep-toggle-row">
-        <input type="checkbox" id="cfg-lichess-rated" class="lichess-beep-checkbox" checked onchange="lichessToggleRated(this.checked)">
+        <input type="checkbox" id="cfg-lichess-rated" class="lichess-beep-checkbox" data-needs-network checked onchange="lichessToggleRated(this.checked)">
         <label for="cfg-lichess-rated" data-i18n="config.lichess.classee">Partie classée</label>
       </div>
     </div>
@@ -520,9 +529,9 @@
       <div class="card cfg-hh-card" id="cfg-lichess-niveau-card" style="display:none;">
         <h2 data-i18n="config.h2.niveau_ia">Niveau de l'IA Lichess</h2>
         <div class="cfg-elo-row">
-          <button class="cfg-elo-btn" data-action="lichess_adjust_level" data-delta="-1">-1</button>
-          <input id="cfg-lichess-level" class="cfg-input cfg-elo-input" type="number" min="1" max="8" value="1" oninput="lichessClampLevel()">
-          <button class="cfg-elo-btn" data-action="lichess_adjust_level" data-delta="1">+1</button>
+          <button class="cfg-elo-btn" data-needs-network data-action="lichess_adjust_level" data-delta="-1">-1</button>
+          <input id="cfg-lichess-level" class="cfg-input cfg-elo-input" data-needs-network type="number" min="1" max="8" value="1" oninput="lichessClampLevel()">
+          <button class="cfg-elo-btn" data-needs-network data-action="lichess_adjust_level" data-delta="1">+1</button>
         </div>
         <div class="cfg-elo-caption" data-i18n="config.lichess.niveau_desc">Niveau 1 (facile) à 8 (fort)</div>
       </div>
@@ -532,7 +541,7 @@
            l'IA : mêmes préréglages réutilisés pour les deux (issue #327). -->
       <div class="card cfg-hh-card">
         <h2 data-i18n="config.h2.cadence">Cadence</h2>
-        <select id="cfg-lichess-cadence" class="cfg-input">
+        <select id="cfg-lichess-cadence" class="cfg-input" data-needs-network>
           <option value="10+0">10 + 0</option>
           <option value="15+10" selected>15 + 10</option>
           <option value="30+0">30 + 0</option>
@@ -549,15 +558,15 @@
       <div class="card cfg-hh-card">
         <h2 data-i18n="config.h2.couleur">Couleur</h2>
         <div class="color-btns">
-          <button class="color-btn"          id="cfg-lichess-white"  data-action="select_color_lichess" data-color="white"  data-i18n="config.color.blancs">♔ Blancs</button>
-          <button class="color-btn"          id="cfg-lichess-black"  data-action="select_color_lichess" data-color="black"  data-i18n="config.color.noirs">♚ Noirs</button>
-          <button class="color-btn selected" id="cfg-lichess-random" data-action="select_color_lichess" data-color="random" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
+          <button class="color-btn"          id="cfg-lichess-white"  data-needs-network data-action="select_color_lichess" data-color="white"  data-i18n="config.color.blancs">♔ Blancs</button>
+          <button class="color-btn"          id="cfg-lichess-black"  data-needs-network data-action="select_color_lichess" data-color="black"  data-i18n="config.color.noirs">♚ Noirs</button>
+          <button class="color-btn selected" id="cfg-lichess-random" data-needs-network data-action="select_color_lichess" data-color="random" data-i18n="config.color.aleatoire">🎲 Aléatoire</button>
         </div>
       </div>
 
       <div class="card cfg-hh-card">
         <h2 data-i18n="config.label.nom">Nom</h2>
-        <input id="cfg-lichess-player" class="cfg-input" type="text" data-i18n-placeholder="config.placeholder.nom" placeholder="Votre nom">
+        <input id="cfg-lichess-player" class="cfg-input" data-needs-network type="text" data-i18n-placeholder="config.placeholder.nom" placeholder="Votre nom">
       </div>
 
     </div>

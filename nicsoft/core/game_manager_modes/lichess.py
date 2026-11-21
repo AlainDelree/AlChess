@@ -68,6 +68,23 @@ CLOCK_PRESETS = {
 }
 DEFAULT_CLOCK_PRESET = "15+10"
 
+# Table partagée statut → clé de toast (issue #368, partie 1) — réutilisée
+# par launch_lichess_puzzle (vérification du jeton avant lancement),
+# _run_lichess_puzzle et _run_lichess_puzzle_virtual (statuts retournés par
+# get_next_puzzle en cours de session) : une seule table, jamais un second
+# mécanisme de classification par appelant. "network_error" (réseau
+# réellement indisponible) et "lichess_error" (réponse HTTP d'erreur de
+# Lichess, réseau disponible) restent toujours distincts de "invalid"
+# (jeton refusé) — jamais confondus, contrairement au défaut d'avant cette
+# issue (voir client.py::test_token).
+_LICHESS_TOKEN_STATUS_TOAST_KEYS = {
+    "invalid": "toast.lichess_invalid_token",
+    "missing_scope": "toast.lichess_puzzle_missing_scope",
+    "rate_limited": "toast.lichess_rate_limited",
+    "network_error": "toast.lichess_network_error",
+    "lichess_error": "toast.lichess_error",
+}
+
 
 def _fetch_ongoing_games(token: str):
     """Appel réseau partagé par check_lichess_resumable() et le garde-fou de
@@ -119,6 +136,39 @@ def check_lichess_resumable() -> None:
         len(games), ", ".join(g["game_id"] for g in games),
     )
     send_event("lichess_resumable", {"available": True, "games": games})
+
+
+_lichess_network_check_lock = threading.Lock()
+
+
+def check_lichess_network_status() -> None:
+    """Vérifie si Lichess est joignable (issue #368, partie 1) — appelée à
+    l'ouverture de l'écran Lichess, à intervalle raisonnable tant qu'il
+    reste ouvert, et sur les évènements de connexion du navigateur (voir
+    app.js). Jamais de message de jeton ici : seul le statut RÉSEAU est
+    communiqué (`lichess_network_status`), distinct du statut du jeton — un
+    jeton refusé (`test_token` -> "invalid") ou une erreur applicative
+    Lichess (-> "lichess_error"/"rate_limited") signifient tous deux que le
+    réseau fonctionne, donc `available=True` ; seul un vrai échec réseau
+    (`test_token` -> "network_error") vaut `available=False`. Verrou non
+    bloquant : un appel reçu pendant qu'une vérification est déjà en cours
+    est simplement ignoré (jamais de requêtes empilées) — le prochain
+    évènement (minuterie ou connexion navigateur, côté JS) en déclenchera
+    une nouvelle."""
+    if not _lichess_network_check_lock.acquire(blocking=False):
+        return
+    try:
+        token = (load_config().get("lichess_token") or "").strip()
+        if not token:
+            # Rien à tester (écran normalement inaccessible sans jeton,
+            # issue #365) — pas d'alarme réseau sans objet.
+            send_event("lichess_network_status", {"available": True})
+            return
+        from nicsoft.modes.lichess.client import test_token
+        result = test_token(token)
+        send_event("lichess_network_status", {"available": result.get("status") != "network_error"})
+    finally:
+        _lichess_network_check_lock.release()
 
 
 def _refuse_create_if_games_ongoing(token: str) -> list | None:
@@ -1554,7 +1604,12 @@ def launch_lichess_puzzle(config: dict) -> None:
     from nicsoft.modes.lichess.client import test_token
     check = test_token(token)
     if check.get("status") != "ok":
-        key = "toast.lichess_rate_limited" if check.get("status") == "rate_limited" else "toast.lichess_invalid_token"
+        # Issue #368, partie 1 : avant cette correction, tout statut différent
+        # de "rate_limited" (donc "network_error" aussi) retombait sur le
+        # message « jeton refusé », trompeur quand la vraie cause est
+        # l'absence de réseau. Repli sur "toast.lichess_error" (jamais à
+        # nouveau « jeton refusé » par défaut) pour un statut imprévu.
+        key = _LICHESS_TOKEN_STATUS_TOAST_KEYS.get(check.get("status"), "toast.lichess_error")
         web_server._app_state = "config_lichess"
         set_app_state("config_lichess", _menu_toast_data(key))
         return
@@ -1606,13 +1661,6 @@ def _run_lichess_puzzle(token, player_name, _error=None):
     from nicsoft.modes.lichess.puzzle_client import get_next_puzzle
     from nicsoft.modes.lichess.game_log import GameLog
 
-    _STATUS_TOAST_KEYS = {
-        "invalid": "toast.lichess_invalid_token",
-        "missing_scope": "toast.lichess_puzzle_missing_scope",
-        "rate_limited": "toast.lichess_rate_limited",
-        "network_error": "toast.lichess_network_error",
-    }
-
     nl_inst = None
     game_log = None
     try:
@@ -1627,7 +1675,7 @@ def _run_lichess_puzzle(token, player_name, _error=None):
                 game_log.state_change(f"Problème non obtenu — statut={status}.")
                 if _error is not None:
                     _error["occurred"] = True
-                    _error["toast_key"] = _STATUS_TOAST_KEYS.get(status, "toast.lichess_error")
+                    _error["toast_key"] = _LICHESS_TOKEN_STATUS_TOAST_KEYS.get(status, "toast.lichess_error")
                     _error["return_to"] = "config_lichess"
                 return
             game_log.state_change(
@@ -1738,13 +1786,6 @@ def _run_lichess_puzzle_virtual(token, player_name, _error=None):
     from nicsoft.modes.lichess.puzzle_client import get_next_puzzle
     from nicsoft.modes.lichess.game_log import GameLog
 
-    _STATUS_TOAST_KEYS = {
-        "invalid": "toast.lichess_invalid_token",
-        "missing_scope": "toast.lichess_puzzle_missing_scope",
-        "rate_limited": "toast.lichess_rate_limited",
-        "network_error": "toast.lichess_network_error",
-    }
-
     game_log = None
     try:
         game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
@@ -1757,7 +1798,7 @@ def _run_lichess_puzzle_virtual(token, player_name, _error=None):
                 game_log.state_change(f"Problème non obtenu — statut={status}.")
                 if _error is not None:
                     _error["occurred"] = True
-                    _error["toast_key"] = _STATUS_TOAST_KEYS.get(status, "toast.lichess_error")
+                    _error["toast_key"] = _LICHESS_TOKEN_STATUS_TOAST_KEYS.get(status, "toast.lichess_error")
                     _error["return_to"] = "config_lichess"
                 return
             game_log.state_change(
