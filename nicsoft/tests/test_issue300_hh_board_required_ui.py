@@ -76,9 +76,19 @@ def test_bouton_start_hh_desactive_par_defaut_dans_le_html():
 
 
 def test_js_pilote_l_activation_du_bouton_start_hh_selon_l_echiquier():
+    # Depuis #366, l'état `disabled` de #btn-start-hh est piloté par le
+    # mécanisme générique `data-needs-board` (_applyBoardBadge(), app.js),
+    # pas par une affectation dédiée à ce bouton — seule son explication
+    # (`title`) reste spécifique.
+    html = HTML_PATH.read_text(encoding="utf-8")
     js = JS_PATH.read_text(encoding="utf-8")
+    bloc = re.search(r'<button[^>]*id="btn-start-hh"[^>]*>', html)
+    assert bloc and "data-needs-board" in bloc.group(0), (
+        "#btn-start-hh doit porter data-needs-board pour suivre l'état de "
+        "l'échiquier en direct via le mécanisme générique (issue #366)"
+    )
     assert 'getElementById("btn-start-hh")' in js
-    assert "btnStartHH.disabled" in js
+    assert 'document.querySelectorAll("[data-needs-board]")' in js
     assert "menu.hh.requiert_echiquier" in js
 
 
