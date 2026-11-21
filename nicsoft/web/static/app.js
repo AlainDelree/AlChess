@@ -724,14 +724,26 @@ function _applyBoardBadge() {
   if (btnConnecter)       btnConnecter.style.display       = _boardOk ? "none"  : "block";
   if (connectHint)        connectHint.classList.toggle("hidden", !_boardError);
 
-  // Bouton de démarrage Humain contre Humain — ce mode n'existe que sur
-  // l'échiquier physique (pas de repli virtuel) : inactif tant que l'état
-  // d'erreur est actif, réactivé dès que l'échiquier est détecté (issue #300).
+  // Explication du bouton de démarrage Humain contre Humain — ce mode
+  // n'existe que sur l'échiquier physique (pas de repli virtuel), issue
+  // #300. L'état `disabled` lui-même est pris en charge génériquement
+  // ci-dessous via `data-needs-board` (le bouton le porte aussi).
   const btnStartHH = document.getElementById("btn-start-hh");
   if (btnStartHH) {
-    btnStartHH.disabled = !_boardOk;
     btnStartHH.title = !_boardOk ? t("menu.hh.requiert_echiquier") : "";
   }
+
+  // Boutons génériques `data-needs-board` (menu principal, démarrage HH...)
+  // — suivent l'état de l'échiquier en direct, y compris à une déconnexion
+  // en cours de session : avant #366, seul `board_ok` les réactivait (voir
+  // plus bas), mais rien ne les regrisait jamais à `board_error`/
+  // `board_reconnecting`, laissant un bouton exigeant l'échiquier cliquable
+  // après une déconnexion. Même état qu'au chargement initial sans
+  // échiquier (`disabled` dans le HTML).
+  document.querySelectorAll("[data-needs-board]").forEach(btn => {
+    if (_virtualMode && btn.hasAttribute("data-physical-only")) return;
+    btn.disabled = !_boardOk;
+  });
 
   // Déplace le wrapper HH selon l'état de l'échiquier : en bas de la colonne
   // Jouer (après Exercices) si non connecté, à sa place d'origine (avant Labo) sinon.
@@ -1471,11 +1483,9 @@ socket.on("board_ok", () => {
   _boardError       = false;
   _boardReconnecting = false;
   _syncVirtualCheckboxes();
-  document.querySelectorAll("[data-needs-board]")
-    .forEach(btn => {
-      if (_virtualMode && btn.hasAttribute("data-physical-only")) return;
-      btn.disabled = false;
-    });
+  // Réactivation des boutons `[data-needs-board]` déléguée à
+  // _applyBoardBadge() ci-dessous — même mécanisme que la (re)désactivation
+  // à la déconnexion (issue #366), plus de second mécanisme ad hoc ici.
   _refreshDynamicLabels();
   _applyBoardBadge();
   (window.i18nReady || Promise.resolve()).then(() => { _refreshDynamicLabels(); _applyBoardBadge(); });
@@ -1854,11 +1864,9 @@ socket.on("app_state", (data) => {
     const cSub = document.getElementById("connecting-sub");
     if (cMsg) cMsg.textContent = t("connecting.msg");
     if (cSub) cSub.textContent = t("connecting.sub");
-    // Réactiver les boutons physiques si échiquier connecté
-    if (_boardOk) {
-      document.querySelectorAll("[data-needs-board]")
-        .forEach(btn => { btn.disabled = false; });
-    }
+    // Boutons `[data-needs-board]` (ex. Humain contre Humain) à jour selon
+    // l'état courant de l'échiquier, via le mécanisme générique (#366).
+    _applyBoardBadge();
     // Rafraîchir la présence d'un jeton Lichess (carte menu + écran config) —
     // config_data n'est sinon connu qu'après une visite de l'écran Paramètres.
     socket.emit("config_get", {});

@@ -31,11 +31,7 @@ déclenché en arrière-plan (ex. par un retour au menu) — toujours un jeton
 réellement vide dans l'environnement e2e isolé — n'écrase jamais, de façon
 non déterministe, le jeton SIMULÉ par ces tests. Chaque test remet l'état
 simulé à sa valeur de base avant de rendre la main, pour ne pas affecter
-les tests suivants (y compris le bouton Humain contre Humain, que le
-mécanisme générique `board_ok` réactive sans qu'aucun `board_error`
-générique ne le regrise — gap préexistant, hors périmètre de #365, que ce
-fichier contourne simplement en restaurant la base plutôt que de le
-corriger en production).
+les tests suivants.
 
 Lancer : pytest nicsoft/tests/e2e/test_issue365_lichess_sans_echiquier_e2e.py -v
 """
@@ -99,19 +95,12 @@ def go_menu(page):
 
 def _reset_base(page):
     """Revient à la base de référence de la session e2e : pas d'échiquier,
-    pas de jeton, mode problème "Échiquier" (défaut), bouton Humain contre
-    Humain regrisé (le mécanisme générique `board_ok` l'a réactivé — voir
-    docstring du module) — jamais de fuite d'un test simulé vers le
-    suivant."""
+    pas de jeton, mode problème "Échiquier" (défaut) — jamais de fuite d'un
+    test simulé vers le suivant. Humain contre Humain se regrise seul via
+    `board_error` (mécanisme générique `_applyBoardBadge()`, issue #366)."""
     _declencher_evenement_socket_client(page, "board_error", {})
     _declencher_config_data(page, {"has_lichess_token": False})
-    page.evaluate(
-        "() => { "
-        "selectPuzzleModeLichess('board'); "
-        "const btnHH = document.querySelector('.menu-btn-humain'); "
-        "if (btnHH) btnHH.disabled = true; "
-        "}"
-    )
+    page.evaluate("() => { selectPuzzleModeLichess('board'); }")
     go_menu(page)
 
 
