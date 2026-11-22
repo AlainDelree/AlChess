@@ -1,5 +1,23 @@
 # Changelog — Issue #255
 
+# Changelog — Issue #370
+
+## Partie Lichess annulée : ne plus annoncer une cause que Lichess ne communique pas
+
+Constat (partie classée 10+0 contre un humain) : la fenêtre « Partie annulée » affichait « le premier coup n'a pas été joué à temps » alors que lichess.org indiquait « Les Noirs ont quitté la partie » — l'API Lichess ne donne que le statut `aborted`, jamais la raison ; `_ABORT_CAUSE_KEYS` (`game.py`) affirmait pourtant une cause précise et parfois fausse.
+
+- `nicsoft/modes/lichess/game.py` : `_ABORT_CAUSE_KEYS["aborted"]` et `["noStart"]` (ajouté — même situation, jamais rated, voir `_maybe_fetch_new_rating`/`_is_unexpected_end`) pointent désormais vers la nouvelle clé `lichess.annulee_avant_debut`, un texte neutre énumérant les causes possibles comme hypothèses, jamais une seule cause affirmée. `unknownFinish` (statut avec gagnant possible, cote potentiellement affectée) garde le message générique inchangé `lichess.annulee_cause_inconnue`, sans affirmation sur la cote.
+- `nicsoft/web/static/i18n/{fr,en,de}.json` : clé `lichess.annulee_premier_coup_trop_tard` supprimée, remplacée par `lichess.annulee_avant_debut` dans les trois langues : « Partie annulée par Lichess avant son début (par exemple adversaire absent ou parti, ou premier coup non joué à temps). Aucune cote n'est modifiée. » (claim vérifiée : `aborted`/`noStart` sont explicitement exclus de la lecture de nouvelle cote depuis #344/#349). La fenêtre garde ses deux boutons existants (« Rejouer avec les mêmes réglages », « Retour au menu ») — aucun changement HTML/JS nécessaire (affichage déjà générique via `t(data.message_key)`).
+- Autres textes de fin de partie Lichess vérifiés : `lichess.cause.resign`/`timeout`/`mate`/`draw` (statut `opponentGone`/résultat directement fourni par Lichess, cause réelle connue) et `lichess.adversaire_parti_decompte`/`reclamable` (événement `opponentGone` réel du flux) — corrects, inchangés, aucune cause inventée.
+- `nicsoft/tests/test_issue311_lichess_sequencing.py`, `test_issue344_lichess_rated.py`, `test_issue309_lichess_l2a.py`, `e2e/test_issue310_lichess_e2e.py` : adaptés à la nouvelle clé (dont `noStart` qui change de clé attendue).
+- Nouveau test `test_issue309_lichess_l2a.py::test_annulation_avant_debut_reste_une_hypothese_jamais_une_cause_affirmee` (3 locales) : vérifie la disparition de l'ancienne clé et la présence d'un marqueur d'hypothèse (« par exemple »/« for example »/« z. B. ») dans le nouveau texte.
+
+### Tests exécutés
+
+- `python -m pytest nicsoft/tests -k lichess -p no:randomly` → 870 passed, 10 skipped (matériel), 1 failed puis confirmé intermittent (`test_issue365_lichess_sans_echiquier_e2e.py::test_bascule_echiquier_met_a_jour_les_boutons_sans_recharger`, sans lien avec cette issue — fichier non touché, repasse seul isolément).
+- `python -m pytest nicsoft/tests -p no:randomly` (suite complète, après modification) → 8 failed (tous `test_smoke_e2e.py`, timeout Playwright sur des panneaux hors Lichess), 1755 passed, 85 skipped.
+- Comparaison exigée avant d'attribuer ces 8 échecs à l'environnement : changements mis de côté (`git stash`), même suite complète rejouée sur l'état d'avant modification → **mêmes 8 échecs à l'identique** (`test_pedagogique_demarrer_puis_retour_menu`, `test_hh_ouvre_config`, `test_analyse_accessible_sans_board`, `test_retour_depuis_analyse`, `test_exercices_liste_affichee`, `test_retour_depuis_exercices`, `test_retranscription_formulaire`, `test_transition_analyse_puis_menu`), 1752 passed (écart de 3 = les 3 nouveaux tests paramétrés par locale ajoutés par cette issue), 85 skipped. Préexistants, sans lien avec Lichess ni avec cette issue — confirmés par comparaison, pas supposés. Changements restaurés ensuite (`git stash apply` puis `git stash drop`, jamais `pop`).
+
 # Changelog — Issue #369
 
 ## Correctif #368 — l'interface ne démarrait plus
