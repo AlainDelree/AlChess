@@ -721,7 +721,7 @@ NEW_I18N_KEYS = [
     "lichess.attente_premier_coup.titre", "lichess.attente_premier_coup.texte_html",
     "lichess.premier_coup_decompte", "lichess.premier_coup_sans_decompte",
     "lichess.nulle_attente_reponse", "lichess.annulee_titre",
-    "lichess.annulee_premier_coup_trop_tard", "lichess.annulee_cause_inconnue",
+    "lichess.annulee_avant_debut", "lichess.annulee_cause_inconnue",
     "lichess.rejouer_memes_reglages",
 ]
 
@@ -734,6 +734,31 @@ def test_nouvelles_cles_i18n_presentes(locale):
     for key in NEW_I18N_KEYS:
         assert key in data, f"{key} absente de {locale}.json"
         assert data[key], f"{key} vide dans {locale}.json"
+
+
+# ── Issue #370 : la fenêtre d'annulation ne doit plus affirmer une cause ────
+# que Lichess ne communique pas (son API ne donne que le statut "annulée",
+# jamais la raison — adversaire parti, premier coup non joué à temps, ou
+# autre). L'ancienne clé fausse "lichess.annulee_premier_coup_trop_tard" ne
+# doit plus exister, et le nouveau texte doit rester une hypothèse ("par
+# exemple ...", jamais une affirmation unique) dans les trois langues.
+
+_HEDGE_MARKER_BY_LOCALE = {"fr": "par exemple", "en": "for example", "de": "z. B."}
+
+
+@pytest.mark.parametrize("locale", ["fr", "en", "de"])
+def test_annulation_avant_debut_reste_une_hypothese_jamais_une_cause_affirmee(locale):
+    from pathlib import Path
+    path = Path(__file__).resolve().parents[2] / "nicsoft" / "web" / "static" / "i18n" / f"{locale}.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert "lichess.annulee_premier_coup_trop_tard" not in data, (
+        "ancienne clé affirmant une cause non communiquée par Lichess — doit avoir disparu"
+    )
+    message = data["lichess.annulee_avant_debut"]
+    assert _HEDGE_MARKER_BY_LOCALE[locale] in message, (
+        f"{locale} : le message doit présenter les causes possibles comme des exemples, "
+        "pas comme une cause affirmée"
+    )
 
 
 # ── app.js : jamais le jeton, jamais d'innerHTML pour du texte Lichess ─────

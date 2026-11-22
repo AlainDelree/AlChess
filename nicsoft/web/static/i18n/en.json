@@ -802,7 +802,7 @@
   "lichess.reclamation_pas_encore_possible": "The claim is not possible yet — wait for the countdown to finish.",
   "lichess.reprise_refusee": "The opponent requested a takeback: declined — the board cannot undo a move.",
   "lichess.annulee_titre": "Game cancelled",
-  "lichess.annulee_premier_coup_trop_tard": "Game cancelled by Lichess: the first move wasn't played in time.",
+  "lichess.annulee_avant_debut": "Game cancelled by Lichess before it started (for example an absent or departed opponent, or the first move not played in time). No rating is changed.",
   "lichess.annulee_cause_inconnue": "Game cancelled by Lichess.",
   "lichess.rejouer_memes_reglages": "Replay with the same settings",
   "lichess.reprise_titre": "⏱️ A Lichess game is in progress: resume it",

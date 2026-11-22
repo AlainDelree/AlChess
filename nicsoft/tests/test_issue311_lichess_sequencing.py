@@ -245,8 +245,8 @@ def _make_bare_game(monkeypatch, nl_inst=None, transport=None):
 
 
 @pytest.mark.parametrize("status,expected_key", [
-    ("aborted", "lichess.annulee_premier_coup_trop_tard"),
-    ("noStart", "lichess.annulee_cause_inconnue"),
+    ("aborted", "lichess.annulee_avant_debut"),
+    ("noStart", "lichess.annulee_avant_debut"),
     ("unknownFinish", "lichess.annulee_cause_inconnue"),
 ])
 def test_statut_inattendu_non_demande_produit_message_explicite(monkeypatch, status, expected_key):

@@ -802,7 +802,7 @@
   "lichess.reclamation_pas_encore_possible": "La réclamation n'est pas encore possible — patientez la fin du délai affiché.",
   "lichess.reprise_refusee": "L'adversaire a demandé de reprendre son coup : refusé, l'échiquier ne peut pas défaire un coup.",
   "lichess.annulee_titre": "Partie annulée",
-  "lichess.annulee_premier_coup_trop_tard": "Partie annulée par Lichess : le premier coup n'a pas été joué à temps.",
+  "lichess.annulee_avant_debut": "Partie annulée par Lichess avant son début (par exemple adversaire absent ou parti, ou premier coup non joué à temps). Aucune cote n'est modifiée.",
   "lichess.annulee_cause_inconnue": "Partie annulée par Lichess.",
   "lichess.rejouer_memes_reglages": "Rejouer avec les mêmes réglages",
   "lichess.reprise_titre": "⏱️ Une partie Lichess est en cours : la reprendre",

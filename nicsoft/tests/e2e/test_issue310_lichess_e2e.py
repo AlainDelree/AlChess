@@ -272,7 +272,7 @@ def test_game_lichess_aborted_affiche_message_explicite_et_deux_boutons(at_game_
     _declencher_evenement_socket_client(
         at_game_lichess, "lichess_aborted",
         {
-            "message_key": "lichess.annulee_premier_coup_trop_tard",
+            "message_key": "lichess.annulee_avant_debut",
             "replay_settings": {"level": 3, "cadence": "15+10", "color": "black", "player": "Testeur e2e"},
         },
     )

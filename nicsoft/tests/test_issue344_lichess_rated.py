@@ -449,7 +449,7 @@ def test_rated_partie_interrompue_avant_le_premier_coup_aborted(monkeypatch):
     game._finalize()
     aborted_events = [d for t, d in events if t == "lichess_aborted"]
     assert aborted_events
-    assert aborted_events[-1]["message_key"] == "lichess.annulee_premier_coup_trop_tard"
+    assert aborted_events[-1]["message_key"] == "lichess.annulee_avant_debut"
 
 
 def test_rated_deconnexion_reseau_puis_reconnexion_mi_partie(monkeypatch):

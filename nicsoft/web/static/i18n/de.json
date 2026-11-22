@@ -802,7 +802,7 @@
   "lichess.reclamation_pas_encore_possible": "Der Anspruch ist noch nicht möglich — warten Sie, bis der Countdown abgelaufen ist.",
   "lichess.reprise_refusee": "Der Gegner hat eine Zugrücknahme beantragt: abgelehnt — das Brett kann einen Zug nicht zurücknehmen.",
   "lichess.annulee_titre": "Partie abgebrochen",
-  "lichess.annulee_premier_coup_trop_tard": "Partie von Lichess abgebrochen: der erste Zug wurde nicht rechtzeitig gespielt.",
+  "lichess.annulee_avant_debut": "Partie von Lichess vor ihrem Beginn abgebrochen (z. B. abwesender oder gegangener Gegner, oder erster Zug nicht rechtzeitig gespielt). Die Wertung ändert sich nicht.",
   "lichess.annulee_cause_inconnue": "Partie von Lichess abgebrochen.",
   "lichess.rejouer_memes_reglages": "Mit denselben Einstellungen erneut spielen",
   "lichess.reprise_titre": "⏱️ Eine Lichess-Partie läuft noch: fortsetzen",

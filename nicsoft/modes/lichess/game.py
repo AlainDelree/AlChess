@@ -57,8 +57,18 @@ _OTHER_MODE_ACTIONS = frozenset({
 # silencieux (issue #311, point 3) — _request_resign_or_abort() (abandon/
 # annulation voulus par l'utilisateur) en est exclu via _user_initiated_end.
 _UNEXPECTED_END_STATUSES = frozenset({"aborted", "noStart", "unknownFinish"})
+# Issue #370 : l'API Lichess ne communique, pour "aborted"/"noStart", QUE le
+# statut "partie annulée avant son début" — jamais la raison (adversaire
+# parti, premier coup non joué à temps, ou autre) : ne jamais affirmer une
+# cause que Lichess ne donne pas. Les deux sont exclus de
+# _maybe_fetch_new_rating() (voir _finalize/_is_unexpected_end) : confirmé
+# jamais rated, d'où la mention « aucune cote n'est modifiée » dans le
+# texte. "unknownFinish" reste à part (_FINISHED_WITH_WINNER, cote
+# potentiellement affectée) : garde le message générique, sans cette
+# affirmation.
 _ABORT_CAUSE_KEYS = {
-    "aborted": "lichess.annulee_premier_coup_trop_tard",
+    "aborted": "lichess.annulee_avant_debut",
+    "noStart": "lichess.annulee_avant_debut",
 }
 _ABORT_CAUSE_DEFAULT_KEY = "lichess.annulee_cause_inconnue"
 
