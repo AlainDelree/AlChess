@@ -712,7 +712,10 @@ function _applyBoardBadge() {
   // Bande d'alerte échiquier absent — menu, choix d'ouverture Exercices,
   // écrans de préparation des modes utilisant l'échiquier (issue #299).
   // Disparaît dès que l'échiquier est de nouveau détecté (_boardError=false).
-  document.querySelectorAll(".board-warning-banner").forEach(el => {
+  // #lichess-network-banner réutilise la même classe CSS pour le même style
+  // (issue #368) mais sa visibilité dépend du réseau, jamais de l'échiquier
+  // — exclu ici pour ne pas écraser _applyLichessNetworkState() ci-dessous.
+  document.querySelectorAll(".board-warning-banner:not(#lichess-network-banner)").forEach(el => {
     el.classList.toggle("hidden", !_boardError);
   });
   const schemaConnected    = document.getElementById("schema-connected");
@@ -830,12 +833,6 @@ function _lichessNetworkCheckNow() {
   _lichessNetworkCheckPending = true;
   sendAction({ type: "lichess_network_check" });
 }
-
-socket.on("lichess_network_status", (data) => {
-  _lichessNetworkCheckPending = false;
-  _lichessNetworkAvailable = !!(data && data.available);
-  _applyLichessNetworkState();
-});
 
 // Évènements de connexion du navigateur (issue #368, partie 1, point c) —
 // ne déclenchent une vérification QUE si l'écran Lichess est ouvert (pas de
@@ -2398,6 +2395,19 @@ function _lichessRenderRatedInfo() {
   el.textContent = text;
   el.style.display = "";
 }
+
+// Issue #368, partie 1 : enregistré ici (après `const socket = io();`
+// ci-dessus) et non près de _applyLichessNetworkState()/_lichessNetworkCheckNow()
+// plus haut dans le fichier — un `socket.on(...)` de premier niveau s'exécute
+// immédiatement à l'évaluation du script, avant la déclaration de `socket`
+// s'il est placé plus haut, ce qui levait "Cannot access 'socket' before
+// initialization" et interrompait toute l'initialisation de la page (plus
+// aucun écran ne s'affichait, régression constatée sur tous les tests e2e).
+socket.on("lichess_network_status", (data) => {
+  _lichessNetworkCheckPending = false;
+  _lichessNetworkAvailable = !!(data && data.available);
+  _applyLichessNetworkState();
+});
 
 // Poussé par game.py::_maybe_fetch_new_rating, en meilleur effort et
 // uniquement pour une partie classée réellement terminée — jamais si

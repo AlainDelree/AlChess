@@ -19,9 +19,15 @@ pytestmark = pytest.mark.slow
 
 
 def _declencher_evenement_socket_client(page, event, data):
+    """Invoque les callbacks socket.io de `event` — ceux encore attachés à
+    `socket`, ou à défaut (ex. "lichess_network_status"/"lichess_resumable",
+    détachés par `at_config_lichess` ci-dessous pour isoler l'état simulé du
+    vrai serveur de test) ceux capturés dans `window['__real368_' + event]`
+    avant détachement, même procédé que `_declencher_config_data`."""
     page.evaluate(
         "([event, data]) => { "
-        "const cbs = socket.listeners(event) || []; "
+        "const attaches = socket.listeners(event) || []; "
+        "const cbs = attaches.length ? attaches : (window['__real368_' + event] || []); "
         "if (cbs.length === 0) throw new Error('aucun listener pour ' + event); "
         "cbs.forEach((cb) => cb(data)); "
         "}",
@@ -127,7 +133,10 @@ def test_reseau_absent_retour_reste_actif_et_menu_reste_accessible(at_config_lic
     page = at_config_lichess
     _declencher_evenement_socket_client(page, "lichess_network_status", {"available": False})
 
-    retour = page.locator('#screen-config-lichess button[data-action="back_menu"]').first
+    # :visible exclu le "← Retour" du bandeau "partie en cours" (lichess-resume-banner,
+    # display:none par défaut) qui précède, dans le DOM, celui du formulaire
+    # réellement affiché — .first seul y résolvait à tort (bouton invisible).
+    retour = page.locator('#screen-config-lichess button[data-action="back_menu"]:visible').first
     assert not retour.is_disabled()
     retour.click()
     page.wait_for_selector("#screen-menu", state="visible", timeout=5000)
