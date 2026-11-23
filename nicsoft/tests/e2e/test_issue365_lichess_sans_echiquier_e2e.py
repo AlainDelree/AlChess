@@ -87,6 +87,34 @@ def _detacher_config_data_reel(page):
     )
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _detacher_lichess_resumable_reel(page):
+    """Détache le vrai gestionnaire socket.io de "lichess_resumable" pour
+    toute la durée de ce module — restauré à la fin, même principe que
+    `_detacher_config_data_reel` ci-dessus.
+
+    Avant ce correctif (issue #372, suite au rapport de #371), ce module
+    détachait "lichess_resumable" (dans `at_config_lichess_sans_board` et
+    `test_echiquier_connecte_depuis_le_debut_rien_ne_change`) sans jamais
+    le rattacher : la page partagée de toute la session e2e (fixture
+    `page`, scope="session", conftest.py) restait alors modifiée pour les
+    fichiers de tests suivants — même défaut que celui corrigé par #371
+    pour "config_data" dans le fichier de #368."""
+    page.evaluate(
+        "() => { "
+        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
+        "socket.off('lichess_resumable'); "
+        "}"
+    )
+    yield
+    page.evaluate(
+        "() => { "
+        "(window.__realLichessResumableHandlers || []).forEach((cb) => socket.on('lichess_resumable', cb)); "
+        "delete window.__realLichessResumableHandlers; "
+        "}"
+    )
+
+
 def go_menu(page):
     if not page.locator("#screen-menu").is_visible():
         page.evaluate("sendAction({type: 'back_menu'})")
@@ -148,18 +176,10 @@ def at_config_lichess_sans_board(lichess_state):
     _declencher_config_data(page, {"has_lichess_token": True})
     page.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     page.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
-    # Détache (une seule fois, idempotent) le vrai gestionnaire socket.io de
-    # "lichess_resumable" — même procédé que test_issue310_lichess_e2e.py —
-    # pour qu'une vraie réponse réseau tardive du serveur de test ne vienne
-    # jamais écraser l'état simulé par ce test.
-    page.evaluate(
-        "() => { "
-        "if (!window.__realLichessResumableHandlers) { "
-        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
-        "socket.off('lichess_resumable'); "
-        "} "
-        "}"
-    )
+    # "lichess_resumable" est déjà détaché pour tout le module par
+    # `_detacher_lichess_resumable_reel` ci-dessus — pour qu'une vraie
+    # réponse réseau tardive du serveur de test ne vienne jamais écraser
+    # l'état simulé par ce test.
     return page
 
 
@@ -266,14 +286,8 @@ def test_echiquier_connecte_depuis_le_debut_rien_ne_change(lichess_state):
     _declencher_config_data(page, {"has_lichess_token": True})
     page.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     page.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
-    page.evaluate(
-        "() => { "
-        "if (!window.__realLichessResumableHandlers) { "
-        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
-        "socket.off('lichess_resumable'); "
-        "} "
-        "}"
-    )
+    # "lichess_resumable" est déjà détaché pour tout le module par
+    # `_detacher_lichess_resumable_reel` ci-dessus.
     page.locator("#cfg-lichess-puzzle-mode-board").click()
     assert not page.locator("#btn-start-lichess-puzzle").is_disabled()
     assert not page.locator("#lichess-puzzle-board-hint").is_visible()
