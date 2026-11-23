@@ -116,6 +116,8 @@ Les tests vivent dans `nicsoft/tests/` (pas de dossier `tests/` à la racine). D
 - `hardware` : nécessite un échiquier Chessnut Air physiquement connecté (jamais exécuté en CI).
 - `slow` : test lent (de l'ordre de plusieurs secondes), typiquement les tests e2e qui démarrent un vrai serveur AlChess + un navigateur Playwright. Tout `nicsoft/tests/e2e/` est marqué `slow` : ces fichiers paient le coût d'un lancement serveur + navigateur (~5-6 s) alors que le reste de la suite s'exécute en moins d'une seconde.
 
+**Aucun test non marqué `hardware` ne doit toucher l'échiquier USB réel** (issue #372) : `nicsoft/tests/conftest.py` neutralise `hid.device()`/`hid.enumerate()` pour la durée de chaque test (une tentative échoue bruyamment, même depuis un fil d'arrière-plan — `pytest.ini::filterwarnings` transforme tout `PytestUnhandledThreadExceptionWarning` en échec). Un test qui lance réellement un mode doit utiliser `VirtualBoard` ou un faux plateau, jamais `create_board(virtual=False)` non mocké.
+
 ```bash
 # Suite rapide (itération courante) — ignore slow et hardware
 python -m pytest nicsoft/tests -m "not slow and not hardware"
