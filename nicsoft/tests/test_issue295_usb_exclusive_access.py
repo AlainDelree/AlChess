@@ -68,7 +68,7 @@ def test_fake_hid_module_detecte_la_regression_sans_fermeture():
 
 # ── (a) Deux connexions successives de hid_backend, la première jamais fermée
 
-def test_hid_backend_connect_deux_fois_ancien_handle_laisse_ouvert_reussit():
+def test_hid_backend_connect_deux_fois_ancien_handle_laisse_ouvert_reussit(monkeypatch):
     """(a) Reproduit le défaut 1 au niveau hid_backend : une première
     connexion (comme la vérification du démarrage) reste ouverte, puis une
     seconde (comme le lancement d'une partie) est tentée sans disconnect()
@@ -77,7 +77,13 @@ def test_hid_backend_connect_deux_fois_ancien_handle_laisse_ouvert_reussit():
     hm = _FakeHidModule(lambda: next(devices))
 
     import nicsoft.niclink.hid_backend as hb
-    hb.hid = hm
+    # monkeypatch (jamais une affectation directe, issue #372) : une
+    # affectation brute de hb.hid survivrait à ce test et laisserait tous
+    # les tests suivants de la suite parler à ce faux module périmé (son
+    # itérateur `devices`, épuisé après ces deux connexions, lève
+    # StopIteration au moindre appel ultérieur) au lieu du vrai module hid
+    # (ou de son faux équivalent propre à chaque test).
+    monkeypatch.setattr(hb, "hid", hm)
     try:
         hid_backend.connect()
         first_dev = hid_backend._dev

@@ -23,6 +23,8 @@ import hid as _hid
 import pytest
 
 import nicsoft.config as _config
+import nicsoft.core.game_manager_modes.humain as _humain_launcher
+import nicsoft.core.game_manager_modes.lichess as _lichess_launcher
 import nicsoft.engine.pgn_manager as _pgn_manager
 import nicsoft.web.server as _server
 import nicsoft.modes.humain.human as _human
@@ -163,6 +165,28 @@ def _guard_subprocess_skip_board(request, monkeypatch):
         yield
         return
     monkeypatch.setattr(_subprocess, "Popen", _popen_with_skip_board)
+    yield
+
+
+@pytest.fixture(autouse=True)
+def _stub_check_board_presence_silent(monkeypatch):
+    """launch_lichess()/_launch_lichess_human()/launch_lichess_resume()/
+    launch_lichess_puzzle() (nicsoft/core/game_manager_modes/lichess.py) et
+    _run_humain()/_run_lichess_resume (humain.py) lancent chacun, en fin de
+    partie, un fil d'arrière-plan `check_board_presence_silent()` (rafraîchit
+    juste le badge "échiquier" du menu, hors toute partie) — révélé par le
+    garde ci-dessus (issue #372) comme une source réelle d'accès USB en fil
+    séparé, non rattrapée par la plupart des tests qui exercent ces
+    lanceurs : le fil se termine après le retour de la fonction testée, hors
+    de portée de tout monkeypatch posé APRÈS l'appel, et pytest ne fait que
+    l'avertir (`PytestUnhandledThreadExceptionWarning`), jamais échouer le
+    test fautif. Neutralisé par défaut ; un test qui vérifie spécifiquement
+    ce câblage (ex. test_issue299_check_board_presence_silent.py,
+    test_issue299_humain_retour_menu_silencieux.py) repatche la même cible
+    avec sa propre fausse implémentation traçante, qui prévaut (même
+    fixture `monkeypatch`, dernière écriture gagnante)."""
+    monkeypatch.setattr(_lichess_launcher, "check_board_presence_silent", lambda: None)
+    monkeypatch.setattr(_humain_launcher, "check_board_presence_silent", lambda: None)
     yield
 
 
