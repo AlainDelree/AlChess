@@ -28,24 +28,44 @@ from nicsoft.tests.e2e.test_issue310_lichess_e2e import (
 pytestmark = pytest.mark.slow
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _detacher_lichess_resumable_reel(page):
+    """Détache, pour toute la durée de ce module, le vrai gestionnaire
+    socket.io de "lichess_resumable" — voir
+    test_issue310_lichess_e2e.py::_declencher_lichess_resumable pour la
+    raison (réponse réseau réelle tardive, racé avec l'état simulé du test
+    en cours). RESTAURÉ à la fin (issue #373, même défaut que #372/#371
+    corrigé pour d'autres fichiers e2e : avant ce correctif, rien ne
+    rattachait jamais ce gestionnaire pour les fichiers e2e suivants).
+
+    Même garde `if (!window...)` que test_issue310_lichess_e2e.py : réutilise
+    une référence déjà laissée par un fichier antérieur n'ayant pas restauré
+    (ex. test_issue333_lichess_menu_banner_e2e.py, délibéré) plutôt que de la
+    perdre en stashant un tableau vide."""
+    page.evaluate(
+        "() => { "
+        "if (!window.__realLichessResumableHandlers) { "
+        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
+        "} "
+        "socket.off('lichess_resumable'); "
+        "}"
+    )
+    yield
+    page.evaluate(
+        "() => { "
+        "(window.__realLichessResumableHandlers || []).forEach((cb) => socket.on('lichess_resumable', cb)); "
+        "delete window.__realLichessResumableHandlers; "
+        "}"
+    )
+
+
 @pytest.fixture
 def at_config_lichess(at_menu):
     at_menu.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     at_menu.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
-    # Détache le vrai gestionnaire socket.io avant de poser un état de
-    # départ déterministe (issue #325) — voir
-    # test_issue310_lichess_e2e.py::_declencher_lichess_resumable pour la
-    # raison (réponse réseau réelle tardive, racé avec l'état simulé du
-    # test en cours).
-    at_menu.evaluate(
-        "() => { "
-        # Idempotent — voir test_issue310_lichess_e2e.py, même garde.
-        "if (!window.__realLichessResumableHandlers) { "
-        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
-        "socket.off('lichess_resumable'); "
-        "} "
-        "}"
-    )
+    # "lichess_resumable" est déjà détaché pour tout le module par
+    # `_detacher_lichess_resumable_reel` ci-dessus — pose un état de départ
+    # déterministe (aucune partie en cours).
     _declencher_lichess_resumable(at_menu, {"available": False, "games": []})
     return at_menu
 

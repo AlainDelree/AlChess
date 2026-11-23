@@ -91,6 +91,41 @@ def _declencher_lichess_resumable(page, data):
     )
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _detacher_lichess_resumable_reel(page):
+    """Détache, pour toute la durée de ce module, le vrai gestionnaire
+    socket.io de "lichess_resumable" (voir _declencher_lichess_resumable
+    ci-dessus) — `page` est partagée par toute la session e2e (conftest.py),
+    donc une vraie réponse réseau tardive du serveur de test ne doit jamais
+    écraser l'état simulé par ces tests. RESTAURÉ à la fin (issue #373,
+    même défaut que celui corrigé par #372/#371 pour "lichess_resumable"/
+    "config_data" dans d'autres fichiers e2e : avant ce correctif, rien ne
+    rattachait jamais ce gestionnaire pour les fichiers e2e suivants, qui en
+    ont réellement besoin).
+
+    Le test `if (!window...)` avant de stasher protège contre le cas où un
+    fichier e2e antérieur (ex. test_issue333_lichess_menu_banner_e2e.py, qui
+    documente ce détachement comme délibéré et ne le restaure jamais) a déjà
+    détaché "lichess_resumable" sans restaurer : on réutilise alors sa
+    référence déjà capturée plutôt que de la perdre en stashant un tableau
+    vide (`socket.listeners()` ne retournerait plus rien)."""
+    page.evaluate(
+        "() => { "
+        "if (!window.__realLichessResumableHandlers) { "
+        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
+        "} "
+        "socket.off('lichess_resumable'); "
+        "}"
+    )
+    yield
+    page.evaluate(
+        "() => { "
+        "(window.__realLichessResumableHandlers || []).forEach((cb) => socket.on('lichess_resumable', cb)); "
+        "delete window.__realLichessResumableHandlers; "
+        "}"
+    )
+
+
 @pytest.fixture
 def at_config_lichess(at_menu):
     """Atteint l'écran de configuration Lichess sans dépendre de l'échiquier
@@ -105,23 +140,10 @@ def at_config_lichess(at_menu):
     ou sans jeton enregistré dans l'environnement."""
     at_menu.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     at_menu.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
-    # Issue #325, point 2 : détache le vrai gestionnaire socket.io de
-    # "lichess_resumable" (voir _declencher_lichess_resumable ci-dessus)
-    # avant de poser un état de départ déterministe (aucune partie en
-    # cours) — indépendant du jeton/réseau réels de l'environnement.
-    at_menu.evaluate(
-        "() => { "
-        # Idempotent (issue #325) — `page` est partagée par toute la session
-        # (scope session, conftest.py) : ne stasher/détacher qu'une seule
-        # fois, sinon un second appel (test suivant, même fixture) stashe un
-        # tableau déjà vide (socket.off() du premier appel) et écrase le
-        # vrai gestionnaire capturé.
-        "if (!window.__realLichessResumableHandlers) { "
-        "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
-        "socket.off('lichess_resumable'); "
-        "} "
-        "}"
-    )
+    # "lichess_resumable" est déjà détaché pour tout le module par
+    # `_detacher_lichess_resumable_reel` ci-dessus — pose un état de départ
+    # déterministe (aucune partie en cours), indépendant du jeton/réseau
+    # réels de l'environnement.
     _declencher_lichess_resumable(at_menu, {"available": False, "games": []})
     # Issue #344, point 1 : « Contre un humain » est désormais présélectionné
     # (masque la carte « Niveau de l'IA » testée ci-dessous) — cette suite

@@ -74,6 +74,32 @@ def _detacher_config_data_reel(page):
     )
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _detacher_lichess_resumable_reel(page):
+    """Détache, pour toute la durée de ce module, le vrai gestionnaire
+    socket.io de "lichess_resumable" — même raison que
+    `_detacher_config_data_reel` ci-dessus (réponse réseau réelle tardive du
+    serveur de test, racée avec l'état simulé des tests en cours). RESTAURÉ
+    à la fin (issue #373 : avant ce correctif, `at_config_lichess_sans_board`
+    ci-dessous détachait ce gestionnaire sans jamais le rattacher, laissant
+    la page partagée de la session e2e détachée pour les fichiers suivants —
+    même défaut que celui corrigé par #372 pour ce même événement dans
+    test_issue365_lichess_sans_echiquier_e2e.py)."""
+    page.evaluate(
+        "() => { "
+        "window.__realLichessResumableHandlers366 = socket.listeners('lichess_resumable').slice(); "
+        "socket.off('lichess_resumable'); "
+        "}"
+    )
+    yield
+    page.evaluate(
+        "() => { "
+        "(window.__realLichessResumableHandlers366 || []).forEach((cb) => socket.on('lichess_resumable', cb)); "
+        "delete window.__realLichessResumableHandlers366; "
+        "}"
+    )
+
+
 def go_menu(page):
     if not page.locator("#screen-menu").is_visible():
         page.evaluate("sendAction({type: 'back_menu'})")
@@ -102,14 +128,8 @@ def at_config_lichess_sans_board(at_menu):
     _declencher_config_data(page, {"has_lichess_token": True})
     page.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     page.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
-    page.evaluate(
-        "() => { "
-        "if (!window.__realLichessResumableHandlers366) { "
-        "window.__realLichessResumableHandlers366 = socket.listeners('lichess_resumable').slice(); "
-        "socket.off('lichess_resumable'); "
-        "} "
-        "}"
-    )
+    # "lichess_resumable" est déjà détaché pour tout le module par
+    # `_detacher_lichess_resumable_reel` ci-dessus.
     yield page
     _reset_base(page)
 

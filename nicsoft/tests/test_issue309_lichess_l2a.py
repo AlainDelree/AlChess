@@ -597,39 +597,75 @@ def test_partie_complete_jusqu_au_mat_sans_aucun_moteur(monkeypatch):
         "state": {"status": "started", "moves": ""},
     }))
 
+    def _attendre(predicate, timeout=5.0, message="délai dépassé"):
+        """Attend que `predicate()` devienne vrai, avec un budget de
+        `timeout` secondes PROPRE à cet appel (issue #373, diagnostic de
+        l'instabilité intermittente signalée par #359 : l'ancien code
+        calculait un seul `deadline` avant la boucle `for`, partagé entre
+        TOUTES les étapes séquentielles de `_drive_physical_board` — un
+        simple retard d'ordonnancement sur l'une des premières étapes, sous
+        charge, grignotait le budget des étapes suivantes et pouvait faire
+        échouer le test sans qu'aucune étape individuelle n'ait jamais été
+        réellement bloquée. Chaque attente a maintenant son propre budget,
+        qui ne commence à courir qu'à son propre appel. Lève AssertionError
+        avec `message` au lieu de laisser le thread continuer silencieusement
+        sur un état obsolète (l'ancien code sortait de la boucle sans se
+        plaindre, masquant la vraie cause d'un éventuel blocage réel)."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if predicate():
+                return
+            time.sleep(0.01)
+        raise AssertionError(message)
+
+    erreurs_driver = []
+
     def _drive_physical_board():
         """Simule la main de l'utilisateur : joue chaque coup blanc dès que
         la position logique du jeu l'attend, puis reproduit physiquement la
         réponse de l'IA avant le coup blanc suivant (position physique
         exigée avant de laisser passer son propre tour — issue #309, point 3)."""
-        board_sim = chess.Board()
-        deadline = time.monotonic() + 5.0
-        for i, user_uci in enumerate(user_moves):
-            while time.monotonic() < deadline and game.board.board_fen() != board_sim.board_fen():
-                time.sleep(0.01)
-            board_sim.push_uci(user_uci)
-            board.current_fen = board_sim.board_fen() + " w - - 0 1"
-            if i < len(ai_moves):
-                target_after_ai = board_sim.copy()
-                target_after_ai.push_uci(ai_moves[i])
-                while time.monotonic() < deadline and game.board.board_fen() != target_after_ai.board_fen():
-                    time.sleep(0.01)
-                board_sim.push_uci(ai_moves[i])
+        try:
+            board_sim = chess.Board()
+            for i, user_uci in enumerate(user_moves):
+                _attendre(
+                    lambda: game.board.board_fen() == board_sim.board_fen(),
+                    message=f"le jeu n'a jamais atteint la position attendue avant le coup utilisateur {user_uci!r}",
+                )
+                board_sim.push_uci(user_uci)
                 board.current_fen = board_sim.board_fen() + " w - - 0 1"
-                # Attendre que _tick_physical() ait bien observé la réplication
-                # avant de rejouer le coup suivant — sinon la prochaine écriture
-                # de board.current_fen pourrait écraser la position avant que
-                # le jeu n'ait eu la main pour la lire (course bénigne, propre
-                # au double de test : le vrai plateau physique, lui, reste
-                # stable tout seul entre deux lectures).
-                while time.monotonic() < deadline and game._awaiting_physical_replication:
-                    time.sleep(0.01)
+                if i < len(ai_moves):
+                    target_after_ai = board_sim.copy()
+                    target_after_ai.push_uci(ai_moves[i])
+                    _attendre(
+                        lambda: game.board.board_fen() == target_after_ai.board_fen(),
+                        message=f"le jeu n'a jamais appliqué le coup IA {ai_moves[i]!r}",
+                    )
+                    board_sim.push_uci(ai_moves[i])
+                    board.current_fen = board_sim.board_fen() + " w - - 0 1"
+                    # Attendre que _tick_physical() ait bien observé la
+                    # réplication avant de rejouer le coup suivant — sinon la
+                    # prochaine écriture de board.current_fen pourrait écraser
+                    # la position avant que le jeu n'ait eu la main pour la
+                    # lire (course bénigne, propre au double de test : le
+                    # vrai plateau physique, lui, reste stable tout seul
+                    # entre deux lectures).
+                    _attendre(
+                        lambda: not game._awaiting_physical_replication,
+                        message="la réplication physique du coup IA n'a jamais été reconnue",
+                    )
+        except AssertionError as exc:
+            erreurs_driver.append(exc)
 
     driver = threading.Thread(target=_drive_physical_board, daemon=True)
     driver.start()
     game_thread = threading.Thread(target=game.start, daemon=True)
     game_thread.start()
-    game_thread.join(timeout=8.0)
+    # Issue #373 : budget total relevé (8.0 → 15.0) pour tolérer la charge —
+    # le vrai gain de fiabilité vient du passage à des budgets individuels
+    # par étape ci-dessus ; celui-ci n'est qu'un filet de sécurité, borné,
+    # pour ne jamais bloquer la suite indéfiniment.
+    game_thread.join(timeout=15.0)
     driver.join(timeout=1.0)
 
     if game_thread.is_alive():
@@ -641,7 +677,13 @@ def test_partie_complete_jusqu_au_mat_sans_aucun_moteur(monkeypatch):
         # plan pour le reste de la suite (le laisser tourner a fait échouer
         # d'autres tests sans rapport selon l'ordre, --randomly-seed=5/42).
         game.game_over = True
-        game_thread.join(timeout=2.0)
+        game_thread.join(timeout=5.0)
+
+    if erreurs_driver:
+        # Cause plus précise qu'un simple "délai dépassé" générique — remonte
+        # exactement quelle étape de la simulation physique n'a jamais vu la
+        # position attendue.
+        raise erreurs_driver[0]
 
     assert not game_thread.is_alive(), "la partie ne s'est pas terminée à temps"
     assert game.game_over is True
