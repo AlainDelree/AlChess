@@ -48,10 +48,24 @@ def _declencher_config_data(page, data):
 
 @pytest.fixture(scope="module", autouse=True)
 def _detacher_config_data_reel(page):
+    """Détache, pour toute la durée de ce module, les vrais gestionnaires
+    socket.io de "config_data", "lichess_resumable" et
+    "lichess_network_status" — `page` est partagée par toute la session e2e
+    (conftest.py) : une réponse tardive non simulée du vrai serveur de test
+    (jeton réel toujours vide, réseau toujours disponible) ne doit jamais
+    écraser l'état simulé par ces tests. Détachés une seule fois pour tout
+    le module (pas par test) et RESTAURÉS à la fin — issue #371 : avant ce
+    correctif, "lichess_resumable"/"lichess_network_status" restaient
+    détachés du vrai `socket` pour le reste de la session e2e, aucun code
+    de ce fichier ne les rattachant jamais."""
     page.evaluate(
         "() => { "
         "window.__realConfigDataHandlers368 = socket.listeners('config_data').slice(); "
         "socket.off('config_data'); "
+        "['lichess_resumable', 'lichess_network_status'].forEach((ev) => { "
+        "window['__real368_' + ev] = socket.listeners(ev).slice(); "
+        "socket.off(ev); "
+        "}); "
         "}"
     )
     yield
@@ -59,6 +73,10 @@ def _detacher_config_data_reel(page):
         "() => { "
         "(window.__realConfigDataHandlers368 || []).forEach((cb) => socket.on('config_data', cb)); "
         "delete window.__realConfigDataHandlers368; "
+        "['lichess_resumable', 'lichess_network_status'].forEach((ev) => { "
+        "(window['__real368_' + ev] || []).forEach((cb) => socket.on(ev, cb)); "
+        "delete window['__real368_' + ev]; "
+        "}); "
         "}"
     )
 
@@ -70,7 +88,18 @@ def go_menu(page):
 
 
 def _reset_base(page):
-    _declencher_evenement_socket_client(page, "board_ok", {})
+    """Revient à la base de référence de la session e2e : pas d'échiquier
+    (comme au chargement initial sous ALCHESS_SKIP_BOARD=1, où aucun
+    board_ok/board_error réel n'est jamais émis), réseau disponible, pas de
+    jeton — même convention que test_issue365_lichess_sans_echiquier_e2e.py
+    et test_issue366_regrisage_echiquier_e2e.py. Issue #371 : un `board_ok`
+    simulé ici laissait `_boardOk=true` après ce module, ce qui décoche
+    silencieusement les cases "Mode virtuel" (`_syncVirtualCheckboxes()`,
+    app.js) pour toute la suite de la session — le test suivant qui clique
+    "Démarrer" lance alors un vrai mode (non virtuel), restant bloqué sur
+    l'écran de connexion sans échiquier réel, et faisant bipper un
+    échiquier réellement branché pendant la tentative de connexion."""
+    _declencher_evenement_socket_client(page, "board_error", {})
     _declencher_evenement_socket_client(page, "lichess_network_status", {"available": True})
     _declencher_config_data(page, {"has_lichess_token": False})
     go_menu(page)
@@ -83,18 +112,6 @@ def at_config_lichess(at_menu):
     _declencher_config_data(page, {"has_lichess_token": True})
     page.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     page.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
-    # Détache les vrais gestionnaires socket.io déclenchés par le serveur de
-    # test (jeton réel toujours vide, ALCHESS_DIR isolé) pour qu'une réponse
-    # tardive non simulée n'écrase jamais l'état simulé par ces tests — même
-    # procédé que test_issue365_lichess_sans_echiquier_e2e.py.
-    page.evaluate(
-        "() => { "
-        "['lichess_resumable', 'lichess_network_status'].forEach((ev) => { "
-        "const key = '__real368_' + ev; "
-        "if (!window[key]) { window[key] = socket.listeners(ev).slice(); socket.off(ev); } "
-        "}); "
-        "}"
-    )
     # Base : réseau disponible (comme le reste de la session e2e).
     _declencher_evenement_socket_client(page, "lichess_network_status", {"available": True})
     yield page
