@@ -29,8 +29,9 @@ def _detacher_lichess_resumable_reel(page):
 
     Même garde `if (!window...)` que test_issue310_lichess_e2e.py : réutilise
     une référence déjà laissée par un fichier antérieur n'ayant pas restauré
-    (ex. test_issue333_lichess_menu_banner_e2e.py, délibéré) plutôt que de la
-    perdre en stashant un tableau vide."""
+    (défensif depuis #374 : les cinq suites e2e Lichess restaurent toutes ce
+    gestionnaire à la fin de leur module) plutôt que de la perdre en
+    stashant un tableau vide."""
     page.evaluate(
         "() => { "
         "if (!window.__realLichessResumableHandlers) { "

@@ -10,14 +10,15 @@ Abandonner — vérifications qui ne peuvent pas l'être côté Python seul
 Même technique que les autres suites e2e Lichess (#310/#325) :
 `_declencher_lichess_resumable` (pas `_declencher_evenement_socket_client`
 directement) — `page` est partagée par TOUTE la session de tests e2e
-(fixture `page`, scope="session", conftest.py) ; un test antérieur
-(`at_config_lichess`, voir #310/#325) détache déjà le vrai gestionnaire
-socket.io de "lichess_resumable" pour ses propres besoins, de façon
-irréversible pour le reste de la session — utiliser l'appel direct
-`socket.listeners('lichess_resumable')` échouerait alors ("aucun listener")
-selon l'ordre d'exécution des fichiers de test. Jamais de requête réseau ni
-de partie Lichess réelle (le serveur e2e tourne avec un jeton vide, voir
-conftest.py::_build_isolated_alchess_dir, issue #326).
+(fixture `page`, scope="session", conftest.py) ; le vrai gestionnaire
+socket.io de "lichess_resumable" est donc détaché pour toute la durée de ce
+module par `_detacher_lichess_resumable_reel` ci-dessous, et RESTAURÉ à la
+fin (issue #374 — avant ce correctif, ce fichier était le seul des cinq
+suites e2e Lichess à détacher ce gestionnaire sans jamais le restaurer,
+laissant les fichiers suivants dépendre de la garde `if (!window...)` des
+autres fichiers plutôt que de trouver l'état de base attendu). Jamais de
+requête réseau ni de partie Lichess réelle (le serveur e2e tourne avec un
+jeton vide, voir conftest.py::_build_isolated_alchess_dir, issue #326).
 
 Lancer : pytest nicsoft/tests/e2e/test_issue333_lichess_menu_banner_e2e.py -v
 """
@@ -31,22 +32,44 @@ from nicsoft.tests.e2e.test_issue310_lichess_e2e import (
 pytestmark = pytest.mark.slow
 
 
-@pytest.fixture
-def at_menu_resumable_ready(at_menu):
-    """`at_menu`, avec le vrai gestionnaire "lichess_resumable" détaché une
-    fois pour toutes (idempotent, même garde que `at_config_lichess` —
-    voir test_issue310_lichess_e2e.py) — nécessaire pour utiliser
-    `_declencher_lichess_resumable` depuis le MENU PRINCIPAL (pas seulement
-    depuis l'écran de configuration Lichess, qui porte déjà sa propre
-    fixture `at_config_lichess`)."""
-    at_menu.evaluate(
+@pytest.fixture(scope="module", autouse=True)
+def _detacher_lichess_resumable_reel(page):
+    """Détache, pour toute la durée de ce module, le vrai gestionnaire
+    socket.io de "lichess_resumable" (voir
+    test_issue310_lichess_e2e.py::_declencher_lichess_resumable pour la
+    raison : une vraie réponse réseau tardive du serveur de test ne doit
+    jamais écraser l'état simulé par ces tests). RESTAURÉ à la fin (issue
+    #374, même convention que #373 pour test_issue310/323/344_lichess_*_e2e.py
+    — ce fichier était jusqu'ici le seul des cinq à ne jamais restaurer).
+
+    Même garde `if (!window...)` que les autres fichiers : réutilise une
+    référence déjà laissée par un fichier antérieur n'ayant pas restauré
+    plutôt que de la perdre en stashant un tableau vide."""
+    page.evaluate(
         "() => { "
         "if (!window.__realLichessResumableHandlers) { "
         "window.__realLichessResumableHandlers = socket.listeners('lichess_resumable').slice(); "
-        "socket.off('lichess_resumable'); "
         "} "
+        "socket.off('lichess_resumable'); "
         "}"
     )
+    yield
+    page.evaluate(
+        "() => { "
+        "(window.__realLichessResumableHandlers || []).forEach((cb) => socket.on('lichess_resumable', cb)); "
+        "delete window.__realLichessResumableHandlers; "
+        "}"
+    )
+
+
+@pytest.fixture
+def at_menu_resumable_ready(at_menu):
+    """`at_menu` — le vrai gestionnaire "lichess_resumable" est déjà détaché
+    pour toute la durée du module par `_detacher_lichess_resumable_reel`
+    ci-dessus (nécessaire pour utiliser `_declencher_lichess_resumable`
+    depuis le MENU PRINCIPAL, pas seulement depuis l'écran de configuration
+    Lichess) ; alias conservé pour que l'intention reste explicite dans les
+    tests ci-dessous."""
     return at_menu
 
 

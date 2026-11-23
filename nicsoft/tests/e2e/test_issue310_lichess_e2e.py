@@ -104,11 +104,12 @@ def _detacher_lichess_resumable_reel(page):
     ont réellement besoin).
 
     Le test `if (!window...)` avant de stasher protège contre le cas où un
-    fichier e2e antérieur (ex. test_issue333_lichess_menu_banner_e2e.py, qui
-    documente ce détachement comme délibéré et ne le restaure jamais) a déjà
-    détaché "lichess_resumable" sans restaurer : on réutilise alors sa
-    référence déjà capturée plutôt que de la perdre en stashant un tableau
-    vide (`socket.listeners()` ne retournerait plus rien)."""
+    fichier e2e antérieur détacherait "lichess_resumable" sans restaurer
+    (défensif depuis #374 : les cinq suites e2e Lichess — 310/323/333/344/366
+    — restaurent désormais toutes ce gestionnaire à la fin de leur module) :
+    on réutilise alors sa référence déjà capturée plutôt que de la perdre en
+    stashant un tableau vide (`socket.listeners()` ne retournerait plus
+    rien)."""
     page.evaluate(
         "() => { "
         "if (!window.__realLichessResumableHandlers) { "
