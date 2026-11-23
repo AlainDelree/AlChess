@@ -803,18 +803,36 @@ function _applyLichessPuzzleBoardState() {
 
 // Boutons/contrôles de l'écran Lichess qui exigent le réseau — mécanisme
 // générique `data-needs-network` (même pattern que `data-needs-board`,
-// issue #366), scopé à l'écran Lichess seul. btn-start-lichess et
-// btn-start-lichess-puzzle ne portent PAS cet attribut : ils sont déjà
-// gérés par des calculs dédiés ci-dessus (board ET jeton ET réseau
-// combinés) — leur ajouter aussi la boucle générique créerait un second
-// mécanisme écrasant parfois le premier selon l'ordre d'exécution.
+// issue #366), scopé à l'écran Lichess seul. btn-start-lichess,
+// btn-start-lichess-puzzle et cfg-lichess-rated ne portent PAS cet
+// attribut : ils sont déjà gérés par des calculs dédiés ci-dessus/ci-dessous
+// (board/type d'adversaire ET jeton ET réseau combinés) — leur ajouter aussi
+// la boucle générique créerait un second mécanisme écrasant parfois le
+// premier selon l'ordre d'exécution (issue #375 : une réponse réseau tardive
+// réactivait à tort cfg-lichess-rated alors que « Contre l'IA » était
+// sélectionné, la boucle générique ignorant cette autre raison d'être
+// désactivée).
 function _applyLichessNetworkState() {
   const banner = document.getElementById("lichess-network-banner");
   if (banner) banner.classList.toggle("hidden", _lichessNetworkAvailable);
   document.querySelectorAll("#screen-config-lichess [data-needs-network]").forEach(el => {
     el.disabled = !_lichessNetworkAvailable;
   });
-  _applyBoardBadge();
+  const ratedCheckbox = document.getElementById("cfg-lichess-rated");
+  if (ratedCheckbox) ratedCheckbox.disabled = _lichessOpponentType !== "human" || !_lichessNetworkAvailable;
+  // Recalcule uniquement ce qui dépend aussi du réseau (mêmes calculs que
+  // dans _applyBoardBadge()) — jamais _applyBoardBadge() en entier, dont
+  // _lichessPuzzleSyncDisplayMode() a un effet de bord (bascule automatique
+  // du mode problème) qui ne doit se déclencher qu'à un vrai changement de
+  // connectivité de l'échiquier, jamais à une simple (re)vérification
+  // réseau (issue #375 — les appelants de cette fonction, tous purement
+  // réseau, ré-exécutaient sinon cette bascule à un moment imprévisible et
+  // écrasaient un choix manuel de mode fait entre-temps par l'utilisateur ;
+  // l'entrée sur l'écran Lichess, qui a réellement besoin de
+  // _lichessPuzzleSyncDisplayMode(), l'appelle déjà elle-même séparément).
+  const btnStartLichess = document.getElementById("btn-start-lichess");
+  if (btnStartLichess) btnStartLichess.disabled = !_boardOk || !_lichessHasToken || !_lichessNetworkAvailable;
+  _applyLichessPuzzleBoardState();
 }
 
 // Déclenche une vérification serveur du réseau Lichess (issue #368, partie
@@ -4198,7 +4216,13 @@ function selectOpponentTypeLichess(type) {
   const ratedCheckbox = document.getElementById("cfg-lichess-rated");
   if (_lichessOpponentType === "human") {
     if (ratedRow) ratedRow.style.display = "";
-    if (ratedCheckbox) { ratedCheckbox.disabled = false; ratedCheckbox.checked = true; }
+    // Combine ici avec _lichessNetworkAvailable (plutôt que via l'attribut
+    // générique `data-needs-network`, retiré de #cfg-lichess-rated en HTML) :
+    // une réponse réseau tardive (_applyLichessNetworkState(), issue #375)
+    // ne doit jamais réactiver la case alors que « Contre l'IA » est
+    // sélectionné — même raison que le calcul déjà combiné de
+    // _applyLichessPuzzleBoardState() pour btn-start-lichess-puzzle.
+    if (ratedCheckbox) { ratedCheckbox.disabled = !_lichessNetworkAvailable; ratedCheckbox.checked = true; }
     _lichessRated = true;
   } else {
     if (ratedRow) ratedRow.style.display = "none";

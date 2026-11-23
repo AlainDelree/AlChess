@@ -298,6 +298,23 @@ def test_appjs_boutons_lancement_puzzle_et_partie_combinent_reseau():
     assert '!_lichessNetworkAvailable' in bloc_badge
 
 
+def test_appjs_case_classee_combine_type_adversaire_et_reseau():
+    """cfg-lichess-rated est aussi retiré de la boucle générique
+    data-needs-network (issue #375) : elle le réactivait sans condition dès
+    qu'une vérification réseau répondait, écrasant le grisage propre à
+    « Contre l'IA » posé par selectOpponentTypeLichess() — même défaut de
+    second mécanisme que celui déjà corrigé pour btn-start-lichess/
+    btn-start-lichess-puzzle par #368 (voir test ci-dessus). Son calcul
+    combiné (type d'adversaire ET réseau) vit dans selectOpponentTypeLichess()
+    et _applyLichessNetworkState()."""
+    js = APP_JS.read_text(encoding="utf-8")
+    bloc_select = js[js.index("function selectOpponentTypeLichess("):js.index("function lichessToggleRated(")]
+    assert "_lichessNetworkAvailable" in bloc_select
+    bloc_network = js[js.index("function _applyLichessNetworkState()"):]
+    assert 'cfg-lichess-rated' in bloc_network[:700]
+    assert "_lichessOpponentType" in bloc_network[:700]
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # 6. Câblage index.html — bandeau permanent (même style que le bandeau
 #    échiquier absent), caché par défaut, boutons/contrôles grisables.
@@ -325,11 +342,14 @@ def test_html_retour_ne_porte_jamais_data_needs_network():
 
 
 def test_html_boutons_lancement_grisables_sans_second_mecanisme():
-    """btn-start-lichess-puzzle et btn-start-lichess ne portent pas
-    data-needs-network dans le HTML (gérés par calcul dédié en JS, voir
-    test_appjs_boutons_lancement_puzzle_et_partie_combinent_reseau) —
-    tandis que les autres contrôles de lancement/choix de l'écran en
-    portent bien un (grisage générique)."""
+    """btn-start-lichess-puzzle, btn-start-lichess et cfg-lichess-rated ne
+    portent pas data-needs-network dans le HTML (gérés par calcul dédié en
+    JS — voir test_appjs_boutons_lancement_puzzle_et_partie_combinent_reseau
+    et test_appjs_case_classee_combine_type_adversaire_et_reseau ; retrait de
+    cfg-lichess-rated par #375, même défaut de second mécanisme que celui
+    déjà corrigé pour les deux boutons par #368) — tandis que les autres
+    contrôles de lancement/choix de l'écran en portent bien un (grisage
+    générique)."""
     import re
     html = HTML_PATH.read_text(encoding="utf-8")
     for btn_id in ("btn-start-lichess-puzzle", "btn-start-lichess"):
@@ -340,10 +360,15 @@ def test_html_boutons_lancement_grisables_sans_second_mecanisme():
     debut = html.index('id="screen-config-lichess"')
     fin = html.index('id="screen-lichess-seeking"')
     bloc_ecran = html[debut:fin]
+
+    bloc_rated = re.search(r'id="cfg-lichess-rated"[^>]*>', bloc_ecran)
+    assert bloc_rated, "#cfg-lichess-rated introuvable dans l'écran Lichess"
+    assert "data-needs-network" not in bloc_rated.group(0)
+
     controles_attendus = [
         "cfg-lichess-puzzle-mode-board", "cfg-lichess-puzzle-mode-virtual",
         "cfg-lichess-opponent-human", "cfg-lichess-opponent-ai",
-        "cfg-lichess-rated", "cfg-lichess-level", "cfg-lichess-cadence",
+        "cfg-lichess-level", "cfg-lichess-cadence",
         "cfg-lichess-white", "cfg-lichess-black", "cfg-lichess-random",
         "cfg-lichess-player",
     ]
