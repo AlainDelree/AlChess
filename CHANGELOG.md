@@ -27,6 +27,35 @@ Révélés par le garde + `filterwarnings` ci-dessus, dans des tests qui appelle
 
 ### Résultat
 
+Suite complète (`-m "not hardware" -p no:randomly`, tests de navigateur inclus) : verte. Deux échecs intermittents observés en cours de route (`test_issue344_lichess_rated_e2e.py::test_case_classee_masquee_contre_ia`, `test_issue366_puzzle_mode_autobascule_e2e.py::test_clic_manuel_echiquier_respecte_et_memorise`) — non reproductibles à l'identique sur une exécution propre, non liés à l'échiquier (deux mécanismes JS indépendants qui recalculent le même `disabled` sous charge/timing) ; notés pour une issue ultérieure, non corrigés ici (hors périmètre).
+
+# Changelog — Issue #372
+
+## Garde général : aucun test ne doit plus atteindre l'échiquier USB réel
+
+Constat d'Alain : le Chessnut Air branché bippait pendant la suite de tests (hook pre-push, issues CCL), AlChess fermé — preuve qu'au moins un test atteignait le vrai périphérique.
+
+### Garde (conftest.py)
+
+- `nicsoft/tests/conftest.py` : fixture autouse `_guard_no_real_board_access` — neutralise `hid.device()`/`hid.enumerate()` (unique point d'entrée de `nicsoft/niclink/hid_backend.py` vers le matériel USB/HID) pour tout test non marqué `hardware`. Une tentative réelle lève `RealBoardAccessError` (sous-classe directe de `BaseException`, pas `Exception`, pour traverser l'`except Exception` déjà présent dans `hid_backend.check_physically_present`), avec un message nommant le test et l'appel fautifs.
+- `pytest.ini` : `filterwarnings = error::pytest.PytestUnhandledThreadExceptionWarning` — un accès réel tenté depuis un fil d'arrière-plan (ex. `check_board_presence_silent`, lancé par les lanceurs Lichess/Humain en fin de partie) ne doit plus se limiter à un simple avertissement pytest ignoré : il échoue désormais le test.
+- Nouveau test de garde : `nicsoft/tests/test_issue372_board_guard.py` (blocage de `hid.device()`/`hid.enumerate()`, traversée de `check_physically_present()`, exemption du marqueur `hardware` vérifiée par identité d'objet — jamais par un vrai appel hidapi).
+- `nicsoft/tests/conftest.py` : fixture autouse `_stub_check_board_presence_silent` — les lanceurs Lichess (`launch_lichess`, `_launch_lichess_human`, `launch_lichess_resume`, `launch_lichess_puzzle`) et Humain (`_run_humain`) lancent chacun, en fin de partie, un fil `check_board_presence_silent()` (rafraîchit le badge « échiquier » du menu) qui atteignait le vrai `hid.enumerate()` dans un fil séparé, hors de portée d'un monkeypatch posé après l'appel — neutralisé par défaut ; les tests qui vérifient spécifiquement ce câblage (`test_issue299_*`) le repatchent localement avec leur propre trace, qui prévaut.
+- `nicsoft/tests/conftest.py` : fixture autouse `_guard_subprocess_skip_board` — filet de sécurité pour les sous-processus de test (`subprocess.Popen`, dont `subprocess.run`/`check_call`/`check_output` se servent tous) : pose `ALCHESS_SKIP_BOARD=1` dans l'environnement de tout sous-processus lancé pendant un test non « hardware », sans écraser une valeur déjà posée explicitement par le test. Tous les sous-processus `python -m nicsoft.web` existants (`nicsoft/tests/e2e/conftest.py`, `test_issue312_server_startup.py`, `test_issue320_single_instance.py`, `test_issue369_startup_js_guard.py`) posaient déjà cette variable eux-mêmes — ce filet couvre désormais aussi un futur test qui l'oublierait. Couvert par `test_issue372_board_guard.py` (capture des kwargs transmis à un faux `Popen` original, jamais de vrai sous-processus lancé pour « vérifier »).
+
+### Tests fautifs identifiés et corrigés
+
+Révélés par le garde + `filterwarnings` ci-dessus, dans des tests qui appellent directement `launch_lichess`/`_launch_lichess_human`/`launch_lichess_resume` sans mocker `check_board_presence_silent` (fil d'arrière-plan réel) : `test_issue310_lichess_corrections.py::test_enchainement_humain_puis_lichess_libere_l_echiquier`, `test_issue315_lichess_orientation.py::test_launch_lichess_couleur_aleatoire_est_resolue_avant_l_ecran_de_mise_en_place`, `test_issue330_lichess_random_color.py::test_partie_ia_continue_de_resoudre_aleatoire_localement`, `test_issue333_lichess_human_resume.py::test_launch_lichess_resume_transmet_la_couleur_de_la_liste` — et une quinzaine d'autres call sites latents (non observés en échec faute de timing défavorable à l'exécution, mais au même risque) dans `test_issue309_lichess_l2a.py`, `test_issue327_lichess_human.py`, `test_issue344_lichess_rated.py`, `test_issue354_lichess_puzzles_l3.py`, `test_issue323_lichess_resume.py`, `test_issue368_lichess_network.py`. Tous couverts par la fixture `_stub_check_board_presence_silent` ci-dessus (fix centralisé plutôt que 20 patches locaux dupliqués).
+
+- `nicsoft/tests/test_issue295_usb_exclusive_access.py::test_hid_backend_connect_deux_fois_ancien_handle_laisse_ouvert_reussit` : affectait `hid_backend.hid` directement (`hb.hid = hm`) sans jamais la restaurer — fuite d'état entre tests (le faux module périmé, itérateur épuisé, polluait les tests suivants). Remplacé par `monkeypatch.setattr`.
+
+### Correction annexe (#365, rapport de #371)
+
+- `nicsoft/tests/e2e/test_issue365_lichess_sans_echiquier_e2e.py` : détachait le vrai gestionnaire socket.io `lichess_resumable` sans jamais le rattacher (même défaut que celui corrigé par #371 pour `config_data` dans le fichier de #368). Ajout d'une fixture de module `_detacher_lichess_resumable_reel` qui le rattache à la fin, comme `config_data`.
+- Inspection simple (`socket.off` dans `nicsoft/tests/e2e/`), sans correction (hors périmètre explicite de cette issue, demandé en inspection seule) : `test_issue310_lichess_e2e.py`, `test_issue323_lichess_resume_e2e.py`, `test_issue344_lichess_rated_e2e.py` et `test_issue366_puzzle_mode_autobascule_e2e.py` détachent eux aussi `lichess_resumable` sans jamais le rattacher — même défaut que celui corrigé ici pour #365. Seul `test_issue333_lichess_menu_banner_e2e.py` documente ce choix comme délibéré (« irréversible pour le reste de la session ») ; les quatre autres n'en disent rien. `test_issue368_lichess_network_e2e.py` rattache correctement tout ce qu'il détache (`config_data` et une liste d'événements incluant `lichess_resumable`). À corriger dans une issue ultérieure (même correctif que celui appliqué ici à #365, trivial à répliquer).
+
+### Résultat
+
 Suite complète (`nicsoft/tests -m "not hardware" -p no:randomly`, tests de navigateur inclus) : verte (1770 passés, 86 ignorés, 1 désélectionné — le seul test `hardware`). Un échec intermittent observé en cours de route, non reproduit sur l'exécution finale propre : `test_issue309_lichess_l2a.py::test_partie_complete_jusqu_au_mat_sans_aucun_moteur` (timeout d'attente de fin de partie en fil séparé — le test documente déjà lui-même cette sensibilité au timing sous charge, issue #359 ; aucun lien avec l'échiquier ni avec les gardes ajoutés ici). `-p no:randomly` fixe l'ordre de collecte mais pas l'ordonnancement des fils : pas de graine à relever. Non corrigé (hors périmètre, pas de chasse aux tests intermittents demandée).
 
 # Changelog — Issue #371
