@@ -17,6 +17,7 @@ import os
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 import pytest
@@ -43,6 +44,11 @@ def _spawn_fake_process(with_alchess_marker: bool) -> int:
     script = f"import time  # {tag}\ntime.sleep(60)\n"
     # Exécutable et script fixes, écrits par ce test, sans entrée externe.
     proc = subprocess.Popen([sys.executable, "-c", script])  # noqa: S603  # nosec B603
+    # Sans un parent qui le "wait", un enfant tué reste zombie : os.kill(pid, 0)
+    # le voit encore "vivant" (mesuré : ~5s perdus par test, faute de reaper —
+    # issue #380). Un vrai parent (shell, systemd) le réclame vite ; ce thread
+    # fait pareil ici, pour que _pid_alive() reflète l'état réel en ~1ms.
+    threading.Thread(target=proc.wait, daemon=True).start()
     # Juste après Popen(), /proc/<pid>/cmdline peut encore être vide — fenêtre
     # noyau transitoire pendant l'exec, de l'ordre de la microseconde en
     # charge normale, mais mesurée nettement plus large sous charge (issue
@@ -73,12 +79,17 @@ def _wait_until(predicate, timeout_s=5.0, interval_s=0.1) -> bool:
 
 
 def _cleanup_pid(pid: int) -> None:
-    """Nettoyage de fin de test — toujours par ce PID précis."""
+    """Nettoyage de fin de test — toujours par ce PID précis.
+
+    Avec le reaper de `_spawn_fake_process`, l'arrêt réel mesuré est de
+    l'ordre de 1 à 2 ms (voir rapport #380) : 2.0s de filet de sécurité
+    laisse une marge de plus de 1000x avant de passer au SIGKILL, sans
+    jamais dépendre d'un plein délai de 5s comme avant."""
     try:
         os.kill(pid, signal.SIGTERM)
     except ProcessLookupError:
         return
-    _wait_until(lambda: not single_instance._pid_alive(pid), timeout_s=5.0)
+    _wait_until(lambda: not single_instance._pid_alive(pid), timeout_s=2.0)
     try:
         os.kill(pid, signal.SIGKILL)
     except ProcessLookupError:
