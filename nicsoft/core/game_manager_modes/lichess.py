@@ -860,6 +860,85 @@ _HUMAN_SEEK_ALLOWED_SPEEDS = frozenset({"rapid", "classical"})
 # sans que l'utilisateur le sache.
 _SEEK_CLOSED_GRACE_S = 5.0
 
+# Issue #383, point 3 (étude #382) : course structurelle entre deux fils de
+# SeekSession — `_mark_found()` (fil de lecture du flux d'évènements) ne
+# dépend jamais de `_cancelled`, par construction (seek.py) : si ce fil a
+# déjà lu `gameStart` au moment où CE fil-ci traite une demande de retour
+# au menu, `cancel()` devient un no-op (recherche déjà "trouvée") et
+# l'évènement "found" reste dans la file sans jamais être consommé — la
+# partie existe bel et bien chez Lichess, mais plus personne ne la joue
+# (risque établi par l'étude, non reproduit : un adversaire pourrait
+# attendre indéfiniment). Fenêtre bornée après cancel() pour repérer ce cas
+# précis — pas un délai réseau (déjà couvert par _SEEK_CLOSED_GRACE_S
+# ci-dessus, situation distincte) : seulement le temps qu'un évènement déjà
+# en cours de traitement dans l'autre fil termine d'être empilé.
+_ORPHAN_FOUND_GRACE_S = 1.0
+_ORPHAN_FOUND_POLL_STEP_S = 0.1
+
+
+def _reap_late_found_game(seek_session) -> dict | None:
+    """Draine la file d'évènements pendant une courte fenêtre bornée après
+    cancel() pour repérer un évènement "found" arrivé malgré l'annulation
+    (voir commentaire de _ORPHAN_FOUND_GRACE_S) — retourne le dict `game`
+    du gameStart si trouvé, sinon None (cas normal, largement majoritaire)."""
+    deadline = time.monotonic() + _ORPHAN_FOUND_GRACE_S
+    while time.monotonic() < deadline:
+        ev = seek_session.next_event(timeout=_ORPHAN_FOUND_POLL_STEP_S)
+        if ev is not None and ev.get("type") == "found":
+            return ev.get("game") or {}
+    return None
+
+
+def _abandon_orphan_game_after_cancel(client: GameClient, game: dict, game_log=None) -> None:
+    """Une partie a été trouvée par Lichess APRÈS que l'utilisateur a
+    annulé sa recherche (issue #383, point 3) — jamais laisser un
+    adversaire attendre un joueur qui ne viendra plus. Aucun coup n'a pu
+    être joué par personne à ce stade (gameStart précède toujours tout
+    coup) : abort() — le même mécanisme "moins de 2 coups" que
+    abandon_lichess_game ci-dessous — doit donc toujours réussir ; resign()
+    n'est qu'un filet de sécurité si Lichess le refusait malgré tout."""
+    game_id = game.get("id") or game.get("gameId") or ""
+    if not game_id:
+        logger_lichess.error(
+            "Lichess : partie trouvée après annulation de la recherche mais sans identifiant "
+            "exploitable dans l'évènement — impossible de l'annuler côté Lichess."
+        )
+        return
+    logger_lichess.error(
+        "Lichess : partie %s trouvée après annulation de la recherche par l'utilisateur — "
+        "annulation immédiate côté Lichess pour ne pas laisser un adversaire sans joueur.",
+        game_id,
+    )
+    if game_log is not None:
+        game_log.state_change(
+            f"partie {game_id} trouvée après annulation de la recherche — annulation immédiate."
+        )
+    try:
+        client.abort(game_id)
+    except (LichessApiError, LichessRateLimitError, LichessNetworkError) as exc:
+        logger_lichess.warning(
+            "Lichess : annulation de la partie orpheline %s refusée (%s) — tentative d'abandon.",
+            game_id, exc,
+        )
+        try:
+            client.resign(game_id)
+        except (LichessApiError, LichessRateLimitError, LichessNetworkError) as exc2:
+            logger_lichess.error(
+                "Lichess : abandon de secours de la partie orpheline %s également refusé (%s).",
+                game_id, exc2,
+            )
+
+
+def _cancel_seek_and_reap_orphan(seek_session, client: GameClient, game_log=None) -> None:
+    """Point d'appel unique pour les deux sorties "menu" de la recherche
+    humaine (boucle principale et attente de gameStart après seek_closed,
+    voir _run_lichess_human) — annule la recherche puis couvre la partie
+    orpheline éventuelle (issue #383, point 3)."""
+    seek_session.cancel()
+    orphan_game = _reap_late_found_game(seek_session)
+    if orphan_game:
+        _abandon_orphan_game_after_cancel(client, orphan_game, game_log)
+
 
 def _classify_seek_error_event(ev: dict) -> tuple:
     """Traduit l'évènement "error" poussé par SeekSession (seek.py,
@@ -1037,7 +1116,7 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
                 # _BackMenuDuringWait pour position_initiale/
                 # lichess_wait_first_move) : seul ce sondage de l'état
                 # détecte la demande depuis ce fil.
-                seek_session.cancel()
+                _cancel_seek_and_reap_orphan(seek_session, client, game_log)
                 raise _BackMenuDuringWait()
             ev = seek_session.next_event(timeout=0.2)
             now = time.monotonic()
@@ -1082,7 +1161,13 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
                 grace_deadline = time.monotonic() + _SEEK_CLOSED_GRACE_S
                 while found_game is None and time.monotonic() < grace_deadline:
                     if get_app_state() == "menu":
-                        break
+                        # Même annulation que le sondage principal ci-dessus
+                        # (issue #383, point 3) — sort directement plutôt que
+                        # de continuer vers la consultation de la liste des
+                        # parties en cours, déjà hors sujet pour un retour au
+                        # menu explicitement demandé par l'utilisateur.
+                        _cancel_seek_and_reap_orphan(seek_session, client, game_log)
+                        raise _BackMenuDuringWait()
                     ev2 = seek_session.next_event(timeout=0.2)
                     if ev2 is None:
                         continue
