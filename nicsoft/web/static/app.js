@@ -2386,6 +2386,27 @@ function _lichessSetClocksVisible(visible) {
   if (clockBottom) clockBottom.style.display = visible ? "" : "none";
 }
 
+// Issue #377, point 1 : pendant une coupure réseau, Lichess cesse d'envoyer
+// des mises à jour d'horloge — les valeurs affichées ne sont plus qu'une
+// extrapolation locale, potentiellement fausse si l'adversaire (toujours
+// connecté, lui) a joué pendant la coupure. Les deux pendules sont donc
+// marquées visuellement non fiables (grisées/hachurées + infobulle) dès
+// "lichess_reconnecting", et ce marquage est retiré dès "lichess_reconnected"
+// — réutilisation pure des évènements déjà émis par game.py, aucun nouveau
+// message serveur. Retiré aussi par _lichessHideStatusBanners() (jamais
+// bloqué : écran quitté en pleine coupure, resynchronisation par un nouveau
+// gameFull, ou fin de partie — tous les trois appellent déjà cette fonction).
+function _lichessSetClocksUnreliable(active) {
+  const clockTop = document.getElementById("clock-top");
+  const clockBottom = document.getElementById("clock-bottom");
+  const title = active ? t("lichess.horloge_non_fiable") : "";
+  [clockTop, clockBottom].forEach(el => {
+    if (!el) return;
+    el.classList.toggle("clock-unreliable", active);
+    el.title = title;
+  });
+}
+
 // Issue #344, point 3 / #349, partie 1, point 3 : classée/amicale +
 // nouvelle cote (et sa variation) à l'écran de fin de partie —
 // `newRating`/`ratingDiff` restent `null` tant que Lichess ne les a pas
@@ -2501,6 +2522,10 @@ function _lichessHideStatusBanners() {
   // à l'autre ni au retour au menu — cette fonction est déjà appelée dans
   // tous ces cas (voir ses appelants existants).
   _lichessUpdateOpponentGoneFrame();
+  // Issue #377, point 1 : mêmes appelants (retour menu en pleine coupure,
+  // resynchronisation par un nouveau gameFull, fin de partie) garantissent
+  // que le marquage des pendules ne reste jamais bloqué.
+  _lichessSetClocksUnreliable(false);
 }
 
 // Cadre autour de l'échiquier de l'écran tant que l'adversaire est parti
@@ -2800,10 +2825,12 @@ socket.on("lichess_clock", (data) => {
 
 socket.on("lichess_reconnecting", () => {
   _lichessShowBanner("lichess-reconnecting-banner", true);
+  _lichessSetClocksUnreliable(true);
 });
 
 socket.on("lichess_reconnected", () => {
   _lichessShowBanner("lichess-reconnecting-banner", false);
+  _lichessSetClocksUnreliable(false);
 });
 
 socket.on("lichess_board_lost", () => {

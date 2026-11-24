@@ -1783,6 +1783,14 @@
 .lichess-clock { font-family: monospace; font-weight:700; margin-left:10px; padding:2px 10px; border-radius:6px; background:#1a2a3a; color:#fff; }
 .lichess-clock.is-turn { background:#2a6a3a; }
 .lichess-clock.is-low { background:#7b1a1a; }
+/* Issue #377, point 1 : horloge non fiable pendant une coupure réseau —
+   hachures grises par-dessus la couleur de fond habituelle (turn/low restent
+   visibles dessous), jamais confondue avec is-turn/is-low. */
+.lichess-clock.clock-unreliable {
+  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 6px, rgba(255,255,255,0.05) 6px 12px);
+  color:#d0d0d0;
+  opacity:0.75;
+}
 .lichess-cfg-disclaimer { color:#3a5a7a; font-size:0.9rem; margin:0 0 14px; }
 .lichess-draw-offer-banner, .lichess-promotion-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px; }
 /* Messages de nulle persistants (issue #321, point 3) — en gros caractères,

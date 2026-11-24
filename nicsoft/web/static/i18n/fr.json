@@ -768,6 +768,7 @@
   "lichess.menu_verrouille": "Partie Lichess en cours — terminez-la avant de changer de mode.",
   "lichess.erreur_reseau": "Connexion à Lichess impossible pour le moment.",
   "lichess.erreur_reseau_retablie": "Connexion à Lichess rétablie.",
+  "lichess.horloge_non_fiable": "Horloge non fiable pendant la coupure réseau — l'adversaire a pu jouer sans que ce temps soit à jour.",
   "lichess.coup_refuse": "Lichess a refusé ce coup — remettez la pièce à sa place.",
   "lichess.coup_refuse_detail": "Lichess a refusé ce coup ({detail}) — remettez la pièce à sa place.",
   "lichess.attente_premier_coup.titre": "À vous de jouer !",
