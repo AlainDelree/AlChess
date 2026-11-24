@@ -29,6 +29,12 @@ Constat (détail dans le rapport de clôture) :
   - Fin de partie pendant/après une coupure : aucun changement nécessaire,
     déjà couvert par les tests existants de fin de partie (_finalize) —
     non retesté ici.
+  - Faux « coup refusé » (réponse HTTP perdue après un envoi en fait
+    accepté) : documenté ci-dessous comme « gap connu » jusqu'à l'issue
+    #377, qui l'a corrigé (_handle_move_rejected::_move_already_applied) —
+    voir test_double_envoi_apres_reponse_perdue_confirmee_pendant_la_relecture_najamais_de_faux_refus
+    et test_vrai_refus_apres_relecture_sans_confirmation_affiche_toujours_lerreur
+    ci-dessous.
 
 Entièrement sans réseau (FakeTransport) et sans matériel (FakeBoard), sur
 le même modèle que test_issue309_lichess_l2a.py.
@@ -217,22 +223,55 @@ def test_coup_physique_reussi_sans_coupure_najamais_toast_de_retablissement(monk
     assert _events_of(events, "lichess_toast") == []
 
 
-def test_double_envoi_apres_reponse_perdue_produit_un_faux_coup_refuse_gap_connu(monkeypatch):
-    """Constat (issue #368, partie 2 — voir rapport de clôture), PAS
-    corrigé ici (risque trop élevé pour une correction bornée) : si la
-    réponse HTTP d'un coup en fait accepté par Lichess se perd (coupure
-    juste après l'envoi), le coup est réessayé avec le même uci ; Lichess
-    refuse ce second essai (déjà son tour) avec le message ambigu HTTP
-    400. `_handle_move_rejected` relit alors le flux pendant
-    AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S, mais seulement pour détecter une
-    FIN de partie — si la partie continue (adversaire n'a pas encore
-    rejoué), un "coup refusé" s'affiche quand même après ce délai, même si
-    le PREMIER envoi avait réussi. Documenté avec une proposition de
-    correction dans le rapport de clôture plutôt qu'implémenté."""
+def test_double_envoi_apres_reponse_perdue_confirmee_pendant_la_relecture_najamais_de_faux_refus(monkeypatch):
+    """Issue #377, point 2 (suite de #368) — correction du « gap connu »
+    documenté auparavant ici : si la réponse HTTP d'un coup en fait accepté
+    par Lichess se perd (coupure juste après l'envoi), le coup est réessayé
+    avec le même uci ; Lichess refuse ce second essai (déjà son tour) avec
+    le message ambigu HTTP 400. Si le flux confirme ce même coup PENDANT la
+    relecture bornée (AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S) — ici simulé en
+    plaçant directement le coup déjà appliqué à self.board et son auteur
+    avant l'appel, comme le ferait _apply_new_moves en traitant un
+    événement du flux déjà en route — aucun message d'erreur ni aucune
+    demande de remettre la pièce en place ne doit s'afficher : succès
+    silencieux, le coup n'est pas perdu."""
+    import chess as _chess
     from nicsoft.modes.lichess.errors import LichessApiError
     events, _actions = _make_recorder(monkeypatch)
     game, client = _make_game(FakeTransport())
     monkeypatch.setattr(game, "AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S", 0.05)  # délai réel réduit, test rapide
+    game.user_color = "white"
+
+    def fake_play_move(game_id, uci, offer_draw=False):
+        raise LichessApiError(400, "Not your turn, or game already over")
+
+    monkeypatch.setattr(client, "play_move", fake_play_move)
+
+    def fake_drain(timeout_s):
+        # Simule le flux confirmant notre coup pendant la relecture bornée
+        # (comme le ferait un vrai gameState traité par _apply_new_moves).
+        game.board.push(_chess.Move.from_uci("e2e4"))
+        game._last_move_mover_color = "white"
+
+    monkeypatch.setattr(game, "_drain_pending_stream_events", fake_drain)
+
+    game._submit_move("e2e4")
+
+    assert _events_of(events, "lichess_move_refused") == []
+    assert game.board.move_stack[-1].uci() == "e2e4"
+
+
+def test_vrai_refus_apres_relecture_sans_confirmation_affiche_toujours_lerreur(monkeypatch):
+    """Non-régression de la correction ci-dessus : si la relecture bornée
+    ne confirme JAMAIS notre coup (ni une fin de partie) — vrai refus,
+    position réellement désynchronisée ou coup réellement illégal — le
+    comportement existant reste inchangé : message d'erreur affiché,
+    remise en place physique demandée."""
+    from nicsoft.modes.lichess.errors import LichessApiError
+    events, _actions = _make_recorder(monkeypatch)
+    game, client = _make_game(FakeTransport())
+    monkeypatch.setattr(game, "AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S", 0.05)  # délai réel réduit, test rapide
+    game.user_color = "white"
 
     def fake_play_move(game_id, uci, offer_draw=False):
         raise LichessApiError(400, "Not your turn, or game already over")
@@ -241,7 +280,10 @@ def test_double_envoi_apres_reponse_perdue_produit_un_faux_coup_refuse_gap_connu
 
     game._submit_move("e2e4")
 
-    assert _events_of(events, "lichess_move_refused") != []
+    refused = _events_of(events, "lichess_move_refused")
+    assert len(refused) == 1
+    assert game._awaiting_piece_reset is True
+    assert game.board.move_stack == []
 
 
 # ═══════════════════════════════════════════════════════════════════════

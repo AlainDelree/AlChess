@@ -2225,6 +2225,21 @@ class LichessGame(threading.Thread):
     # avant la réponse HTTP d'erreur du coup — largement sous ce délai.
     AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S = 2.0
 
+    def _move_already_applied(self, uci: str) -> bool:
+        """Issue #377, point 2 : vrai si `uci` est déjà le dernier coup
+        appliqué à self.board (seule source de vérité de ce module) par le
+        flux — c'est-à-dire si l'envoi initial avait en réalité réussi et que
+        seule la réponse HTTP s'est perdue (coupure juste après l'envoi).
+        Compare aussi l'auteur : un coup de l'adversaire portant le même uci
+        que le nôtre par coïncidence ne doit jamais être pris pour notre
+        propre coup confirmé."""
+        if not self.board.move_stack:
+            return False
+        return (
+            self.board.move_stack[-1].uci() == uci
+            and self._last_move_mover_color == self.user_color
+        )
+
     def _handle_move_rejected(self, uci: str, exc: LichessApiError) -> None:
         """Issue #347, point 2 (partie 2) : un coup refusé par Lichess avec
         le message HTTP 400 ambigu « Not your turn, or game already over »
@@ -2238,6 +2253,22 @@ class LichessGame(threading.Thread):
         millisecondes avant que Lichess reçoive son coup ; Alain a gagné,
         mais l'écran n'a montré qu'un coup refusé.
 
+        Issue #377, point 2 (suite de #368) : le même refus ambigu couvre
+        aussi un troisième cas, jamais distingué avant cette issue — notre
+        propre envoi avait en fait été accepté par Lichess, mais seule la
+        réponse HTTP s'est perdue (coupure juste après l'envoi) ; _submit_move
+        réessaie alors automatiquement le même uci, que Lichess refuse (déjà
+        son tour) avec ce même message ambigu. Si la partie continue
+        (l'adversaire n'a pas encore rejoué), l'ancien code concluait à tort
+        à une vraie erreur après le délai d'attente ci-dessous — documenté
+        comme « gap connu » par test_issue368_lichess_game_network_loss.py
+        avant cette correction. Le renvoi lui-même ne change pas (Lichess
+        refuse toujours le doublon, jamais de risque de rejouer le coup) :
+        c'est uniquement l'affichage qui est corrigé, en testant si `uci` est
+        déjà le dernier coup appliqué à self.board (voir
+        _move_already_applied) — si oui, succès silencieux, aucun message
+        d'erreur, aucune demande de remettre la pièce en place.
+
         Message non ambigu (coup réellement illégal, position désynchro-
         nisée, etc.) : comportement inchangé (toast + remise en place
         physique demandée). Message ambigu : on relit l'état réel de la
@@ -2245,15 +2276,16 @@ class LichessGame(threading.Thread):
         fichier) — en traitant tout événement déjà en route dans le flux
         ouvert, avec une attente bornée (jamais indéfinie, voir
         AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S) pour couvrir le cas où
-        l'événement de fin n'est pas encore arrivé. Si la partie est
-        confirmée terminée, le déroulement normal de fin de partie prend
-        le relais (_finalize, déclenché par _main_loop dès que
-        self.game_over devient vrai) — AUCUN toast « coup refusé » n'est
-        affiché dans ce cas, mais self._last_move_rejected_after_game_over
-        est posé pour que l'écran de fin précise que ce dernier coup
-        physique n'a pas été accepté (le PGN enregistré ne le contient de
-        toute façon jamais : _submit_move ne pousse jamais le coup sur
-        self.board avant confirmation par le flux)."""
+        l'événement de fin (ou la confirmation de notre propre coup) n'est
+        pas encore arrivé. Si la partie est confirmée terminée, le
+        déroulement normal de fin de partie prend le relais (_finalize,
+        déclenché par _main_loop dès que self.game_over devient vrai) —
+        AUCUN toast « coup refusé » n'est affiché dans ce cas, mais
+        self._last_move_rejected_after_game_over est posé pour que l'écran
+        de fin précise que ce dernier coup physique n'a pas été accepté (le
+        PGN enregistré ne le contient de toute façon jamais : _submit_move
+        ne pousse jamais le coup sur self.board avant confirmation par le
+        flux)."""
         message = exc.api_message or str(exc)
         self._game_log.state_change(
             f"coup physique {uci} — refusé par Lichess (HTTP {exc.status_code}) : {message}."
@@ -2261,6 +2293,12 @@ class LichessGame(threading.Thread):
         ambiguous = is_ambiguous_turn_or_over_error(message)
         if ambiguous and not self.game_over:
             self._drain_pending_stream_events(self.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S)
+        if ambiguous and self._move_already_applied(uci):
+            self._game_log.state_change(
+                f"coup physique {uci} — relecture du flux : déjà appliqué (réponse HTTP perdue "
+                f"après acceptation réelle par Lichess) — succès silencieux, aucune erreur affichée."
+            )
+            return
         if ambiguous and self.game_over:
             self._last_move_rejected_after_game_over = True
             self._game_log.state_change(
