@@ -34,6 +34,15 @@ Constat (détail dans le rapport de clôture) :
     #377, qui l'a corrigé (_handle_move_rejected::_move_already_applied) —
     voir test_double_envoi_apres_reponse_perdue_confirmee_pendant_la_relecture_najamais_de_faux_refus
     et test_vrai_refus_apres_relecture_sans_confirmation_affiche_toujours_lerreur
+    ci-dessous. Issue #384, point 1 (suite de #377) : la reconnaissance ne
+    devait pas dépendre de la position du coup en fin de liste — si
+    l'adversaire avait déjà répondu pendant la relecture (très probable
+    contre l'IA Lichess), le dernier coup était le sien, pas le nôtre, et
+    le faux refus réapparaissait. Corrigé en comparant à la place attendue
+    (expected_ply, le demi-coup où le joueur devait jouer) plutôt qu'au
+    dernier coup de la liste — voir
+    test_confirmation_et_reponse_adverse_pendant_la_relecture_najamais_de_faux_refus
+    et test_coup_identique_joue_plus_tot_najamais_pris_pour_la_confirmation
     ci-dessous.
 
 Entièrement sans réseau (FakeTransport) et sans matériel (FakeBoard), sur
@@ -259,6 +268,86 @@ def test_double_envoi_apres_reponse_perdue_confirmee_pendant_la_relecture_najama
 
     assert _events_of(events, "lichess_move_refused") == []
     assert game.board.move_stack[-1].uci() == "e2e4"
+
+
+def test_confirmation_et_reponse_adverse_pendant_la_relecture_najamais_de_faux_refus(monkeypatch):
+    """Issue #384, point 1 — scénario exact décrit par l'énoncé : le flux
+    confirme notre coup (e2e4) MAIS apporte aussi, pendant la même
+    relecture bornée, la réponse immédiate de l'adversaire (e7e5, très
+    probable contre l'IA Lichess qui répond presque aussitôt). Le DERNIER
+    coup de self.board.move_stack est alors celui de l'adversaire, jamais
+    le nôtre — l'ancienne vérification (uniquement move_stack[-1])
+    affichait donc à tort un faux « coup refusé ». La reconnaissance doit
+    se faire à la place attendue (expected_ply = demi-coup où le joueur
+    devait jouer), pas en fin de liste."""
+    import chess as _chess
+    from nicsoft.modes.lichess.errors import LichessApiError
+    events, _actions = _make_recorder(monkeypatch)
+    game, client = _make_game(FakeTransport())
+    monkeypatch.setattr(game, "AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S", 0.05)  # délai réel réduit, test rapide
+    game.user_color = "white"
+
+    def fake_play_move(game_id, uci, offer_draw=False):
+        raise LichessApiError(400, "Not your turn, or game already over")
+
+    monkeypatch.setattr(client, "play_move", fake_play_move)
+
+    def fake_drain(timeout_s):
+        # Confirme notre coup (e2e4) puis, immédiatement, la réponse de
+        # l'adversaire (e7e5) — comme le ferait un vrai gameState traité
+        # par _apply_new_moves pendant la relecture bornée.
+        game.board.push(_chess.Move.from_uci("e2e4"))
+        game._last_move_mover_color = "white"
+        game.board.push(_chess.Move.from_uci("e7e5"))
+        game._last_move_mover_color = "black"
+
+    monkeypatch.setattr(game, "_drain_pending_stream_events", fake_drain)
+
+    game._submit_move("e2e4")
+
+    assert _events_of(events, "lichess_move_refused") == []
+    assert game.board.move_stack[0].uci() == "e2e4"
+    assert game.board.move_stack[-1].uci() == "e7e5"  # réponse adverse déjà là
+
+
+def test_coup_identique_joue_plus_tot_najamais_pris_pour_la_confirmation(monkeypatch):
+    """Issue #384, point 1 — piège inverse signalé par l'énoncé : un coup
+    identique (même notation uci), par exemple un cavalier qui part puis
+    revient, peut avoir été joué PLUS TÔT dans la partie. Un refus ambigu
+    sur ce même uci, tenté à nouveau à une autre place, ne doit JAMAIS être
+    confirmé par ce coup plus ancien — seule la place attendue
+    (expected_ply) compte, jamais une recherche du uci n'importe où dans
+    l'historique."""
+    from nicsoft.modes.lichess.errors import LichessApiError
+    events, _actions = _make_recorder(monkeypatch)
+    game, client = _make_game(FakeTransport())
+    monkeypatch.setattr(game, "AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S", 0.05)  # délai réel réduit, test rapide
+    game.user_color = "white"
+
+    # "g1f3" déjà joué par l'utilisateur tout au début de la partie
+    # (ply 0), suivi de la réponse adverse (ply 1) — décoi délibéré, placé
+    # directement dans move_stack comme le ferait une position déjà avancée.
+    decoy_mine = chess.Move.from_uci("g1f3")
+    decoy_opponent = chess.Move.from_uci("b8c6")
+    game.board.move_stack = [decoy_mine, decoy_opponent]
+    game._moves_applied = 2
+
+    def fake_play_move(game_id, uci, offer_draw=False):
+        raise LichessApiError(400, "Not your turn, or game already over")
+
+    monkeypatch.setattr(client, "play_move", fake_play_move)
+    # La relecture ne confirme rien de nouveau : notre nouvel envoi (même
+    # notation "g1f3" que le tout premier coup, par coïncidence) n'a pas
+    # été réellement accepté par Lichess cette fois.
+    monkeypatch.setattr(game, "_drain_pending_stream_events", lambda timeout_s: None)
+
+    game._submit_move("g1f3")
+
+    refused = _events_of(events, "lichess_move_refused")
+    assert len(refused) == 1
+    assert game._awaiting_piece_reset is True
+    # Le décoi du ply 0 n'a jamais été réutilisé pour confirmer ce nouvel envoi.
+    assert len(game.board.move_stack) == 2
 
 
 def test_vrai_refus_apres_relecture_sans_confirmation_affiche_toujours_lerreur(monkeypatch):

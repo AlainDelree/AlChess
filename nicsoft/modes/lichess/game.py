@@ -2169,6 +2169,15 @@ class LichessGame(threading.Thread):
 
     def _submit_move(self, uci: str) -> None:
         offer_draw = self._my_draw_offer_pending
+        # Issue #384, point 1 : demi-coup attendu pour CE coup — sa place
+        # dans self.board.move_stack si Lichess l'accepte (_check_user_move
+        # n'appelle _submit_move que pendant le tour de l'utilisateur, donc
+        # cette place correspond toujours à self.user_color, jamais besoin
+        # de vérifier l'auteur séparément). Capturé AVANT l'envoi : un
+        # retry automatique du même uci (réseau revenu, voir plus bas)
+        # retrouve la même place puisque self.board n'avance que par l'écho
+        # confirmé du flux, jamais ici.
+        expected_ply = len(self.board.move_stack)
         try:
             # Une offre de nulle en attente doit partir AVEC ce coup
             # (paramètre offeringDraw) pour rester valable : sans lui,
@@ -2198,7 +2207,7 @@ class LichessGame(threading.Thread):
             if not self._opponent_is_ai:
                 self._human_draw_window_open = True
         except LichessApiError as exc:
-            self._handle_move_rejected(uci, exc)
+            self._handle_move_rejected(uci, exc, expected_ply)
         except (LichessNetworkError, LichessRateLimitError) as exc:
             # Issue #368, partie 2 : le coup physique n'est PAS perdu — il
             # reste détecté comme "différent de self.board" à chaque tick
@@ -2225,22 +2234,28 @@ class LichessGame(threading.Thread):
     # avant la réponse HTTP d'erreur du coup — largement sous ce délai.
     AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S = 2.0
 
-    def _move_already_applied(self, uci: str) -> bool:
-        """Issue #377, point 2 : vrai si `uci` est déjà le dernier coup
-        appliqué à self.board (seule source de vérité de ce module) par le
-        flux — c'est-à-dire si l'envoi initial avait en réalité réussi et que
-        seule la réponse HTTP s'est perdue (coupure juste après l'envoi).
-        Compare aussi l'auteur : un coup de l'adversaire portant le même uci
-        que le nôtre par coïncidence ne doit jamais être pris pour notre
-        propre coup confirmé."""
-        if not self.board.move_stack:
+    def _move_already_applied(self, uci: str, expected_ply: int) -> bool:
+        """Issue #377, point 2, corrigé par #384 point 1 : vrai si `uci` a
+        bien été appliqué à self.board (seule source de vérité de ce
+        module) par le flux, À SA PLACE ATTENDUE `expected_ply` — le demi-
+        coup où le joueur devait jouer au moment de l'envoi (voir
+        _submit_move) — c'est-à-dire si l'envoi initial avait en réalité
+        réussi et que seule la réponse HTTP s'est perdue (coupure juste
+        après l'envoi). Vérifier CETTE place précise (jamais seulement le
+        dernier coup de la liste) couvre le cas où l'adversaire a déjà
+        répondu pendant la relecture bornée du flux (très probable contre
+        l'IA Lichess) ET écarte le piège inverse : un coup identique
+        (même notation uci) joué plus tôt dans la partie, à une autre
+        place, ne doit jamais être pris pour cette confirmation. Comme
+        _submit_move n'est appelé que pendant le tour de l'utilisateur
+        (self.board.turn == self.user_color à ce moment), cette place
+        correspond toujours à l'utilisateur — inutile de revérifier
+        l'auteur séparément."""
+        if expected_ply >= len(self.board.move_stack):
             return False
-        return (
-            self.board.move_stack[-1].uci() == uci
-            and self._last_move_mover_color == self.user_color
-        )
+        return self.board.move_stack[expected_ply].uci() == uci
 
-    def _handle_move_rejected(self, uci: str, exc: LichessApiError) -> None:
+    def _handle_move_rejected(self, uci: str, exc: LichessApiError, expected_ply: int) -> None:
         """Issue #347, point 2 (partie 2) : un coup refusé par Lichess avec
         le message HTTP 400 ambigu « Not your turn, or game already over »
         (doc officielle lichess-org/api — un seul message pour deux causes
@@ -2265,9 +2280,12 @@ class LichessGame(threading.Thread):
         avant cette correction. Le renvoi lui-même ne change pas (Lichess
         refuse toujours le doublon, jamais de risque de rejouer le coup) :
         c'est uniquement l'affichage qui est corrigé, en testant si `uci` est
-        déjà le dernier coup appliqué à self.board (voir
-        _move_already_applied) — si oui, succès silencieux, aucun message
-        d'erreur, aucune demande de remettre la pièce en place.
+        déjà appliqué à self.board à sa place attendue `expected_ply` (voir
+        _move_already_applied — corrigé par #384 point 1 : ne dépend plus
+        de la position du coup en fin de liste, car l'adversaire a pu
+        répondre entre-temps pendant la relecture) — si oui, succès
+        silencieux, aucun message d'erreur, aucune demande de remettre la
+        pièce en place.
 
         Message non ambigu (coup réellement illégal, position désynchro-
         nisée, etc.) : comportement inchangé (toast + remise en place
@@ -2293,7 +2311,7 @@ class LichessGame(threading.Thread):
         ambiguous = is_ambiguous_turn_or_over_error(message)
         if ambiguous and not self.game_over:
             self._drain_pending_stream_events(self.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S)
-        if ambiguous and self._move_already_applied(uci):
+        if ambiguous and self._move_already_applied(uci, expected_ply):
             self._game_log.state_change(
                 f"coup physique {uci} — relecture du flux : déjà appliqué (réponse HTTP perdue "
                 f"après acceptation réelle par Lichess) — succès silencieux, aucune erreur affichée."
