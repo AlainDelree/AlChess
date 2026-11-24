@@ -751,7 +751,7 @@
   "banner.lichess_network_absent": "No internet connection: Lichess is unavailable (games and puzzles). Check your connection — everything reactivates automatically once it's back.",
   "lichess.vous": "You",
   "lichess.ia_niveau": "Lichess AI (level {level})",
-  "lichess.reconnexion": "Connection to Lichess lost, reconnecting…",
+  "lichess.reconnexion": "Connection to Lichess lost, reconnecting… The game stays manageable on lichess.org (play, claim, resign).",
   "lichess.echiquier_perdu": "Board lost — the game continues on lichess.org. Reconnect the board or resign.",
   "lichess.reconnexion_echiquier": "Reconnecting the board…",
   "lichess.coup_non_reconnu": "Move not recognized: put the piece back or play a legal move ({squares}).",

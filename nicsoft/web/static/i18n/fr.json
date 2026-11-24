@@ -751,7 +751,7 @@
   "banner.lichess_network_absent": "Pas de connexion internet : Lichess est indisponible (parties et problèmes). Vérifiez votre connexion — tout redevient actif automatiquement dès qu'elle est rétablie.",
   "lichess.vous": "Vous",
   "lichess.ia_niveau": "IA de Lichess (niveau {level})",
-  "lichess.reconnexion": "Connexion à Lichess perdue, reconnexion…",
+  "lichess.reconnexion": "Connexion à Lichess perdue, reconnexion… La partie reste gérable sur lichess.org (jouer, réclamer, abandonner).",
   "lichess.echiquier_perdu": "Échiquier perdu — la partie continue sur lichess.org. Reconnectez l'échiquier ou abandonnez.",
   "lichess.reconnexion_echiquier": "Reconnexion de l'échiquier…",
   "lichess.coup_non_reconnu": "Coup non reconnu : remettez la pièce ou jouez un coup légal ({squares}).",

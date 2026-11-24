@@ -751,7 +751,7 @@
   "banner.lichess_network_absent": "Keine Internetverbindung: Lichess ist nicht verfügbar (Partien und Aufgaben). Prüfen Sie Ihre Verbindung — alles aktiviert sich automatisch wieder, sobald sie wiederhergestellt ist.",
   "lichess.vous": "Sie",
   "lichess.ia_niveau": "Lichess-KI (Stufe {level})",
-  "lichess.reconnexion": "Verbindung zu Lichess verloren, Wiederverbindung…",
+  "lichess.reconnexion": "Verbindung zu Lichess verloren, Wiederverbindung… Die Partie bleibt auf lichess.org spielbar (spielen, beanspruchen, aufgeben).",
   "lichess.echiquier_perdu": "Brett verloren — die Partie läuft auf lichess.org weiter. Verbinden Sie das Brett erneut oder geben Sie auf.",
   "lichess.reconnexion_echiquier": "Brett wird neu verbunden…",
   "lichess.coup_non_reconnu": "Zug nicht erkannt: Figur zurücksetzen oder einen legalen Zug spielen ({squares}).",
