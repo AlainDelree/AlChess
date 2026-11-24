@@ -87,6 +87,10 @@ _TOAST_MESSAGES = {
     ),
     "toast.lichess_indisponible":         "Lichess est indisponible pour le moment — réessayez plus tard.",
     "toast.lichess_rate_limited_detail":  "Lichess limite les demandes — réessayez dans un instant.",
+    "toast.lichess_arret_bloque": (
+        "Lichess : l'arrêt de la session a pris trop de temps — retour au menu forcé. "
+        "Si le problème persiste, redémarrez l'application."
+    ),
 }
 
 

@@ -369,6 +369,7 @@
   "toast.lichess_seek_sans_adversaire": "La recherche s'est arrêtée sans adversaire.",
   "toast.lichess_seek_partie_non_ouverte": "Un adversaire a été trouvé, mais la partie n'a pas pu s'ouvrir normalement.",
   "toast.lichess_mode_actif": "Terminez ou quittez la partie en cours avant de lancer un nouveau mode.",
+  "toast.lichess_arret_bloque": "Lichess : l'arrêt de la session a pris trop de temps — retour au menu forcé. Si le problème persiste, redémarrez l'application.",
   "toast.lichess_partie_en_cours_refus": "Une partie Lichess est déjà en cours sur ce compte — terminez-la avant d'en commencer une autre.",
   "toast.lichess_draw_sent": "Proposition de nulle envoyée.",
   "toast.lichess_draw_refused": "Nulle refusée.",

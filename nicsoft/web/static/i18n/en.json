@@ -369,6 +369,7 @@
   "toast.lichess_seek_sans_adversaire": "The search ended without finding an opponent.",
   "toast.lichess_seek_partie_non_ouverte": "An opponent was found, but the game could not open normally.",
   "toast.lichess_mode_actif": "Finish or quit the current game before starting a new mode.",
+  "toast.lichess_arret_bloque": "Lichess: the session took too long to stop — forced return to menu. If this keeps happening, restart the application.",
   "toast.lichess_partie_en_cours_refus": "A Lichess game is already in progress on this account — finish it before starting another one.",
   "toast.lichess_draw_sent": "Draw offer sent.",
   "toast.lichess_draw_refused": "Draw declined.",

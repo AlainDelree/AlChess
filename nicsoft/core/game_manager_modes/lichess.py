@@ -528,6 +528,63 @@ def _wait_first_move_white_lichess(nl_inst, legal_move_for_hardware) -> str:
         time.sleep(0.05)
 
 
+# Issue #383, point 1 : attente bornée de l'ARRÊT d'un fil de lanceur
+# Lichess (recherche humaine, IA, reprise, problèmes) — jamais de la
+# partie elle-même : tant que l'état applicatif reste actif ("connecting",
+# "lichess_seeking", "playing", "paused"), aucune limite n'est imposée, une
+# partie amicale ou classée pouvant durer plusieurs heures. La borne ne
+# démarre qu'à l'instant où l'état quitte ces valeurs actives — c'est-à-dire
+# après une demande de sortie de l'utilisateur ("back_menu" bascule déjà
+# _app_state à "menu" dès le clic, voir server.py::on_action, avant même que
+# ce fil n'ait fini son nettoyage) ou la fin naturelle de la partie
+# (LichessGame bascule _app_state à "game_over" avant de retourner, voir
+# game.py). Valeur choisie (15s) : seule mesure réelle disponible pour ce
+# nettoyage (essai du 13/11/2026, issue #319 — poignée de main USB 2,2s +
+# libération échiquier, l'ensemble sous 5s), multipliée par une marge large
+# pour couvrir aussi la fermeture des flux réseau (point 2 ci-dessous) sans
+# laisser l'utilisateur plusieurs dizaines de secondes devant un écran figé.
+_LICHESS_STOP_TIMEOUT_S = 15.0
+_LICHESS_ACTIVE_STATES = ("connecting", "lichess_seeking", "playing", "paused", "lichess_puzzle_playing")
+
+
+def _join_lichess_launcher_thread(t: threading.Thread, label: str) -> bool:
+    """Attend la fin du fil `t` d'un lanceur Lichess — voir le commentaire
+    ci-dessus pour la distinction entre partie active (jamais bornée) et
+    phase d'arrêt (bornée à _LICHESS_STOP_TIMEOUT_S). Retourne True si le
+    fil s'est terminé normalement ; False s'il a été abandonné après le
+    délai, auquel cas l'appelant doit s'arrêter immédiatement (l'état
+    applicatif, le toast d'erreur et le rafraîchissement de l'échiquier sont
+    déjà pris en charge ici) — ne JAMAIS relire `_error` dans ce cas, le fil
+    abandonné pouvant encore y écrire. `t` reste toujours daemon=True côté
+    appelant : un fil abandonné ne bloque jamais l'arrêt du programme
+    (Ctrl+C / SIGTERM)."""
+    stop_deadline = None
+    while t.is_alive():
+        if stop_deadline is None and web_server._app_state not in _LICHESS_ACTIVE_STATES:
+            stop_deadline = time.monotonic() + _LICHESS_STOP_TIMEOUT_S
+        if stop_deadline is not None and time.monotonic() >= stop_deadline:
+            logger_lichess.error(
+                "Lichess : arrêt du fil '%s' non terminé %.0fs après la sortie demandée "
+                "(état actuel=%s) — abandon du fil, retour forcé au menu.",
+                label, _LICHESS_STOP_TIMEOUT_S, web_server._app_state,
+            )
+            # Libère ce qui peut l'être sans toucher au fil abandonné :
+            # jamais d'appel nl_inst.disconnect()/turn_off_all_leds() d'ici
+            # (le fil abandonné peut encore le détenir — un second accès
+            # concurrent violerait la règle d'accès USB exclusif) ; la
+            # référence partagée est simplement effacée pour qu'aucun autre
+            # code ne la croie valide, et le prochain create_board() (règle
+            # existante de hid_backend.py : la nouvelle connexion ferme
+            # l'ancienne) reprendra la main sur l'échiquier physique.
+            set_nl_inst_ref(None)
+            web_server._app_state = "menu"
+            set_app_state("menu", _menu_toast_data("toast.lichess_arret_bloque", persistent=True))
+            threading.Thread(target=check_board_presence_silent, daemon=True).start()
+            return False
+        t.join(timeout=0.2)
+    return True
+
+
 def launch_lichess(config: dict) -> None:
     current_state = web_server._app_state
     if current_state not in ("menu", "config_lichess"):
@@ -570,7 +627,8 @@ def launch_lichess(config: dict) -> None:
         daemon=True,
     )
     t.start()
-    t.join()
+    if not _join_lichess_launcher_thread(t, "launch_lichess"):
+        return
     if _error["occurred"]:
         time.sleep(1.0)
         target_state = _error.get("return_to") or "menu"
@@ -883,7 +941,8 @@ def _launch_lichess_human(config: dict, token: str) -> None:
         daemon=True,
     )
     t.start()
-    t.join()
+    if not _join_lichess_launcher_thread(t, "_launch_lichess_human"):
+        return
     if _error["occurred"]:
         time.sleep(1.0)
         target_state = _error.get("return_to") or "menu"
@@ -1252,7 +1311,8 @@ def launch_lichess_resume(action: dict) -> None:
         target=_run_lichess_resume, args=(token, game_id, player_name, known_color, _error), daemon=True,
     )
     t.start()
-    t.join()
+    if not _join_lichess_launcher_thread(t, "launch_lichess_resume"):
+        return
     if _error["occurred"]:
         time.sleep(1.0)
         target_state = _error.get("return_to") or "menu"
@@ -1640,7 +1700,8 @@ def launch_lichess_puzzle(config: dict) -> None:
     target = _run_lichess_puzzle_virtual if puzzle_mode == "virtual" else _run_lichess_puzzle
     t = threading.Thread(target=target, args=(token, player_name, _error), daemon=True)
     t.start()
-    t.join()
+    if not _join_lichess_launcher_thread(t, "launch_lichess_puzzle"):
+        return
     if _error["occurred"]:
         time.sleep(1.0)
         target_state = _error.get("return_to") or "menu"
