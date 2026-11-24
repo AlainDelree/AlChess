@@ -206,8 +206,29 @@ class StreamHandle:
         if self._closed:
             return
         self._closed = True
+        self._shutdown_underlying_socket()
         try:
             self._response.close()
+        except Exception:
+            pass
+
+    def _shutdown_underlying_socket(self) -> None:
+        """Coupe la connexion TCP sous-jacente AVANT la fermeture ci-dessus
+        (issue #383, point 2) — essai réel : un simple `self._response.close()`
+        appelé depuis un AUTRE fil pendant qu'un fil de lecture est bloqué
+        dans `lines()` ne réveille PAS ce fil ; pire, `close()` lui-même se
+        bloque alors jusqu'à l'arrivée naturelle de données suivantes (ou
+        jamais, si aucune ne vient) — le verrou interne du tampon
+        (`io.BufferedReader`) est partagé entre lecture et fermeture. Seul
+        `socket.shutdown(SHUT_RDWR)` sur le socket brut, qui n'a besoin
+        d'aucun verrou de ce tampon, fait immédiatement échouer le `recv()`
+        bloquant dans l'autre fil, sur Linux comme sur Windows (sémantique
+        Winsock identique pour `shutdown`). Jamais d'exception ici : objet
+        déjà fermé, double invisible en test, ou chaîne d'attributs absente
+        selon la version de Python/urllib — dans tous ces cas, close()
+        ci-dessus reste le seul comportement garanti."""
+        try:
+            self._response.fp.raw._sock.shutdown(socket.SHUT_RDWR)
         except Exception:
             pass
 
