@@ -152,6 +152,21 @@ _app_state: str = "menu"
 # Queue pour les actions du menu (choix mode, config joueur, etc.)
 menu_queue: queue.Queue = queue.Queue()
 
+# États pendant lesquels une partie/session est déjà active : on_action()
+# route alors vers action_queue (lue par la boucle de jeu en cours), sinon
+# vers menu_queue (lue par la boucle d'orchestration, alchess.py::main()) —
+# une seule définition (issue #383, point 4 : reprise par le nouveau log de
+# réception ci-dessous, en plus des deux emplacements historiques de
+# on_action()).
+_ACTIVE_GAME_STATES = ("playing", "connecting", "game_over", "paused", "labo",
+                       "exercice_running", "retrans_playing", "lichess_puzzle_playing")
+
+# Types d'action qui démarrent une partie/un problème Lichess (issue #383,
+# point 4) — jamais le jeton dans ce qui suit (absent de ces actions, voir
+# app.js::startGameLichess/lichessStartPuzzle/resumeLichessGame).
+_LICHESS_START_ACTION_TYPES = ("start_lichess", "start_lichess_puzzle", "start_lichess_resume")
+logger_lichess = logging.getLogger("niclink.lichess")
+
 # Statut de la connexion échiquier — renvoyé au navigateur qui se connecte
 # None = pas encore vérifié, "ok" = connecté, "error" = non détecté,
 # "reconnecting" = périphérique présent sur le bus USB mais module de
@@ -621,6 +636,19 @@ def on_action(data):
     """Reçoit une action du navigateur et la route selon l état."""
     logger.debug(f"[WEB] Action reçue : {data}")
     atype = data.get("type", "")
+    if atype in _LICHESS_START_ACTION_TYPES:
+        # Issue #383, point 4 : symptôme secondaire non établi par l'étude
+        # #382 (clic sur "Démarrer la partie" sans aucune trace dans les
+        # journaux après un redémarrage) — log dédié systématique dès la
+        # réception, pour qu'un futur blocage soit diagnostiquable sans
+        # avoir à relancer en NICLINK_LOG=DEBUG (qui seul aurait montré la
+        # ligne générique ci-dessus). Jamais le jeton (absent de `data`
+        # pour ces trois types d'action).
+        destination = "action_queue" if _app_state in _ACTIVE_GAME_STATES else "menu_queue"
+        logger_lichess.info(
+            "Lichess : action de démarrage reçue (%s, état actuel=%s) -> %s.",
+            atype, _app_state, destination,
+        )
     # Retour menu — traité ici directement pour playing et game_over
     if atype == "back_menu":
         prev_state = _app_state  # sauvegarder AVANT de changer
@@ -629,8 +657,7 @@ def on_action(data):
             from nicsoft.core.game_manager import explorer_cleanup
             explorer_cleanup()
         # Mettre dans action_queue seulement si un thread actif écoute
-        if prev_state in ("playing", "connecting", "game_over", "paused", "labo",
-                          "exercice_running", "retrans_playing", "lichess_puzzle_playing"):
+        if prev_state in _ACTIVE_GAME_STATES:
             action_queue.put(data)
         return
     # Retour sélection exercices — même pattern que back_menu
@@ -643,8 +670,7 @@ def on_action(data):
     if atype == "reconnect_board":
         threading.Thread(target=_reconnect_board, daemon=True).start()
         return
-    if _app_state in ("playing", "connecting", "game_over", "paused", "labo", "exercice_running",
-                      "retrans_playing", "lichess_puzzle_playing"):
+    if _app_state in _ACTIVE_GAME_STATES:
         action_queue.put(data)
     else:
         # menu, config, exercices, exercice_running → boucle principale

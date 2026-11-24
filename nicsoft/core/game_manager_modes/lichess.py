@@ -587,6 +587,13 @@ def _join_lichess_launcher_thread(t: threading.Thread, label: str) -> bool:
 
 def launch_lichess(config: dict) -> None:
     current_state = web_server._app_state
+    # Issue #383, point 4 : log d'entrée inconditionnel (avant tout garde
+    # d'état) — pour qu'un futur blocage distingue "jamais appelé" de
+    # "appelé puis refusé/bloqué plus loin", sans réactiver NICLINK_LOG=DEBUG.
+    logger_lichess.info(
+        "Lichess : entrée launch_lichess (état actuel=%s, opponent_type=%s).",
+        current_state, config.get("opponent_type") or "ai",
+    )
     if current_state not in ("menu", "config_lichess"):
         logger.info(f"Lancement Lichess refusé : mode déjà actif ({current_state}).")
         send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
@@ -982,6 +989,11 @@ def _classify_seek_error_event(ev: dict) -> tuple:
 def _launch_lichess_human(config: dict, token: str) -> None:
     from nicsoft.modes.lichess.game import speed_key_for_clock
 
+    # Issue #383, point 4 : log d'entrée inconditionnel — voir launch_lichess.
+    logger_lichess.info(
+        "Lichess : entrée _launch_lichess_human (état actuel=%s, cadence=%s).",
+        web_server._app_state, config.get("cadence", DEFAULT_CLOCK_PRESET),
+    )
     cadence_key = config.get("cadence", DEFAULT_CLOCK_PRESET)
     clock_limit_s, clock_increment_s = CLOCK_PRESETS.get(cadence_key, CLOCK_PRESETS[DEFAULT_CLOCK_PRESET])
     speed = speed_key_for_clock(clock_limit_s, clock_increment_s)
@@ -1361,6 +1373,11 @@ def launch_lichess_resume(action: dict) -> None:
     (issue #323, point 3) — même garde d'état et même schéma d'erreurs que
     launch_lichess()."""
     current_state = web_server._app_state
+    # Issue #383, point 4 : log d'entrée inconditionnel — voir launch_lichess.
+    logger_lichess.info(
+        "Lichess : entrée launch_lichess_resume (état actuel=%s, game_id=%s).",
+        current_state, (action.get("game_id") or "").strip(),
+    )
     if current_state not in ("menu", "config_lichess"):
         logger.info(f"Reprise Lichess refusée : mode déjà actif ({current_state}).")
         send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
@@ -1735,6 +1752,11 @@ def launch_lichess_puzzle(config: dict) -> None:
     _run_lichess_puzzle_virtual (écran seul, aucun échiquier requis : ne
     tente jamais _open_board_with_retry, contrairement à l'autre)."""
     current_state = web_server._app_state
+    # Issue #383, point 4 : log d'entrée inconditionnel — voir launch_lichess.
+    logger_lichess.info(
+        "Lichess : entrée launch_lichess_puzzle (état actuel=%s, puzzle_mode=%s).",
+        current_state, config.get("puzzle_mode") or "board",
+    )
     if current_state not in ("menu", "config_lichess"):
         logger.info(f"Lancement problème Lichess refusé : mode déjà actif ({current_state}).")
         send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
