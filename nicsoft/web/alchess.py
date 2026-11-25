@@ -437,6 +437,10 @@ def main():
                 # (minuterie, évènements de connexion du navigateur) passent
                 # par "lichess_network_check" ci-dessous.
                 threading.Thread(target=gm.check_lichess_network_status, daemon=True).start()
+                # Tableau de bord des problèmes par thème (issue #388, point 2)
+                # — une seule fois à l'ouverture de cet écran, comme
+                # check_lichess_resumable ci-dessus, jamais en boucle.
+                threading.Thread(target=gm.check_lichess_puzzle_dashboard, daemon=True).start()
             elif atype == "lichess_menu_check":
                 # Bandeau du menu principal (issue #333, point 3) — même
                 # détection que ci-dessus, déclenchée une seule fois par le

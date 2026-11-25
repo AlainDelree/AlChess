@@ -156,6 +156,9 @@ document.addEventListener("click", (e) => {
     case "select_puzzle_mode_lichess":
       selectPuzzleModeLichess(el.dataset.puzzleMode);
       break;
+    case "select_puzzle_series_mode_lichess":
+      selectPuzzleSeriesModeLichess(el.dataset.serieMode);
+      break;
     case "start_lichess_puzzle":
       startLichessPuzzle();
       break;
@@ -2467,6 +2470,17 @@ socket.on("lichess_network_status", (data) => {
   _applyLichessNetworkState();
 });
 
+// Tableau de bord des problèmes par thème (issue #388, point 2) — poussé
+// une seule fois par ouverture de l'écran Lichess (voir
+// check_lichess_puzzle_dashboard, game_manager_modes/lichess.py) ; jamais
+// de message d'erreur si `available` est faux (jeton absent, réseau
+// coupé, droit manquant) — la liste des thèmes reste affichée, simplement
+// sans statistiques ni valeur par défaut calculée.
+socket.on("lichess_puzzle_dashboard", (data) => {
+  _lichessPuzzleDashboard = data || { available: false, themes: {}, default_theme: "" };
+  _lichessPuzzleRenderThemeOptions();
+});
+
 // Poussé par game.py::_maybe_fetch_new_rating, en meilleur effort et
 // uniquement pour une partie classée réellement terminée — jamais si
 // Lichess ne la fournit pas à temps (voir son commentaire).
@@ -3156,6 +3170,12 @@ function _refreshDynamicLabels() {
       if (maiaKeys[opt.value]) opt.textContent = `Maia ${opt.value} — ${t(maiaKeys[opt.value])}`;
     });
   }
+
+  // Thèmes/phases des problèmes Lichess (issue #388, point 2) — libellés
+  // ré-interpolés à chaque changement de langue, comme les options Maia
+  // ci-dessus.
+  _lichessPuzzleRenderThemeOptions();
+  _lichessPuzzleRenderPhaseOptions();
 
   // Titre bouton flip
   const flipBtn = document.getElementById("btn-flip");
@@ -4386,11 +4406,157 @@ function _lichessPuzzleSyncDisplayMode() {
   }
 }
 
+// ── Choix du thème/de la phase de partie des problèmes (issue #388, point 2) ─
+//
+// Liste fixe des 70 thèmes (hors phases/mélange) — même ordre et mêmes
+// clés que puzzle_themes.PUZZLE_THEME_KEYS (nicsoft/modes/lichess/
+// puzzle_themes.py, source canonique) : à maintenir manuellement en
+// cohérence si cette liste change côté serveur (vérifié par
+// test_issue388_lichess_puzzle_series_ui.py). Jamais de thème choisi via
+// une chaîne arbitraire ici : la liste déroulante n'a d'options que pour
+// ces clés.
+const LICHESS_PUZZLE_THEME_KEYS = [
+  "advancedPawn", "advantage", "anastasiaMate", "arabianMate", "attackingF2F7",
+  "attraction", "backRankMate", "balestraMate", "bishopEndgame", "blindSwineMate",
+  "bodenMate", "capturingDefender", "castling", "clearance", "collinearMove",
+  "cornerMate", "crushing", "defensiveMove", "deflection", "discoveredAttack",
+  "discoveredCheck", "doubleBishopMate", "doubleCheck", "dovetailMate", "enPassant",
+  "epauletteMate", "equality", "exposedKing", "fork", "hangingPiece",
+  "hookMate", "interference", "intermezzo", "killBoxMate", "kingsideAttack",
+  "knightEndgame", "long", "master", "masterVsMaster", "mate",
+  "mateIn1", "mateIn2", "mateIn3", "mateIn4", "mateIn5",
+  "morphysMate", "oneMove", "operaMate", "pawnEndgame", "pillsburysMate",
+  "pin", "promotion", "queenEndgame", "queenRookEndgame", "queensideAttack",
+  "quietMove", "rookEndgame", "sacrifice", "short", "skewer",
+  "smotheredMate", "superGM", "swallowstailMate", "trappedPiece", "triangleMate",
+  "underPromotion", "veryLong", "vukovicMate", "xRayAttack", "zugzwang",
+];
+// Phases de partie (puzzle_themes.PUZZLE_PHASE_KEYS) — ordre d'affichage
+// voulu (ouverture → milieu de jeu → finale).
+const LICHESS_PUZZLE_PHASE_KEYS = ["opening", "middlegame", "endgame"];
+// Seuil "peu joué" (puzzle_themes.PUZZLE_THEME_MIN_PLAYS) — même valeur
+// que le calcul serveur du thème par défaut, pour rester cohérent avec
+// lui à l'affichage.
+const LICHESS_PUZZLE_THEME_MIN_PLAYS = 10;
+
+// "mix" (défaut) | "theme" | "phase" — mémorisé côté serveur (config.json,
+// comme lichessToggleBeep/lichessSavePuzzleSessionSize).
+let _lichessPuzzleSeriesMode = "mix";
+// Dernier thème mémorisé (config.json, peut être vide = jamais choisi) —
+// distinct de la valeur affichée dans le <select>, qui peut montrer un
+// thème par défaut calculé non encore mémorisé (voir
+// _lichessPuzzleApplyThemeSelection ci-dessous).
+let _lichessPuzzleStoredTheme = "";
+let _lichessPuzzleThemeTouchedByUser = false;
+// Tableau de bord des problèmes par thème (issue #388, point 2) — reçu une
+// seule fois par ouverture de l'écran (voir socket.on("lichess_puzzle_dashboard")
+// plus bas) ; null tant qu'il n'est pas encore arrivé ou si indisponible.
+let _lichessPuzzleDashboard = null;
+
+function _lichessPuzzleUpdateSeriesModeButtonsUI() {
+  document.getElementById("cfg-lichess-puzzle-serie-mix")?.classList.toggle("selected", _lichessPuzzleSeriesMode === "mix");
+  document.getElementById("cfg-lichess-puzzle-serie-theme")?.classList.toggle("selected", _lichessPuzzleSeriesMode === "theme");
+  document.getElementById("cfg-lichess-puzzle-serie-phase")?.classList.toggle("selected", _lichessPuzzleSeriesMode === "phase");
+  const themeRow = document.getElementById("cfg-lichess-puzzle-theme-row");
+  if (themeRow) themeRow.style.display = _lichessPuzzleSeriesMode === "theme" ? "" : "none";
+  const phaseRow = document.getElementById("cfg-lichess-puzzle-phase-row");
+  if (phaseRow) phaseRow.style.display = _lichessPuzzleSeriesMode === "phase" ? "" : "none";
+}
+
+function selectPuzzleSeriesModeLichess(mode) {
+  _lichessPuzzleSeriesMode = ["mix", "theme", "phase"].includes(mode) ? mode : "mix";
+  _lichessPuzzleUpdateSeriesModeButtonsUI();
+  socket.emit("config_save", { lichess_puzzle_series_mode: _lichessPuzzleSeriesMode });
+}
+
+// Construit (ou reconstruit, ex. à l'arrivée tardive du tableau de bord)
+// la liste déroulante des thèmes — TOUJOURS les 70 thèmes fixes, qu'ils
+// aient été joués ou non (issue #388, point 2). Toute valeur venue de
+// Lichess (performance, nombre de parties) est insérée via les variables
+// d'interpolation de t() dans un textContent — jamais en HTML (règle de
+// sécurité AlChess).
+function _lichessPuzzleRenderThemeOptions() {
+  const sel = document.getElementById("cfg-lichess-puzzle-theme");
+  if (!sel) return;
+  sel.textContent = "";
+  const themes = (_lichessPuzzleDashboard && _lichessPuzzleDashboard.themes) || {};
+  LICHESS_PUZZLE_THEME_KEYS.forEach((key) => {
+    const label = t(`lichess.puzzle_theme.${key}`);
+    const stats = themes[key];
+    let text;
+    if (stats && typeof stats.nb === "number" && stats.nb >= LICHESS_PUZZLE_THEME_MIN_PLAYS) {
+      text = t("lichess.puzzle.stat_normal", { label, performance: stats.performance, count: stats.nb });
+    } else if (stats && typeof stats.nb === "number" && stats.nb > 0) {
+      text = t("lichess.puzzle.stat_peu_joue", { label, count: stats.nb });
+    } else {
+      text = t("lichess.puzzle.stat_jamais_joue", { label });
+    }
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = text;
+    sel.appendChild(opt);
+  });
+  _lichessPuzzleApplyThemeSelection();
+}
+
+// Valeur sélectionnée dans la liste des thèmes : le réglage mémorisé s'il
+// existe, sinon le thème par défaut calculé par le serveur (point faible,
+// voir puzzle_themes.compute_default_theme) dès qu'il est connu — jamais
+// si l'utilisateur a entre-temps modifié lui-même la liste (
+// _lichessPuzzleThemeTouchedByUser, jamais écrasé dans ce cas, même par
+// une réponse de tableau de bord arrivée en retard).
+function _lichessPuzzleApplyThemeSelection() {
+  const sel = document.getElementById("cfg-lichess-puzzle-theme");
+  if (!sel || _lichessPuzzleThemeTouchedByUser) return;
+  const defaultTheme = _lichessPuzzleDashboard && _lichessPuzzleDashboard.default_theme;
+  const desired = _lichessPuzzleStoredTheme || defaultTheme || "";
+  if (desired && LICHESS_PUZZLE_THEME_KEYS.includes(desired)) sel.value = desired;
+}
+
+function lichessSavePuzzleTheme() {
+  const sel = document.getElementById("cfg-lichess-puzzle-theme");
+  if (!sel) return;
+  _lichessPuzzleThemeTouchedByUser = true;
+  _lichessPuzzleStoredTheme = sel.value || "";
+  socket.emit("config_save", { lichess_puzzle_theme: _lichessPuzzleStoredTheme });
+}
+
+function _lichessPuzzleRenderPhaseOptions() {
+  const sel = document.getElementById("cfg-lichess-puzzle-phase");
+  if (!sel) return;
+  sel.textContent = "";
+  LICHESS_PUZZLE_PHASE_KEYS.forEach((key) => {
+    const opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = t(`lichess.puzzle_phase.${key}`);
+    sel.appendChild(opt);
+  });
+  const stored = _lichessPuzzleStoredPhase;
+  sel.value = LICHESS_PUZZLE_PHASE_KEYS.includes(stored) ? stored : "middlegame";
+}
+
+let _lichessPuzzleStoredPhase = "middlegame";
+
+function lichessSavePuzzlePhase() {
+  const sel = document.getElementById("cfg-lichess-puzzle-phase");
+  if (!sel) return;
+  _lichessPuzzleStoredPhase = LICHESS_PUZZLE_PHASE_KEYS.includes(sel.value) ? sel.value : "middlegame";
+  socket.emit("config_save", { lichess_puzzle_phase: _lichessPuzzleStoredPhase });
+}
+
 function startLichessPuzzle() {
   // Garde-fou (issue #365) : le mode "Échiquier" ne doit jamais être lancé
   // sans échiquier connecté, même si le bouton était réactivé par erreur —
   // le mode "Sur l'écran" n'a lui aucune exigence d'échiquier.
   if (_lichessPuzzleMode === "board" && !_boardOk) return;
+  // Mémorise la sélection courante AVANT le lancement (issue #388, point 2)
+  // — y compris un thème par défaut calculé jamais cliqué par
+  // l'utilisateur (_lichessPuzzleApplyThemeSelection ci-dessus l'a déjà
+  // placé dans le <select>) : sans ceci, le lanceur (qui relit
+  // config.json, jamais le DOM) retomberait sur "mix" pour une première
+  // séance en mode "Thème" jamais confirmée par un clic explicite.
+  if (_lichessPuzzleSeriesMode === "theme") lichessSavePuzzleTheme();
+  if (_lichessPuzzleSeriesMode === "phase") lichessSavePuzzlePhase();
   _basketSource = "Lichess";
   _gameMode = "lichess_puzzle";
   const player = document.getElementById("cfg-lichess-player")?.value.trim() || "Vous";
@@ -9290,6 +9456,23 @@ socket.on("config_data", (data) => {
     puzzleSessionSizeEl.value = (typeof data.lichess_puzzle_session_size === "number")
       ? data.lichess_puzzle_session_size : 25;
   }
+
+  // Série à jouer des problèmes — mélange/thème/phase (issue #388, point 2)
+  // — même mécanisme de mémorisation que la taille de séance ci-dessus.
+  // Un nouvel appui sur l'écran de configuration (SPA, pas de rechargement
+  // de page) doit pouvoir réinterpréter un thème par défaut pas encore
+  // reçu à ce moment-là : "touché par l'utilisateur" est donc réinitialisé
+  // à chaque arrivée de config_data, cohérent avec une nouvelle ouverture
+  // d'écran.
+  _lichessPuzzleSeriesMode = ["mix", "theme", "phase"].includes(data.lichess_puzzle_series_mode)
+    ? data.lichess_puzzle_series_mode : "mix";
+  _lichessPuzzleStoredTheme = typeof data.lichess_puzzle_theme === "string" ? data.lichess_puzzle_theme : "";
+  _lichessPuzzleStoredPhase = LICHESS_PUZZLE_PHASE_KEYS.includes(data.lichess_puzzle_phase)
+    ? data.lichess_puzzle_phase : "middlegame";
+  _lichessPuzzleThemeTouchedByUser = false;
+  _lichessPuzzleUpdateSeriesModeButtonsUI();
+  _lichessPuzzleRenderThemeOptions();
+  _lichessPuzzleRenderPhaseOptions();
 
   // Case « Afficher les flèches » de l'écran d'analyse (issue #335) —
   // mémorisée comme lichess_beep_opponent_move ; par défaut cochée

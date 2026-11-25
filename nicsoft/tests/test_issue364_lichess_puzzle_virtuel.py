@@ -330,7 +330,7 @@ def test_launch_lichess_puzzle_virtuel_ne_requiert_aucun_echiquier(monkeypatch):
     puzzle = _puzzle(["e2e4"])
 
     import nicsoft.modes.lichess.puzzle_client as puzzle_client_mod
-    monkeypatch.setattr(puzzle_client_mod, "get_next_puzzle", lambda token, difficulty=None: {"status": "ok", **puzzle})
+    monkeypatch.setattr(puzzle_client_mod, "get_next_puzzle", lambda token, difficulty=None, angle=None: {"status": "ok", **puzzle})
 
     class _FakeGameLog:
         def __init__(self, *a, **k):

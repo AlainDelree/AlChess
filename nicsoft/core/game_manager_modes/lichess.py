@@ -54,6 +54,9 @@ from nicsoft.modes.lichess.errors import (
     detect_color_balance_refusal,
 )
 from nicsoft.modes.lichess.game_client import GameClient, is_game_over, moves_from_state
+from nicsoft.modes.lichess.puzzle_themes import (
+    PUZZLE_THEME_KEYS, PUZZLE_PHASE_KEYS, DEFAULT_PUZZLE_PHASE, compute_default_theme,
+)
 
 logger_lichess = logging.getLogger("niclink.lichess")
 
@@ -169,6 +172,39 @@ def check_lichess_network_status() -> None:
         send_event("lichess_network_status", {"available": result.get("status") != "network_error"})
     finally:
         _lichess_network_check_lock.release()
+
+
+def check_lichess_puzzle_dashboard() -> None:
+    """Tableau de bord des problèmes par thème (issue #388, point 2) —
+    appelée une seule fois à l'ouverture de l'écran Lichess (comme
+    check_lichess_resumable ci-dessus), en arrière-plan, jamais bloquante
+    pour l'affichage. Calcule aussi le thème par défaut (point faible —
+    voir puzzle_themes.compute_default_theme) côté serveur, pour que
+    l'écran n'ait qu'à l'appliquer.
+
+    Toujours un évènement `lichess_puzzle_dashboard` envoyé, même en cas
+    d'échec (jeton absent, réseau coupé, droit manquant) : `available`
+    distingue alors les deux cas pour l'écran, qui reste utilisable sans
+    statistiques ni thème par défaut calculé (jamais de message d'erreur
+    bloquant, voir le rapport de clôture)."""
+    token = (load_config().get("lichess_token") or "").strip()
+    if not token:
+        send_event("lichess_puzzle_dashboard", {"available": False, "themes": {}, "default_theme": ""})
+        return
+    from nicsoft.modes.lichess.puzzle_client import get_puzzle_dashboard
+    try:
+        result = get_puzzle_dashboard(token)
+    except Exception as exc:
+        logger_lichess.warning("Lichess : tableau de bord des problèmes indisponible (%s).", type(exc).__name__)
+        send_event("lichess_puzzle_dashboard", {"available": False, "themes": {}, "default_theme": ""})
+        return
+    if result.get("status") != "ok":
+        logger_lichess.info("Lichess : tableau de bord des problèmes indisponible (statut=%s).", result.get("status"))
+        send_event("lichess_puzzle_dashboard", {"available": False, "themes": {}, "default_theme": ""})
+        return
+    themes = result.get("themes") or {}
+    default_theme = compute_default_theme(themes)
+    send_event("lichess_puzzle_dashboard", {"available": True, "themes": themes, "default_theme": default_theme})
 
 
 def _refuse_create_if_games_ongoing(token: str) -> list | None:
@@ -1693,12 +1729,21 @@ def abandon_lichess_game(action: dict) -> None:
 #
 # Séance de N problèmes avec compteur et bilan (issue #387, point 2) :
 # _PuzzleSessionTracker ci-dessous — une séance est une LISTE de séries
-# (thème, nombre de problèmes), pour préparer le choix de thème/phase de
-# partie d'une future issue ; une seule série existe aujourd'hui (thème
-# vide — comportement actuel de demande du problème suivant, inchangé).
+# (thème, nombre de problèmes), pour préparer l'enchaînement de plusieurs
+# séries d'une future issue ; une seule série existe aujourd'hui.
+#
+# Choix du thème/de la phase de partie (issue #388, point 2) : `theme` de
+# _PuzzleSeriesSpec porte maintenant l'ANGLE RÉELLEMENT résolu à partir des
+# réglages mémorisés (lichess_puzzle_series_mode/_theme/_phase,
+# config.json) — chaîne vide pour "mix" (mélange, comportement d'avant
+# cette issue, inchangé), sinon une clé de puzzle_themes.PUZZLE_THEME_KEYS
+# ou PUZZLE_PHASE_KEYS. Cette même valeur sert à la fois d'angle transmis
+# à get_next_puzzle() et d'étiquette affichée/historisée (series_theme,
+# voir PuzzleGame._record_history) — jamais deux représentations
+# distinctes du même réglage.
 
 class _PuzzleSeriesSpec:
-    """Une série de la séance — thème (vide = angle par défaut, voir
+    """Une série de la séance — angle résolu (vide = mélange, voir
     ci-dessus) et nombre de problèmes (0 = sans limite, valide seulement
     pour l'unique série d'aujourd'hui)."""
 
@@ -1761,18 +1806,36 @@ class _PuzzleSessionTracker:
         }
 
 
+def _resolve_puzzle_series_angle(cfg: dict) -> str:
+    """Résout l'angle réellement demandé à partir des réglages mémorisés
+    (issue #388, point 2) — jamais d'exception, jamais une clé hors des
+    listes fixes (voir puzzle_themes.py) : une valeur invalide ou absente
+    retombe toujours sur "mix" (mode "theme") ou sur
+    DEFAULT_PUZZLE_PHASE (mode "phase"), jamais une erreur bloquante."""
+    mode = cfg.get("lichess_puzzle_series_mode") or "mix"
+    if mode == "theme":
+        theme = cfg.get("lichess_puzzle_theme") or ""
+        return theme if theme in PUZZLE_THEME_KEYS else ""
+    if mode == "phase":
+        phase = cfg.get("lichess_puzzle_phase") or ""
+        return phase if phase in PUZZLE_PHASE_KEYS else DEFAULT_PUZZLE_PHASE
+    return ""
+
+
 def _build_puzzle_session() -> _PuzzleSessionTracker:
     """Lit `lichess_puzzle_session_size` dans config.json (mécanisme de
     persistance déjà en place, voir config_manager.py — défaut 25, 0 =
-    sans limite, comportement actuel d'enchaînement infini). Thème vide
-    (angle par défaut, pas de choix de thème aujourd'hui)."""
-    size = load_config().get("lichess_puzzle_session_size", 25)
+    sans limite, comportement actuel d'enchaînement infini) et l'angle
+    résolu (issue #388, point 2, voir _resolve_puzzle_series_angle)."""
+    cfg = load_config()
+    size = cfg.get("lichess_puzzle_session_size", 25)
     try:
         size = int(size)
     except (TypeError, ValueError):
         size = 25
     size = max(0, size)
-    return _PuzzleSessionTracker([_PuzzleSeriesSpec(theme="", count=size)])
+    angle = _resolve_puzzle_series_angle(cfg)
+    return _PuzzleSessionTracker([_PuzzleSeriesSpec(theme=angle, count=size)])
 
 
 def _show_puzzle_session_summary_and_wait(session: _PuzzleSessionTracker) -> None:
@@ -1949,8 +2012,8 @@ def _run_lichess_puzzle(token, player_name, _error=None):
         game_log.state_change(f"Session de problèmes Lichess démarrée — joueur={player_name}.")
         nl_inst = _open_board_with_retry("NicLink_lichess_puzzle")
         while True:
-            game_log.state_change("Demande du prochain problème (GET /api/puzzle/next).")
-            puzzle = get_next_puzzle(token)
+            game_log.state_change("Demande du prochain problème (GET /api/puzzle/next, angle=%s)." % (session.current_theme or "mix"))
+            puzzle = get_next_puzzle(token, angle=session.current_theme)
             status = puzzle.get("status")
             if status != "ok":
                 game_log.state_change(f"Problème non obtenu — statut={status}.")
@@ -2081,8 +2144,8 @@ def _run_lichess_puzzle_virtual(token, player_name, _error=None):
         game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
         game_log.state_change(f"Session de problèmes Lichess (mode virtuel) démarrée — joueur={player_name}.")
         while True:
-            game_log.state_change("Demande du prochain problème (GET /api/puzzle/next).")
-            puzzle = get_next_puzzle(token)
+            game_log.state_change("Demande du prochain problème (GET /api/puzzle/next, angle=%s)." % (session.current_theme or "mix"))
+            puzzle = get_next_puzzle(token, angle=session.current_theme)
             status = puzzle.get("status")
             if status != "ok":
                 game_log.state_change(f"Problème non obtenu — statut={status}.")

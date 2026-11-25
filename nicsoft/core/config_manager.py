@@ -33,6 +33,9 @@ DEFAULT_CONFIG = {
     "lichess_token": "",        # jeton personnel Lichess (issue #306) — même mécanisme que llm_api_key
     "lichess_beep_opponent_move": False,  # bip échiquier aux coups/nulle/fin adverses (issue #331)
     "lichess_puzzle_session_size": 25,  # nombre de problèmes d'une séance (issue #387) — 0 = sans limite
+    "lichess_puzzle_series_mode": "mix",    # "mix" | "theme" | "phase" (issue #388, point 2)
+    "lichess_puzzle_theme": "",              # dernier thème choisi (clé de puzzle_themes.PUZZLE_THEME_KEYS)
+    "lichess_puzzle_phase": "middlegame",    # dernière phase choisie (puzzle_themes.PUZZLE_PHASE_KEYS)
     "show_review_arrows": True,  # flèches des 3 meilleures lignes + coup joué, écran d'analyse (issue #335)
     "tts_enabled": False,
     "tts_rate": 150,            # débit pyttsx3, mots par minute

@@ -503,6 +503,28 @@
            _applyLichessPuzzleBoardState() (app.js), sur le même mécanisme
            d'état que le badge échiquier (board_ok/board_error). -->
       <p id="lichess-puzzle-board-hint" class="outil-desc hidden" data-i18n="config.lichess.probleme_requiert_echiquier">Le mode « Échiquier » nécessite l'échiquier physique connecté — choisissez « Sur l'écran » pour jouer sans lui.</p>
+      <!-- Série à jouer (issue #388, point 2) : mélange (comportement
+           d'avant cette issue), thème précis, ou phase de partie — chaque
+           réglage est mémorisé dans config.json (config_save), comme la
+           taille de séance ci-dessous. Tableau de bord chargé en
+           arrière-plan à l'ouverture de l'écran (voir
+           check_lichess_puzzle_dashboard, game_manager_modes/lichess.py)
+           pour calculer le thème par défaut (point faible) et annoter
+           chaque option de la liste des thèmes. -->
+      <label class="cfg-label" data-i18n="config.lichess.probleme_serie_titre">Série à jouer</label>
+      <div class="color-btns">
+        <button class="color-btn selected" id="cfg-lichess-puzzle-serie-mix" data-action="select_puzzle_series_mode_lichess" data-serie-mode="mix" data-i18n="config.lichess.probleme_serie_melange">Mélange</button>
+        <button class="color-btn" id="cfg-lichess-puzzle-serie-theme" data-action="select_puzzle_series_mode_lichess" data-serie-mode="theme" data-i18n="config.lichess.probleme_serie_theme">Thème</button>
+        <button class="color-btn" id="cfg-lichess-puzzle-serie-phase" data-action="select_puzzle_series_mode_lichess" data-serie-mode="phase" data-i18n="config.lichess.probleme_serie_phase">Phase de partie</button>
+      </div>
+      <div id="cfg-lichess-puzzle-theme-row" style="display:none;">
+        <label class="cfg-label" for="cfg-lichess-puzzle-theme" data-i18n="config.lichess.probleme_theme_label">Thème à travailler</label>
+        <select id="cfg-lichess-puzzle-theme" class="cfg-input" onchange="lichessSavePuzzleTheme()"></select>
+      </div>
+      <div id="cfg-lichess-puzzle-phase-row" style="display:none;">
+        <label class="cfg-label" for="cfg-lichess-puzzle-phase" data-i18n="config.lichess.probleme_phase_label">Phase de partie à travailler</label>
+        <select id="cfg-lichess-puzzle-phase" class="cfg-input" onchange="lichessSavePuzzlePhase()"></select>
+      </div>
       <!-- Taille de la séance (issue #387, point 2) : mémorisée côté
            serveur (config.json, lichess_puzzle_session_size) comme les
            autres réglages — 0 = sans limite (comportement d'avant cette

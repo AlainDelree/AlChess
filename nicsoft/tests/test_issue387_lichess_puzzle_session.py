@@ -299,7 +299,7 @@ def test_session_de_deux_problemes_affiche_le_bilan_a_la_fin(monkeypatch):
 
     import nicsoft.modes.lichess.puzzle_client as puzzle_client_mod
 
-    def fake_get_next_puzzle(token, difficulty=None):
+    def fake_get_next_puzzle(token, difficulty=None, angle=None):
         idx = served["n"]
         served["n"] += 1
         return {"status": "ok", **(puzzle1 if idx == 0 else puzzle2)}
@@ -399,7 +399,7 @@ def test_retour_menu_en_cours_de_seance_ne_montre_jamais_le_bilan(monkeypatch):
     puzzle1 = _puzzle(["e2e4"], puzzle_id="pzl1")
 
     import nicsoft.modes.lichess.puzzle_client as puzzle_client_mod
-    monkeypatch.setattr(puzzle_client_mod, "get_next_puzzle", lambda token, difficulty=None: {
+    monkeypatch.setattr(puzzle_client_mod, "get_next_puzzle", lambda token, difficulty=None, angle=None: {
         "status": "ok", **puzzle1,
     })
     monkeypatch.setattr(puzzle_game_mod, "submit_puzzle_result", lambda *a, **k: {
