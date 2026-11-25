@@ -34,6 +34,7 @@ tout le suivi de la solution ci-dessus (y compris le mat hors solution)
 reste partagé à l'identique entre les deux modes.
 """
 
+import datetime
 import logging
 import threading
 import time
@@ -45,6 +46,7 @@ from nicsoft.core.ihm_port import send_event, get_action
 from nicsoft.engine.board_utils import san_ep
 from nicsoft.modes.lichess.game import MOVE_STABLE_DELAY_S, legal_move_for_hardware, pending_promotion_move
 from nicsoft.modes.lichess.puzzle_client import submit_puzzle_result
+from nicsoft.modes.lichess.puzzle_history import append_puzzle_history
 
 logger = logging.getLogger("niclink.lichess")
 
@@ -120,7 +122,8 @@ class PuzzleGame:
     piloté de façon synchrone par le lanceur (comme LichessGame.start(),
     qui exécute déjà run() de façon synchrone)."""
 
-    def __init__(self, nl_inst, token: str, puzzle: dict, player_name: str = "", game_log=None):
+    def __init__(self, nl_inst, token: str, puzzle: dict, player_name: str = "", game_log=None,
+                 series_theme: str = ""):
         self.nl_inst = nl_inst
         self.token = token
         self.puzzle_id = puzzle["puzzle_id"]
@@ -134,10 +137,23 @@ class PuzzleGame:
         self.solver_color = "white" if self.board.turn == chess.WHITE else "black"
         self.player_name = player_name or "Vous"
         self._game_log = game_log
+        # Issue #387, point 2 : thème/angle de la série de la séance à
+        # laquelle appartient ce problème — vide tant qu'aucun choix de
+        # thème n'existe (comportement actuel, inchangé par cette issue).
+        # Reporté dans l'historique local (_record_history ci-dessous),
+        # jamais utilisé pour demander un problème d'un thème particulier
+        # (get_next_puzzle, puzzle_client.py, n'est pas modifié ici).
+        self.series_theme = series_theme
 
         self.solved_index = 0
         self.outcome = None          # None | "solved" | "failed"
         self.back_menu_requested = False
+        # Issue #387, point 1 : chronométré dès la construction (position
+        # de départ déjà confirmée par l'appelant à cet instant, voir
+        # game_manager_modes/lichess.py) jusqu'à _finish() — sert à la
+        # fois à l'historique local (duration_s) et au bilan de séance.
+        self._start_ts = time.monotonic()
+        self.duration_s = None
 
         self._pending_submit = None  # {"win": bool} tant que non envoyé
         self.rating_before = None
@@ -500,9 +516,11 @@ class PuzzleGame:
 
     def _finish(self, win: bool) -> None:
         self.outcome = "solved" if win else "failed"
+        self.duration_s = time.monotonic() - self._start_ts
         self._pending_submit = {"win": win}
         self._log(f"problème résolu — issue={self.outcome}, résultat en attente d'envoi (classé).")
         self._try_submit_pending()
+        self._record_history()
 
     def _try_submit_pending(self) -> None:
         if self._pending_submit is None:
@@ -540,6 +558,29 @@ class PuzzleGame:
             "submit_error_key": self._submit_error_key,
             "can_view_solution": self.outcome == "failed" and not self._solution_shown,
         }
+
+    def _record_history(self) -> None:
+        """Issue #387, point 1 : un enregistrement par problème TERMINÉ
+        (résultat connu — jamais appelé pour un abandon, voir
+        _process_browser_actions/run() : "back_menu" sans passer par
+        _finish ne consigne rien). Écrit une seule fois, juste après le
+        PREMIER essai d'envoi (réussi ou non) — un réessai ultérieur
+        (lichess_puzzle_retry_submit) ne réécrit jamais cette ligne, voir
+        le rapport de clôture. Jamais le jeton ni aucune information
+        d'authentification ici (absents des champs ci-dessous)."""
+        append_puzzle_history({
+            "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
+            "puzzle_id": self.puzzle_id,
+            "series_theme": self.series_theme,
+            "setup_fen": self.setup_fen,
+            "themes": self.themes,
+            "win": self.outcome == "solved",
+            "duration_s": round(self.duration_s, 2) if self.duration_s is not None else None,
+            "rating_before": self.rating_before,
+            "rating_after": self.rating_after,
+            "rating_diff": self.rating_diff,
+            "submit_ok": self._submit_error_key is None,
+        })
 
     # ── Après résolution : attente de la décision de l'utilisateur ──────
 
