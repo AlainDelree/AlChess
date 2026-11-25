@@ -1803,6 +1803,14 @@ class _PuzzleSessionTracker:
             "avg_duration_s": avg_duration_s,
             "rating_diff_total": self._rating_diff_total if self._rating_diff_known else None,
             "failed_puzzles": self.failed_puzzles,
+            # Angle réellement demandé pour cette séance (issue #388, point 3)
+            # — vide pour "mélange", sinon une clé de
+            # puzzle_themes.PUZZLE_THEME_KEYS/PUZZLE_PHASE_KEYS ; affiché par
+            # l'écran de bilan (app.js::_renderLichessPuzzleSessionSummary)
+            # exactement comme series_theme dans l'historique local (voir
+            # PuzzleGame._record_history, puzzle_game.py) — même valeur,
+            # jamais deux représentations distinctes du même réglage.
+            "series_angle": self.current_theme,
         }
 
 

@@ -4746,15 +4746,28 @@ socket.on("lichess_puzzle_result", (data) => {
 // "lichess_puzzle_session_summary" (voir plus haut) — `data` est le
 // payload envoyé par _PuzzleSessionTracker.summary_payload()
 // (game_manager_modes/lichess.py) : completed/solved/failed/
-// avg_duration_s/rating_diff_total/failed_puzzles. Toute valeur venue de
-// Lichess (identifiant de problème, cote) est insérée en texte
-// (textContent) uniquement — jamais en HTML (règle de sécurité AlChess,
-// voir architecture.md).
+// avg_duration_s/rating_diff_total/failed_puzzles/series_angle. Toute
+// valeur venue de Lichess (identifiant de problème, cote) est insérée en
+// texte (textContent) uniquement — jamais en HTML (règle de sécurité
+// AlChess, voir architecture.md).
 function _renderLichessPuzzleSessionSummary(data) {
   const statsEl = document.getElementById("lichess-puzzle-summary-stats");
   if (statsEl) {
     statsEl.textContent = "";
+    // Série demandée (issue #388, point 3) — "" (mélange) ou une clé de
+    // PUZZLE_THEME_KEYS/PUZZLE_PHASE_KEYS : essaie d'abord le thème, puis
+    // la phase (listes disjointes, voir LICHESS_PUZZLE_THEME_KEYS/
+    // LICHESS_PUZZLE_PHASE_KEYS ci-dessus) — jamais les deux à la fois.
+    const angle = data.series_angle || "";
+    let serieLigne;
+    if (!angle) {
+      serieLigne = t("lichess.puzzle.bilan_serie_melange");
+    } else {
+      const key = LICHESS_PUZZLE_PHASE_KEYS.includes(angle) ? `lichess.puzzle_phase.${angle}` : `lichess.puzzle_theme.${angle}`;
+      serieLigne = t("lichess.puzzle.bilan_serie", { label: t(key) });
+    }
     const lignes = [
+      serieLigne,
       t("lichess.puzzle.bilan_reussis", { count: data.solved || 0 }),
       t("lichess.puzzle.bilan_rates", { count: data.failed || 0 }),
     ];
