@@ -1831,6 +1831,8 @@
 .outils-wiki-result { display:none; margin-top:12px; }
 
 /* Écran Problèmes Lichess (issue #354) */
+/* Compteur de séance (issue #387, point 2) : "Problème X / N" */
+.lichess-puzzle-counter { font-size:0.85rem; font-weight:600; color:#3a5a7a; margin-bottom:4px; }
 .lichess-puzzle-rating { font-size:0.9rem; color:#5a6b7a; margin-bottom:6px; }
 #lichess-puzzle-turn-text { font-weight:700; color:#1a2a3a; }
 #lichess-puzzle-result { margin-top:14px; padding-top:10px; border-top:1px solid #dde3ea; }
