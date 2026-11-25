@@ -837,6 +837,8 @@
   "config.lichess.probleme_mode_echiquier": "♟️ Échiquier",
   "config.lichess.probleme_mode_virtuel": "🖥️ Sur l'écran",
   "config.lichess.probleme_requiert_echiquier": "Le mode « Échiquier » nécessite l'échiquier physique connecté — choisissez « Sur l'écran » pour jouer sans lui.",
+  "config.lichess.probleme_session_taille": "Nombre de problèmes de la séance",
+  "config.lichess.probleme_session_illimitee": "0 = sans limite",
   "lichess.puzzle_virtuel_instructions": "Cliquez sur une pièce, puis sur la case d'arrivée.",
   "lichess.puzzle_coup_illegal": "Coup illégal — réessayez.",
   "toast.lichess_puzzle_missing_scope": "Le jeton Lichess n'a pas le(s) droit(s) suivant(s), nécessaire(s) pour les problèmes : {scopes}. Régénérez-le dans Paramètres avec ces droits cochés.",
@@ -860,5 +862,14 @@
   "lichess.puzzle.solution_titre": "Solution en cours de démonstration sur l'échiquier…",
   "lichess.puzzle.termine": "Problème terminé.",
   "lichess.puzzle.solution_terminee": "Solution terminée.",
-  "lichess.puzzle_menu_verrouille": "Problème Lichess en cours — terminez-le avant de changer de mode."
+  "lichess.puzzle_menu_verrouille": "Problème Lichess en cours — terminez-le avant de changer de mode.",
+  "lichess.puzzle.compteur": "Problème {index} / {total}",
+  "lichess.puzzle.compteur_illimite": "Problème {index}",
+  "lichess.puzzle.bilan_titre": "🏁 Bilan de la séance",
+  "lichess.puzzle.bilan_reussis": "Réussis : {count}",
+  "lichess.puzzle.bilan_rates": "Ratés : {count}",
+  "lichess.puzzle.bilan_duree_moyenne": "Durée moyenne de résolution : {duration}",
+  "lichess.puzzle.bilan_variation_totale": "Variation totale de cote : {diff}",
+  "lichess.puzzle.bilan_variation_inconnue": "Variation de cote inconnue (résultat non envoyé à Lichess)",
+  "lichess.puzzle.bilan_rates_titre": "Problèmes ratés :"
 }

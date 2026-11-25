@@ -837,6 +837,8 @@
   "config.lichess.probleme_mode_echiquier": "♟️ Brett",
   "config.lichess.probleme_mode_virtuel": "🖥️ Am Bildschirm",
   "config.lichess.probleme_requiert_echiquier": "Der Modus „Brett“ benötigt das verbundene physische Schachbrett — wählen Sie „Am Bildschirm“, um ohne es zu spielen.",
+  "config.lichess.probleme_session_taille": "Anzahl der Aufgaben in der Sitzung",
+  "config.lichess.probleme_session_illimitee": "0 = unbegrenzt",
   "lichess.puzzle_virtuel_instructions": "Klicken Sie auf eine Figur und dann auf das Zielfeld.",
   "lichess.puzzle_coup_illegal": "Ungültiger Zug — versuchen Sie es erneut.",
   "toast.lichess_puzzle_missing_scope": "Dem Lichess-Token fehlen folgende Rechte für Aufgaben: {scopes}. Erzeugen Sie es in den Einstellungen mit diesen Rechten neu.",
@@ -860,5 +862,14 @@
   "lichess.puzzle.solution_titre": "Lösung wird auf dem Brett vorgeführt…",
   "lichess.puzzle.termine": "Aufgabe beendet.",
   "lichess.puzzle.solution_terminee": "Lösung beendet.",
-  "lichess.puzzle_menu_verrouille": "Lichess-Aufgabe läuft — beenden Sie sie, bevor Sie den Modus wechseln."
+  "lichess.puzzle_menu_verrouille": "Lichess-Aufgabe läuft — beenden Sie sie, bevor Sie den Modus wechseln.",
+  "lichess.puzzle.compteur": "Aufgabe {index} / {total}",
+  "lichess.puzzle.compteur_illimite": "Aufgabe {index}",
+  "lichess.puzzle.bilan_titre": "🏁 Sitzungsbilanz",
+  "lichess.puzzle.bilan_reussis": "Gelöst: {count}",
+  "lichess.puzzle.bilan_rates": "Verfehlt: {count}",
+  "lichess.puzzle.bilan_duree_moyenne": "Durchschnittliche Lösungszeit: {duration}",
+  "lichess.puzzle.bilan_variation_totale": "Gesamte Wertungsänderung: {diff}",
+  "lichess.puzzle.bilan_variation_inconnue": "Wertungsänderung unbekannt (Ergebnis nicht an Lichess gesendet)",
+  "lichess.puzzle.bilan_rates_titre": "Verfehlte Aufgaben:"
 }

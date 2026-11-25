@@ -62,6 +62,7 @@ def test_set_app_state_game_over_sans_skip_ecrase():
 ETATS_ACTIFS = [
     "playing", "connecting", "game_over", "paused",
     "labo", "exercice_running", "retrans_playing",
+    "lichess_puzzle_session_summary",
 ]
 
 @pytest.mark.parametrize("etat", ETATS_ACTIFS)
@@ -95,12 +96,43 @@ def test_exercice_back_depuis_exercice_running():
 
 # ── on_action — routage action_queue vs menu_queue ───────────────────────────
 
-@pytest.mark.parametrize("etat", ["playing", "connecting", "game_over", "paused", "labo"])
+@pytest.mark.parametrize("etat", ["playing", "connecting", "game_over", "paused", "labo",
+                                   "lichess_puzzle_session_summary"])
 def test_action_en_cours_de_partie_va_dans_action_queue(etat):
     server._app_state = etat
     with patch.object(server.socketio, "emit"):
         server.on_action({"type": "reprendre"})
     assert not server.action_queue.empty()
+    assert server.menu_queue.empty()
+
+
+# Issue #387, point 2 : l'écran de bilan de fin de séance de problèmes
+# Lichess ("lichess_puzzle_session_summary") est un nouvel état — vérifié
+# ici avec la même précision que pour les états plus anciens ci-dessus,
+# comme demandé par l'énoncé (« vérifier avec précision, dans server.py,
+# comment les actions du navigateur sont routées selon l'état »).
+
+def test_lichess_puzzle_session_summary_est_un_etat_actif():
+    """Pas seulement "jamais dans menu_queue" (déjà couvert ci-dessus) :
+    cet état doit explicitement appartenir à _ACTIVE_GAME_STATES — sinon
+    toute action future ajoutée à cet écran repartirait vers menu_queue
+    sans que les tests paramétrés ci-dessus ne le détectent (ils ne testent
+    que le routage observé, pas la liste elle-même)."""
+    assert "lichess_puzzle_session_summary" in server._ACTIVE_GAME_STATES
+
+
+def test_back_menu_depuis_bilan_puzzle_route_vers_action_queue_et_passe_au_menu():
+    """Le lanceur de séance (_show_puzzle_session_summary_and_wait,
+    game_manager_modes/lichess.py) attend ce "back_menu" en lisant
+    action_queue — s'il arrivait dans menu_queue à la place, le bouton
+    "Retour au menu" du bilan resterait sans effet jusqu'à expiration du
+    thread (_LICHESS_STOP_TIMEOUT_S, 15s) plutôt qu'immédiat."""
+    server._app_state = "lichess_puzzle_session_summary"
+    with patch.object(server.socketio, "emit"):
+        server.on_action({"type": "back_menu"})
+    assert server._app_state == "menu"
+    assert not server.action_queue.empty()
+    assert server.action_queue.get_nowait()["type"] == "back_menu"
     assert server.menu_queue.empty()
 
 

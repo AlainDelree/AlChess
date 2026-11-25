@@ -158,8 +158,13 @@ menu_queue: queue.Queue = queue.Queue()
 # une seule définition (issue #383, point 4 : reprise par le nouveau log de
 # réception ci-dessous, en plus des deux emplacements historiques de
 # on_action()).
+# "lichess_puzzle_session_summary" (issue #387, point 2) : écran de bilan
+# de fin de séance de problèmes — reste routé en action_queue comme
+# "lichess_puzzle_playing" (le lanceur de session, game_manager_modes/
+# lichess.py, y attend bloquant le seul bouton affiché, "Retour au menu").
 _ACTIVE_GAME_STATES = ("playing", "connecting", "game_over", "paused", "labo",
-                       "exercice_running", "retrans_playing", "lichess_puzzle_playing")
+                       "exercice_running", "retrans_playing", "lichess_puzzle_playing",
+                       "lichess_puzzle_session_summary")
 
 # Types d'action qui démarrent une partie/un problème Lichess (issue #383,
 # point 4) — jamais le jeton dans ce qui suit (absent de ces actions, voir

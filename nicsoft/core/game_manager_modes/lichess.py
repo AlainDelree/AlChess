@@ -40,7 +40,7 @@ import chess
 from nicsoft.core.board_adapter import create_board
 from nicsoft.core.ihm_port import (
     send_event, set_app_state, get_app_state, check_board_presence_silent,
-    get_action_queue, app_state_proxy as web_server,
+    get_action_queue, get_action, app_state_proxy as web_server,
 )
 from nicsoft.core.game_manager_modes.state import (
     logger, set_nl_inst_ref, _menu_toast_data,
@@ -544,7 +544,12 @@ def _wait_first_move_white_lichess(nl_inst, legal_move_for_hardware) -> str:
 # pour couvrir aussi la fermeture des flux réseau (point 2 ci-dessous) sans
 # laisser l'utilisateur plusieurs dizaines de secondes devant un écran figé.
 _LICHESS_STOP_TIMEOUT_S = 15.0
-_LICHESS_ACTIVE_STATES = ("connecting", "lichess_seeking", "playing", "paused", "lichess_puzzle_playing")
+# "lichess_puzzle_session_summary" (issue #387, point 2) : écran de bilan
+# affiché sans limite de temps (l'utilisateur peut prendre le temps de le
+# lire) — doit rester une attente active au même titre que
+# "lichess_puzzle_playing", jamais bornée par _LICHESS_STOP_TIMEOUT_S.
+_LICHESS_ACTIVE_STATES = ("connecting", "lichess_seeking", "playing", "paused",
+                          "lichess_puzzle_playing", "lichess_puzzle_session_summary")
 
 
 def _join_lichess_launcher_thread(t: threading.Thread, label: str) -> bool:
@@ -1677,14 +1682,121 @@ def abandon_lichess_game(action: dict) -> None:
 # ── Problèmes (puzzles) Lichess — issue #354, étape A ───────────────────────
 #
 # Périmètre volontairement minimal (décision d'Alain) : un problème après
-# l'autre, angle par défaut (pas de choix de thème), pas de séries/Storm/
-# Racer/Streak, jamais de reprise d'un problème déjà vu. Réutilise le
-# lanceur existant au maximum (_open_board_with_retry,
+# l'autre, angle par défaut (pas de choix de thème — toujours vrai après
+# #387), pas de Storm/Racer/Streak, jamais de reprise d'un problème déjà
+# vu. Réutilise le lanceur existant au maximum (_open_board_with_retry,
 # _reconnect_board_or_menu, _discard_stale_browser_actions,
 # _BackMenuDuringWait, _menu_toast_data) — seule la boucle de jeu elle-même
 # (modes/lichess/puzzle_game.py::PuzzleGame) diffère de LichessGame, faute
 # d'adversaire/flux réseau continu (toute la solution est connue d'avance,
 # voir puzzle_client.py, livré par #351).
+#
+# Séance de N problèmes avec compteur et bilan (issue #387, point 2) :
+# _PuzzleSessionTracker ci-dessous — une séance est une LISTE de séries
+# (thème, nombre de problèmes), pour préparer le choix de thème/phase de
+# partie d'une future issue ; une seule série existe aujourd'hui (thème
+# vide — comportement actuel de demande du problème suivant, inchangé).
+
+class _PuzzleSeriesSpec:
+    """Une série de la séance — thème (vide = angle par défaut, voir
+    ci-dessus) et nombre de problèmes (0 = sans limite, valide seulement
+    pour l'unique série d'aujourd'hui)."""
+
+    def __init__(self, theme: str, count: int):
+        self.theme = theme
+        self.count = count
+
+
+class _PuzzleSessionTracker:
+    """Comptabilise une séance de problèmes au fil de la boucle
+    `_run_lichess_puzzle`/`_run_lichess_puzzle_virtual` — jamais pendant
+    `PuzzleGame` elle-même (qui ne connaît qu'UN problème à la fois).
+    `record()` n'est appelé que pour un problème dont un résultat existe
+    (`game.outcome is not None`) — un abandon ne compte jamais, ni dans le
+    compteur affiché, ni dans ce bilan (voir le rapport de clôture)."""
+
+    def __init__(self, series):
+        self.series = list(series)
+        # Total de la séance : 0 (sans limite) si la première série est
+        # sans limite — pas de somme avec une série suivante dans ce cas
+        # (sans objet aujourd'hui, une seule série).
+        self.total = self.series[0].count if self.series else 0
+        self.completed = 0
+        self.solved = 0
+        self.failed = 0
+        self._durations = []
+        self._rating_diff_total = 0
+        self._rating_diff_known = False
+        self.failed_puzzles = []  # [{"puzzle_id", "rating"}], dans l'ordre
+
+    @property
+    def current_theme(self) -> str:
+        return self.series[0].theme if self.series else ""
+
+    def record(self, game) -> None:
+        self.completed += 1
+        if game.outcome == "solved":
+            self.solved += 1
+        else:
+            self.failed += 1
+            self.failed_puzzles.append({"puzzle_id": game.puzzle_id, "rating": game.rating})
+        if game.duration_s is not None:
+            self._durations.append(game.duration_s)
+        if game.rating_diff is not None:
+            self._rating_diff_total += game.rating_diff
+            self._rating_diff_known = True
+
+    def is_complete(self) -> bool:
+        return self.total > 0 and self.completed >= self.total
+
+    def summary_payload(self) -> dict:
+        avg_duration_s = (sum(self._durations) / len(self._durations)) if self._durations else None
+        return {
+            "completed": self.completed,
+            "solved": self.solved,
+            "failed": self.failed,
+            "avg_duration_s": avg_duration_s,
+            "rating_diff_total": self._rating_diff_total if self._rating_diff_known else None,
+            "failed_puzzles": self.failed_puzzles,
+        }
+
+
+def _build_puzzle_session() -> _PuzzleSessionTracker:
+    """Lit `lichess_puzzle_session_size` dans config.json (mécanisme de
+    persistance déjà en place, voir config_manager.py — défaut 25, 0 =
+    sans limite, comportement actuel d'enchaînement infini). Thème vide
+    (angle par défaut, pas de choix de thème aujourd'hui)."""
+    size = load_config().get("lichess_puzzle_session_size", 25)
+    try:
+        size = int(size)
+    except (TypeError, ValueError):
+        size = 25
+    size = max(0, size)
+    return _PuzzleSessionTracker([_PuzzleSeriesSpec(theme="", count=size)])
+
+
+def _show_puzzle_session_summary_and_wait(session: _PuzzleSessionTracker) -> None:
+    """Fin de séance (dernier problème terminé, voir session.is_complete())
+    — affiche l'écran de bilan et bloque jusqu'au clic « Retour au menu »,
+    seul bouton de cet écran (index.html). L'état "lichess_puzzle_session_summary"
+    est routé en action_queue par on_action() (server.py) exactement comme
+    "lichess_puzzle_playing" — un clic "back_menu" y met IMMÉDIATEMENT
+    _app_state à "menu" (voir on_action) et dépose l'action ici ; cette
+    boucle n'a donc qu'à attendre son arrivée, sans jamais revenir en
+    arrière pour un nouveau problème (boucle appelante : "return" juste
+    après cet appel, toujours)."""
+    set_app_state("lichess_puzzle_session_summary", session.summary_payload())
+    while True:
+        action = get_action(timeout=0.2)
+        if action is None:
+            continue
+        if action.get("type") == "back_menu":
+            return
+        # Autres actions (changement de mode, etc.) : sans objet sur cet
+        # écran (un seul bouton affiché) — ignorées, comme
+        # _drain_back_menu_only ignore tout ce qui n'est pas back_menu
+        # pendant une attente bloquante (puzzle_game.py).
+
 
 def _wait_initial_position_lichess_puzzle(nl_inst, target_fen: str, color: str) -> None:
     """Variante de _wait_initial_position_lichess pour une position de
@@ -1831,6 +1943,7 @@ def _run_lichess_puzzle(token, player_name, _error=None):
 
     nl_inst = None
     game_log = None
+    session = _build_puzzle_session()
     try:
         game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
         game_log.state_change(f"Session de problèmes Lichess démarrée — joueur={player_name}.")
@@ -1859,15 +1972,23 @@ def _run_lichess_puzzle(token, player_name, _error=None):
             set_nl_inst_ref(nl_inst)
             _discard_stale_browser_actions()
 
-            game = PuzzleGame(nl_inst, token, puzzle, player_name=player_name, game_log=game_log)
+            game = PuzzleGame(nl_inst, token, puzzle, player_name=player_name, game_log=game_log,
+                               series_theme=session.current_theme)
             web_server._app_state = "lichess_puzzle_playing"
             set_app_state("lichess_puzzle_playing", {
                 "fen": game.board.fen(), "color": solver_color,
                 "puzzle_id": puzzle["puzzle_id"], "rating": puzzle.get("rating"),
+                "puzzle_index": session.completed + 1,
+                "puzzle_total": session.total or None,
             })
             game.animate_opponent_first_move()
             outcome = game.run()
+            if game.outcome is not None:
+                session.record(game)
             if outcome == "back_menu":
+                return
+            if session.is_complete():
+                _show_puzzle_session_summary_and_wait(session)
                 return
             # "next_puzzle" : reboucle — nouveau problème, nouvelle mise en
             # place physique, sans jamais repasser par le menu (issue #354,
@@ -1955,6 +2076,7 @@ def _run_lichess_puzzle_virtual(token, player_name, _error=None):
     from nicsoft.modes.lichess.game_log import GameLog
 
     game_log = None
+    session = _build_puzzle_session()
     try:
         game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
         game_log.state_change(f"Session de problèmes Lichess (mode virtuel) démarrée — joueur={player_name}.")
@@ -1979,16 +2101,24 @@ def _run_lichess_puzzle_virtual(token, player_name, _error=None):
             solver_color = solver_color_for_fen(puzzle.get("fen") or puzzle["setup_fen"])
             _discard_stale_browser_actions()
 
-            game = VirtualPuzzleGame(None, token, puzzle, player_name=player_name, game_log=game_log)
+            game = VirtualPuzzleGame(None, token, puzzle, player_name=player_name, game_log=game_log,
+                                      series_theme=session.current_theme)
             web_server._app_state = "lichess_puzzle_playing"
             set_app_state("lichess_puzzle_playing", {
                 "fen": game.board.fen(), "color": solver_color,
                 "puzzle_id": puzzle["puzzle_id"], "rating": puzzle.get("rating"),
                 "virtual": True,
+                "puzzle_index": session.completed + 1,
+                "puzzle_total": session.total or None,
             })
             game.animate_opponent_first_move()
             outcome = game.run()
+            if game.outcome is not None:
+                session.record(game)
             if outcome == "back_menu":
+                return
+            if session.is_complete():
+                _show_puzzle_session_summary_and_wait(session)
                 return
             # "next_puzzle" : reboucle — nouveau problème, toujours en mode
             # virtuel (issue #364 : "Problème suivant" relance dans le même

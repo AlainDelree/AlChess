@@ -837,6 +837,8 @@
   "config.lichess.probleme_mode_echiquier": "♟️ Board",
   "config.lichess.probleme_mode_virtuel": "🖥️ On screen",
   "config.lichess.probleme_requiert_echiquier": "“Board” mode needs the physical board connected — choose “On screen” to play without it.",
+  "config.lichess.probleme_session_taille": "Number of puzzles in the session",
+  "config.lichess.probleme_session_illimitee": "0 = no limit",
   "lichess.puzzle_virtuel_instructions": "Click a piece, then the destination square.",
   "lichess.puzzle_coup_illegal": "Illegal move — try again.",
   "toast.lichess_puzzle_missing_scope": "The Lichess token is missing the following right(s), required for puzzles: {scopes}. Regenerate it in Settings with these rights checked.",
@@ -860,5 +862,14 @@
   "lichess.puzzle.solution_titre": "Solution being demonstrated on the board…",
   "lichess.puzzle.termine": "Puzzle finished.",
   "lichess.puzzle.solution_terminee": "Solution finished.",
-  "lichess.puzzle_menu_verrouille": "Lichess puzzle in progress — finish it before changing mode."
+  "lichess.puzzle_menu_verrouille": "Lichess puzzle in progress — finish it before changing mode.",
+  "lichess.puzzle.compteur": "Puzzle {index} / {total}",
+  "lichess.puzzle.compteur_illimite": "Puzzle {index}",
+  "lichess.puzzle.bilan_titre": "🏁 Session summary",
+  "lichess.puzzle.bilan_reussis": "Solved: {count}",
+  "lichess.puzzle.bilan_rates": "Failed: {count}",
+  "lichess.puzzle.bilan_duree_moyenne": "Average solving time: {duration}",
+  "lichess.puzzle.bilan_variation_totale": "Total rating change: {diff}",
+  "lichess.puzzle.bilan_variation_inconnue": "Rating change unknown (result not sent to Lichess)",
+  "lichess.puzzle.bilan_rates_titre": "Failed puzzles:"
 }

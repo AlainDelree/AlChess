@@ -503,6 +503,14 @@
            _applyLichessPuzzleBoardState() (app.js), sur le même mécanisme
            d'état que le badge échiquier (board_ok/board_error). -->
       <p id="lichess-puzzle-board-hint" class="outil-desc hidden" data-i18n="config.lichess.probleme_requiert_echiquier">Le mode « Échiquier » nécessite l'échiquier physique connecté — choisissez « Sur l'écran » pour jouer sans lui.</p>
+      <!-- Taille de la séance (issue #387, point 2) : mémorisée côté
+           serveur (config.json, lichess_puzzle_session_size) comme les
+           autres réglages — 0 = sans limite (comportement d'avant cette
+           issue). Sauvegardée immédiatement au changement, même mécanisme
+           que lichessToggleBeep (app.js). -->
+      <label class="cfg-label" for="cfg-lichess-puzzle-session-size" data-i18n="config.lichess.probleme_session_taille">Nombre de problèmes de la séance</label>
+      <input id="cfg-lichess-puzzle-session-size" class="cfg-input" type="number" min="0" step="1" value="25" onchange="lichessSavePuzzleSessionSize()">
+      <p class="outil-desc" data-i18n="config.lichess.probleme_session_illimitee">0 = sans limite</p>
       <button class="btn btn-reprendre" id="btn-start-lichess-puzzle" data-action="start_lichess_puzzle" data-i18n="config.lichess.probleme_btn">▶ Jouer un problème</button>
     </div>
 
@@ -1174,6 +1182,10 @@
   <div class="pos-init-panel">
     <div class="card">
       <h2 class="card-title-lg" data-i18n="lichess.puzzle.titre">🧩 Problème Lichess</h2>
+      <!-- Compteur de séance (issue #387, point 2) : "Problème X / N"
+           (ou "Problème X" sans limite) — texte construit en JS via
+           socket.on("app_state") ci-dessous, jamais vide/absent. -->
+      <div id="lichess-puzzle-counter" class="lichess-puzzle-counter"></div>
       <div id="lichess-puzzle-rating" class="lichess-puzzle-rating"></div>
       <div id="lichess-puzzle-turn-banner" class="pos-init-attente">
         <span id="lichess-puzzle-turn-text"></span>
@@ -1219,6 +1231,25 @@
 
       <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:16px;">← Retour au menu</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Écran Bilan de séance de problèmes Lichess — issue #387, point 2 ──
+     Affiché une fois le dernier problème de la séance terminé (jamais si
+     retour au menu en cours de séance — voir le lanceur,
+     _show_puzzle_session_summary_and_wait). Un seul bouton (retour au
+     menu) — état routé en action_queue comme "lichess_puzzle_playing"
+     (server.py::_ACTIVE_GAME_STATES). Valeurs venues de Lichess
+     (identifiants, cotes des problèmes ratés) toujours insérées en texte
+     (textContent), jamais en HTML — voir _renderLichessPuzzleSessionSummary
+     (app.js). -->
+<div id="screen-lichess-puzzle-summary" class="screen-connecting">
+  <div class="card" style="text-align:left; max-width:480px; margin:0 auto;">
+    <h2 class="card-title-lg" data-i18n="lichess.puzzle.bilan_titre">🏁 Bilan de la séance</h2>
+    <div id="lichess-puzzle-summary-stats"></div>
+    <div id="lichess-puzzle-summary-failed-title" data-i18n="lichess.puzzle.bilan_rates_titre" style="display:none;">Problèmes ratés :</div>
+    <ul id="lichess-puzzle-summary-failed-list"></ul>
+    <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:16px;">← Retour au menu</button>
   </div>
 </div>
 

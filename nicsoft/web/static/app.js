@@ -1760,6 +1760,16 @@ socket.on("app_state", (data) => {
     if (resultBox) resultBox.style.display = "none";
     const ratingEl = document.getElementById("lichess-puzzle-rating");
     if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
+    // Compteur de séance (issue #387, point 2) : "Problème X / N" (séance
+    // bornée) ou "Problème X" (data.puzzle_total absent/0 = sans limite,
+    // comportement d'avant cette issue) — même affichage en partie sur
+    // échiquier physique et en mode écran (écran partagé par les deux).
+    const counterEl = document.getElementById("lichess-puzzle-counter");
+    if (counterEl) {
+      counterEl.textContent = data.puzzle_total
+        ? t("lichess.puzzle.compteur", { index: data.puzzle_index, total: data.puzzle_total })
+        : t("lichess.puzzle.compteur_illimite", { index: data.puzzle_index });
+    }
     const turnText = document.getElementById("lichess-puzzle-turn-text");
     if (turnText) turnText.textContent = t(data.color === "white" ? "lichess.puzzle.a_vous_de_jouer_blancs" : "lichess.puzzle.a_vous_de_jouer_noirs");
     // Mode virtuel (issue #364) : `data.virtual` vient du serveur
@@ -1774,6 +1784,15 @@ socket.on("app_state", (data) => {
     _puzzleDeactivateBoard();
     const virtualInstr = document.getElementById("lichess-puzzle-virtual-instructions");
     if (virtualInstr) virtualInstr.style.display = _puzzleVirtualActive ? "" : "none";
+  }
+  // Bilan de fin de séance (issue #387, point 2) — voir
+  // _renderLichessPuzzleSessionSummary ci-dessous ; jamais affiché pour un
+  // retour au menu en cours de séance (le lanceur ne passe par cet état
+  // que lorsque la séance est réellement complète).
+  const screenLichessPuzzleSummary = document.getElementById("screen-lichess-puzzle-summary");
+  if (screenLichessPuzzleSummary) screenLichessPuzzleSummary.style.display = data.state === "lichess_puzzle_session_summary" ? "flex" : "none";
+  if (data.state === "lichess_puzzle_session_summary") {
+    _renderLichessPuzzleSessionSummary(data);
   }
   const screenLichessWaitFirstMove = document.getElementById("screen-lichess-wait-first-move");
   if (screenLichessWaitFirstMove) screenLichessWaitFirstMove.style.display = data.state === "lichess_wait_first_move" ? "flex" : "none";
@@ -2475,6 +2494,20 @@ function _lichessSetBeepToggleVisible(visible) {
 function lichessToggleBeep(checked) {
   _lichessBeepOpponentMove = !!checked;
   socket.emit("config_save", { lichess_beep_opponent_move: _lichessBeepOpponentMove });
+}
+
+// Taille de séance des problèmes Lichess (issue #387, point 2) — mémorisée
+// dans config.json (config_save), même mécanisme que lichessToggleBeep
+// ci-dessus. 0 = sans limite (comportement d'avant cette issue). Une
+// valeur non entière ou négative est repliée sur 25 (défaut serveur,
+// config_manager.py), jamais envoyée telle quelle.
+function lichessSavePuzzleSessionSize() {
+  const el = document.getElementById("cfg-lichess-puzzle-session-size");
+  if (!el) return;
+  let value = parseInt(el.value, 10);
+  if (!Number.isFinite(value) || value < 0) value = 25;
+  el.value = value;
+  socket.emit("config_save", { lichess_puzzle_session_size: value });
 }
 
 const LICHESS_STATUS_BANNER_IDS = [
@@ -4540,6 +4573,60 @@ socket.on("lichess_puzzle_result", (data) => {
   const solutionBtn = document.getElementById("lichess-puzzle-btn-solution");
   if (solutionBtn) solutionBtn.style.display = data.can_view_solution ? "" : "none";
 });
+
+// ── Bilan de fin de séance de problèmes Lichess (issue #387, point 2) ──────
+//
+// Appelée depuis socket.on("app_state") pour l'état
+// "lichess_puzzle_session_summary" (voir plus haut) — `data` est le
+// payload envoyé par _PuzzleSessionTracker.summary_payload()
+// (game_manager_modes/lichess.py) : completed/solved/failed/
+// avg_duration_s/rating_diff_total/failed_puzzles. Toute valeur venue de
+// Lichess (identifiant de problème, cote) est insérée en texte
+// (textContent) uniquement — jamais en HTML (règle de sécurité AlChess,
+// voir architecture.md).
+function _renderLichessPuzzleSessionSummary(data) {
+  const statsEl = document.getElementById("lichess-puzzle-summary-stats");
+  if (statsEl) {
+    statsEl.textContent = "";
+    const lignes = [
+      t("lichess.puzzle.bilan_reussis", { count: data.solved || 0 }),
+      t("lichess.puzzle.bilan_rates", { count: data.failed || 0 }),
+    ];
+    if (typeof data.avg_duration_s === "number") {
+      lignes.push(t("lichess.puzzle.bilan_duree_moyenne", { duration: `${Math.round(data.avg_duration_s)} s` }));
+    }
+    if (typeof data.rating_diff_total === "number") {
+      const signed = data.rating_diff_total > 0 ? `+${data.rating_diff_total}` : `${data.rating_diff_total}`;
+      lignes.push(t("lichess.puzzle.bilan_variation_totale", { diff: signed }));
+    } else {
+      lignes.push(t("lichess.puzzle.bilan_variation_inconnue"));
+    }
+    lignes.forEach((ligne) => {
+      const p = document.createElement("p");
+      p.textContent = ligne;
+      statsEl.appendChild(p);
+    });
+  }
+
+  const failedTitle = document.getElementById("lichess-puzzle-summary-failed-title");
+  const failedList  = document.getElementById("lichess-puzzle-summary-failed-list");
+  if (failedList) {
+    failedList.textContent = "";
+    const failedPuzzles = Array.isArray(data.failed_puzzles) ? data.failed_puzzles : [];
+    if (failedTitle) failedTitle.style.display = failedPuzzles.length ? "" : "none";
+    failedPuzzles.forEach((p) => {
+      const li = document.createElement("li");
+      const a = document.createElement("a");
+      const puzzleId = String(p.puzzle_id || "");
+      a.href = `https://lichess.org/training/${encodeURIComponent(puzzleId)}`;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.textContent = (typeof p.rating === "number") ? `${puzzleId} (${p.rating})` : puzzleId;
+      li.appendChild(a);
+      failedList.appendChild(li);
+    });
+  }
+}
 
 // ── Partie(s) Lichess en cours (issue #323 ; étendu à la liste complète,
 //    une seule partie à la fois, par l'issue #325) ─────────────────────────
@@ -9195,6 +9282,14 @@ socket.on("config_data", (data) => {
   _lichessBeepOpponentMove = !!data.lichess_beep_opponent_move;
   const beepChk = document.getElementById("lichess-beep-toggle");
   if (beepChk) beepChk.checked = _lichessBeepOpponentMove;
+
+  // Taille de séance des problèmes (issue #387, point 2) — défaut 25
+  // (config_manager.py) tant que config_data n'a pas encore répondu.
+  const puzzleSessionSizeEl = document.getElementById("cfg-lichess-puzzle-session-size");
+  if (puzzleSessionSizeEl) {
+    puzzleSessionSizeEl.value = (typeof data.lichess_puzzle_session_size === "number")
+      ? data.lichess_puzzle_session_size : 25;
+  }
 
   // Case « Afficher les flèches » de l'écran d'analyse (issue #335) —
   // mémorisée comme lichess_beep_opponent_move ; par défaut cochée
