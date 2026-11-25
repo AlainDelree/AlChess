@@ -40,6 +40,25 @@ doc/specs/schemas/Puzzle*.yaml) :
   - Les thèmes (`puzzle.themes`) sont déjà présents dans la réponse de
     /next : c'est à AlChess de les cacher à l'écran avant résolution
     (l'API ne les masque jamais elle-même).
+
+Issue #388, point 1 (choix du thème/de la phase) — complément consulté le
+25/11/2026 :
+
+  - `angle` de GET /api/puzzle/next : confirmé par des requêtes ANONYMES
+    en lecture seule (sans jeton, voir puzzle_themes.py pour le détail et
+    les clés retenues) — n'est jamais transmis par get_next_puzzle()
+    ci-dessous si la valeur demandée n'appartient pas à
+    puzzle_themes.ALL_PUZZLE_ANGLES (liste fixe), pour ne jamais insérer
+    une chaîne arbitraire dans l'adresse ; comportement "mélange" inchangé
+    (angle omis) dans ce cas.
+  - GET /api/puzzle/dashboard/{days} (operationId apiPuzzleDashboard,
+    security puzzle:read) : voir get_puzzle_dashboard() ci-dessous pour la
+    structure exacte (confirmée par la spec, jamais appelée pour cette
+    vérification — endpoint authentifié).
+  - Angle de POST /api/puzzle/batch/{angle} (envoi du résultat) : decision
+    prise de ne RIEN changer ("mix" toujours) — voir le commentaire détaillé
+    de puzzle_themes.py (segment sans effet sur la cote/le tableau de bord
+    tant qu'AlChess envoie nb=0, ce qui reste le cas).
 """
 
 import io
@@ -53,11 +72,18 @@ import chess
 import chess.pgn
 
 from nicsoft.utils.net_safety import ensure_https
+from nicsoft.modes.lichess.puzzle_themes import ALL_PUZZLE_ANGLES
 
 logger = logging.getLogger("niclink.lichess")
 
 PUZZLE_NEXT_URL = "https://lichess.org/api/puzzle/next"
 PUZZLE_BATCH_SOLVE_URL = "https://lichess.org/api/puzzle/batch/mix"
+PUZZLE_DASHBOARD_URL_TEMPLATE = "https://lichess.org/api/puzzle/dashboard/{days}"
+
+# Période par défaut du tableau de bord (issue #388, point 1) — reprend la
+# valeur "sensible" suggérée par la doc publique de l'opération
+# apiPuzzleDashboard ("30 is sensible").
+PUZZLE_DASHBOARD_DEFAULT_DAYS = 30
 
 _TIMEOUT_S = 10
 _MAX_RESPONSE_BYTES = 65536
@@ -187,7 +213,7 @@ def parse_puzzle_payload(data: dict) -> dict | None:
     }
 
 
-def get_next_puzzle(token: str, difficulty: str | None = None) -> dict:
+def get_next_puzzle(token: str, difficulty: str | None = None, angle: str | None = None) -> dict:
     """GET /api/puzzle/next (scope puzzle:read). Retourne :
       {"status": "ok", "puzzle_id":, "rating":, "themes": [...],
        "solution": [...], "fen":, "setup_fen":, "opponent_first_move":,
@@ -196,12 +222,24 @@ def get_next_puzzle(token: str, difficulty: str | None = None) -> dict:
       {"status": "missing_scope"}  — jeton valide mais sans puzzle:read (403)
       {"status": "rate_limited"}   — 429
       {"status": "network_error"}  — pas de réseau ou réponse inattendue
-    """
+
+    `angle` (issue #388, point 1) : thème ou phase de partie demandé —
+    transmis dans l'adresse SEULEMENT s'il appartient à
+    puzzle_themes.ALL_PUZZLE_ANGLES (liste fixe de clés confirmées, voir
+    puzzle_themes.py) ; toute autre valeur (None, chaîne vide, clé
+    inconnue) est silencieusement ignorée — comportement "mélange"
+    inchangé (aucun paramètre "angle" envoyé), jamais une chaîne
+    arbitraire insérée dans l'adresse."""
     if not token:
         return {"status": "invalid"}
     url = PUZZLE_NEXT_URL
+    params = {}
     if difficulty:
-        url += "?" + urllib.parse.urlencode({"difficulty": difficulty})
+        params["difficulty"] = difficulty
+    if angle and angle in ALL_PUZZLE_ANGLES:
+        params["angle"] = angle
+    if params:
+        url += "?" + urllib.parse.urlencode(params)
     ensure_https(url)
     req = urllib.request.Request(
         url,
@@ -312,3 +350,95 @@ def submit_puzzle_result(token: str, puzzle_id: str, win: bool, rated: bool = Tr
         "new_rating": new_rating,
         "provisional": provisional,
     }
+
+
+def parse_puzzle_dashboard(data: dict) -> dict | None:
+    """Extrait les champs utiles de la réponse de
+    GET /api/puzzle/dashboard/{days} (voir PuzzleDashboard.yaml/
+    PuzzlePerformance.yaml, dépôt public lichess-org/api), sans jamais
+    lever d'exception sur une donnée inattendue — `None` si la structure
+    minimale ("themes" en dict) est absente. Pure, sans effet de bord
+    réseau (comme parse_puzzle_payload ci-dessus) : testable directement
+    avec un dict construit à la main.
+
+    Retourne {"themes": {clé: {"nb":, "first_wins":, "performance":}}} —
+    une entrée de `data["themes"]` dont "results" ou l'un de ces trois
+    champs n'est pas du type attendu est silencieusement ignorée (le
+    thème concerné n'apparaît simplement pas, jamais une exception qui
+    ferait échouer tout l'écran pour un seul thème mal formé)."""
+    if not isinstance(data, dict):
+        return None
+    raw_themes = data.get("themes")
+    if not isinstance(raw_themes, dict):
+        return None
+    themes = {}
+    for key, entry in raw_themes.items():
+        if not isinstance(key, str) or not isinstance(entry, dict):
+            continue
+        results = entry.get("results")
+        if not isinstance(results, dict):
+            continue
+        nb = results.get("nb")
+        first_wins = results.get("firstWins")
+        performance = results.get("performance")
+        if not isinstance(nb, int) or not isinstance(first_wins, int) or not isinstance(performance, int):
+            continue
+        themes[key] = {"nb": nb, "first_wins": first_wins, "performance": performance}
+    return {"themes": themes}
+
+
+def get_puzzle_dashboard(token: str, days: int = PUZZLE_DASHBOARD_DEFAULT_DAYS) -> dict:
+    """GET /api/puzzle/dashboard/{days} (scope puzzle:read) — tableau de
+    bord des problèmes par thème sur les `days` derniers jours (issue
+    #388, point 1). Jamais appelée de façon bloquante pour l'écran : un
+    échec (quel qu'il soit) laisse simplement l'écran de configuration
+    des problèmes sans statistiques ni thème par défaut calculé (voir
+    puzzle_themes.py::compute_default_theme et le lanceur,
+    game_manager_modes/lichess.py).
+
+    Retourne :
+      {"status": "ok", "themes": {clé: {"nb":, "first_wins":, "performance":}}}
+      {"status": "invalid"}        — jeton absent ou refusé (401)
+      {"status": "missing_scope"}  — jeton valide mais sans puzzle:read (403)
+      {"status": "rate_limited"}   — 429
+      {"status": "network_error"}  — pas de réseau ou réponse inattendue
+    """
+    if not token:
+        return {"status": "invalid"}
+    try:
+        days_int = int(days)
+    except (TypeError, ValueError):
+        days_int = PUZZLE_DASHBOARD_DEFAULT_DAYS
+    if days_int < 1:
+        days_int = PUZZLE_DASHBOARD_DEFAULT_DAYS
+    url = PUZZLE_DASHBOARD_URL_TEMPLATE.format(days=days_int)
+    ensure_https(url)
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Bearer {token}", "User-Agent": _user_agent()},
+        method="GET",
+    )
+    try:
+        # Adresse en https, vérifiée par ensure_https ci-dessus.
+        with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:  # noqa: S310  # nosec B310
+            raw = resp.read(_MAX_RESPONSE_BYTES)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            return {"status": "rate_limited"}
+        if exc.code == 401:
+            return {"status": "invalid"}
+        if exc.code == 403:
+            return {"status": "missing_scope"}
+        return {"status": "network_error"}
+    except urllib.error.URLError:
+        return {"status": "network_error"}
+
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return {"status": "network_error"}
+
+    parsed = parse_puzzle_dashboard(data)
+    if parsed is None:
+        return {"status": "network_error"}
+    return {"status": "ok", **parsed}
