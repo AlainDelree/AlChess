@@ -167,6 +167,24 @@ def _make_game(nl_inst=None, **kwargs):
     return game, client, transport
 
 
+def _settle_physical_move(game):
+    """Fait passer la fenêtre de stabilité d'un coup physique (issue #386,
+    MOVE_STABLE_DELAY_S) sans attente réelle : un premier tick démarre le
+    chronométrage (horloge monotone) sur la position déjà écrite dans
+    nl_inst.current_fen, puis _pending_move_since est reculé au-delà de
+    MOVE_STABLE_DELAY_S avant un second tick — équivalent déterministe
+    d'une lecture ininterrompue de la même position pendant toute la durée
+    de stabilité. No-op si le premier tick a résolu autre chose
+    (promotion, position illégale, retour à la position attendue) : dans
+    ce cas _pending_move_fen reste None et le second tick est sans effet
+    utile mais sans danger. Fonctionne identiquement pour LichessGame et
+    PuzzleGame (même nom d'attributs, voir puzzle_game.py)."""
+    game._tick_physical()
+    if game._pending_move_fen is not None:
+        game._pending_move_since -= game_mod.MOVE_STABLE_DELAY_S + 0.05
+        game._tick_physical()
+
+
 # ── Fonctions pures ──────────────────────────────────────────────────────────
 
 def test_legal_move_for_hardware_detecte_coup_simple():
@@ -328,7 +346,7 @@ def test_coup_utilisateur_detecte_et_envoye_sans_maj_optimiste(monkeypatch):
     after = chess.Board()
     after.push_uci("e2e4")
     board.current_fen = after.board_fen() + " w - - 0 1"
-    game._tick_physical()
+    _settle_physical_move(game)
     assert sent == ["e2e4"]
     # Pas de mise à jour optimiste : le plateau logique reste en position initiale
     # jusqu'à la confirmation Lichess (gameState).
@@ -377,7 +395,7 @@ def test_lichess_refuse_le_coup_demande_de_remettre_la_piece(monkeypatch):
     after = chess.Board()
     after.push_uci("e2e4")
     board.current_fen = after.board_fen() + " w - - 0 1"
-    game._tick_physical()
+    _settle_physical_move(game)
     refused = _events_of(events, "lichess_move_refused")
     assert refused and "illegal" in refused[0]["message"]
     assert game._awaiting_piece_reset is True

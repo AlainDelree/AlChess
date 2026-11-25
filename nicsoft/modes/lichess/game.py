@@ -43,6 +43,17 @@ from nicsoft.modes.lichess.game_log import GameLog
 
 logger = logging.getLogger("niclink.lichess")
 
+# Durée de stabilité (horloge monotone) exigée avant d'accepter un coup
+# physique légal détecté en partie Lichess ET en problème Lichess — issue
+# #386, suite de l'étude #381 : un coup glissé sans lever la pièce était
+# jusqu'ici validé dès la 1ère lecture de la case intermédiaire. Valeur
+# alignée sur driver.py::NicLinkManager.STABLE_DELAY (0.35s), le mécanisme
+# équivalent déjà éprouvé des modes pédagogique/humain/exercices — driver.py
+# n'est pas modifié ; cette constante est strictement locale au mode
+# Lichess, importée par puzzle_game.py pour rester unique entre partie et
+# problèmes.
+MOVE_STABLE_DELAY_S = 0.35
+
 _FINISHED_WITH_WINNER = frozenset({
     "mate", "resign", "timeout", "outoftime", "cheat", "variantEnd", "unknownFinish",
 })
@@ -479,6 +490,11 @@ class LichessGame(threading.Thread):
         self._illegal_stable_count = 0
         self._illegal_position_active = False
         self._last_illegal_position_sent_fen = None
+        # Issue #386 : coup légal détecté en attente de stabilité (voir
+        # _move_is_stable) — fen physique actuellement chronométrée et
+        # horodatage monotone du début de cette lecture ininterrompue.
+        self._pending_move_fen = None
+        self._pending_move_since = 0.0
         # Issue #347, partie 2, point 2 : vrai quand le DERNIER coup
         # physique envoyé a été refusé par Lichess (HTTP 400 ambigu) parce
         # que la partie venait de se terminer côté serveur (adversaire
@@ -2095,11 +2111,13 @@ class LichessGame(threading.Thread):
         if hardware_fen == expected:
             self._illegal_stable_count = 0
             self._clear_illegal_position()
+            self._pending_move_fen = None
             return
         promo = pending_promotion_move(self.board, hardware_fen)
         if promo is not None:
             self._illegal_stable_count = 0
             self._clear_illegal_position()
+            self._pending_move_fen = None
             self._pending_promotion = promo
             self._game_log.board_change(
                 f"promotion détectée {chess.square_name(promo[0])}{chess.square_name(promo[1])} — "
@@ -2113,11 +2131,15 @@ class LichessGame(threading.Thread):
         if move is not None:
             self._illegal_stable_count = 0
             self._clear_illegal_position()
+            if not self._move_is_stable(hardware_fen):
+                return
+            self._pending_move_fen = None
             self._game_log.board_change(
                 f"coup physique reconnu {move.uci()} — position lue {hardware_fen} — décision : coup envoyé."
             )
             self._submit_move(move.uci())
             return
+        self._pending_move_fen = None
         if hardware_fen == self._last_illegal_fen:
             self._illegal_stable_count += 1
         else:
@@ -2125,6 +2147,20 @@ class LichessGame(threading.Thread):
             self._illegal_stable_count = 1
         if self._illegal_stable_count >= self.ILLEGAL_STABLE_READS_REQUIRED:
             self._activate_illegal_position(hardware_fen, expected)
+
+    def _move_is_stable(self, hardware_fen: str) -> bool:
+        """Issue #386 : exige MOVE_STABLE_DELAY_S de lecture ininterrompue de
+        `hardware_fen` avant d'accepter le coup légal qu'elle représente —
+        sans quoi un coup glissé sans lever la pièce est validé sur la case
+        intermédiaire lue en premier. Toute lecture différente (y compris un
+        retour à la position attendue ou une position illégale, voir
+        _check_user_move) relance l'attente depuis zéro."""
+        now = time.monotonic()
+        if hardware_fen != self._pending_move_fen:
+            self._pending_move_fen = hardware_fen
+            self._pending_move_since = now
+            return False
+        return now - self._pending_move_since >= MOVE_STABLE_DELAY_S
 
     def _activate_illegal_position(self, hardware_fen: str, expected_fen: str) -> None:
         """Position physique ni attendue ni un coup légal pendant le tour de

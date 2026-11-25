@@ -38,7 +38,14 @@ import chess
 from nicsoft.modes.lichess.game import LichessGame
 from nicsoft.modes.lichess.game_client import GameClient
 from nicsoft.modes.lichess.transport import TransportHTTPError
-from nicsoft.tests.test_issue309_lichess_l2a import FakeBoard, FakeTransport, _events_of, _make_game, _make_recorder
+from nicsoft.tests.test_issue309_lichess_l2a import (
+    FakeBoard,
+    FakeTransport,
+    _events_of,
+    _make_game,
+    _make_recorder,
+    _settle_physical_move,
+)
 from nicsoft.tests.test_issue311_lichess_sequencing import AFTER_E2E4_W
 from nicsoft.tests.test_issue323_lichess_resume import _make_resuming_game
 
@@ -201,7 +208,7 @@ def test_nulle_sactive_des_lenvoi_du_coup_blanc(monkeypatch):
         "state": {"status": "started", "moves": ""},
     })
     board.current_fen = AFTER_E2E4_W
-    game._tick_physical()
+    _settle_physical_move(game)
     assert sent == ["e2e4"]
     assert game._human_draw_window_open is True
     _, draw_enabled = game._compute_action_buttons()
@@ -218,7 +225,7 @@ def test_nulle_reste_active_pendant_que_ladversaire_reflechit(monkeypatch):
         "state": {"status": "started", "moves": ""},
     })
     board.current_fen = AFTER_E2E4_W
-    game._tick_physical()
+    _settle_physical_move(game)
     for _ in range(10):
         game._tick_physical()
     _, draw_enabled = game._compute_action_buttons()
@@ -238,7 +245,7 @@ def test_nulle_regrisee_au_coup_suivant_de_ladversaire(monkeypatch):
         "state": {"status": "started", "moves": ""},
     })
     board.current_fen = AFTER_E2E4_W
-    game._tick_physical()
+    _settle_physical_move(game)
     assert game._human_draw_window_open is True
     # L'adversaire (noir) répond e7e5.
     game._apply_game_state({"status": "started", "moves": "e2e4 e7e5"})
@@ -277,7 +284,7 @@ def test_nulle_valable_pour_les_noirs_apres_leur_coup(monkeypatch):
     after_e5.push_uci("e2e4")
     after_e5.push_uci("e7e5")
     board.current_fen = after_e5.board_fen() + " b - - 0 1"
-    game._tick_physical()
+    _settle_physical_move(game)
     _, draw_enabled = game._compute_action_buttons()
     assert draw_enabled is True
 

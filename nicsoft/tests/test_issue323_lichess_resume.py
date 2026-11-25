@@ -47,6 +47,7 @@ from nicsoft.tests.test_issue309_lichess_l2a import (
     _make_game,
     _make_recorder,
     _ok,
+    _settle_physical_move,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -451,7 +452,7 @@ def test_tick_resume_setup_match_puis_coup_utilisateur_detecte(monkeypatch):
     after.push_uci("e2e4")
     after.push_uci("e7e5")
     board.current_fen = after.board_fen() + " w - - 0 1"
-    game._tick_physical()
+    _settle_physical_move(game)
     assert sent == ["e7e5"]
 
 

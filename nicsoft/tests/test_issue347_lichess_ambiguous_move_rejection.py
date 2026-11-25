@@ -50,7 +50,14 @@ import chess
 
 from nicsoft.modes.lichess.errors import is_ambiguous_turn_or_over_error
 from nicsoft.modes.lichess.transport import TransportHTTPError
-from nicsoft.tests.test_issue309_lichess_l2a import FakeBoard, FakeTransport, _events_of, _make_game, _make_recorder
+from nicsoft.tests.test_issue309_lichess_l2a import (
+    FakeBoard,
+    FakeTransport,
+    _events_of,
+    _make_game,
+    _make_recorder,
+    _settle_physical_move,
+)
 from nicsoft.tests.test_issue311_lichess_sequencing import AFTER_E2E4_W
 
 _AMBIGUOUS_BODY = json.dumps({"error": "Not your turn, or game already over"})
@@ -114,7 +121,7 @@ def test_coup_refuse_apres_abandon_adversaire_affiche_la_victoire_sans_toast_err
     board.current_fen = chess.Board("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR").board_fen() + " b - - 0 1"
     import time as _time
     t0 = _time.monotonic()
-    game._tick_physical()
+    _settle_physical_move(game)
     elapsed_s = _time.monotonic() - t0
     assert elapsed_s < 0.1  # relecture quasi instantanée : l'événement était déjà en file
 
@@ -159,7 +166,7 @@ def test_coup_refuse_vraie_erreur_hors_tour_reste_un_toast_erreur(monkeypatch):
     game.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S = 0.05
 
     board.current_fen = chess.Board("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR").board_fen() + " b - - 0 1"
-    game._tick_physical()
+    _settle_physical_move(game)
 
     assert game.game_over is False
     assert game._last_move_rejected_after_game_over is False
@@ -179,7 +186,7 @@ def test_coup_refuse_message_non_ambigu_reste_inchange(monkeypatch):
         "type": "gameState", "status": "resign", "winner": "black", "moves": "e2e4",
     })
     board.current_fen = chess.Board("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR").board_fen() + " b - - 0 1"
-    game._tick_physical()
+    _settle_physical_move(game)
     assert game.game_over is False  # l'événement en file n'a jamais été lu
     refused = _events_of(events, "lichess_move_refused")
     assert refused and "illegal" in refused[0]["message"]
@@ -215,7 +222,7 @@ def test_journal_dedie_trace_coup_envoye_refus_et_relecture(monkeypatch, tmp_pat
         "type": "gameState", "status": "resign", "winner": "black", "moves": "e2e4",
     })
     board.current_fen = chess.Board("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR").board_fen() + " b - - 0 1"
-    game._tick_physical()
+    _settle_physical_move(game)
     game_log.close()
 
     content = game_log.path.read_text(encoding="utf-8")

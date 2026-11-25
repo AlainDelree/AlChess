@@ -43,7 +43,7 @@ import chess
 from nicsoft.config import LOGS_DIR
 from nicsoft.core.ihm_port import send_event, get_action
 from nicsoft.engine.board_utils import san_ep
-from nicsoft.modes.lichess.game import legal_move_for_hardware, pending_promotion_move
+from nicsoft.modes.lichess.game import MOVE_STABLE_DELAY_S, legal_move_for_hardware, pending_promotion_move
 from nicsoft.modes.lichess.puzzle_client import submit_puzzle_result
 
 logger = logging.getLogger("niclink.lichess")
@@ -153,6 +153,10 @@ class PuzzleGame:
         self._last_illegal_fen = None
         self._illegal_stable_count = 0
         self._illegal_position_active = False
+        # Issue #386 : coup légal détecté en attente de stabilité (voir
+        # _move_is_stable, même mécanisme que LichessGame, game.py).
+        self._pending_move_fen = None
+        self._pending_move_since = 0.0
 
         self._board_lost = False
         self._board_lost_strikes = 0
@@ -365,10 +369,12 @@ class PuzzleGame:
         if hw_fen == self.board.board_fen():
             self._illegal_stable_count = 0
             self._clear_illegal_position()
+            self._pending_move_fen = None
             return
         promo = pending_promotion_move(self.board, hw_fen)
         if promo is not None:
             from_sq, to_sq = promo
+            self._pending_move_fen = None
             self._pending_promotion = (from_sq, to_sq)
             send_event("lichess_puzzle_promotion_needed", {
                 "from": chess.square_name(from_sq), "to": chess.square_name(to_sq),
@@ -376,9 +382,25 @@ class PuzzleGame:
             return
         move = legal_move_for_hardware(self.board, hw_fen)
         if move is not None:
+            if not self._move_is_stable(hw_fen):
+                return
+            self._pending_move_fen = None
             self._evaluate_user_move(move)
             return
+        self._pending_move_fen = None
         self._handle_illegal(hw_fen)
+
+    def _move_is_stable(self, hw_fen: str) -> bool:
+        """Issue #386 — même mécanisme que LichessGame._move_is_stable
+        (game.py) : exige MOVE_STABLE_DELAY_S de lecture ininterrompue de
+        `hw_fen` avant d'accepter le coup légal qu'elle représente, pour ne
+        pas valider un coup glissé sur sa case intermédiaire."""
+        now = time.monotonic()
+        if hw_fen != self._pending_move_fen:
+            self._pending_move_fen = hw_fen
+            self._pending_move_since = now
+            return False
+        return now - self._pending_move_since >= MOVE_STABLE_DELAY_S
 
     def _handle_illegal(self, hw_fen: str) -> None:
         if hw_fen != self._last_illegal_fen:
