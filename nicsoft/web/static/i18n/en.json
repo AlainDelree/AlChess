@@ -859,6 +859,7 @@
   "lichess.puzzle.reessayer_envoi": "↻ Retry sending",
   "lichess.puzzle.voir_solution": "👁 View solution",
   "lichess.puzzle.suivant": "▶ Next puzzle",
+  "lichess.puzzle.retour_reglages": "← Back to settings",
   "lichess.puzzle.solution_titre": "Solution being demonstrated on the board…",
   "lichess.puzzle.termine": "Puzzle finished.",
   "lichess.puzzle.solution_terminee": "Solution finished.",

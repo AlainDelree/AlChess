@@ -96,6 +96,9 @@ document.addEventListener("click", (e) => {
     case "back_menu":
       sendAction({ type: "back_menu" });
       break;
+    case "back_config_lichess":
+      sendAction({ type: "back_config_lichess" });
+      break;
     case "back":
       sendAction({ type: "back" });
       break;
@@ -1775,6 +1778,10 @@ socket.on("app_state", (data) => {
     }
     const turnText = document.getElementById("lichess-puzzle-turn-text");
     if (turnText) turnText.textContent = t(data.color === "white" ? "lichess.puzzle.a_vous_de_jouer_blancs" : "lichess.puzzle.a_vous_de_jouer_noirs");
+    // Issue #389 : réaffichée pour ce nouveau problème — masquée par
+    // socket.on("lichess_puzzle_result") une fois le précédent terminé.
+    const turnBanner = document.getElementById("lichess-puzzle-turn-banner");
+    if (turnBanner) turnBanner.style.display = "";
     // Mode virtuel (issue #364) : `data.virtual` vient du serveur
     // (_run_lichess_puzzle_virtual) — jamais déduit de _lichessPuzzleMode
     // seul, qui n'est qu'une préférence de LANCEMENT, pas l'état réel de
@@ -4469,9 +4476,69 @@ function selectPuzzleSeriesModeLichess(mode) {
   socket.emit("config_save", { lichess_puzzle_series_mode: _lichessPuzzleSeriesMode });
 }
 
+// Tri de la liste des thèmes (issue #389) — fonction PURE (aucun accès DOM,
+// aucun socket) pour rester testable isolément (voir
+// test_issue389_puzzle_theme_sort_e2e.py) et réutilisée à chaque
+// reconstruction de la liste (ouverture de l'écran, arrivée tardive du
+// tableau de bord, changement de langue) par _lichessPuzzleRenderThemeOptions
+// ci-dessous — jamais un tri dupliqué dans le code d'affichage.
+//
+// Règle (demande d'Alain, suite de #388) : d'abord tous les thèmes JAMAIS
+// joués sur la période (`stats` absent ou `nb` non positif), triés par
+// ordre alphabétique du libellé affiché ; puis tous les autres (y compris
+// les "peu joué", qui gardent leur annotation inchangée dans le texte de
+// l'option, voir _lichessPuzzleRenderThemeOptions), triés par performance
+// CROISSANTE (le plus faible en premier), égalité départagée par le taux de
+// réussite du 1er coup le plus bas, puis par ordre alphabétique du libellé.
+// Tableau de bord indisponible/vide (`dashboardThemes` null/{}) : tous les
+// thèmes tombent dans le premier groupe ("jamais joué" faute de statistique)
+// → liste entièrement alphabétique, exactement le comportement demandé pour
+// ce cas. `labelFn(key)` fournit le libellé dans la langue courante — jamais
+// recalculé ici (dépend de `t()`, donc de la langue, hors de cette fonction
+// pure).
+function _lichessPuzzleSortThemeKeys(keys, dashboardThemes, labelFn) {
+  const themes = dashboardThemes || {};
+  const never = [];
+  const played = [];
+  keys.forEach((key) => {
+    const stats = themes[key];
+    const nb = (stats && typeof stats.nb === "number") ? stats.nb : 0;
+    const performance = (stats && typeof stats.performance === "number") ? stats.performance : null;
+    const label = labelFn(key);
+    if (nb > 0 && performance !== null) {
+      const firstWins = (stats && typeof stats.first_wins === "number") ? stats.first_wins : null;
+      const firstWinRate = (firstWins !== null && nb > 0) ? firstWins / nb : 1.0;
+      played.push({ key, label, performance, firstWinRate });
+    } else {
+      never.push({ key, label });
+    }
+  });
+  never.sort((a, b) => a.label.localeCompare(b.label));
+  played.sort((a, b) => {
+    if (a.performance !== b.performance) return a.performance - b.performance;
+    if (a.firstWinRate !== b.firstWinRate) return a.firstWinRate - b.firstWinRate;
+    return a.label.localeCompare(b.label);
+  });
+  return never.concat(played).map((entry) => entry.key);
+}
+
+// Libellé affiché d'un thème OU d'une phase de problème (issue #389) —
+// clé connue de PUZZLE_THEME_KEYS/PUZZLE_PHASE_KEYS -> traduction officielle
+// (même texte que la liste déroulante de configuration) ; clé inconnue
+// (ex. Lichess en ajoute une plus tard) -> affichée telle quelle, jamais
+// d'erreur. Utilisé partout où un thème RÉEL de problème (`puzzle.themes`,
+// valeurs anglaises brutes de Lichess) est montré à l'utilisateur — jamais
+// pour l'historique local ni les journaux, qui gardent la clé brute.
+function _lichessPuzzleThemeLabel(key) {
+  if (LICHESS_PUZZLE_THEME_KEYS.includes(key)) return t(`lichess.puzzle_theme.${key}`);
+  if (LICHESS_PUZZLE_PHASE_KEYS.includes(key)) return t(`lichess.puzzle_phase.${key}`);
+  return key;
+}
+
 // Construit (ou reconstruit, ex. à l'arrivée tardive du tableau de bord)
 // la liste déroulante des thèmes — TOUJOURS les 70 thèmes fixes, qu'ils
-// aient été joués ou non (issue #388, point 2). Toute valeur venue de
+// aient été joués ou non (issue #388, point 2), triés par
+// _lichessPuzzleSortThemeKeys ci-dessus (issue #389). Toute valeur venue de
 // Lichess (performance, nombre de parties) est insérée via les variables
 // d'interpolation de t() dans un textContent — jamais en HTML (règle de
 // sécurité AlChess).
@@ -4480,8 +4547,10 @@ function _lichessPuzzleRenderThemeOptions() {
   if (!sel) return;
   sel.textContent = "";
   const themes = (_lichessPuzzleDashboard && _lichessPuzzleDashboard.themes) || {};
-  LICHESS_PUZZLE_THEME_KEYS.forEach((key) => {
-    const label = t(`lichess.puzzle_theme.${key}`);
+  const labelFn = (key) => t(`lichess.puzzle_theme.${key}`);
+  const orderedKeys = _lichessPuzzleSortThemeKeys(LICHESS_PUZZLE_THEME_KEYS, themes, labelFn);
+  orderedKeys.forEach((key) => {
+    const label = labelFn(key);
     const stats = themes[key];
     let text;
     if (stats && typeof stats.nb === "number" && stats.nb >= LICHESS_PUZZLE_THEME_MIN_PLAYS) {
@@ -4501,15 +4570,22 @@ function _lichessPuzzleRenderThemeOptions() {
 
 // Valeur sélectionnée dans la liste des thèmes : le réglage mémorisé s'il
 // existe, sinon le thème par défaut calculé par le serveur (point faible,
-// voir puzzle_themes.compute_default_theme) dès qu'il est connu — jamais
-// si l'utilisateur a entre-temps modifié lui-même la liste (
-// _lichessPuzzleThemeTouchedByUser, jamais écrasé dans ce cas, même par
-// une réponse de tableau de bord arrivée en retard).
+// voir puzzle_themes.compute_default_theme) dès qu'il est connu — jamais ce
+// thème par défaut si l'utilisateur a entre-temps modifié lui-même la liste
+// (_lichessPuzzleThemeTouchedByUser), même par une réponse de tableau de
+// bord arrivée en retard. Issue #389 : appelée après CHAQUE reconstruction
+// complète des <option> (tri inclus) — `sel.textContent = ""` détruit
+// l'option précédemment sélectionnée, ce qui réinitialiserait silencieusement
+// `sel.value` sur le premier <option> du nouvel ordre si cette fonction se
+// contentait de ne rien faire une fois "touché par l'utilisateur" ; elle
+// réapplique donc toujours `_lichessPuzzleStoredTheme` (mémorisé par
+// lichessSavePuzzleTheme dès le premier choix explicite), jamais le thème
+// par défaut calculé dans ce cas.
 function _lichessPuzzleApplyThemeSelection() {
   const sel = document.getElementById("cfg-lichess-puzzle-theme");
-  if (!sel || _lichessPuzzleThemeTouchedByUser) return;
+  if (!sel) return;
   const defaultTheme = _lichessPuzzleDashboard && _lichessPuzzleDashboard.default_theme;
-  const desired = _lichessPuzzleStoredTheme || defaultTheme || "";
+  const desired = _lichessPuzzleStoredTheme || (_lichessPuzzleThemeTouchedByUser ? "" : defaultTheme) || "";
   if (desired && LICHESS_PUZZLE_THEME_KEYS.includes(desired)) sel.value = desired;
 }
 
@@ -4696,6 +4772,14 @@ socket.on("lichess_puzzle_result", (data) => {
   if (resultBox) resultBox.style.display = "";
   const solutionBanner = document.getElementById("lichess-puzzle-solution-banner");
   if (solutionBanner) solutionBanner.style.display = "none";
+  // Issue #389 : le problème est terminé — ni l'invite "À vous de jouer"
+  // (figée depuis le début du problème, voir socket.on("app_state") plus
+  // haut) ni l'encadré mode virtuel n'ont plus d'objet une fois le résultat
+  // affiché ; remis à "" au prochain problème (même socket.on("app_state")).
+  const turnBanner = document.getElementById("lichess-puzzle-turn-banner");
+  if (turnBanner) turnBanner.style.display = "none";
+  const virtualInstr = document.getElementById("lichess-puzzle-virtual-instructions");
+  if (virtualInstr) virtualInstr.style.display = "none";
 
   const title = document.getElementById("lichess-puzzle-result-title");
   if (title) title.textContent = t(data.win ? "lichess.puzzle.resultat_gagne" : "lichess.puzzle.resultat_perdu");
@@ -4715,10 +4799,15 @@ socket.on("lichess_puzzle_result", (data) => {
     endBanner.textContent = t(soluceDemontree ? "lichess.puzzle.solution_terminee" : "lichess.puzzle.termine");
   }
 
+  // Issue #389 : thèmes traduits dans la langue courante (mêmes libellés
+  // que la liste déroulante de configuration, voir _lichessPuzzleThemeLabel
+  // ci-dessus) — les clés brutes anglaises de Lichess (`data.themes`)
+  // restent inchangées dans l'historique local et les journaux (serveur),
+  // jamais affichées telles quelles ici sauf si inconnues.
   const themesEl = document.getElementById("lichess-puzzle-result-themes");
   if (themesEl) {
     themesEl.textContent = (data.themes && data.themes.length)
-      ? `${t("lichess.puzzle.themes_titre")} ${data.themes.join(", ")}` : "";
+      ? `${t("lichess.puzzle.themes_titre")} ${data.themes.map(_lichessPuzzleThemeLabel).join(", ")}` : "";
   }
 
   const ratingEl = document.getElementById("lichess-puzzle-rating-change");

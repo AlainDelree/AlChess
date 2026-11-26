@@ -1888,7 +1888,10 @@ def _wait_initial_position_lichess_puzzle(nl_inst, target_fen: str, color: str) 
     first_check = True
     empty_since = None
     while True:
-        if get_app_state() == "menu":
+        # Issue #389 : "Retour aux réglages" (back_config_lichess) atterrit
+        # sur "config_lichess" plutôt que "menu" — sortie de mise en place
+        # tout aussi valable que le retour au menu principal.
+        if get_app_state() in ("menu", "config_lichess"):
             raise _BackMenuDuringWait()
         board_fen = _read_board_fen_once(nl_inst)
         board_lost = not board_fen or not _board_module_connected(nl_inst)
@@ -2000,10 +2003,10 @@ def launch_lichess_puzzle(config: dict) -> None:
             _error["toast_key"] or "toast.lichess_error",
             _error.get("toast_vars"), _error.get("toast_persistent", False),
         ))
-    elif web_server._app_state != "menu":
+    elif web_server._app_state not in ("menu", "config_lichess"):
         web_server._app_state = "menu"
         set_app_state("menu")
-    if web_server._app_state == "menu":
+    if web_server._app_state in ("menu", "config_lichess"):
         threading.Thread(target=check_board_presence_silent, daemon=True).start()
 
 
@@ -2122,7 +2125,10 @@ def _run_lichess_puzzle(token, player_name, _error=None):
                 logger_lichess.info("Lichess (problèmes) : échiquier physique libéré.")
             except Exception as e:
                 logger.warning(f"Déconnexion échiquier échouée (problèmes Lichess) : {e}")
-        if web_server._app_state != "menu":
+        # Issue #389 : ne jamais écraser "config_lichess" (retour aux
+        # réglages demandé par l'utilisateur, voir on_action::back_config_lichess)
+        # — seul un état imprévu doit retomber sur le menu principal.
+        if web_server._app_state not in ("menu", "config_lichess"):
             web_server._app_state = "menu"
         if game_log is not None:
             game_log.close()
@@ -2227,7 +2233,10 @@ def _run_lichess_puzzle_virtual(token, player_name, _error=None):
             _error["return_to"] = "config_lichess"
         send_event("popup", {"message": f"Erreur : {e}"})
     finally:
-        if web_server._app_state != "menu":
+        # Issue #389 : ne jamais écraser "config_lichess" (retour aux
+        # réglages demandé par l'utilisateur, voir on_action::back_config_lichess)
+        # — seul un état imprévu doit retomber sur le menu principal.
+        if web_server._app_state not in ("menu", "config_lichess"):
             web_server._app_state = "menu"
         if game_log is not None:
             game_log.close()

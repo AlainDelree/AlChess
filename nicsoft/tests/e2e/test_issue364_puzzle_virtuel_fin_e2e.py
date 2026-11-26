@@ -70,15 +70,20 @@ def test_voir_la_solution_met_a_jour_l_echiquier_virtuel(at_puzzle_virtuel_rate)
     assert not page.locator("#lichess-puzzle-btn-solution").is_visible()
 
 
-def test_retour_au_menu_disponible_pendant_la_solution(at_puzzle_virtuel_rate):
+def test_retour_aux_reglages_disponible_pendant_la_solution(at_puzzle_virtuel_rate):
+    """Issue #389 : ce bouton ramène désormais aux réglages des problèmes
+    (config_lichess), jamais au menu principal — toujours disponible et
+    fonctionnel pendant l'affichage de la solution, comme avant."""
     page = at_puzzle_virtuel_rate
     _declencher_evenement_socket_client(page, "lichess_puzzle_solution_move", {
         "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR", "san": "e4",
         "uci": "e2e4", "color": "white", "done": False,
     })
-    back_btn = page.locator("#screen-lichess-puzzle [data-action='back_menu']")
+    back_btn = page.locator("#screen-lichess-puzzle [data-action='back_config_lichess']")
     assert back_btn.is_visible()
     back_btn.click()
+    page.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
+    page.evaluate("sendAction({type: 'back_menu'})")
     page.wait_for_selector("#screen-menu", state="visible", timeout=5000)
 
 

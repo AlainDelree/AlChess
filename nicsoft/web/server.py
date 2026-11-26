@@ -665,6 +665,28 @@ def on_action(data):
         if prev_state in _ACTIVE_GAME_STATES:
             action_queue.put(data)
         return
+    # Retour aux réglages des problèmes Lichess (issue #389) — bouton
+    # "Retour aux réglages" du panneau de problème (fin de problème ET en
+    # cours de séance) et de l'écran de bilan : même geste de sortie que
+    # "back_menu" (reconnu partout dans la boucle de problèmes — PuzzleGame,
+    # _show_puzzle_session_summary_and_wait — via action_queue), mais l'état
+    # cible affiché est "config_lichess" plutôt que le menu principal
+    # (launch_lichess_puzzle tolère désormais ce repos comme "menu", voir
+    # game_manager_modes/lichess.py). Tableau de bord/résumabilité/réseau
+    # rechargés immédiatement, comme à toute ouverture de l'écran Lichess
+    # (alchess.py, "mode"->"lichess").
+    if atype == "back_config_lichess":
+        prev_state = _app_state  # sauvegarder AVANT de changer
+        set_app_state("config_lichess")
+        if prev_state in _ACTIVE_GAME_STATES:
+            action_queue.put({"type": "back_menu"})
+        from nicsoft.core.game_manager import (
+            check_lichess_resumable, check_lichess_network_status, check_lichess_puzzle_dashboard,
+        )
+        threading.Thread(target=check_lichess_resumable, daemon=True).start()
+        threading.Thread(target=check_lichess_network_status, daemon=True).start()
+        threading.Thread(target=check_lichess_puzzle_dashboard, daemon=True).start()
+        return
     # Retour sélection exercices — même pattern que back_menu
     if atype == "exercice_back" and _app_state == "exercice_running":
         set_app_state("exercices")

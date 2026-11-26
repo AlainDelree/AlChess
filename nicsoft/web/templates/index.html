@@ -512,10 +512,15 @@
            pour calculer le thème par défaut (point faible) et annoter
            chaque option de la liste des thèmes. -->
       <label class="cfg-label" data-i18n="config.lichess.probleme_serie_titre">Série à jouer</label>
+      <!-- Issue #389 : ordre d'affichage Thème, Phase, Mélange (demande
+           d'Alain) — valeur par défaut/mémorisée et logique de résolution
+           de l'angle (_resolve_puzzle_series_angle) inchangées, la classe
+           "selected" initiale reste sur "Mélange" (comportement par défaut
+           avant tout chargement de config.json). -->
       <div class="color-btns">
-        <button class="color-btn selected" id="cfg-lichess-puzzle-serie-mix" data-action="select_puzzle_series_mode_lichess" data-serie-mode="mix" data-i18n="config.lichess.probleme_serie_melange">Mélange</button>
         <button class="color-btn" id="cfg-lichess-puzzle-serie-theme" data-action="select_puzzle_series_mode_lichess" data-serie-mode="theme" data-i18n="config.lichess.probleme_serie_theme">Thème</button>
         <button class="color-btn" id="cfg-lichess-puzzle-serie-phase" data-action="select_puzzle_series_mode_lichess" data-serie-mode="phase" data-i18n="config.lichess.probleme_serie_phase">Phase de partie</button>
+        <button class="color-btn selected" id="cfg-lichess-puzzle-serie-mix" data-action="select_puzzle_series_mode_lichess" data-serie-mode="mix" data-i18n="config.lichess.probleme_serie_melange">Mélange</button>
       </div>
       <div id="cfg-lichess-puzzle-theme-row" style="display:none;">
         <label class="cfg-label" for="cfg-lichess-puzzle-theme" data-i18n="config.lichess.probleme_theme_label">Thème à travailler</label>
@@ -1251,7 +1256,12 @@
         </div>
       </div>
 
-      <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:16px;">← Retour au menu</button>
+      <!-- Issue #389 : "Retour aux réglages" (plutôt que le menu principal)
+           — toujours disponible, fin de problème ET en cours de séance,
+           ramène à l'écran de réglages des problèmes (série/thème/phase),
+           réglages mémorisés conservés, tableau de bord rechargé (voir
+           on_action::back_config_lichess, server.py). -->
+      <button class="btn btn-continuer" data-action="back_config_lichess" data-i18n="lichess.puzzle.retour_reglages" style="margin-top:16px;">← Retour aux réglages</button>
     </div>
   </div>
 </div>
@@ -1259,19 +1269,20 @@
 <!-- ── Écran Bilan de séance de problèmes Lichess — issue #387, point 2 ──
      Affiché une fois le dernier problème de la séance terminé (jamais si
      retour au menu en cours de séance — voir le lanceur,
-     _show_puzzle_session_summary_and_wait). Un seul bouton (retour au
-     menu) — état routé en action_queue comme "lichess_puzzle_playing"
-     (server.py::_ACTIVE_GAME_STATES). Valeurs venues de Lichess
-     (identifiants, cotes des problèmes ratés) toujours insérées en texte
-     (textContent), jamais en HTML — voir _renderLichessPuzzleSessionSummary
-     (app.js). -->
+     _show_puzzle_session_summary_and_wait). Un seul bouton — état routé en
+     action_queue comme "lichess_puzzle_playing" (server.py::_ACTIVE_GAME_STATES).
+     Valeurs venues de Lichess (identifiants, cotes des problèmes ratés)
+     toujours insérées en texte (textContent), jamais en HTML — voir
+     _renderLichessPuzzleSessionSummary (app.js). Issue #389 : le bouton
+     ramène aux réglages des problèmes (comme le bouton de fin de problème
+     ci-dessus), jamais au menu principal. -->
 <div id="screen-lichess-puzzle-summary" class="screen-connecting">
   <div class="card" style="text-align:left; max-width:480px; margin:0 auto;">
     <h2 class="card-title-lg" data-i18n="lichess.puzzle.bilan_titre">🏁 Bilan de la séance</h2>
     <div id="lichess-puzzle-summary-stats"></div>
     <div id="lichess-puzzle-summary-failed-title" data-i18n="lichess.puzzle.bilan_rates_titre" style="display:none;">Problèmes ratés :</div>
     <ul id="lichess-puzzle-summary-failed-list"></ul>
-    <button class="btn btn-continuer" data-action="back_menu" data-i18n="common.retour_menu" style="margin-top:16px;">← Retour au menu</button>
+    <button class="btn btn-continuer" data-action="back_config_lichess" data-i18n="lichess.puzzle.retour_reglages" style="margin-top:16px;">← Retour aux réglages</button>
   </div>
 </div>
 
