@@ -545,17 +545,50 @@
       <input id="cfg-lichess-puzzle-session-size" class="cfg-input" type="number" min="0" step="1" value="25"
              onchange="lichessSavePuzzleSessionSize()" oninput="_lichessPuzzleOnSessionSizeInput()">
       <p class="outil-desc" data-i18n="config.lichess.probleme_session_illimitee">0 = sans limite</p>
-      <!-- Compteur du jour par type de série (issue #390, point 2) — rempli
-           par _lichessPuzzleRenderDailyCounts() (app.js), source purement
+      <!-- Compteur du jour par type de série (issue #390, point 2 ;
+           tableau lisible issue #393, point 5) — rempli par
+           _lichessPuzzleRenderDailyCounts() (app.js), source purement
            locale (historique, voir check_lichess_puzzle_daily_counts,
            game_manager_modes/lichess.py). Trois lignes fixes (Thème/Phase/
            Mélange), jamais de HTML inséré depuis des valeurs (textContent
-           uniquement). -->
+           uniquement) ; colonne "Reste" masquée tant qu'aucune taille de
+           séance n'est réglée (0 = sans limite). -->
       <div id="lichess-puzzle-daily-counts" class="lichess-puzzle-daily-counts">
         <p class="cfg-label" data-i18n="config.lichess.probleme_compteur_titre">Aujourd'hui</p>
-        <div id="lichess-puzzle-daily-counts-theme" class="lichess-puzzle-daily-counts-row"></div>
-        <div id="lichess-puzzle-daily-counts-phase" class="lichess-puzzle-daily-counts-row"></div>
-        <div id="lichess-puzzle-daily-counts-mix" class="lichess-puzzle-daily-counts-row"></div>
+        <table class="lichess-puzzle-daily-counts-table" id="lichess-puzzle-daily-counts-table">
+          <thead>
+            <tr>
+              <th data-i18n="config.lichess.probleme_compteur_col_type">Type</th>
+              <th data-i18n="config.lichess.probleme_compteur_col_realises">Réalisés</th>
+              <th data-i18n="config.lichess.probleme_compteur_col_reussis">Réussis</th>
+              <th data-i18n="config.lichess.probleme_compteur_col_rates">Ratés</th>
+              <th data-i18n="config.lichess.probleme_compteur_col_reste">Reste</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr id="lichess-puzzle-daily-counts-theme" class="lichess-puzzle-daily-counts-row" data-type="theme">
+              <td class="lichess-puzzle-daily-counts-type"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="done"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="solved"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="failed"></td>
+              <td class="lichess-puzzle-daily-counts-num lichess-puzzle-daily-counts-reste" data-field="reste"></td>
+            </tr>
+            <tr id="lichess-puzzle-daily-counts-phase" class="lichess-puzzle-daily-counts-row" data-type="phase">
+              <td class="lichess-puzzle-daily-counts-type"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="done"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="solved"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="failed"></td>
+              <td class="lichess-puzzle-daily-counts-num lichess-puzzle-daily-counts-reste" data-field="reste"></td>
+            </tr>
+            <tr id="lichess-puzzle-daily-counts-mix" class="lichess-puzzle-daily-counts-row" data-type="mix">
+              <td class="lichess-puzzle-daily-counts-type"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="done"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="solved"></td>
+              <td class="lichess-puzzle-daily-counts-num" data-field="failed"></td>
+              <td class="lichess-puzzle-daily-counts-num lichess-puzzle-daily-counts-reste" data-field="reste"></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <!-- Libellé dépendant de la taille de séance réglée (issue #390,
            point 8) — PAS de data-i18n statique ici : le texte est

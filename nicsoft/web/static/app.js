@@ -2559,35 +2559,66 @@ socket.on("lichess_puzzle_daily_counts", (data) => {
   _lichessPuzzleRenderDailyCounts();
 });
 
-// Libellé d'une ligne de compteur ("Thème"/"Phase de partie"/"Mélange") —
-// réalisés/réussis/ratés, plus le reste à faire si une taille de séance est
-// réglée (valeur courante du champ, PAS forcément celle déjà mémorisée côté
-// serveur — demande explicite d'Alain : mise à jour immédiate pendant la
-// saisie, voir _lichessPuzzleOnSessionSizeInput ci-dessous). Valeurs
-// insérées en texte uniquement (textContent, jamais de HTML).
+// Tableau du compteur du jour (issue #390, point 2 ; mis en forme en
+// tableau lisible par #393, point 5 — remplace les anciennes phrases
+// "Thème : 2 réalisés — 1 réussis, 1 ratés." peu lisibles et aux accords
+// fautifs). Une ligne par type (Thème/Phase/Mélange), colonnes Réalisés/
+// Réussis/Ratés/Reste — la colonne Reste (et sa cellule par ligne) n'est
+// affichée QUE si une taille de séance est réglée (valeur courante du
+// champ, PAS forcément celle déjà mémorisée côté serveur — demande
+// explicite d'Alain : mise à jour immédiate pendant la saisie, voir
+// _lichessPuzzleOnSessionSizeInput ci-dessous). Le type de la série
+// actuellement sélectionnée (_lichessPuzzleSeriesMode) est mis en valeur.
+// Toute valeur venue des données est insérée en texte (textContent),
+// jamais en HTML — données et règles de calcul inchangées (#390).
 function _lichessPuzzleRenderDailyCounts() {
   const counts = _lichessPuzzleDailyCounts;
   if (!counts) return;
   const sizeEl = document.getElementById("cfg-lichess-puzzle-session-size");
   const rawSize = sizeEl ? parseInt(sizeEl.value, 10) : NaN;
   const size = Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : 0;
+  // Colonne "Reste" (en-tête ET cellule de chaque ligne, toujours la
+  // dernière) masquée entièrement via cette classe sur le tableau — voir
+  // main.css (:last-child) — plutôt qu'un .hidden par élément (règle
+  // générique absente pour th/td dans ce projet).
+  const table = document.getElementById("lichess-puzzle-daily-counts-table");
+  if (table) table.classList.toggle("lichess-puzzle-daily-counts-no-reste", size <= 0);
   const rows = [
     { type: "theme", id: "lichess-puzzle-daily-counts-theme", labelKey: "config.lichess.probleme_serie_theme" },
     { type: "phase", id: "lichess-puzzle-daily-counts-phase", labelKey: "config.lichess.probleme_serie_phase" },
     { type: "mix", id: "lichess-puzzle-daily-counts-mix", labelKey: "config.lichess.probleme_serie_melange" },
   ];
   rows.forEach(({ type, id, labelKey }) => {
-    const el = document.getElementById(id);
-    if (!el) return;
+    const row = document.getElementById(id);
+    if (!row) return;
+    row.classList.toggle("selected", _lichessPuzzleSeriesMode === type);
     const c = counts[type] || { done: 0, solved: 0, failed: 0 };
-    let text = t("config.lichess.probleme_compteur_ligne", {
-      label: t(labelKey), done: c.done, solved: c.solved, failed: c.failed,
-    });
-    if (size > 0) {
-      const reste = Math.max(0, size - c.done);
-      text += " " + t("config.lichess.probleme_compteur_reste", { reste, taille: size });
+    const typeCell = row.querySelector(".lichess-puzzle-daily-counts-type");
+    if (typeCell) typeCell.textContent = t(labelKey);
+    const doneCell = row.querySelector('[data-field="done"]');
+    if (doneCell) doneCell.textContent = String(c.done);
+    const solvedCell = row.querySelector('[data-field="solved"]');
+    if (solvedCell) solvedCell.textContent = String(c.solved);
+    const failedCell = row.querySelector('[data-field="failed"]');
+    if (failedCell) failedCell.textContent = String(c.failed);
+    const resteCell = row.querySelector('[data-field="reste"]');
+    if (resteCell) {
+      if (size > 0) {
+        const reste = Math.max(0, size - c.done);
+        resteCell.textContent = String(reste);
+        // Accord singulier/pluriel (issue #393, point 5 — fautif avant
+        // cette issue, toujours au pluriel) : clé "_un" seulement pour
+        // reste === 1, comme ailleurs dans l'application (ex.
+        // exercices.end_of_line_feedback_un).
+        const resteKey = reste === 1
+          ? "config.lichess.probleme_compteur_reste_titre_un"
+          : "config.lichess.probleme_compteur_reste_titre";
+        resteCell.title = t(resteKey, { reste, taille: size });
+      } else {
+        resteCell.textContent = "";
+        resteCell.title = "";
+      }
     }
-    el.textContent = text;
   });
 }
 
@@ -4662,6 +4693,9 @@ function _lichessPuzzleUpdateSeriesModeButtonsUI() {
 function selectPuzzleSeriesModeLichess(mode) {
   _lichessPuzzleSeriesMode = ["mix", "theme", "phase"].includes(mode) ? mode : "mix";
   _lichessPuzzleUpdateSeriesModeButtonsUI();
+  // Issue #393, point 5 : la ligne mise en valeur dans le tableau des
+  // compteurs du jour suit la série actuellement sélectionnée.
+  _lichessPuzzleRenderDailyCounts();
   socket.emit("config_save", { lichess_puzzle_series_mode: _lichessPuzzleSeriesMode });
 }
 
@@ -9975,11 +10009,8 @@ socket.on("config_data", (data) => {
     puzzleSessionSizeEl.value = (typeof data.lichess_puzzle_session_size === "number")
       ? data.lichess_puzzle_session_size : 25;
   }
-  // Compteur du jour (issue #390, point 2) — recalcule le "reste à faire"
-  // avec la taille de séance qui vient d'être restaurée ci-dessus (sans
-  // effet si _lichessPuzzleDailyCounts n'est pas encore arrivé).
-  _lichessPuzzleRenderDailyCounts();
-  // Libellé du bouton de lancement (issue #390, point 8) — même raison.
+  // Libellé du bouton de lancement (issue #390, point 8) — même raison
+  // que le tableau des compteurs ci-dessous.
   _lichessPuzzleUpdateStartButtonLabel();
 
   // Série à jouer des problèmes — mélange/thème/phase (issue #388, point 2)
@@ -9998,6 +10029,11 @@ socket.on("config_data", (data) => {
   _lichessPuzzleUpdateSeriesModeButtonsUI();
   _lichessPuzzleRenderThemeOptions();
   _lichessPuzzleRenderPhaseOptions();
+  // Compteur du jour (issue #390, point 2) — recalcule le "reste à faire"
+  // avec la taille de séance restaurée plus haut, et met en valeur la
+  // série ci-dessus tout juste restaurée (issue #393, point 5) — sans
+  // effet si _lichessPuzzleDailyCounts n'est pas encore arrivé.
+  _lichessPuzzleRenderDailyCounts();
 
   // Case « Afficher les flèches » de l'écran d'analyse (issue #335) —
   // mémorisée comme lichess_beep_opponent_move ; par défaut cochée

@@ -1873,9 +1873,20 @@
 .lichess-puzzle-pill-failed  { background:#c0392b; }
 .lichess-puzzle-pill-current { background:#d9a500; color:#1a1a1a; }
 
-/* Compteur du jour par type de série (issue #390, point 2) */
+/* Compteur du jour par type de série (issue #390, point 2 ; tableau
+   lisible issue #393, point 5 — remplace les anciennes phrases). */
 .lichess-puzzle-daily-counts { margin:8px 0 14px; }
-.lichess-puzzle-daily-counts-row { font-size:0.85rem; color:#3a5a7a; margin:2px 0; }
+.lichess-puzzle-daily-counts-table { width:100%; border-collapse:collapse; font-size:0.85rem; color:#3a5a7a; }
+.lichess-puzzle-daily-counts-table th,
+.lichess-puzzle-daily-counts-table td { padding:3px 6px; text-align:left; }
+.lichess-puzzle-daily-counts-table th { font-weight:600; border-bottom:1px solid #cfe0ee; }
+.lichess-puzzle-daily-counts-num { text-align:right; font-variant-numeric:tabular-nums; }
+.lichess-puzzle-daily-counts-row.selected { font-weight:700; background:#eef6ff; }
+/* Colonne "Reste" (en-tête ET cellule, toujours la dernière) — masquée
+   entièrement tant qu'aucune taille de séance n'est réglée (voir
+   _lichessPuzzleRenderDailyCounts, app.js). */
+.lichess-puzzle-daily-counts-table.lichess-puzzle-daily-counts-no-reste th:last-child,
+.lichess-puzzle-daily-counts-table.lichess-puzzle-daily-counts-no-reste td:last-child { display:none; }
 
 /* Écran Problèmes Lichess (issue #354) */
 /* Compteur de séance (issue #387, point 2) : "Problème X / N" */
