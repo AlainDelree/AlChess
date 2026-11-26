@@ -97,3 +97,80 @@ def test_theme_choisi_efface_a_la_fin_du_probleme(at_menu):
     })
     assert page.locator("#lichess-puzzle-series-label").text_content() == ""
     _retour_menu(page)
+
+
+# ── Point 5 : bande des résultats de la série ───────────────────────────
+
+def _pills(page, selector="#lichess-puzzle-series-strip .lichess-puzzle-pill"):
+    return page.locator(selector)
+
+
+def test_pastille_orange_pour_le_probleme_en_cours(at_menu):
+    page = _lancer_probleme(at_menu, extra={"puzzle_index": 1, "puzzle_total": 3})
+    pills = _pills(page)
+    assert pills.count() == 1
+    assert "lichess-puzzle-pill-current" in pills.first.get_attribute("class")
+    _retour_menu(page)
+
+
+def test_pastille_devient_verte_avec_variation_apres_reussite(at_menu):
+    page = _lancer_probleme(at_menu, extra={"puzzle_index": 1, "puzzle_total": 3})
+    _declencher_evenement_socket_client(page, "lichess_puzzle_result", {
+        "win": True, "themes": [], "rating": 1766, "rating_before": 1766,
+        "rating_after": 1780, "rating_diff": 14, "submit_pending": False,
+        "submit_error_key": None, "can_view_solution": False,
+    })
+    pill = _pills(page).first
+    assert "lichess-puzzle-pill-solved" in pill.get_attribute("class")
+    assert pill.text_content() == "+14"
+    assert "Solved" in pill.get_attribute("title")
+    _retour_menu(page)
+
+
+def test_pastille_devient_rouge_avec_variation_apres_echec(at_menu):
+    page = _lancer_probleme(at_menu, extra={"puzzle_index": 1, "puzzle_total": 3})
+    _declencher_evenement_socket_client(page, "lichess_puzzle_result", {
+        "win": False, "themes": [], "rating": 1766, "rating_before": 1766,
+        "rating_after": 1754, "rating_diff": -12, "submit_pending": False,
+        "submit_error_key": None, "can_view_solution": False,
+    })
+    pill = _pills(page).first
+    assert "lichess-puzzle-pill-failed" in pill.get_attribute("class")
+    assert pill.text_content() == "-12"
+    assert "Failed" in pill.get_attribute("title")
+    _retour_menu(page)
+
+
+def test_bande_se_vide_au_debut_d_une_nouvelle_seance(at_menu):
+    page = _lancer_probleme(at_menu, extra={"puzzle_index": 1, "puzzle_total": 2})
+    _declencher_evenement_socket_client(page, "lichess_puzzle_result", {
+        "win": True, "themes": [], "rating": 1766, "rating_before": 1766,
+        "rating_after": 1780, "rating_diff": 14, "submit_pending": False,
+        "submit_error_key": None, "can_view_solution": False,
+    })
+    page = _lancer_probleme(page, extra={"puzzle_index": 2, "puzzle_total": 2})
+    assert _pills(page).count() == 2  # problème 1 (vert) + problème 2 (orange, en cours)
+    # Nouvelle séance : puzzle_index revient à 1 -> la bande repart à zéro.
+    page = _lancer_probleme(page, extra={"puzzle_index": 1, "puzzle_total": 5})
+    assert _pills(page).count() == 1
+    _retour_menu(page)
+
+
+def test_bande_reutilisee_dans_le_bilan(at_menu):
+    page = _lancer_probleme(at_menu, extra={"puzzle_index": 1, "puzzle_total": 1})
+    _declencher_evenement_socket_client(page, "lichess_puzzle_result", {
+        "win": True, "themes": [], "rating": 1766, "rating_before": 1766,
+        "rating_after": 1780, "rating_diff": 14, "submit_pending": False,
+        "submit_error_key": None, "can_view_solution": False,
+    })
+    _declencher_evenement_socket_client(page, "app_state", {
+        "state": "lichess_puzzle_session_summary",
+        "completed": 1, "solved": 1, "failed": 0, "avg_duration_s": 12.0,
+        "rating_diff_total": 14, "failed_puzzles": [], "series_angle": "",
+    })
+    page.wait_for_selector("#screen-lichess-puzzle-summary", state="visible", timeout=5000)
+    summary_pills = _pills(page, "#lichess-puzzle-summary-strip .lichess-puzzle-pill")
+    assert summary_pills.count() == 1
+    assert "lichess-puzzle-pill-solved" in summary_pills.first.get_attribute("class")
+    page.evaluate("() => { sendAction({type: 'back_menu'}); }")
+    page.wait_for_selector("#screen-menu", state="visible", timeout=5000)

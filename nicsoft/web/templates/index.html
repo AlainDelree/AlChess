@@ -1305,6 +1305,18 @@
            on_action::back_config_lichess, server.py). -->
       <button class="btn btn-continuer" data-action="back_config_lichess" data-i18n="lichess.puzzle.retour_reglages" style="margin-top:16px;">← Retour aux réglages</button>
     </div>
+
+    <!-- Bande des résultats de la série en cours (issue #390, point 5) — un
+         second panneau sous le panneau « Problème Lichess », une pastille
+         par problème de la SÉANCE en cours (pas du jour — voir le compteur
+         du point 2) : verte/réussi, rouge/raté, orange/en cours. Remplie et
+         remise à zéro en JS (_lichessPuzzleResetSeriesStrip/_lichessPuzzleRenderSeriesStrip,
+         app.js) ; jamais de lien ici (uniquement dans le bilan, voir plus
+         bas) — aucune valeur insérée en HTML (textContent uniquement). -->
+    <div class="card">
+      <h2 class="card-title-lg" data-i18n="lichess.puzzle.serie_titre">🧩 Résultats de la séance</h2>
+      <div id="lichess-puzzle-series-strip" class="lichess-puzzle-series-strip"></div>
+    </div>
   </div>
 </div>
 
@@ -1322,6 +1334,12 @@
   <div class="card" style="text-align:left; max-width:480px; margin:0 auto;">
     <h2 class="card-title-lg" data-i18n="lichess.puzzle.bilan_titre">🏁 Bilan de la séance</h2>
     <div id="lichess-puzzle-summary-stats"></div>
+    <!-- Bande des résultats (issue #390, point 5) — même panneau, mêmes
+         pastilles et même rendu que #lichess-puzzle-series-strip ci-dessus
+         (_lichessPuzzleRenderSeriesStrip, app.js) : la séance vient de se
+         terminer, le tableau construit pendant le jeu est réutilisé tel
+         quel, jamais redemandé au serveur. -->
+    <div id="lichess-puzzle-summary-strip" class="lichess-puzzle-series-strip"></div>
     <div id="lichess-puzzle-summary-failed-title" data-i18n="lichess.puzzle.bilan_rates_titre" style="display:none;">Problèmes ratés :</div>
     <ul id="lichess-puzzle-summary-failed-list"></ul>
     <button class="btn btn-continuer" data-action="back_config_lichess" data-i18n="lichess.puzzle.retour_reglages" style="margin-top:16px;">← Retour aux réglages</button>

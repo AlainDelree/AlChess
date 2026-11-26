@@ -1822,6 +1822,16 @@ socket.on("app_state", (data) => {
     // restent masqués jusqu'à la fin du problème (voir
     // #lichess-puzzle-result, fair-play : aucune aide pendant la résolution).
     _puzzleSetupFen = (typeof data.setup_fen === "string") ? data.setup_fen : "";
+    // Bande des résultats (issue #390, point 5) — remise à zéro au tout
+    // premier problème d'une nouvelle séance (puzzle_index === 1, toujours
+    // vrai au lancement d'une séance, voir _build_puzzle_session côté
+    // serveur) ; le problème EN COURS obtient une pastille "orange" tout de
+    // suite, mise à jour par socket.on("lichess_puzzle_result") plus bas.
+    const puzzleIdx = (typeof data.puzzle_index === "number" && data.puzzle_index > 0) ? data.puzzle_index : 1;
+    if (puzzleIdx === 1) _puzzleSeriesResults = [];
+    _puzzleSeriesCurrentIndex = puzzleIdx - 1;
+    _puzzleSeriesResults[_puzzleSeriesCurrentIndex] = { status: "current", diff: null };
+    _lichessPuzzleRenderSeriesStrip();
     _puzzleDeactivateBoard();
     const virtualInstr = document.getElementById("lichess-puzzle-virtual-instructions");
     if (virtualInstr) virtualInstr.style.display = _puzzleVirtualActive ? "" : "none";
@@ -4935,6 +4945,16 @@ socket.on("lichess_puzzle_result", (data) => {
   _lichessPuzzleShowPromotion(false);
   _lichessPuzzleHideBanners();
   _puzzleDeactivateBoard();  // plus aucun coup à jouer (résolu, raté, ou solution en cours)
+  // Bande des résultats (issue #390, point 5) — le problème en cours
+  // (pastille "orange" posée par socket.on("app_state") plus haut) devient
+  // vert/rouge, avec la variation de cote si Lichess l'a déjà fournie.
+  if (_puzzleSeriesCurrentIndex >= 0) {
+    _puzzleSeriesResults[_puzzleSeriesCurrentIndex] = {
+      status: data.win ? "solved" : "failed",
+      diff: (typeof data.rating_diff === "number") ? data.rating_diff : null,
+    };
+    _lichessPuzzleRenderSeriesStrip();
+  }
   const resultBox = document.getElementById("lichess-puzzle-result");
   if (resultBox) resultBox.style.display = "";
   const solutionBanner = document.getElementById("lichess-puzzle-solution-banner");
@@ -5001,6 +5021,46 @@ socket.on("lichess_puzzle_result", (data) => {
   if (solutionBtn) solutionBtn.style.display = data.can_view_solution ? "" : "none";
 });
 
+// Bande des résultats de la séance (issue #390, point 5) — une pastille par
+// entrée de _puzzleSeriesResults, dans l'ordre ; rendue à l'identique dans
+// le panneau de problème (#lichess-puzzle-series-strip) et dans le bilan de
+// séance (#lichess-puzzle-summary-strip, voir _renderLichessPuzzleSessionSummary
+// ci-dessous) — même tableau, jamais redemandé au serveur pour le bilan
+// (déjà complet au moment où il s'affiche). Couleur jamais seule porteuse de
+// l'information : le signe/nombre est du texte, et title/aria-label portent
+// le statut en toutes lettres pour les technologies d'assistance. Valeurs
+// insérées en texte uniquement (textContent), jamais en HTML.
+function _lichessPuzzleBuildPills(results) {
+  return results.map((entry) => {
+    const pill = document.createElement("span");
+    if (entry.status === "current") {
+      pill.className = "lichess-puzzle-pill lichess-puzzle-pill-current";
+      pill.textContent = "…";
+      const label = t("lichess.puzzle.pastille_en_cours");
+      pill.title = label;
+      pill.setAttribute("aria-label", label);
+    } else {
+      const solved = entry.status === "solved";
+      pill.className = "lichess-puzzle-pill " + (solved ? "lichess-puzzle-pill-solved" : "lichess-puzzle-pill-failed");
+      const diff = (typeof entry.diff === "number") ? (entry.diff > 0 ? `+${entry.diff}` : `${entry.diff}`) : "";
+      pill.textContent = diff || (solved ? "✓" : "✗");
+      const label = t(solved ? "lichess.puzzle.pastille_reussi" : "lichess.puzzle.pastille_rate");
+      pill.title = label;
+      pill.setAttribute("aria-label", label);
+    }
+    return pill;
+  });
+}
+
+function _lichessPuzzleRenderSeriesStrip() {
+  ["lichess-puzzle-series-strip", "lichess-puzzle-summary-strip"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = "";
+    _lichessPuzzleBuildPills(_puzzleSeriesResults).forEach((pill) => el.appendChild(pill));
+  });
+}
+
 // ── Bilan de fin de séance de problèmes Lichess (issue #387, point 2) ──────
 //
 // Appelée depuis socket.on("app_state") pour l'état
@@ -5012,6 +5072,11 @@ socket.on("lichess_puzzle_result", (data) => {
 // texte (textContent) uniquement — jamais en HTML (règle de sécurité
 // AlChess, voir architecture.md).
 function _renderLichessPuzzleSessionSummary(data) {
+  // Bande des résultats (issue #390, point 5) — déjà complète à cet instant
+  // (dernier "lichess_puzzle_result" reçu bien avant que la séance ne soit
+  // déclarée terminée, voir le commentaire de _puzzleSeriesResults
+  // ci-dessus) ; jamais redemandée au serveur.
+  _lichessPuzzleRenderSeriesStrip();
   const statsEl = document.getElementById("lichess-puzzle-summary-stats");
   if (statsEl) {
     statsEl.textContent = "";
@@ -8068,6 +8133,14 @@ let _puzzleBoardFen      = "";      // dernier FEN connu (board-only ou complet,
 // l'historique local, utilisé uniquement par "Copier le FEN"/"Analyser sur
 // Lichess", jamais affiché ni activable avant la fin du problème.
 let _puzzleSetupFen = "";
+// Bande des résultats de la séance en cours (issue #390, point 5) — un
+// élément par problème déjà démarré de la séance ({status: "current"|
+// "solved"|"failed", diff: number|null}), remis à zéro au premier problème
+// d'une nouvelle séance (data.puzzle_index === 1, voir socket.on("app_state")
+// plus bas) ; jamais les problèmes du jour (voir le compteur du point 2,
+// purement serveur) — uniquement ceux de CETTE séance, connus du navigateur.
+let _puzzleSeriesResults = [];
+let _puzzleSeriesCurrentIndex = -1;
 let _puzzleSelected      = null;    // case sélectionnée, coord interne "file-rank"
 let _puzzleLegalDests    = [];      // destinations légales (coords internes) pour la case sélectionnée
 

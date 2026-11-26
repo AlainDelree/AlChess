@@ -1830,6 +1830,24 @@
 .lichess-ongoing-game-note { font-size:0.85rem; color:#5a4a1a; font-style:italic; }
 .outils-wiki-result { display:none; margin-top:12px; }
 
+/* Bande des résultats de la série (issue #390, point 5) — pastilles qui
+   passent à la ligne sans jamais déborder (flex-wrap), couleur jamais seule
+   porteuse de l'information (signe/nombre dans le texte + titre/aria-label
+   "réussi"/"raté"/"en cours", voir app.js::_lichessPuzzleRenderSeriesStrip).
+   Vert/rouge repris des couleurs déjà en place ailleurs dans l'app
+   (.toast-success, .lichess-banner-danger) ; orange repris de la teinte
+   "attention/en cours" déjà utilisée pour l'adversaire parti
+   (.board-opponent-gone-frame, #d9a500). */
+.lichess-puzzle-series-strip { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 0; }
+.lichess-puzzle-pill {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:34px; height:24px; padding:0 6px; border-radius:4px;
+  font-size:0.78rem; font-weight:700; color:#fff;
+}
+.lichess-puzzle-pill-solved  { background:#2e7d32; }
+.lichess-puzzle-pill-failed  { background:#c0392b; }
+.lichess-puzzle-pill-current { background:#d9a500; color:#1a1a1a; }
+
 /* Compteur du jour par type de série (issue #390, point 2) */
 .lichess-puzzle-daily-counts { margin:8px 0 14px; }
 .lichess-puzzle-daily-counts-row { font-size:0.85rem; color:#3a5a7a; margin:2px 0; }
