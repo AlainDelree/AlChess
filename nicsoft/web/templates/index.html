@@ -1303,6 +1303,9 @@
         <div id="lichess-puzzle-fen-actions" class="lichess-puzzle-fen-actions">
           <button id="lichess-puzzle-btn-copy-fen" class="btn" type="button" onclick="_lichessPuzzleCopyFen()" data-i18n="lichess.puzzle.copier_fen">📋 Copier le FEN</button>
           <button id="lichess-puzzle-btn-analyse-lichess" class="btn" type="button" onclick="_lichessPuzzleAnalyseOnLichess()" data-i18n="lichess.puzzle.analyser_lichess">🔎 Analyser sur Lichess</button>
+          <!-- Issue #393, point 4 : un FEN seul ne porte aucune orientation —
+               précise où elle est reprise (le FEN copié n'est pas modifié). -->
+          <p class="outil-desc" data-i18n="lichess.puzzle.fen_orientation_note">Le FEN copié n'inclut pas l'orientation de l'échiquier — « Analyser sur Lichess » l'ouvre déjà dans le bon sens.</p>
         </div>
         <div id="lichess-puzzle-result-actions">
           <button id="lichess-puzzle-btn-solution" class="btn" data-action="lichess_puzzle_view_solution" style="display:none;" data-i18n="lichess.puzzle.voir_solution">Voir la solution</button>

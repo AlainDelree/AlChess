@@ -881,6 +881,7 @@
   "lichess.puzzle.voir_bilan": "🏁 View summary",
   "lichess.puzzle.copier_fen": "📋 Copy FEN",
   "lichess.puzzle.analyser_lichess": "🔎 Analyse on Lichess",
+  "lichess.puzzle.fen_orientation_note": "The copied FEN does not include board orientation — \"Analyse on Lichess\" already opens it facing the right way.",
   "lichess.puzzle.fen_copie": "FEN copied to clipboard.",
   "lichess.puzzle.fen_copie_echec": "Could not copy the FEN — select it manually.",
   "lichess.puzzle.retour_reglages": "← Back to settings",

@@ -1828,6 +1828,11 @@ socket.on("app_state", (data) => {
     // restent masqués jusqu'à la fin du problème (voir
     // #lichess-puzzle-result, fair-play : aucune aide pendant la résolution).
     _puzzleSetupFen = (typeof data.setup_fen === "string") ? data.setup_fen : "";
+    // Issue #393, point 4 : mémorisée en même temps que le FEN ci-dessus —
+    // `data.color` est la couleur jouée par l'utilisateur DANS ce
+    // problème (déjà utilisée plus haut pour l'orientation de
+    // l'échiquier physique/virtuel, _lichessPuzzleFlipped).
+    _puzzleSetupColor = (data.color === "white" || data.color === "black") ? data.color : "";
     // Bande des résultats (issue #390, point 5) — remise à zéro au tout
     // premier problème d'une nouvelle séance (puzzle_index === 1, toujours
     // vrai au lancement d'une séance, voir _build_puzzle_session côté
@@ -5043,10 +5048,26 @@ function _copyFenFallback(fen, onOk, onFail) {
 // rangées, valides dans un chemin d'URL) et n'encode que les espaces
 // (%20) séparant ses 6 champs, format confirmé par la documentation
 // publique de Lichess (forum officiel, lien direct depuis un FEN).
+//
+// Issue #393, point 4 : orientation (couleur jouée par l'utilisateur dans
+// CE problème, jamais celle du FEN lui-même qui n'en porte aucune) ajoutée
+// via le paramètre "color" — confirmé le 26/11/2026 par lecture du code
+// source public de lila (app/controllers/UserAnalysis.scala::load, qui
+// lit `getColor()` — RequestGetter.scala::getColor, défaut "color" — puis
+// retombe sur la couleur au trait du FEN si absent/invalide) et de
+// scalachess (Color.scala::fromName, strictement "white"/"black" en
+// minuscules, toute autre valeur ignorée) : jamais une valeur devinée ou
+// non validée insérée dans l'adresse.
+function _lichessAnalysisColorParam(color) {
+  return (color === "white" || color === "black") ? color : "";
+}
+
 function _lichessPuzzleAnalyseOnLichess() {
   const fen = _puzzleSetupFen;
   if (!_isLikelyValidFen(fen)) return;
-  const url = "https://lichess.org/analysis/" + encodeURI(fen);
+  let url = "https://lichess.org/analysis/" + encodeURI(fen);
+  const color = _lichessAnalysisColorParam(_puzzleSetupColor);
+  if (color) url += "?color=" + color;
   window.open(url, "_blank", "noopener,noreferrer");
 }
 
@@ -8268,6 +8289,11 @@ let _puzzleBoardFen      = "";      // dernier FEN connu (board-only ou complet,
 // l'historique local, utilisé uniquement par "Copier le FEN"/"Analyser sur
 // Lichess", jamais affiché ni activable avant la fin du problème.
 let _puzzleSetupFen = "";
+// Couleur jouée par l'utilisateur dans CE problème ("white"/"black", issue
+// #393, point 4) — mémorisée en même temps que _puzzleSetupFen ci-dessus,
+// pour orienter "Analyser sur Lichess" (le FEN seul ne porte jamais
+// l'orientation de l'échiquier).
+let _puzzleSetupColor = "";
 // Bande des résultats de la séance en cours (issue #390, point 5) — un
 // élément par problème déjà démarré de la séance ({status: "current"|
 // "solved"|"failed", diff: number|null}), remis à zéro au premier problème

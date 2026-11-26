@@ -881,6 +881,7 @@
   "lichess.puzzle.voir_bilan": "🏁 Voir le bilan",
   "lichess.puzzle.copier_fen": "📋 Copier le FEN",
   "lichess.puzzle.analyser_lichess": "🔎 Analyser sur Lichess",
+  "lichess.puzzle.fen_orientation_note": "Le FEN copié n'inclut pas l'orientation de l'échiquier — « Analyser sur Lichess » l'ouvre déjà dans le bon sens.",
   "lichess.puzzle.fen_copie": "FEN copié dans le presse-papiers.",
   "lichess.puzzle.fen_copie_echec": "Copie du FEN impossible — sélectionnez-le manuellement.",
   "lichess.puzzle.retour_reglages": "← Retour aux réglages",
