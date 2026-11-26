@@ -2139,7 +2139,13 @@ def _run_lichess_puzzle(token, player_name, account="", _error=None):
             web_server._app_state = "lichess_puzzle_playing"
             set_app_state("lichess_puzzle_playing", {
                 "fen": game.board.fen(), "color": solver_color,
-                "puzzle_id": puzzle["puzzle_id"], "rating": puzzle.get("rating"),
+                "puzzle_id": puzzle["puzzle_id"],
+                # Issue #390, point 7 : cote du PROBLEME jamais transmise
+                # au navigateur pendant la résolution (indice de difficulté,
+                # lichess.org la masque aussi) — absente de ce payload par
+                # construction, pas seulement cachée côté client ; connue
+                # seulement à la fin, via "lichess_puzzle_result"
+                # (PuzzleGame._result_payload, puzzle_game.py, inchangé).
                 "puzzle_index": session.completed + 1,
                 "puzzle_total": session.total or None,
                 # Issue #390, point 1 : cote du joueur (voir
@@ -2288,7 +2294,13 @@ def _run_lichess_puzzle_virtual(token, player_name, account="", _error=None):
             web_server._app_state = "lichess_puzzle_playing"
             set_app_state("lichess_puzzle_playing", {
                 "fen": game.board.fen(), "color": solver_color,
-                "puzzle_id": puzzle["puzzle_id"], "rating": puzzle.get("rating"),
+                "puzzle_id": puzzle["puzzle_id"],
+                # Issue #390, point 7 : cote du PROBLEME jamais transmise
+                # au navigateur pendant la résolution (indice de difficulté,
+                # lichess.org la masque aussi) — absente de ce payload par
+                # construction, pas seulement cachée côté client ; connue
+                # seulement à la fin, via "lichess_puzzle_result"
+                # (PuzzleGame._result_payload, puzzle_game.py, inchangé).
                 "virtual": True,
                 "puzzle_index": session.completed + 1,
                 "puzzle_total": session.total or None,

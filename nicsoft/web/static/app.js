@@ -1780,8 +1780,14 @@ socket.on("app_state", (data) => {
         seriesLabelEl.textContent = "";
       }
     }
+    // Issue #390, point 7 : cote du PROBLÈME masquée tant qu'il n'est pas
+    // terminé (indice de difficulté — lichess.org la masque aussi) —
+    // "masquée" affiché sans condition, jamais `data.rating` (de toute
+    // façon absent de ce payload par construction, voir
+    // game_manager_modes/lichess.py). Révélée uniquement par
+    // socket.on("lichess_puzzle_result") plus bas, comme avant cette issue.
     const ratingEl = document.getElementById("lichess-puzzle-rating");
-    if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
+    if (ratingEl) ratingEl.textContent = t("lichess.puzzle.cote_masquee");
     // Cote du joueur (issue #390, point 1) — affichée dès le début, mise à
     // jour après chaque résultat (voir _PuzzleSessionTracker.record côté
     // serveur) ou par l'arrivée différée de socket.on("lichess_puzzle_player_rating")
@@ -4955,6 +4961,13 @@ socket.on("lichess_puzzle_result", (data) => {
     };
     _lichessPuzzleRenderSeriesStrip();
   }
+  // Issue #390, point 7 : la cote du PROBLÈME, masquée pendant la
+  // résolution (voir socket.on("app_state") plus haut), est révélée ici —
+  // comme avant cette issue, elle reste affichée pendant tout le temps où
+  // le panneau de résultat est visible (y compris pendant "Voir la
+  // solution", qui réémet ce même évènement, voir puzzle_game.py::_show_solution).
+  const ratingEl = document.getElementById("lichess-puzzle-rating");
+  if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
   const resultBox = document.getElementById("lichess-puzzle-result");
   if (resultBox) resultBox.style.display = "";
   const solutionBanner = document.getElementById("lichess-puzzle-solution-banner");
@@ -5002,8 +5015,8 @@ socket.on("lichess_puzzle_result", (data) => {
       ? `${t("lichess.puzzle.themes_titre")} ${data.themes.map(_lichessPuzzleThemeLabel).join(", ")}` : "";
   }
 
-  const ratingEl = document.getElementById("lichess-puzzle-rating-change");
-  if (ratingEl) {
+  const ratingChangeEl = document.getElementById("lichess-puzzle-rating-change");
+  if (ratingChangeEl) {
     const parts = [];
     if (typeof data.rating_before === "number") parts.push(t("lichess.puzzle.cote_avant", { rating: data.rating_before }));
     if (typeof data.rating_after === "number") parts.push(t("lichess.puzzle.cote_apres", { rating: data.rating_after }));
@@ -5011,7 +5024,7 @@ socket.on("lichess_puzzle_result", (data) => {
       const signed = data.rating_diff > 0 ? `+${data.rating_diff}` : `${data.rating_diff}`;
       parts.push(t("lichess.puzzle.cote_variation", { diff: signed }));
     }
-    ratingEl.textContent = parts.join(" — ");
+    ratingChangeEl.textContent = parts.join(" — ");
   }
 
   const errBox = document.getElementById("lichess-puzzle-submit-error");

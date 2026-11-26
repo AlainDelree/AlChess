@@ -90,6 +90,28 @@ def test_melange_naffiche_aucun_theme_ni_phase(at_menu):
     _retour_menu(page)
 
 
+# ── Point 7 : cote du PROBLÈME masquée pendant la résolution ───────────
+
+def test_cote_du_probleme_absente_de_la_page_pendant_la_resolution(at_menu):
+    page = _lancer_probleme(at_menu)  # rating=1766, voir _lancer_probleme
+    assert "1766" not in page.content()
+    ratingEl = page.locator("#lichess-puzzle-rating")
+    assert ratingEl.text_content() != ""  # un libellé neutre, jamais vide
+    _retour_menu(page)
+
+
+def test_cote_du_probleme_affichee_a_la_fin(at_menu):
+    page = _lancer_probleme(at_menu)
+    assert "1766" not in page.content()
+    _declencher_evenement_socket_client(page, "lichess_puzzle_result", {
+        "win": True, "themes": ["fork"], "rating": 1766,
+        "rating_before": 1680, "rating_after": 1694, "rating_diff": 14,
+        "submit_pending": False, "submit_error_key": None, "can_view_solution": False,
+    })
+    assert "1766" in page.locator("#lichess-puzzle-rating").text_content()
+    _retour_menu(page)
+
+
 def test_theme_choisi_efface_a_la_fin_du_probleme(at_menu):
     page = _lancer_probleme(at_menu, series_theme="fork", series_type="theme")
     assert "Fork" in page.locator("#lichess-puzzle-series-label").text_content()
