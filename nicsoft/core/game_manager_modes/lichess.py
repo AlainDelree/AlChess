@@ -597,8 +597,33 @@ _LICHESS_STOP_TIMEOUT_S = 15.0
 # affiché sans limite de temps (l'utilisateur peut prendre le temps de le
 # lire) — doit rester une attente active au même titre que
 # "lichess_puzzle_playing", jamais bornée par _LICHESS_STOP_TIMEOUT_S.
+#
+# Issue #392, point 1 (étude #391, point 1) : "position_initiale" et
+# "lichess_wait_first_move" manquaient ici — essai réel du 26/11/2026,
+# lancement d'une partie classée avec l'échiquier physique en désordre :
+# le fil attendait normalement la position physique (aucune sortie
+# demandée, aucune partie créée côté Lichess), mais le compte à rebours de
+# _LICHESS_STOP_TIMEOUT_S démarrait quand même dès l'entrée dans
+# "position_initiale" (absent de cette liste) — faux positif, retour forcé
+# au menu après 15s avec le message "l'arrêt de la session a pris trop de
+# temps". Liste désormais recensée par relecture complète des lanceurs
+# (game_manager_modes/lichess.py::_wait_initial_position_lichess(_puzzle)/
+# _wait_first_move_white_lichess, chacun des quatre launch_lichess*) :
+# TOUT état posé par un fil de lanceur APPARTIENT soit à cette liste (vraie
+# attente, jamais bornée), soit à _LICHESS_EXIT_STATES ci-dessous (sortie
+# demandée ou fin de partie/session, bornée) — jamais ni l'un ni l'autre
+# (garde statique, voir test_issue392_point1_lichess_active_states_guard.py).
 _LICHESS_ACTIVE_STATES = ("connecting", "lichess_seeking", "playing", "paused",
+                          "position_initiale", "lichess_wait_first_move",
                           "lichess_puzzle_playing", "lichess_puzzle_session_summary")
+# États de sortie demandée ou atteinte pendant l'exécution d'un lanceur
+# Lichess — c'est précisément LEUR apparition qui doit démarrer le compte à
+# rebours de _join_lichess_launcher_thread (jamais une attente légitime) :
+# "menu" (retour demandé par l'utilisateur, ou absence de jeton détectée
+# avant même le lancement du fil), "config_lichess" (retour aux réglages
+# depuis l'écran de mise en place d'un problème, issue #389), "game_over"
+# (fin de partie, LichessGame::_finalize, avant de retourner).
+_LICHESS_EXIT_STATES = ("menu", "config_lichess", "game_over")
 
 
 def _join_lichess_launcher_thread(t: threading.Thread, label: str) -> bool:
