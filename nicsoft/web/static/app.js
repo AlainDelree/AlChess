@@ -2497,6 +2497,61 @@ socket.on("lichess_puzzle_dashboard", (data) => {
   _lichessPuzzleRenderThemeOptions();
 });
 
+// Compteur du jour par type de série (issue #390, point 2) — poussé une
+// seule fois par ouverture de l'écran (voir check_lichess_puzzle_daily_counts,
+// game_manager_modes/lichess.py), purement local (jamais de réseau, jamais
+// d'échec possible côté serveur). `null` tant qu'il n'est pas encore arrivé
+// — _lichessPuzzleRenderDailyCounts() n'affiche alors rien plutôt qu'un
+// zéro trompeur.
+let _lichessPuzzleDailyCounts = null;
+
+socket.on("lichess_puzzle_daily_counts", (data) => {
+  _lichessPuzzleDailyCounts = data || null;
+  _lichessPuzzleRenderDailyCounts();
+});
+
+// Libellé d'une ligne de compteur ("Thème"/"Phase de partie"/"Mélange") —
+// réalisés/réussis/ratés, plus le reste à faire si une taille de séance est
+// réglée (valeur courante du champ, PAS forcément celle déjà mémorisée côté
+// serveur — demande explicite d'Alain : mise à jour immédiate pendant la
+// saisie, voir _lichessPuzzleOnSessionSizeInput ci-dessous). Valeurs
+// insérées en texte uniquement (textContent, jamais de HTML).
+function _lichessPuzzleRenderDailyCounts() {
+  const counts = _lichessPuzzleDailyCounts;
+  if (!counts) return;
+  const sizeEl = document.getElementById("cfg-lichess-puzzle-session-size");
+  const rawSize = sizeEl ? parseInt(sizeEl.value, 10) : NaN;
+  const size = Number.isFinite(rawSize) && rawSize >= 0 ? rawSize : 0;
+  const rows = [
+    { type: "theme", id: "lichess-puzzle-daily-counts-theme", labelKey: "config.lichess.probleme_serie_theme" },
+    { type: "phase", id: "lichess-puzzle-daily-counts-phase", labelKey: "config.lichess.probleme_serie_phase" },
+    { type: "mix", id: "lichess-puzzle-daily-counts-mix", labelKey: "config.lichess.probleme_serie_melange" },
+  ];
+  rows.forEach(({ type, id, labelKey }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const c = counts[type] || { done: 0, solved: 0, failed: 0 };
+    let text = t("config.lichess.probleme_compteur_ligne", {
+      label: t(labelKey), done: c.done, solved: c.solved, failed: c.failed,
+    });
+    if (size > 0) {
+      const reste = Math.max(0, size - c.done);
+      text += " " + t("config.lichess.probleme_compteur_reste", { reste, taille: size });
+    }
+    el.textContent = text;
+  });
+}
+
+// Mise à jour immédiate pendant la saisie de la taille de séance (issue
+// #390, point 2 — reste à faire recalculé ; point 8 — libellé du bouton de
+// lancement, voir plus bas) : jamais seulement au "onchange" (qui n'attend
+// la perte de focus/Entrée), toujours à chaque frappe, y compris une valeur
+// vide ou invalide (repliée sur "sans limite" par _lichessPuzzleRenderDailyCounts
+// ci-dessus).
+function _lichessPuzzleOnSessionSizeInput() {
+  _lichessPuzzleRenderDailyCounts();
+}
+
 // Poussé par game.py::_maybe_fetch_new_rating, en meilleur effort et
 // uniquement pour une partie classée réellement terminée — jamais si
 // Lichess ne la fournit pas à temps (voir son commentaire).
@@ -9580,6 +9635,10 @@ socket.on("config_data", (data) => {
     puzzleSessionSizeEl.value = (typeof data.lichess_puzzle_session_size === "number")
       ? data.lichess_puzzle_session_size : 25;
   }
+  // Compteur du jour (issue #390, point 2) — recalcule le "reste à faire"
+  // avec la taille de séance qui vient d'être restaurée ci-dessus (sans
+  // effet si _lichessPuzzleDailyCounts n'est pas encore arrivé).
+  _lichessPuzzleRenderDailyCounts();
 
   // Série à jouer des problèmes — mélange/thème/phase (issue #388, point 2)
   // — même mécanisme de mémorisation que la taille de séance ci-dessus.

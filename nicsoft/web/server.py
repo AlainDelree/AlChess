@@ -682,10 +682,12 @@ def on_action(data):
             action_queue.put({"type": "back_menu"})
         from nicsoft.core.game_manager import (
             check_lichess_resumable, check_lichess_network_status, check_lichess_puzzle_dashboard,
+            check_lichess_puzzle_daily_counts,
         )
         threading.Thread(target=check_lichess_resumable, daemon=True).start()
         threading.Thread(target=check_lichess_network_status, daemon=True).start()
         threading.Thread(target=check_lichess_puzzle_dashboard, daemon=True).start()
+        threading.Thread(target=check_lichess_puzzle_daily_counts, daemon=True).start()
         return
     # Retour sélection exercices — même pattern que back_menu
     if atype == "exercice_back" and _app_state == "exercice_running":

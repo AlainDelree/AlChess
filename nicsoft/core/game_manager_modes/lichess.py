@@ -208,6 +208,18 @@ def check_lichess_puzzle_dashboard() -> None:
     send_event("lichess_puzzle_dashboard", {"available": True, "themes": themes, "default_theme": default_theme})
 
 
+def check_lichess_puzzle_daily_counts() -> None:
+    """Compteur du jour par type de série (issue #390, point 2) — appelée
+    comme check_lichess_puzzle_dashboard ci-dessus, à chaque ouverture de
+    l'écran de réglages des problèmes. Contrairement au tableau de bord,
+    purement local (aucun réseau, aucun jeton requis) : lit l'historique
+    local des problèmes (puzzle_history.daily_counts_by_type), jamais
+    bloquante, jamais d'échec possible (voir cette fonction — fichier
+    absent/vide/illisible -> compteurs à zéro, jamais d'exception)."""
+    from nicsoft.modes.lichess.puzzle_history import daily_counts_by_type
+    send_event("lichess_puzzle_daily_counts", daily_counts_by_type())
+
+
 def _refuse_create_if_games_ongoing(token: str) -> list | None:
     """Garde-fou juste avant de créer une nouvelle partie (issue #325, point
     4) : redemande la liste des parties en cours — y compris celles créées
@@ -2123,7 +2135,7 @@ def _run_lichess_puzzle(token, player_name, account="", _error=None):
             _discard_stale_browser_actions()
 
             game = PuzzleGame(nl_inst, token, puzzle, player_name=player_name, game_log=game_log,
-                               series_theme=session.current_theme)
+                               series_theme=session.current_theme, series_type=session.current_series_type)
             web_server._app_state = "lichess_puzzle_playing"
             set_app_state("lichess_puzzle_playing", {
                 "fen": game.board.fen(), "color": solver_color,
@@ -2260,7 +2272,7 @@ def _run_lichess_puzzle_virtual(token, player_name, account="", _error=None):
             _discard_stale_browser_actions()
 
             game = VirtualPuzzleGame(None, token, puzzle, player_name=player_name, game_log=game_log,
-                                      series_theme=session.current_theme)
+                                      series_theme=session.current_theme, series_type=session.current_series_type)
             web_server._app_state = "lichess_puzzle_playing"
             set_app_state("lichess_puzzle_playing", {
                 "fen": game.board.fen(), "color": solver_color,

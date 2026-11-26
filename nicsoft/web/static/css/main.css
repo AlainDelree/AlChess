@@ -1830,6 +1830,10 @@
 .lichess-ongoing-game-note { font-size:0.85rem; color:#5a4a1a; font-style:italic; }
 .outils-wiki-result { display:none; margin-top:12px; }
 
+/* Compteur du jour par type de série (issue #390, point 2) */
+.lichess-puzzle-daily-counts { margin:8px 0 14px; }
+.lichess-puzzle-daily-counts-row { font-size:0.85rem; color:#3a5a7a; margin:2px 0; }
+
 /* Écran Problèmes Lichess (issue #354) */
 /* Compteur de séance (issue #387, point 2) : "Problème X / N" */
 .lichess-puzzle-counter { font-size:0.85rem; font-weight:600; color:#3a5a7a; margin-bottom:4px; }

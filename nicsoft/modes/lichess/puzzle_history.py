@@ -19,12 +19,21 @@ JAMAIS interrompre ni faire échouer la partie/le problème en cours —
 `append_puzzle_history` n'est donc jamais autorisée à lever d'exception.
 """
 
+import datetime
 import json
 import logging
 
 from nicsoft.config import DATA_DIR
 
 logger = logging.getLogger("niclink.lichess")
+
+# Types de série explicites (issue #390, point 2) — voir
+# game_manager_modes/lichess.py::_PuzzleSeriesSpec.series_type, écrit dans
+# chaque nouvel enregistrement par PuzzleGame._record_history
+# (puzzle_game.py). "mix" est aussi le repli pour tout enregistrement sans
+# ce champ (antérieur à cette issue — jamais réécrit, voir
+# daily_counts_by_type ci-dessous) et pour toute valeur inattendue.
+PUZZLE_SERIES_TYPES = ("theme", "phase", "mix")
 
 PUZZLE_HISTORY_FILE = DATA_DIR / "lichess_puzzle_history.jsonl"
 
@@ -82,3 +91,53 @@ def last_known_puzzle_rating() -> int | None:
         if isinstance(rating, int):
             return rating
     return None
+
+
+def _entry_series_type(entry: dict) -> str:
+    """Type de série d'un enregistrement, sous forme sans ambiguïté —
+    issue #390, point 2. Le champ explicite "series_type" (écrit par les
+    nouveaux enregistrements, voir PuzzleGame._record_history) fait seul
+    foi ; absent (enregistrements antérieurs à cette issue, y compris
+    ceux de #388/#389 qui portaient déjà "series_theme" mais pas ce champ)
+    ou de valeur inattendue -> "mix", comme demandé par Alain — jamais une
+    tentative de redérivation depuis "series_theme" seul, qui ne permet
+    pas de distinguer "mélange" de "thème avec réglage absent/invalide"
+    (les deux valent "" côté _resolve_puzzle_series_angle)."""
+    value = entry.get("series_type")
+    return value if value in PUZZLE_SERIES_TYPES else "mix"
+
+
+def _entry_local_date(entry: dict):
+    """Date locale (jour) de l'enregistrement, ou `None` si illisible —
+    `timestamp` est écrit par datetime.datetime.now().isoformat() (heure
+    locale de l'utilisateur, voir PuzzleGame._record_history), jamais en
+    UTC : comparer directement à `datetime.date.today()` donne donc le
+    changement de jour attendu à minuit heure locale."""
+    raw = entry.get("timestamp")
+    if not isinstance(raw, str) or not raw:
+        return None
+    try:
+        return datetime.datetime.fromisoformat(raw).date()
+    except ValueError:
+        return None
+
+
+def daily_counts_by_type(today: "datetime.date | None" = None) -> dict:
+    """Compte, pour la journée locale `today` (par défaut aujourd'hui),
+    les problèmes TERMINÉS de l'historique local par type de série
+    ("theme"/"phase"/"mix" — issue #390, point 2), chacun avec "done"
+    (total), "solved" et "failed". Jamais d'exception : fichier absent/
+    vide/illisible -> trois compteurs à zéro ; une ligne illisible ou de
+    date/type indéterminable est ignorée sans faire échouer les autres."""
+    today = today or datetime.date.today()
+    counts = {t: {"done": 0, "solved": 0, "failed": 0} for t in PUZZLE_SERIES_TYPES}
+    for entry in read_puzzle_history_entries():
+        if _entry_local_date(entry) != today:
+            continue
+        series_type = _entry_series_type(entry)
+        counts[series_type]["done"] += 1
+        if entry.get("win") is True:
+            counts[series_type]["solved"] += 1
+        else:
+            counts[series_type]["failed"] += 1
+    return counts

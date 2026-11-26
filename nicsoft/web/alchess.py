@@ -441,6 +441,10 @@ def main():
                 # — une seule fois à l'ouverture de cet écran, comme
                 # check_lichess_resumable ci-dessus, jamais en boucle.
                 threading.Thread(target=gm.check_lichess_puzzle_dashboard, daemon=True).start()
+                # Compteur du jour par type de série (issue #390, point 2) —
+                # purement local (historique local, aucun réseau) mais lancé
+                # de la même façon (fil dédié, une seule fois à l'ouverture).
+                threading.Thread(target=gm.check_lichess_puzzle_daily_counts, daemon=True).start()
             elif atype == "lichess_menu_check":
                 # Bandeau du menu principal (issue #333, point 3) — même
                 # détection que ci-dessus, déclenchée une seule fois par le

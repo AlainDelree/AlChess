@@ -536,8 +536,21 @@
            issue). Sauvegardée immédiatement au changement, même mécanisme
            que lichessToggleBeep (app.js). -->
       <label class="cfg-label" for="cfg-lichess-puzzle-session-size" data-i18n="config.lichess.probleme_session_taille">Nombre de problèmes de la séance</label>
-      <input id="cfg-lichess-puzzle-session-size" class="cfg-input" type="number" min="0" step="1" value="25" onchange="lichessSavePuzzleSessionSize()">
+      <input id="cfg-lichess-puzzle-session-size" class="cfg-input" type="number" min="0" step="1" value="25"
+             onchange="lichessSavePuzzleSessionSize()" oninput="_lichessPuzzleOnSessionSizeInput()">
       <p class="outil-desc" data-i18n="config.lichess.probleme_session_illimitee">0 = sans limite</p>
+      <!-- Compteur du jour par type de série (issue #390, point 2) — rempli
+           par _lichessPuzzleRenderDailyCounts() (app.js), source purement
+           locale (historique, voir check_lichess_puzzle_daily_counts,
+           game_manager_modes/lichess.py). Trois lignes fixes (Thème/Phase/
+           Mélange), jamais de HTML inséré depuis des valeurs (textContent
+           uniquement). -->
+      <div id="lichess-puzzle-daily-counts" class="lichess-puzzle-daily-counts">
+        <p class="cfg-label" data-i18n="config.lichess.probleme_compteur_titre">Aujourd'hui</p>
+        <div id="lichess-puzzle-daily-counts-theme" class="lichess-puzzle-daily-counts-row"></div>
+        <div id="lichess-puzzle-daily-counts-phase" class="lichess-puzzle-daily-counts-row"></div>
+        <div id="lichess-puzzle-daily-counts-mix" class="lichess-puzzle-daily-counts-row"></div>
+      </div>
       <button class="btn btn-reprendre" id="btn-start-lichess-puzzle" data-action="start_lichess_puzzle" data-i18n="config.lichess.probleme_btn">▶ Jouer un problème</button>
     </div>
 

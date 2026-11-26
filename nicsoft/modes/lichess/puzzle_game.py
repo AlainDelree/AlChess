@@ -123,7 +123,7 @@ class PuzzleGame:
     qui exécute déjà run() de façon synchrone)."""
 
     def __init__(self, nl_inst, token: str, puzzle: dict, player_name: str = "", game_log=None,
-                 series_theme: str = ""):
+                 series_theme: str = "", series_type: str = "mix"):
         self.nl_inst = nl_inst
         self.token = token
         self.puzzle_id = puzzle["puzzle_id"]
@@ -144,6 +144,12 @@ class PuzzleGame:
         # jamais utilisé pour demander un problème d'un thème particulier
         # (get_next_puzzle, puzzle_client.py, n'est pas modifié ici).
         self.series_theme = series_theme
+        # Issue #390, point 2 : forme explicite et sans ambiguïté du type
+        # de série ("theme"/"phase"/"mix") — reportée dans l'historique
+        # local (_record_history) pour le compteur du jour par type
+        # (voir puzzle_history.daily_counts_by_type) ; "mix" par défaut,
+        # jamais levé d'exception sur une valeur inattendue.
+        self.series_type = series_type if series_type in ("theme", "phase", "mix") else "mix"
 
         self.solved_index = 0
         self.outcome = None          # None | "solved" | "failed"
@@ -572,6 +578,7 @@ class PuzzleGame:
             "timestamp": datetime.datetime.now().isoformat(timespec="seconds"),
             "puzzle_id": self.puzzle_id,
             "series_theme": self.series_theme,
+            "series_type": self.series_type,
             "setup_fen": self.setup_fen,
             "themes": self.themes,
             "win": self.outcome == "solved",
