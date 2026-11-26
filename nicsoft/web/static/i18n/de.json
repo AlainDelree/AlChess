@@ -368,6 +368,8 @@
   "toast.lichess_error": "Bei Lichess ist ein Fehler aufgetreten.",
   "toast.lichess_seek_sans_adversaire": "Die Suche wurde beendet, ohne einen Gegner zu finden.",
   "toast.lichess_seek_partie_non_ouverte": "Ein Gegner wurde gefunden, aber die Partie konnte nicht normal geöffnet werden.",
+  "toast.lichess_orphan_game_annulee": "Eine durch die abgebrochene Suche entstandene Partie wurde erkannt und automatisch abgebrochen.",
+  "toast.lichess_orphan_game_laissee": "Eine durch die abgebrochene Suche entstandene Partie konnte nicht abgebrochen werden — sie bleibt in der Liste der laufenden Partien verfügbar.",
   "toast.lichess_mode_actif": "Beenden oder verlassen Sie die laufende Partie, bevor Sie einen neuen Modus starten.",
   "toast.lichess_arret_bloque": "Lichess: Die Sitzung konnte nicht rechtzeitig beendet werden — Rückkehr zum Menü erzwungen. Bei anhaltendem Problem die Anwendung neu starten.",
   "toast.lichess_partie_en_cours_refus": "Auf diesem Konto läuft bereits eine Lichess-Partie — beenden Sie sie, bevor Sie eine weitere starten.",

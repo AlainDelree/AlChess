@@ -263,6 +263,7 @@ def test_get_ongoing_games_propose_la_partie_ia_standard(monkeypatch):
         "game_id": "aBcD1234", "color": "black", "opponent": "Stockfish level 4",
         "ai_level": 4, "speed": "rapid", "is_my_turn": False, "seconds_left": 742,
         "resumable": True, "unresumable_reason": None,
+        "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR",  # issue #392, point 2
     }]
 
 

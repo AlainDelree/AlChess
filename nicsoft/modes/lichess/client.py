@@ -350,5 +350,12 @@ def get_ongoing_games(token: str) -> dict:
             "seconds_left": g.get("secondsLeft"),
             "resumable": reason is None,
             "unresumable_reason": reason,
+            # Issue #392, point 2 : position courante — sert UNIQUEMENT au
+            # balayage de partie orpheline après annulation d'une recherche
+            # (_ply_count_from_fen, game_manager_modes/lichess.py), jamais
+            # affichée ni utilisée ailleurs. NowPlayingGame (schéma officiel)
+            # ne porte pas de compteur de demi-coups direct ; ce FEN complet
+            # permet de le déduire sans requête supplémentaire.
+            "fen": g.get("fen", ""),
         })
     return {"status": "ok", "games": games, "total": len(games)}

@@ -368,6 +368,8 @@
   "toast.lichess_error": "Une erreur est survenue avec Lichess.",
   "toast.lichess_seek_sans_adversaire": "La recherche s'est arrêtée sans adversaire.",
   "toast.lichess_seek_partie_non_ouverte": "Un adversaire a été trouvé, mais la partie n'a pas pu s'ouvrir normalement.",
+  "toast.lichess_orphan_game_annulee": "Une partie née de la recherche annulée a été détectée et annulée automatiquement.",
+  "toast.lichess_orphan_game_laissee": "Une partie née de la recherche annulée n'a pas pu être annulée — elle reste disponible dans la liste des parties en cours.",
   "toast.lichess_mode_actif": "Terminez ou quittez la partie en cours avant de lancer un nouveau mode.",
   "toast.lichess_arret_bloque": "Lichess : l'arrêt de la session a pris trop de temps — retour au menu forcé. Si le problème persiste, redémarrez l'application.",
   "toast.lichess_partie_en_cours_refus": "Une partie Lichess est déjà en cours sur ce compte — terminez-la avant d'en commencer une autre.",

@@ -677,6 +677,11 @@ def launch_lichess(config: dict) -> None:
         logger.info(f"Lancement Lichess refusé : mode déjà actif ({current_state}).")
         send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
         return
+    # Issue #392, point 2 : nouveau lancement accepté — arrête tout
+    # balayage de partie orpheline encore en cours d'une recherche
+    # précédente annulée (voir _start_orphan_sweep_after_cancel), pour ne
+    # jamais risquer d'annuler une partie légitime née de CE lancement.
+    _bump_launch_generation()
 
     token = (load_config().get("lichess_token") or "").strip()
     if not token:
@@ -1026,6 +1031,156 @@ def _cancel_seek_and_reap_orphan(seek_session, client: GameClient, game_log=None
         _abandon_orphan_game_after_cancel(client, orphan_game, game_log)
 
 
+# ── Issue #392, point 2 : partie orpheline au-delà de la fenêtre étroite
+# de #383 point 3 ────────────────────────────────────────────────────────
+#
+# _reap_late_found_game ci-dessus ne couvre qu'une partie déjà SIGNALÉE
+# ("found" dans la file de SeekSession) au moment de l'annulation — essai
+# réel du 26/11/2026 : Lichess avait créé une partie classée 21ms avant la
+# fermeture du flux de recherche et 22ms avant l'annulation effective, mais
+# le flux n'a jamais signalé "found" (seulement "seek_closed"), donc
+# _reap_late_found_game n'avait rien à drainer ; _refuse_create_if_games_ongoing
+# (le garde-fou "une seule partie à la fois") n'est lui-même revérifié
+# qu'AVANT la PROCHAINE recherche, trop tard pour celle qui vient d'être
+# annulée. Une vraie partie classée est restée ouverte chez Lichess,
+# jamais jouée par personne, perdue par Alain après l'avoir reprise à son
+# insu. Ce balayage élargi, lancé en arrière-plan à chaque annulation,
+# comble ce trou en revérifiant la liste des parties en cours à quelques
+# reprises espacées — jamais en bloquant le retour au menu.
+_ORPHAN_SWEEP_CHECKPOINTS_S = (1.0, 2.0, 4.0, 6.0)
+# Moins de 2 demi-coups = aucun coup n'a pu être joué par qui que ce soit —
+# seuil choisi pour ne jamais toucher une partie où un coup réel a déjà été
+# échangé (comparaison TOUJOURS par identifiant par rapport à la liste
+# mémorisée avant la recherche, jamais par ce seul comptage — voir
+# _orphan_sweep_worker).
+_ORPHAN_SWEEP_MAX_PLIES = 2
+
+# Compteur de génération de lancement — incrémenté à CHAQUE lancement
+# Lichess accepté (voir launch_lichess/launch_lichess_resume/
+# launch_lichess_puzzle), pour que le balayage ci-dessus s'arrête dès
+# qu'un nouveau lancement commence (nouvelle recherche, nouvelle partie),
+# et ne risque jamais d'annuler une partie légitime née d'une recherche
+# ultérieure.
+_launch_generation_lock = threading.Lock()
+_lichess_launch_generation = 0
+
+
+def _bump_launch_generation() -> int:
+    global _lichess_launch_generation
+    with _launch_generation_lock:
+        _lichess_launch_generation += 1
+        return _lichess_launch_generation
+
+
+def _current_launch_generation() -> int:
+    with _launch_generation_lock:
+        return _lichess_launch_generation
+
+
+def _ply_count_from_fen(fen: str) -> int | None:
+    """Nombre de demi-coups déjà joués, déduit des deux derniers champs du
+    FEN complet (`<trait> <droits de roque> <case en passant> <demi-coups
+    depuis la dernière prise/poussée de pion> <numéro de coup plein>`) —
+    évite de rejouer tout l'historique juste pour ce comptage. None si le
+    FEN est absent ou mal formé (ne jamais conclure à tort à "moins de 2
+    demi-coups" dans ce cas — voir l'appelant)."""
+    if not fen:
+        return None
+    parts = fen.split()
+    if len(parts) < 6:
+        return None
+    side_to_move, fullmove = parts[1], parts[5]
+    if side_to_move not in ("w", "b"):
+        return None
+    try:
+        fullmove_n = int(fullmove)
+    except ValueError:
+        return None
+    return 2 * (fullmove_n - 1) + (1 if side_to_move == "b" else 0)
+
+
+def _start_orphan_sweep_after_cancel(token: str, pre_search_game_ids, generation: int, game_log=None):
+    """Démarre, en arrière-plan (jamais attendu par l'appelant — voir
+    _ORPHAN_SWEEP_CHECKPOINTS_S), le balayage élargi de partie orpheline
+    après une annulation de recherche humaine. Sans effet si la liste des
+    parties avant la recherche n'a pas pu être établie (réseau) : pas de
+    base de comparaison fiable, donc aucune action risquée. Retourne le
+    fil démarré (ou None si non démarré) — utile aux tests pour l'attendre
+    explicitement ; jamais joint par l'appelant en production."""
+    if pre_search_game_ids is None:
+        logger_lichess.info(
+            "Lichess : balayage de partie orpheline non démarré — liste des parties "
+            "avant la recherche inconnue (réseau indisponible à ce moment-là)."
+        )
+        return None
+    t = threading.Thread(
+        target=_orphan_sweep_worker, args=(token, pre_search_game_ids, generation, game_log), daemon=True,
+    )
+    t.start()
+    return t
+
+
+def _orphan_sweep_worker(token: str, pre_search_game_ids, generation: int, game_log=None) -> None:
+    client = GameClient(token)
+    handled_ids = set()
+    elapsed = 0.0
+    for checkpoint in _ORPHAN_SWEEP_CHECKPOINTS_S:
+        time.sleep(max(0.0, checkpoint - elapsed))
+        elapsed = checkpoint
+        if _current_launch_generation() != generation:
+            logger_lichess.info(
+                "Lichess : balayage de partie orpheline arrêté (nouveau lancement entre-temps)."
+            )
+            return
+        games = _fetch_ongoing_games(token)
+        if games is None:
+            continue
+        for g in games:
+            game_id = g.get("game_id") or ""
+            if not game_id or game_id in pre_search_game_ids or game_id in handled_ids:
+                # Comparaison TOUJOURS par identifiant : une partie déjà
+                # présente avant la recherche n'est jamais touchée, quel
+                # que soit son nombre de coups.
+                continue
+            handled_ids.add(game_id)
+            plies = _ply_count_from_fen(g.get("fen") or "")
+            if plies is not None and plies >= _ORPHAN_SWEEP_MAX_PLIES:
+                logger_lichess.info(
+                    "Lichess : partie %s... apparue après annulation de recherche mais déjà "
+                    "%d demi-coup(s) — jamais touchée (balayage élargi).", game_id[:8], plies,
+                )
+                continue
+            logger_lichess.warning(
+                "Lichess : partie %s... apparue après annulation de recherche humaine "
+                "(moins de %d demi-coups) — annulation automatique (balayage élargi).",
+                game_id[:8], _ORPHAN_SWEEP_MAX_PLIES,
+            )
+            if game_log is not None:
+                game_log.state_change(
+                    f"partie {game_id[:8]}... détectée après annulation de recherche "
+                    "(balayage élargi) — annulation automatique côté Lichess."
+                )
+            try:
+                client.abort(game_id)
+            except (LichessApiError, LichessRateLimitError, LichessNetworkError) as exc:
+                # Jamais resign() ici (contrairement à
+                # _abandon_orphan_game_after_cancel ci-dessus) : si
+                # l'annulation est refusée, la partie et le bandeau de
+                # reprise restent — jamais d'abandon automatique d'une
+                # partie que l'utilisateur n'a pas choisi de laisser.
+                logger_lichess.warning(
+                    "Lichess : annulation automatique de la partie %s... refusée (%s) — "
+                    "laissée telle quelle (reprenable).", game_id[:8], exc,
+                )
+                send_event("lichess_toast", {
+                    "message_key": "toast.lichess_orphan_game_laissee", "type": "warning",
+                })
+                continue
+            send_event("lichess_toast", {
+                "message_key": "toast.lichess_orphan_game_annulee", "type": "info",
+            })
+
+
 def _classify_seek_error_event(ev: dict) -> tuple:
     """Traduit l'évènement "error" poussé par SeekSession (seek.py,
     `_push_error`) en (clé de message, variables pour l'écran) — issue
@@ -1165,6 +1320,13 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
         # de mise en place, cohérent avec "temps écoulé depuis le vrai début
         # de la recherche".
         search_start = time.monotonic()
+        # Génération de ce lancement (issue #392, point 2) — figée ICI pour
+        # tout le reste de la recherche : un balayage de partie orpheline
+        # démarré plus bas compare sa propre génération à la valeur COURANTE
+        # (_current_launch_generation()) pour savoir s'il doit s'arrêter —
+        # jamais à celle-ci, déjà périmée par construction dès qu'un nouveau
+        # lancement commence.
+        my_generation = _current_launch_generation()
 
         # Garde-fou « une seule partie à la fois » (issue #325, point 4 ;
         # repris ici point 2) — juste avant de démarrer la recherche.
@@ -1179,6 +1341,20 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
                 _error["toast_key"] = "toast.lichess_partie_en_cours_refus"
                 _error["return_to"] = "config_lichess"
             return
+
+        # Liste mémorisée des identifiants déjà en cours AVANT cette
+        # recherche (issue #392, point 2) — base de comparaison du balayage
+        # de partie orpheline après une éventuelle annulation plus bas
+        # (_start_orphan_sweep_after_cancel) : toute partie dont
+        # l'identifiant n'y figure pas sera considérée comme née de CETTE
+        # recherche. Second appel réseau distinct du garde-fou ci-dessus
+        # (qui ne renvoie plus la liste si elle est vide) — None si
+        # impossible à obtenir (réseau), auquel cas le balayage ne démarrera
+        # pas (aucune base fiable, voir cette fonction).
+        pre_search_games = _fetch_ongoing_games(token)
+        pre_search_game_ids = (
+            frozenset(g["game_id"] for g in pre_search_games) if pre_search_games is not None else None
+        )
 
         client = GameClient(token)
         # Journal dédié (issue #326, point 10 ; étendu ici au cycle de
@@ -1208,6 +1384,7 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
                 # lichess_wait_first_move) : seul ce sondage de l'état
                 # détecte la demande depuis ce fil.
                 _cancel_seek_and_reap_orphan(seek_session, client, game_log)
+                _start_orphan_sweep_after_cancel(token, pre_search_game_ids, my_generation, game_log)
                 raise _BackMenuDuringWait()
             ev = seek_session.next_event(timeout=0.2)
             now = time.monotonic()
@@ -1258,6 +1435,7 @@ def _run_lichess_human(token, clock_limit_s, clock_increment_s, chosen_color, ca
                         # parties en cours, déjà hors sujet pour un retour au
                         # menu explicitement demandé par l'utilisateur.
                         _cancel_seek_and_reap_orphan(seek_session, client, game_log)
+                        _start_orphan_sweep_after_cancel(token, pre_search_game_ids, my_generation, game_log)
                         raise _BackMenuDuringWait()
                     ev2 = seek_session.next_event(timeout=0.2)
                     if ev2 is None:
@@ -1461,6 +1639,7 @@ def launch_lichess_resume(action: dict) -> None:
         logger.info(f"Reprise Lichess refusée : mode déjà actif ({current_state}).")
         send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
         return
+    _bump_launch_generation()  # issue #392, point 2 — voir launch_lichess
 
     game_id = (action.get("game_id") or "").strip()
     if not game_id:
@@ -2054,6 +2233,7 @@ def launch_lichess_puzzle(config: dict) -> None:
         logger.info(f"Lancement problème Lichess refusé : mode déjà actif ({current_state}).")
         send_event("lichess_toast", {"message_key": "toast.lichess_mode_actif", "type": "warning"})
         return
+    _bump_launch_generation()  # issue #392, point 2 — voir launch_lichess
 
     token = (load_config().get("lichess_token") or "").strip()
     if not token:
