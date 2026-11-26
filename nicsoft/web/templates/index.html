@@ -1271,9 +1271,21 @@
           <button class="btn" data-action="lichess_puzzle_retry_submit" data-i18n="lichess.puzzle.reessayer_envoi">Réessayer l'envoi</button>
         </div>
         <div id="lichess-puzzle-solution-banner" style="display:none;" data-i18n="lichess.puzzle.solution_titre">Solution en cours de démonstration…</div>
+        <!-- Copie du FEN / analyse externe (issue #390, point 3) — UNIQUEMENT
+             à l'intérieur de #lichess-puzzle-result (display:none jusqu'à la
+             fin du problème, voir socket.on("lichess_puzzle_result") plus
+             bas) : jamais présents ni activables pendant la résolution, fair-
+             play Lichess (aucune aide avant la fin). FEN = celui de
+             l'historique local (data.setup_fen, reçu dès le début du
+             problème pour ces deux boutons seulement — jamais affiché avant
+             la fin par ailleurs). -->
+        <div id="lichess-puzzle-fen-actions" class="lichess-puzzle-fen-actions">
+          <button id="lichess-puzzle-btn-copy-fen" class="btn" type="button" onclick="_lichessPuzzleCopyFen()" data-i18n="lichess.puzzle.copier_fen">📋 Copier le FEN</button>
+          <button id="lichess-puzzle-btn-analyse-lichess" class="btn" type="button" onclick="_lichessPuzzleAnalyseOnLichess()" data-i18n="lichess.puzzle.analyser_lichess">🔎 Analyser sur Lichess</button>
+        </div>
         <div id="lichess-puzzle-result-actions">
           <button id="lichess-puzzle-btn-solution" class="btn" data-action="lichess_puzzle_view_solution" style="display:none;" data-i18n="lichess.puzzle.voir_solution">Voir la solution</button>
-          <button class="btn btn-reprendre" data-action="lichess_puzzle_next" data-i18n="lichess.puzzle.suivant">Problème suivant ▶</button>
+          <button id="lichess-puzzle-btn-next" class="btn btn-reprendre" data-action="lichess_puzzle_next" data-i18n="lichess.puzzle.suivant">Problème suivant ▶</button>
         </div>
       </div>
 

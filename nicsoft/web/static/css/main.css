@@ -1848,3 +1848,6 @@
 .lichess-puzzle-themes { font-size:0.85rem; color:#5a6b7a; margin-bottom:6px; }
 #lichess-puzzle-rating-change { font-size:0.9rem; color:#1a2a3a; margin-bottom:10px; }
 #lichess-puzzle-result-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }
+/* Copie du FEN / analyse externe (issue #390, point 3) — uniquement visible
+   une fois le problème terminé (voir #lichess-puzzle-result ci-dessus). */
+.lichess-puzzle-fen-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; }

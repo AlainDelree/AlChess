@@ -2146,6 +2146,12 @@ def _run_lichess_puzzle(token, player_name, account="", _error=None):
                 # _init_puzzle_session_rating/_PuzzleSessionTracker.record) —
                 # None tant qu'inconnue, jamais une valeur inventée.
                 "player_rating": session.player_rating,
+                # Issue #390, point 3 : FEN de départ du problème (celle de
+                # l'historique local, voir PuzzleGame._record_history) —
+                # jamais saisi par l'utilisateur, utilisé uniquement par les
+                # boutons "Copier le FEN"/"Analyser sur Lichess", affichés
+                # seulement après la fin du problème (voir index.html/app.js).
+                "setup_fen": game.setup_fen,
             })
             game.animate_opponent_first_move()
             outcome = game.run()
@@ -2281,6 +2287,7 @@ def _run_lichess_puzzle_virtual(token, player_name, account="", _error=None):
                 "puzzle_index": session.completed + 1,
                 "puzzle_total": session.total or None,
                 "player_rating": session.player_rating,
+                "setup_fen": game.setup_fen,
             })
             game.animate_opponent_first_move()
             outcome = game.run()

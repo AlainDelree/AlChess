@@ -1800,6 +1800,12 @@ socket.on("app_state", (data) => {
     _puzzleVirtualActive = data.virtual === true;
     _puzzleBoardFen      = data.fen;
     _puzzleLegalMoves    = {};
+    // Issue #390, point 3 : FEN de départ du problème (celui de
+    // l'historique local, voir PuzzleGame._record_history) — connu dès le
+    // début, mais les boutons qui s'en servent (#lichess-puzzle-fen-actions)
+    // restent masqués jusqu'à la fin du problème (voir
+    // #lichess-puzzle-result, fair-play : aucune aide pendant la résolution).
+    _puzzleSetupFen = (typeof data.setup_fen === "string") ? data.setup_fen : "";
     _puzzleDeactivateBoard();
     const virtualInstr = document.getElementById("lichess-puzzle-virtual-instructions");
     if (virtualInstr) virtualInstr.style.display = _puzzleVirtualActive ? "" : "none";
@@ -4840,6 +4846,74 @@ socket.on("lichess_puzzle_solution_move", (data) => {
   const banner = document.getElementById("lichess-puzzle-solution-banner");
   if (banner) banner.style.display = "";
 });
+
+// ── Copie du FEN / analyse externe (issue #390, point 3) ────────────────
+//
+// Jamais pendant la résolution : ces deux fonctions ne sont appelables que
+// depuis les boutons de #lichess-puzzle-fen-actions, lui-même à l'intérieur
+// de #lichess-puzzle-result (display:none jusqu'à la fin du problème, voir
+// socket.on("lichess_puzzle_result") plus bas) — fair-play Lichess. Le FEN
+// vient de _puzzleSetupFen (données déjà connues de l'application, jamais
+// saisi par l'utilisateur), mais reste validé avant d'entrer dans une
+// adresse ou le presse-papiers.
+
+// Vérification minimale (pas une validation complète des règles d'échecs,
+// défense en profondeur seulement — le FEN vient toujours du serveur,
+// jamais d'une saisie) : 6 champs espacés, le premier avec exactement 7
+// barres obliques (8 rangées) et seulement des caractères de pièce/chiffre.
+function _isLikelyValidFen(fen) {
+  if (typeof fen !== "string" || !fen) return false;
+  const parts = fen.trim().split(/\s+/);
+  if (parts.length !== 6) return false;
+  const [board, turn] = parts;
+  if (board.split("/").length !== 8) return false;
+  if (!/^[pnbrqkPNBRQK1-8/]+$/.test(board)) return false;
+  return turn === "w" || turn === "b";
+}
+
+function _lichessPuzzleCopyFen() {
+  const fen = _puzzleSetupFen;
+  if (!_isLikelyValidFen(fen)) return;
+  const onOk = () => afficherToast(t("lichess.puzzle.fen_copie"), "success");
+  const onFail = () => afficherToast(t("lichess.puzzle.fen_copie_echec"), "warning");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(fen).then(onOk, () => _copyFenFallback(fen, onOk, onFail));
+  } else {
+    _copyFenFallback(fen, onOk, onFail);
+  }
+}
+
+// Repli pour un navigateur sans API presse-papiers (ou refusée, ex. page non
+// servie en HTTPS) — zone de texte temporaire hors écran, jamais ajoutée au
+// flux visible de la page.
+function _copyFenFallback(fen, onOk, onFail) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = fen;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    if (ok) onOk(); else onFail();
+  } catch (e) {
+    onFail();
+  }
+}
+
+// Adresse d'analyse publique lichess.org/analysis/<fen> — encodeURI (pas
+// encodeURIComponent) laisse les "/" du FEN intacts (séparateurs de
+// rangées, valides dans un chemin d'URL) et n'encode que les espaces
+// (%20) séparant ses 6 champs, format confirmé par la documentation
+// publique de Lichess (forum officiel, lien direct depuis un FEN).
+function _lichessPuzzleAnalyseOnLichess() {
+  const fen = _puzzleSetupFen;
+  if (!_isLikelyValidFen(fen)) return;
+  const url = "https://lichess.org/analysis/" + encodeURI(fen);
+  window.open(url, "_blank", "noopener,noreferrer");
+}
 
 socket.on("lichess_puzzle_result", (data) => {
   _lichessPuzzleShowPromotion(false);
@@ -7969,6 +8043,10 @@ function _virtSyncChess(fen) {
 let _puzzleVirtualActive = false;   // true seulement pour LE problème en cours (data.virtual du serveur)
 let _puzzleLegalMoves    = {};      // { "e2": ["e3","e4"], ... } — fourni par le serveur
 let _puzzleBoardFen      = "";      // dernier FEN connu (board-only ou complet, peu importe ici)
+// FEN de départ du problème en cours (issue #390, point 3) — celui de
+// l'historique local, utilisé uniquement par "Copier le FEN"/"Analyser sur
+// Lichess", jamais affiché ni activable avant la fin du problème.
+let _puzzleSetupFen = "";
 let _puzzleSelected      = null;    // case sélectionnée, coord interne "file-rank"
 let _puzzleLegalDests    = [];      // destinations légales (coords internes) pour la case sélectionnée
 
