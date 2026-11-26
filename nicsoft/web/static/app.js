@@ -1764,6 +1764,22 @@ socket.on("app_state", (data) => {
     _lichessPuzzleHideBanners();
     const resultBox = document.getElementById("lichess-puzzle-result");
     if (resultBox) resultBox.style.display = "none";
+    // Thème/phase choisi pour la série (issue #390, point 4) — JAMAIS les
+    // thèmes propres du problème reçu (`data.themes` n'existe d'ailleurs pas
+    // dans ce payload, voir game_manager_modes/lichess.py : absent par
+    // construction, pas seulement caché ici) ; rien pour "mix" (mélange).
+    // _lichessPuzzleThemeLabel() traduit aussi bien une clé de thème que de
+    // phase (déjà utilisée par l'écran de bilan/résultat).
+    const seriesLabelEl = document.getElementById("lichess-puzzle-series-label");
+    if (seriesLabelEl) {
+      if (data.series_type === "theme" && data.series_theme) {
+        seriesLabelEl.textContent = t("lichess.puzzle.serie_theme_titre", { label: _lichessPuzzleThemeLabel(data.series_theme) });
+      } else if (data.series_type === "phase" && data.series_theme) {
+        seriesLabelEl.textContent = t("lichess.puzzle.serie_phase_titre", { label: _lichessPuzzleThemeLabel(data.series_theme) });
+      } else {
+        seriesLabelEl.textContent = "";
+      }
+    }
     const ratingEl = document.getElementById("lichess-puzzle-rating");
     if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
     // Cote du joueur (issue #390, point 1) — affichée dès le début, mise à
@@ -4931,6 +4947,11 @@ socket.on("lichess_puzzle_result", (data) => {
   if (turnBanner) turnBanner.style.display = "none";
   const virtualInstr = document.getElementById("lichess-puzzle-virtual-instructions");
   if (virtualInstr) virtualInstr.style.display = "none";
+  // Issue #390, point 4 : le thème/phase choisi pour la série n'a plus
+  // d'objet une fois le résultat affiché — #lichess-puzzle-result-themes
+  // (tous les thèmes réels du problème) le remplace, plus bas.
+  const seriesLabelEl = document.getElementById("lichess-puzzle-series-label");
+  if (seriesLabelEl) seriesLabelEl.textContent = "";
 
   const title = document.getElementById("lichess-puzzle-result-title");
   if (title) title.textContent = t(data.win ? "lichess.puzzle.resultat_gagne" : "lichess.puzzle.resultat_perdu");

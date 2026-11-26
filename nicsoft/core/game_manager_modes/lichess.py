@@ -2152,6 +2152,12 @@ def _run_lichess_puzzle(token, player_name, account="", _error=None):
                 # boutons "Copier le FEN"/"Analyser sur Lichess", affichés
                 # seulement après la fin du problème (voir index.html/app.js).
                 "setup_fen": game.setup_fen,
+                # Issue #390, point 4 : thème/phase CHOISI pour la série
+                # (jamais les thèmes propres du problème reçu, `puzzle["themes"]`
+                # — volontairement absent de ce payload, fair-play : ce
+                # serait un indice). "" pour "mix" (mélange, rien affiché).
+                "series_theme": session.current_theme,
+                "series_type": session.current_series_type,
             })
             game.animate_opponent_first_move()
             outcome = game.run()
@@ -2288,6 +2294,8 @@ def _run_lichess_puzzle_virtual(token, player_name, account="", _error=None):
                 "puzzle_total": session.total or None,
                 "player_rating": session.player_rating,
                 "setup_fen": game.setup_fen,
+                "series_theme": session.current_theme,
+                "series_type": session.current_series_type,
             })
             game.animate_opponent_first_move()
             outcome = game.run()

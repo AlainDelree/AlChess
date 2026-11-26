@@ -849,6 +849,8 @@
   "lichess.puzzle.titre": "🧩 Lichess puzzle",
   "lichess.puzzle.a_vous_de_jouer_blancs": "Your move — White",
   "lichess.puzzle.a_vous_de_jouer_noirs": "Your move — Black",
+  "lichess.puzzle.serie_theme_titre": "Theme: {label}",
+  "lichess.puzzle.serie_phase_titre": "Phase: {label}",
   "lichess.puzzle.cote": "Puzzle rating: {rating}",
   "lichess.puzzle.cote_masquee": "Puzzle rating: hidden",
   "lichess.puzzle.votre_cote": "Your rating: {rating}",

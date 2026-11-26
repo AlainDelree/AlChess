@@ -1226,6 +1226,15 @@
            (ou "Problème X" sans limite) — texte construit en JS via
            socket.on("app_state") ci-dessous, jamais vide/absent. -->
       <div id="lichess-puzzle-counter" class="lichess-puzzle-counter"></div>
+      <!-- Thème/phase CHOISI pour la série (issue #390, point 4) — JAMAIS
+           les thèmes propres du problème reçu (indice fair-play) : vide
+           pour la série "Mélange", rempli en JS depuis data.series_theme/
+           data.series_type (socket.on("app_state"), jamais depuis les
+           thèmes du problème). Masqué à la fin (voir
+           socket.on("lichess_puzzle_result")) au profit de
+           #lichess-puzzle-result-themes, qui liste alors tous les thèmes
+           réels du problème. -->
+      <div id="lichess-puzzle-series-label" class="lichess-puzzle-rating"></div>
       <div id="lichess-puzzle-rating" class="lichess-puzzle-rating"></div>
       <!-- Cote du joueur (issue #390, point 1) — affichée dès le début du
            problème (contrairement à la cote du problème ci-dessus, masquée
