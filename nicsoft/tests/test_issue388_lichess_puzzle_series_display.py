@@ -11,12 +11,17 @@ from nicsoft.core.game_manager_modes.lichess import _PuzzleSeriesSpec, _PuzzleSe
 
 
 class _FakeGame:
-    def __init__(self, outcome="solved", puzzle_id="pzl1", rating=1500, duration_s=1.0, rating_diff=None):
+    def __init__(self, outcome="solved", puzzle_id="pzl1", rating=1500, duration_s=1.0, rating_diff=None,
+                 rating_after=None):
         self.outcome = outcome
         self.puzzle_id = puzzle_id
         self.rating = rating
         self.duration_s = duration_s
         self.rating_diff = rating_diff
+        # Issue #390, point 1 : lu par _PuzzleSessionTracker.record() pour
+        # mettre à jour player_rating — None par défaut (comportement
+        # inchangé des tests déjà en place avant cette issue).
+        self.rating_after = rating_after
 
 
 def test_summary_payload_porte_l_angle_mix_par_defaut():
