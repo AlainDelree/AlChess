@@ -37,6 +37,7 @@ from nicsoft.modes.lichess.errors import (
     LichessNetworkError,
     LichessRateLimitError,
     is_ambiguous_turn_or_over_error,
+    translate_api_detail,
 )
 from nicsoft.modes.lichess.game_client import RECONNECT_DELAYS_S, is_game_over, moves_from_state, side_to_move
 from nicsoft.modes.lichess.game_log import GameLog
@@ -53,6 +54,17 @@ logger = logging.getLogger("niclink.lichess")
 # Lichess, importée par puzzle_game.py pour rester unique entre partie et
 # problèmes.
 MOVE_STABLE_DELAY_S = 0.35
+
+def _move_refused_payload(message: str) -> dict:
+    """Charge utile de l'évènement "lichess_move_refused" (issue #393,
+    point 2) — `message` reste le texte BRUT de Lichess (jamais affiché
+    tel quel : voir test_issue347/#368/#392, qui vérifient ce champ pour
+    la logique de resynchronisation, pas pour l'affichage) ; `detail_key`/
+    `detail_vars` (voir errors.py::translate_api_detail) permettent à
+    app.js de l'afficher traduit, jamais en anglais brut."""
+    detail_key, detail_vars = translate_api_detail(message)
+    return {"message": message, "detail_key": detail_key, "detail_vars": detail_vars}
+
 
 _FINISHED_WITH_WINNER = frozenset({
     "mate", "resign", "timeout", "outoftime", "cheat", "variantEnd", "unknownFinish",
@@ -921,7 +933,7 @@ class LichessGame(threading.Thread):
             self._clear_network_error_if_active()
             return True
         except LichessApiError as exc:
-            send_event("lichess_move_refused", {"message": exc.api_message or str(exc)})
+            send_event("lichess_move_refused", _move_refused_payload(exc.api_message or str(exc)))
         except (LichessNetworkError, LichessRateLimitError):
             self._report_network_error()
         return False
@@ -943,8 +955,10 @@ class LichessGame(threading.Thread):
             detail = exc.api_message or str(exc)
             logger.info("Lichess : %s refusée par Lichess : %s.", request_label, detail)
             self._game_log.state_change(f"{request_label} — refusée par Lichess : {detail}.")
+            detail_key, detail_vars = translate_api_detail(detail)
             send_event("lichess_toast", {
-                "message_key": "lichess.reclamation_refusee", "vars": {"detail": detail},
+                "message_key": "lichess.reclamation_refusee",
+                "vars": {"detail_key": detail_key, "detail_vars": detail_vars},
                 "type": "warning", "persistent": True,
             })
             return False
@@ -969,8 +983,10 @@ class LichessGame(threading.Thread):
             detail = exc.api_message or str(exc)
             logger.info("Lichess : offre de nulle refusée par Lichess : %s.", detail)
             self._game_log.state_change(f"offre de nulle — refusée par Lichess : {detail}.")
+            detail_key, detail_vars = translate_api_detail(detail)
             send_event("lichess_toast", {
-                "message_key": "lichess.nulle_requete_refusee", "vars": {"detail": detail},
+                "message_key": "lichess.nulle_requete_refusee",
+                "vars": {"detail_key": detail_key, "detail_vars": detail_vars},
                 "type": "warning", "persistent": True,
             })
             return False
@@ -2442,11 +2458,11 @@ class LichessGame(threading.Thread):
             )
             self._awaiting_resync_reset = True
             self._resync_target_fen = self.board.board_fen()
-            send_event("lichess_move_refused", {"message": message})
+            send_event("lichess_move_refused", _move_refused_payload(message))
             return
         self._reset_target_fen = self.board.board_fen()
         self._awaiting_piece_reset = True
-        send_event("lichess_move_refused", {"message": message})
+        send_event("lichess_move_refused", _move_refused_payload(message))
 
     def _drain_pending_stream_events(self, timeout_s: float) -> None:
         """Traite, dans la limite de `timeout_s`, tout événement du flux de

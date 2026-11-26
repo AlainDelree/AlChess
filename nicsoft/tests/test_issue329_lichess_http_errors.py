@@ -217,10 +217,12 @@ def test_classification_codes_connus(status_code, expected_key):
 
 
 def test_classification_400_porte_le_texte_lichess():
+    # Issue #393, point 2 : message non reconnu -> clé générique traduite,
+    # jamais le texte anglais brut de Lichess affiché (reste au journal).
     ev = {"status_code": 400, "detail": "Game already in progress"}
     key, vars_ = _classify_seek_error_event(ev)
     assert key == "toast.lichess_refus_requete"
-    assert "Game already in progress" in vars_["detail"]
+    assert vars_ == {"detail_key": "lichess.detail.generique", "detail_vars": {}}
 
 
 def test_classification_sans_code_http_est_reseau():
@@ -288,7 +290,7 @@ def _run_with_seek_exception(monkeypatch, exc):
 
 @pytest.mark.parametrize("exc,expected_key,expected_vars", [
     (TransportHTTPError(400, body=json.dumps({"error": "Invalid clock"})),
-     "toast.lichess_refus_requete", {"detail": " : Invalid clock"}),
+     "toast.lichess_refus_requete", {"detail_key": "lichess.detail.generique", "detail_vars": {}}),
     (TransportHTTPError(401, body=""), "toast.lichess_jeton_refuse", {}),
     (TransportHTTPError(403, body=""), "toast.lichess_jeton_refuse", {}),
     (TransportHTTPError(404, body=""), "toast.lichess_404", {}),

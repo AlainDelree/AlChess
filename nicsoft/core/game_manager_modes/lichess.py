@@ -52,6 +52,7 @@ from nicsoft.modes.lichess.errors import (
     LichessNetworkError,
     LichessRateLimitError,
     detect_color_balance_refusal,
+    translate_api_detail,
 )
 from nicsoft.modes.lichess.game_client import GameClient, is_game_over, moves_from_state
 from nicsoft.modes.lichess.puzzle_themes import (
@@ -1223,10 +1224,17 @@ def _classify_seek_error_event(ev: dict) -> tuple:
         # précis déjà demandé plusieurs fois) — reconnu sur le texte exact
         # de Lichess (voir errors.py::detect_color_balance_refusal, établi
         # par lecture du code source public de lila) ; sinon, texte de
-        # Lichess seul comme avant (point 2).
+        # Lichess seul comme avant (point 2). Issue #393, point 2 : le
+        # détail n'est plus jamais le texte anglais brut — `detail_key`/
+        # `detail_vars` (errors.py::translate_api_detail) laissent app.js
+        # choisir la traduction dans la langue courante.
         if detect_color_balance_refusal(detail):
-            return "toast.lichess_refus_equilibre_couleur", {"detail": f" : {detail}" if detail else ""}
-        return "toast.lichess_refus_requete", {"detail": f" : {detail}" if detail else ""}
+            # La phrase dédiée explique déjà la vraie cause — le détail de
+            # Lichess (toujours "must also play some games as ...") n'y
+            # ajouterait rien, jamais affiché ici.
+            return "toast.lichess_refus_equilibre_couleur", {"detail_key": "", "detail_vars": {}}
+        detail_key, detail_vars = translate_api_detail(detail)
+        return "toast.lichess_refus_requete", {"detail_key": detail_key, "detail_vars": detail_vars}
     if isinstance(status_code, int) and status_code >= 500:
         return "toast.lichess_indisponible", {}
     return "toast.lichess_network_error", {}

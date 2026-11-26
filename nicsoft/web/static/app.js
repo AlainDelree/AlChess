@@ -3079,8 +3079,12 @@ socket.on("lichess_move_refused", (data) => {
   // toujours persistant (catégorie « coup refusé » — ne disparaît pas
   // seul, l'utilisateur doit avoir le temps de le lire avant de corriger
   // la position physique demandée).
+  // Issue #393, point 2 : `data.message` reste le texte BRUT de Lichess
+  // (jamais affiché) — `detail_key`/`detail_vars` (errors.py::
+  // translate_api_detail) donnent la traduction dans la langue courante.
+  const detailText = data.detail_key ? t(data.detail_key, data.detail_vars || {}) : "";
   afficherToastLichess(
-    data.message ? t("lichess.coup_refuse_detail", { detail: data.message }) : t("lichess.coup_refuse"),
+    detailText ? t("lichess.coup_refuse_detail", { detail: detailText }) : t("lichess.coup_refuse"),
     "warning", true,
   );
 });
@@ -3092,10 +3096,27 @@ socket.on("lichess_toast", (data) => {
   // résultat connu.
   if (_lichessGameOver) return;
   afficherToastLichess(
-    data.message_key ? t(data.message_key, data.vars || {}) : (data.message || ""),
+    data.message_key ? t(data.message_key, _lichessResolveToastVars(data.vars)) : (data.message || ""),
     data.type || "info", !!data.persistent,
   );
 });
+
+// Issue #393, point 2 : `vars.detail_key`/`vars.detail_vars` (voir
+// errors.py::translate_api_detail côté serveur) désignent un texte de
+// Lichess reconnu — jamais le texte anglais brut inséré dans la phrase
+// affichée. Résolu ici en {detail} (avec son séparateur " : ", comme
+// l'ancien texte brut) pour rester compatible avec les gabarits existants
+// (toast.lichess_refus_requete, lichess.reclamation_refusee, ...) — clé
+// absente ou vide -> aucun détail affiché ({detail} devient "").
+function _lichessResolveToastVars(vars) {
+  const result = Object.assign({}, vars || {});
+  if (Object.prototype.hasOwnProperty.call(result, "detail_key")) {
+    result.detail = result.detail_key ? (" : " + t(result.detail_key, result.detail_vars || {})) : "";
+    delete result.detail_key;
+    delete result.detail_vars;
+  }
+  return result;
+}
 
 // ── Adversaire parti — réclamer victoire/nulle (issue #334) ──────────────
 // Bandeau + décompte toujours recalculés depuis l'instant de réception

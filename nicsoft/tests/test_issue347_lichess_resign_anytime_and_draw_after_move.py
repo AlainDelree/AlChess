@@ -352,6 +352,8 @@ def test_nouvelle_offre_refusee_par_lichess_message_clair_sans_planter(monkeypat
     toasts = _events_of(events, "lichess_toast")
     assert toasts and toasts[-1]["message_key"] == "lichess.nulle_requete_refusee"
     assert toasts[-1]["persistent"] is True
-    assert "already have an offer" in toasts[-1]["vars"]["detail"]
+    # Issue #393, point 2 : message non reconnu -> clé générique traduite,
+    # jamais le texte anglais brut de Lichess affiché.
+    assert toasts[-1]["vars"] == {"detail_key": "lichess.detail.generique", "detail_vars": {}}
     refused_events = _events_of(events, "lichess_move_refused")
     assert refused_events == []  # jamais le message générique « coup refusé »

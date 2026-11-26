@@ -52,6 +52,45 @@ def detect_color_balance_refusal(message: str) -> str:
     return m.group(1).lower() if m else ""
 
 
+# Issue #393, point 2 : refus HTTP 400 d'un coup — texte exact établi par
+# essai réel (Alain, 26/11/2026) : "Piece on c2 cannot move to c4" (toujours
+# deux cases a-h/1-8, jamais de ponctuation finale observée).
+_PIECE_CANNOT_MOVE_RE = re.compile(
+    r"piece on ([a-h][1-8]) cannot move to ([a-h][1-8])", re.IGNORECASE,
+)
+
+# Texte exact établi par test_issue334_lichess_opponent_claim.py (refus
+# d'une réclamation après la fin de partie) — distinct du message ambigu
+# ci-dessus (_AMBIGUOUS_TURN_OR_OVER_TEXT, qui contient en plus "not your
+# turn, or").
+_GAME_ALREADY_OVER_TEXT = "game is already over"
+
+
+def translate_api_detail(message: str) -> tuple:
+    """Reconnaît un message BRUT (toujours en anglais) renvoyé par l'API
+    Lichess dans le corps d'une erreur, et retourne (clé i18n, variables)
+    pour un affichage traduit par l'appelant côté navigateur (jamais de
+    traduction ici : la langue choisie n'est connue que du navigateur,
+    voir i18n.js) — issue #393, point 2.
+
+    Retourne ("", {}) si `message` est vide (aucun détail à afficher) ;
+    ("lichess.detail.generique", {}) si le message n'est reconnu par
+    aucun des cas ci-dessous (jamais le texte anglais brut affiché à
+    l'écran — il reste disponible dans le journal, déjà écrit par
+    l'appelant avant cet appel)."""
+    text = (message or "").strip()
+    if not text:
+        return "", {}
+    if is_ambiguous_turn_or_over_error(text):
+        return "lichess.detail.pas_votre_tour_ou_terminee", {}
+    m = _PIECE_CANNOT_MOVE_RE.search(text)
+    if m:
+        return "lichess.detail.piece_ne_peut_aller", {"depart": m.group(1), "arrivee": m.group(2)}
+    if _GAME_ALREADY_OVER_TEXT in text.lower():
+        return "lichess.detail.partie_terminee", {}
+    return "lichess.detail.generique", {}
+
+
 def extract_api_message(body: str) -> str:
     """Texte explicatif renvoyé par Lichess dans le corps JSON d'une
     réponse d'erreur (champ "error", voir doc/specs/schemas/Error.yaml,

@@ -237,7 +237,9 @@ def test_reclamation_refusee_message_persistant_bouton_reutilisable(isolated_con
     game._process_browser_actions()
     toast = _last(events, "lichess_toast")
     assert toast["message_key"] == "lichess.reclamation_refusee"
-    assert toast["vars"]["detail"] == "Too soon to claim victory"
+    # Issue #393, point 2 : message non reconnu -> clé générique traduite,
+    # jamais le texte anglais brut de Lichess affiché.
+    assert toast["vars"] == {"detail_key": "lichess.detail.generique", "detail_vars": {}}
     assert toast["persistent"] is True
     assert game.game_over is False
     # Le bouton redevient utilisable : rien n'a verrouillé l'état local —
@@ -259,7 +261,9 @@ def test_reclamation_victoire_partie_deja_terminee_cote_lichess(isolated_config,
     actions.put({"type": "lichess_claim_victory"})
     game._process_browser_actions()
     toast = _last(events, "lichess_toast")
-    assert toast["vars"]["detail"] == "Game is already over"
+    # Issue #393, point 2 : reconnu par translate_api_detail -> clé
+    # dédiée traduite, jamais le texte anglais brut de Lichess affiché.
+    assert toast["vars"] == {"detail_key": "lichess.detail.partie_terminee", "detail_vars": {}}
 
 
 # ═══════════════════════════════════════════════════════════════════════

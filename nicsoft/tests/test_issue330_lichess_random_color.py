@@ -91,17 +91,23 @@ def test_detect_color_balance_refusal(message, expected):
 # ═══════════════════════════════════════════════════════════════════════
 
 def test_classification_refus_equilibre_couleur_a_sa_propre_cle():
+    # Issue #393, point 2 : la phrase dédiée explique déjà la vraie cause —
+    # le texte anglais brut de Lichess n'est plus jamais transmis pour
+    # affichage (voir errors.py::translate_api_detail et app.js) ; il
+    # reste uniquement dans le journal, non vérifié ici.
     ev = {"status_code": 400, "detail": "You must also play some games as Black"}
     key, vars_ = _classify_seek_error_event(ev)
     assert key == "toast.lichess_refus_equilibre_couleur"
-    assert "You must also play some games as Black" in vars_["detail"]
+    assert vars_ == {"detail_key": "", "detail_vars": {}}
 
 
 def test_classification_autre_refus_400_inchangee():
+    # Message non reconnu par translate_api_detail -> clé générique
+    # traduite, jamais le texte anglais brut.
     ev = {"status_code": 400, "detail": "Already playing too many games"}
     key, vars_ = _classify_seek_error_event(ev)
     assert key == "toast.lichess_refus_requete"
-    assert "Already playing too many games" in vars_["detail"]
+    assert vars_ == {"detail_key": "lichess.detail.generique", "detail_vars": {}}
 
 
 @pytest.mark.parametrize("locale", ["fr", "en", "de"])
@@ -114,7 +120,9 @@ def test_cle_refus_equilibre_presente_et_distincte_dans_les_3_langues(locale):
     data = json.loads(path.read_text(encoding="utf-8"))
     assert data.get("toast.lichess_refus_equilibre_couleur"), f"clé absente/vide dans {locale}.json"
     assert data["toast.lichess_refus_equilibre_couleur"] != data.get("toast.lichess_refus_requete")
-    assert "{detail}" in data["toast.lichess_refus_equilibre_couleur"]
+    # Issue #393, point 2 : la phrase explique déjà la vraie cause — plus
+    # de {detail} (texte anglais brut de Lichess, jamais affiché ici).
+    assert "{detail}" not in data["toast.lichess_refus_equilibre_couleur"]
 
 
 # ═══════════════════════════════════════════════════════════════════════
