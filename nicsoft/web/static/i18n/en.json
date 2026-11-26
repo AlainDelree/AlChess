@@ -847,6 +847,8 @@
   "lichess.puzzle.a_vous_de_jouer_blancs": "Your move — White",
   "lichess.puzzle.a_vous_de_jouer_noirs": "Your move — Black",
   "lichess.puzzle.cote": "Puzzle rating: {rating}",
+  "lichess.puzzle.cote_masquee": "Puzzle rating: hidden",
+  "lichess.puzzle.votre_cote": "Your rating: {rating}",
   "lichess.puzzle.en_attente_reproduction": "Reproduce the indicated move on the physical board.",
   "lichess.puzzle.position_illegale": "Illegal position — this is not a possible move from the current position.",
   "lichess.puzzle.resultat_gagne": "✅ Puzzle solved!",

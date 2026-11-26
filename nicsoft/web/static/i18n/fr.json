@@ -847,6 +847,8 @@
   "lichess.puzzle.a_vous_de_jouer_blancs": "À vous de jouer — Blancs",
   "lichess.puzzle.a_vous_de_jouer_noirs": "À vous de jouer — Noirs",
   "lichess.puzzle.cote": "Cote du problème : {rating}",
+  "lichess.puzzle.cote_masquee": "Cote du problème : masquée",
+  "lichess.puzzle.votre_cote": "Votre cote : {rating}",
   "lichess.puzzle.en_attente_reproduction": "Reproduisez le coup indiqué sur l'échiquier physique.",
   "lichess.puzzle.position_illegale": "Position illégale — ce n'est pas un coup possible depuis la position actuelle.",
   "lichess.puzzle.resultat_gagne": "✅ Problème résolu !",

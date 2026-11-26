@@ -377,10 +377,10 @@ def test_launch_lichess_puzzle_mode_echiquier_par_defaut_sans_puzzle_mode(monkey
     jamais le mode virtuel par surprise."""
     called = {"target": None}
 
-    def fake_run_board(token, player_name, _error=None):
+    def fake_run_board(token, player_name, account="", _error=None):
         called["target"] = "board"
 
-    def fake_run_virtual(token, player_name, _error=None):
+    def fake_run_virtual(token, player_name, account="", _error=None):
         called["target"] = "virtual"
 
     monkeypatch.setattr(lichess_launcher, "_run_lichess_puzzle", fake_run_board)

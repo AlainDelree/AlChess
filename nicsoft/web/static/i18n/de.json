@@ -847,6 +847,8 @@
   "lichess.puzzle.a_vous_de_jouer_blancs": "Sie sind am Zug — Weiß",
   "lichess.puzzle.a_vous_de_jouer_noirs": "Sie sind am Zug — Schwarz",
   "lichess.puzzle.cote": "Aufgaben-Wertung: {rating}",
+  "lichess.puzzle.cote_masquee": "Aufgaben-Wertung: verborgen",
+  "lichess.puzzle.votre_cote": "Ihre Wertung: {rating}",
   "lichess.puzzle.en_attente_reproduction": "Führen Sie den angezeigten Zug auf dem physischen Brett aus.",
   "lichess.puzzle.position_illegale": "Unzulässige Stellung — das ist kein möglicher Zug aus der aktuellen Stellung.",
   "lichess.puzzle.resultat_gagne": "✅ Aufgabe gelöst!",

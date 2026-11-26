@@ -1214,6 +1214,14 @@
            socket.on("app_state") ci-dessous, jamais vide/absent. -->
       <div id="lichess-puzzle-counter" class="lichess-puzzle-counter"></div>
       <div id="lichess-puzzle-rating" class="lichess-puzzle-rating"></div>
+      <!-- Cote du joueur (issue #390, point 1) — affichée dès le début du
+           problème (contrairement à la cote du problème ci-dessus, masquée
+           tant qu'il n'est pas terminé, voir point 7) ; mise à jour après
+           chaque résultat (socket.on("app_state") pour le problème suivant,
+           socket.on("lichess_puzzle_player_rating") pour la lecture
+           différée du profil du compte). Vide si inconnue — jamais de
+           valeur inventée. -->
+      <div id="lichess-puzzle-player-rating" class="lichess-puzzle-rating"></div>
       <div id="lichess-puzzle-turn-banner" class="pos-init-attente">
         <span id="lichess-puzzle-turn-text"></span>
       </div>

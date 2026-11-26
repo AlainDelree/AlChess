@@ -41,3 +41,44 @@ def append_puzzle_history(entry: dict) -> None:
             f.write(line + "\n")
     except Exception as exc:
         logger.warning("Lichess problème : écriture de l'historique local échouée : %s", exc)
+
+
+def read_puzzle_history_entries() -> list:
+    """Lit PUZZLE_HISTORY_FILE et retourne la liste des enregistrements
+    valides (un `dict` par ligne JSON lisible) — jamais d'exception :
+    fichier absent/vide -> liste vide ; ligne illisible (JSON invalide,
+    pas un objet) -> ignorée silencieusement, sans faire échouer la
+    lecture des autres lignes (issue #390, point 2 — mêmes garanties que
+    append_puzzle_history ci-dessus pour l'écriture)."""
+    try:
+        text = PUZZLE_HISTORY_FILE.read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError):
+        return []
+    entries = []
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(entry, dict):
+            entries.append(entry)
+    return entries
+
+
+def last_known_puzzle_rating() -> int | None:
+    """Dernière cote « Après » connue (`rating_after`) parmi les
+    enregistrements de l'historique local, en remontant depuis la fin —
+    issue #390, point 1 : repli immédiat (lecture locale, jamais de
+    réseau) affiché pendant qu'une lecture plus à jour du profil du
+    compte est tentée en arrière-plan (voir
+    game_manager_modes/lichess.py::_init_puzzle_session_rating). `None`
+    si l'historique est absent/vide ou si aucun enregistrement n'a de
+    cote « Après » connue (jamais une valeur inventée)."""
+    for entry in reversed(read_puzzle_history_entries()):
+        rating = entry.get("rating_after")
+        if isinstance(rating, int):
+            return rating
+    return None

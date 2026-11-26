@@ -57,6 +57,7 @@ from nicsoft.modes.lichess.game_client import GameClient, is_game_over, moves_fr
 from nicsoft.modes.lichess.puzzle_themes import (
     PUZZLE_THEME_KEYS, PUZZLE_PHASE_KEYS, DEFAULT_PUZZLE_PHASE, compute_default_theme,
 )
+from nicsoft.modes.lichess.puzzle_history import last_known_puzzle_rating
 
 logger_lichess = logging.getLogger("niclink.lichess")
 
@@ -1744,12 +1745,20 @@ def abandon_lichess_game(action: dict) -> None:
 
 class _PuzzleSeriesSpec:
     """Une série de la séance — angle résolu (vide = mélange, voir
-    ci-dessus) et nombre de problèmes (0 = sans limite, valide seulement
-    pour l'unique série d'aujourd'hui)."""
+    ci-dessus), nombre de problèmes (0 = sans limite, valide seulement
+    pour l'unique série d'aujourd'hui), et type de série ("theme"/"phase"/
+    "mix" — issue #390, point 2) : forme explicite et sans ambiguïté du
+    réglage, reportée dans l'historique local (voir PuzzleGame._record_history,
+    puzzle_game.py) pour que le compteur du jour par type (voir
+    puzzle_history.daily_counts_by_type) n'ait jamais à redériver le type
+    depuis `theme` seul (vide pour "mix" ET pour "theme" avec un thème
+    absent/invalide — voir _resolve_puzzle_series_angle, deux cas que
+    `theme` seul ne permet pas de distinguer)."""
 
-    def __init__(self, theme: str, count: int):
+    def __init__(self, theme: str, count: int, series_type: str = "mix"):
         self.theme = theme
         self.count = count
+        self.series_type = series_type if series_type in ("theme", "phase", "mix") else "mix"
 
 
 class _PuzzleSessionTracker:
@@ -1773,6 +1782,17 @@ class _PuzzleSessionTracker:
         self._rating_diff_total = 0
         self._rating_diff_known = False
         self.failed_puzzles = []  # [{"puzzle_id", "rating"}], dans l'ordre
+        # Issue #390, point 1 : cote du joueur affichée dans le panneau de
+        # problème — None tant qu'aucune source (historique local, profil
+        # du compte) n'a fourni de valeur ; mise à jour après chaque
+        # problème terminé par la cote « Après » renvoyée par Lichess (voir
+        # record() ci-dessous), jamais recalculée autrement. Voir
+        # _init_puzzle_session_rating pour la valeur initiale.
+        self.player_rating = None
+
+    @property
+    def current_series_type(self) -> str:
+        return self.series[0].series_type if self.series else "mix"
 
     @property
     def current_theme(self) -> str:
@@ -1790,6 +1810,13 @@ class _PuzzleSessionTracker:
         if game.rating_diff is not None:
             self._rating_diff_total += game.rating_diff
             self._rating_diff_known = True
+        # Issue #390, point 1 : la cote du joueur affichée pour les
+        # problèmes SUIVANTS devient la cote « Après » de celui-ci, dès
+        # qu'elle est connue — jamais recalculée autrement (ni par
+        # soustraction de rating_diff à une valeur antérieure, qui
+        # dupliquerait une logique déjà faite côté Lichess).
+        if game.rating_after is not None:
+            self.player_rating = game.rating_after
 
     def is_complete(self) -> bool:
         return self.total > 0 and self.completed >= self.total
@@ -1833,8 +1860,11 @@ def _resolve_puzzle_series_angle(cfg: dict) -> str:
 def _build_puzzle_session() -> _PuzzleSessionTracker:
     """Lit `lichess_puzzle_session_size` dans config.json (mécanisme de
     persistance déjà en place, voir config_manager.py — défaut 25, 0 =
-    sans limite, comportement actuel d'enchaînement infini) et l'angle
-    résolu (issue #388, point 2, voir _resolve_puzzle_series_angle)."""
+    sans limite, comportement actuel d'enchaînement infini), l'angle
+    résolu (issue #388, point 2, voir _resolve_puzzle_series_angle) et le
+    type de série sous forme explicite (issue #390, point 2) — repli sur
+    "mix" pour toute valeur de `lichess_puzzle_series_mode` autre que
+    "theme"/"phase" (comme _resolve_puzzle_series_angle ci-dessus)."""
     cfg = load_config()
     size = cfg.get("lichess_puzzle_session_size", 25)
     try:
@@ -1843,7 +1873,47 @@ def _build_puzzle_session() -> _PuzzleSessionTracker:
         size = 25
     size = max(0, size)
     angle = _resolve_puzzle_series_angle(cfg)
-    return _PuzzleSessionTracker([_PuzzleSeriesSpec(theme=angle, count=size)])
+    series_type = cfg.get("lichess_puzzle_series_mode") or "mix"
+    series_type = series_type if series_type in ("theme", "phase", "mix") else "mix"
+    return _PuzzleSessionTracker([_PuzzleSeriesSpec(theme=angle, count=size, series_type=series_type)])
+
+
+def _init_puzzle_session_rating(session: "_PuzzleSessionTracker", token: str, username: str) -> None:
+    """Issue #390, point 1 : cote du joueur affichée dès le début de la
+    séance (`session.player_rating`, lue par chaque "lichess_puzzle_playing"
+    envoyé par les lanceurs ci-dessous).
+
+    Valeur immédiate (jamais de réseau, jamais de retard) : dernière cote
+    « Après » connue de l'historique local des problèmes (voir
+    puzzle_history.last_known_puzzle_rating) — `None` si cet historique
+    est absent/vide, dans ce cas rien n'est affiché tant que la lecture
+    ci-dessous n'a pas répondu.
+
+    Mise à jour en arrière-plan, AU PLUS une requête réseau par séance :
+    lecture PUBLIQUE de GET /api/user/<id> (perfs.puzzle.rating — même
+    route, même garantie « aucun jeton ni scope requis » que
+    game.py::_maybe_fetch_new_rating/GameClient.fetch_my_rating), jamais
+    bloquante pour le premier problème (fil dédié). `username` vient de
+    test_token() (déjà appelé par launch_lichess_puzzle avant ce point,
+    champ "account" — aucun appel supplémentaire pour l'obtenir, aucun
+    nouveau droit de jeton). Si cette lecture échoue ou ne répond jamais,
+    la valeur affichée reste celle de l'historique local (ou rien) —
+    jamais de cote inventée."""
+    session.player_rating = last_known_puzzle_rating()
+    if not token or not username:
+        return
+
+    def _worker():
+        try:
+            rating = GameClient(token).fetch_my_rating(username, "puzzle")
+        except Exception as exc:
+            logger_lichess.debug("Lichess : lecture de la cote de problèmes (profil) échouée : %s", exc)
+            return
+        if isinstance(rating, int):
+            session.player_rating = rating
+            send_event("lichess_puzzle_player_rating", {"rating": rating})
+
+    threading.Thread(target=_worker, daemon=True, name="lichess_puzzle_rating").start()
 
 
 def _show_puzzle_session_summary_and_wait(session: _PuzzleSessionTracker) -> None:
@@ -1983,6 +2053,11 @@ def launch_lichess_puzzle(config: dict) -> None:
 
     player_name = (config.get("player") or "Vous").strip() or "Vous"
     puzzle_mode = "virtual" if config.get("puzzle_mode") == "virtual" else "board"
+    # Issue #390, point 1 : identifiant du compte déjà connu de test_token()
+    # ci-dessus (champ "account", lecture déjà faite — aucun appel
+    # supplémentaire) — seule source d'identifiant transmise aux lanceurs
+    # pour la lecture en arrière-plan de la cote de problèmes du compte.
+    account = (check.get("account") or "").strip()
     logger_lichess.info(
         f"Lichess : lancement session de problèmes demandé — joueur={player_name} mode={puzzle_mode}."
     )
@@ -1991,7 +2066,7 @@ def launch_lichess_puzzle(config: dict) -> None:
     set_app_state("connecting")
     _error = {"occurred": False, "toast_key": None, "return_to": "config_lichess"}
     target = _run_lichess_puzzle_virtual if puzzle_mode == "virtual" else _run_lichess_puzzle
-    t = threading.Thread(target=target, args=(token, player_name, _error), daemon=True)
+    t = threading.Thread(target=target, args=(token, player_name, account, _error), daemon=True)
     t.start()
     if not _join_lichess_launcher_thread(t, "launch_lichess_puzzle"):
         return
@@ -2010,7 +2085,7 @@ def launch_lichess_puzzle(config: dict) -> None:
         threading.Thread(target=check_board_presence_silent, daemon=True).start()
 
 
-def _run_lichess_puzzle(token, player_name, _error=None):
+def _run_lichess_puzzle(token, player_name, account="", _error=None):
     from nicsoft.modes.lichess.puzzle_game import PuzzleGame, solver_color_for_fen, PUZZLE_LOGS_DIR
     from nicsoft.modes.lichess.puzzle_client import get_next_puzzle
     from nicsoft.modes.lichess.game_log import GameLog
@@ -2018,6 +2093,7 @@ def _run_lichess_puzzle(token, player_name, _error=None):
     nl_inst = None
     game_log = None
     session = _build_puzzle_session()
+    _init_puzzle_session_rating(session, token, account)
     try:
         game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
         game_log.state_change(f"Session de problèmes Lichess démarrée — joueur={player_name}.")
@@ -2054,6 +2130,10 @@ def _run_lichess_puzzle(token, player_name, _error=None):
                 "puzzle_id": puzzle["puzzle_id"], "rating": puzzle.get("rating"),
                 "puzzle_index": session.completed + 1,
                 "puzzle_total": session.total or None,
+                # Issue #390, point 1 : cote du joueur (voir
+                # _init_puzzle_session_rating/_PuzzleSessionTracker.record) —
+                # None tant qu'inconnue, jamais une valeur inventée.
+                "player_rating": session.player_rating,
             })
             game.animate_opponent_first_move()
             outcome = game.run()
@@ -2147,13 +2227,14 @@ def _run_lichess_puzzle(token, player_name, _error=None):
 # échiquier n'ait jamais besoin d'être relu en même temps que le mode
 # virtuel (voir rapport de clôture).
 
-def _run_lichess_puzzle_virtual(token, player_name, _error=None):
+def _run_lichess_puzzle_virtual(token, player_name, account="", _error=None):
     from nicsoft.modes.lichess.puzzle_game import VirtualPuzzleGame, solver_color_for_fen, PUZZLE_LOGS_DIR
     from nicsoft.modes.lichess.puzzle_client import get_next_puzzle
     from nicsoft.modes.lichess.game_log import GameLog
 
     game_log = None
     session = _build_puzzle_session()
+    _init_puzzle_session_rating(session, token, account)
     try:
         game_log = GameLog("session", token=token, logs_dir=PUZZLE_LOGS_DIR)
         game_log.state_change(f"Session de problèmes Lichess (mode virtuel) démarrée — joueur={player_name}.")
@@ -2187,6 +2268,7 @@ def _run_lichess_puzzle_virtual(token, player_name, _error=None):
                 "virtual": True,
                 "puzzle_index": session.completed + 1,
                 "puzzle_total": session.total or None,
+                "player_rating": session.player_rating,
             })
             game.animate_opponent_first_move()
             outcome = game.run()

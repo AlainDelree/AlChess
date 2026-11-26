@@ -1766,6 +1766,15 @@ socket.on("app_state", (data) => {
     if (resultBox) resultBox.style.display = "none";
     const ratingEl = document.getElementById("lichess-puzzle-rating");
     if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
+    // Cote du joueur (issue #390, point 1) — affichée dès le début, mise à
+    // jour après chaque résultat (voir _PuzzleSessionTracker.record côté
+    // serveur) ou par l'arrivée différée de socket.on("lichess_puzzle_player_rating")
+    // ci-dessous ; rien si inconnue (jamais de valeur inventée).
+    const playerRatingEl = document.getElementById("lichess-puzzle-player-rating");
+    if (playerRatingEl) {
+      playerRatingEl.textContent = (typeof data.player_rating === "number")
+        ? t("lichess.puzzle.votre_cote", { rating: data.player_rating }) : "";
+    }
     // Compteur de séance (issue #387, point 2) : "Problème X / N" (séance
     // bornée) ou "Problème X" (data.puzzle_total absent/0 = sans limite,
     // comportement d'avant cette issue) — même affichage en partie sur
@@ -4690,6 +4699,19 @@ let _lichessPuzzleFlipped = false;
 // correctif, cette ligne affichait le camp adverse juste après
 // animate_opponent_first_move, ex. « Noirs » alors que le joueur a les
 // Blancs).
+// Cote du joueur lue en arrière-plan au lancement de la séance (issue #390,
+// point 1 — _init_puzzle_session_rating, game_manager_modes/lichess.py) :
+// arrive après le premier "lichess_puzzle_playing" (jamais avant, jamais
+// bloquant) — met à jour l'affichage du problème EN COURS, sans attendre le
+// prochain. Sans effet si le problème est déjà terminé (résultat déjà fondé
+// sur sa propre cote « Avant »/« Après », pas sur cette valeur).
+socket.on("lichess_puzzle_player_rating", (data) => {
+  const playerRatingEl = document.getElementById("lichess-puzzle-player-rating");
+  if (playerRatingEl && typeof data.rating === "number") {
+    playerRatingEl.textContent = t("lichess.puzzle.votre_cote", { rating: data.rating });
+  }
+});
+
 socket.on("lichess_puzzle_move", (data) => {
   _lichessPuzzleHideBanners();
   if (data.fen) {
