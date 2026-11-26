@@ -9,7 +9,17 @@ jeton, pas de vraie partie/problème — seul le vrai écran de réglages est
 atteint par navigation réelle (`sendAction({type:'mode', value:'lichess'})`,
 comme test_issue365_lichess_sans_echiquier_e2e.py) ; le panneau de
 problème est simulé par invocation directe des callbacks `socket.on(...)`
-(comme test_issue390_puzzle_fairplay_e2e.py)."""
+(comme test_issue390_puzzle_fairplay_e2e.py).
+
+Gestionnaire "config_data" détaché pour tout ce module (même procédé que
+test_issue366_puzzle_mode_autobascule_e2e.py/test_issue368_lichess_network_e2e.py) :
+la vraie réponse asynchrone du serveur de test à "config_get" (émis par
+app.js à chaque entrée sur l'écran Lichess) racerait de façon non
+déterministe avec les `fill()` de ces tests sur le champ de taille de
+séance — observé en pratique (deuxième exécution de la suite complète :
+une valeur de repli 25 au lieu de la valeur venant d'être saisie). Un
+"config_data" minimal et déterministe est déclenché nous-mêmes juste après
+chaque navigation vers l'écran, avant toute interaction avec le champ."""
 import pytest
 
 pytestmark = pytest.mark.slow
@@ -28,6 +38,34 @@ def _declencher_evenement_socket_client(page, event, data):
     )
 
 
+def _declencher_config_data(page, data):
+    page.evaluate(
+        "([data]) => { "
+        "const cbs = window.__realConfigDataHandlers390 || []; "
+        "if (cbs.length === 0) throw new Error('aucun gestionnaire config_data capturé'); "
+        "cbs.forEach((cb) => cb(data)); "
+        "}",
+        [data],
+    )
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _detacher_config_data_reel(page):
+    page.evaluate(
+        "() => { "
+        "window.__realConfigDataHandlers390 = socket.listeners('config_data').slice(); "
+        "socket.off('config_data'); "
+        "}"
+    )
+    yield
+    page.evaluate(
+        "() => { "
+        "(window.__realConfigDataHandlers390 || []).forEach((cb) => socket.on('config_data', cb)); "
+        "delete window.__realConfigDataHandlers390; "
+        "}"
+    )
+
+
 def _retour_menu(page):
     page.evaluate("() => { sendAction({type: 'back_menu'}); }")
     page.wait_for_selector("#screen-menu", state="visible", timeout=5000)
@@ -36,6 +74,10 @@ def _retour_menu(page):
 def _aller_a_config_lichess(page):
     page.evaluate("sendAction({type: 'mode', value: 'lichess'})")
     page.wait_for_selector("#screen-config-lichess", state="visible", timeout=5000)
+    # "config_data" déterministe (voir le gestionnaire détaché ci-dessus) —
+    # taille de séance de départ connue, jamais la vraie réponse racée du
+    # serveur de test.
+    _declencher_config_data(page, {"lichess_puzzle_session_size": 25})
     return page
 
 
