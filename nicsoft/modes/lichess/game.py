@@ -38,7 +38,7 @@ from nicsoft.modes.lichess.errors import (
     LichessRateLimitError,
     is_ambiguous_turn_or_over_error,
 )
-from nicsoft.modes.lichess.game_client import is_game_over, moves_from_state, side_to_move
+from nicsoft.modes.lichess.game_client import RECONNECT_DELAYS_S, is_game_over, moves_from_state, side_to_move
 from nicsoft.modes.lichess.game_log import GameLog
 
 logger = logging.getLogger("niclink.lichess")
@@ -484,6 +484,17 @@ class LichessGame(threading.Thread):
         self._replication_target_fen = None
         self._awaiting_piece_reset = False
         self._reset_target_fen = None
+        # Issue #392, point 3b : état dédié (jamais mélangé à
+        # _awaiting_piece_reset ci-dessus, utilisé ailleurs pour la
+        # reconnexion échiquier, #314) — cases rouges (affichage existant
+        # _activate_illegal_position) avec la position DÉJÀ RESYNCHRONISÉE
+        # de Lichess comme cible, après un coup refusé dont la
+        # resynchronisation a confirmé un vrai désaccord avec l'échiquier
+        # physique. Jamais "remettez la pièce" (texte trompeur si la cible
+        # était périmée, cause réelle de l'incident du 26/11/2026).
+        self._awaiting_resync_reset = False
+        self._resync_target_fen = None
+        self._resync_retry_active = False
         self._pending_promotion = None
         self._last_position_error_ts = 0.0
         self._last_illegal_fen = None
@@ -880,19 +891,29 @@ class LichessGame(threading.Thread):
     def _report_network_error(self) -> None:
         """Toast persistant « réseau indisponible » (inchangé, voir
         lichess.md) — mémorise qu'il est affiché pour pouvoir le remplacer
-        par un message de rétablissement (issue #368, partie 2)."""
+        par un message de rétablissement (issue #368, partie 2). Issue
+        #392, point 3d : déclenche aussi le bandeau persistant de #378
+        (`lichess_reconnecting`, jusqu'ici réservé à l'exception du flux)
+        — un échec réseau PONCTUEL (envoi de coup, nulle, abandon,
+        réclamation...) le mérite tout autant, plus visible qu'un simple
+        toast. Idempotent côté app.js (bascule d'une classe) ; `attempt`
+        sans valeur exploitable ici (pas une boucle de reconnexion de
+        flux), toujours 1."""
         self._network_error_active = True
         send_event("lichess_toast", {"message_key": "lichess.erreur_reseau", "type": "warning", "persistent": True})
+        send_event("lichess_reconnecting", {"attempt": 1})
 
     def _clear_network_error_if_active(self) -> None:
         """Remplace le toast « réseau indisponible » par un message de
         rétablissement dès la prochaine action réseau réussie (issue #368,
         partie 2) — sans ce remplacement, le toast persistant restait
         affiché indéfiniment même après une reprise réussie, laissant
-        croire à une coupure toujours en cours."""
+        croire à une coupure toujours en cours. Issue #392, point 3d :
+        retire aussi le bandeau de #378 déclenché ci-dessus."""
         if self._network_error_active:
             self._network_error_active = False
             send_event("lichess_toast", {"message_key": "lichess.erreur_reseau_retablie", "type": "success"})
+            send_event("lichess_reconnected", {})
 
     def _safe_client_call(self, fn) -> bool:
         try:
@@ -2054,6 +2075,9 @@ class LichessGame(threading.Thread):
         if self._awaiting_physical_replication:
             self._check_replication(hardware_fen)
             return
+        if self._awaiting_resync_reset:
+            self._check_resync_reset(hardware_fen)
+            return
         if self._awaiting_piece_reset:
             self._check_piece_reset(hardware_fen)
             return
@@ -2098,6 +2122,22 @@ class LichessGame(threading.Thread):
             send_event("lichess_position_ok", {})
             return
         self._throttled_position_wait(hardware_fen, self._reset_target_fen)
+
+    def _check_resync_reset(self, hardware_fen: str) -> None:
+        """Issue #392, point 3b : contrepartie de _check_piece_reset pour un
+        coup refusé déjà resynchronisé — cases rouges (_activate_illegal_position,
+        affichage déjà utilisé par _check_user_move) tant que l'échiquier
+        physique ne rejoint pas la position Lichess déjà corrigée
+        (`_resync_target_fen`), jamais le texte générique « remettez la
+        pièce ». Reprend normalement (position, bandeau) dès que
+        l'échiquier physique la rejoint."""
+        if hardware_fen == self._resync_target_fen:
+            self._awaiting_resync_reset = False
+            self._resync_target_fen = None
+            self._clear_illegal_position()
+            send_event("lichess_position_ok", {})
+            return
+        self._activate_illegal_position(hardware_fen, self._resync_target_fen)
 
     def _throttled_position_wait(self, hardware_fen: str, expected_fen: str) -> None:
         now = time.monotonic()
@@ -2339,32 +2379,71 @@ class LichessGame(threading.Thread):
         de fin précise que ce dernier coup physique n'a pas été accepté (le
         PGN enregistré ne le contient de toute façon jamais : _submit_move
         ne pousse jamais le coup sur self.board avant confirmation par le
-        flux)."""
+        flux).
+
+        Issue #392, point 3b (étude #391) : relire le flux déjà ouvert
+        (ci-dessus) ne suffit plus si ce flux lui-même est resté silencieux
+        SANS lever d'exception (coupure plus courte que l'ancien seuil de
+        90s — voir transport.py, corrigé par le point 3e de la même
+        issue) — il n'y a alors rien à y lire. Si la relecture du flux ne
+        suffit pas à conclure, une resynchronisation ACTIVE (nouvelle
+        requête, `_resync_from_lichess`) relit l'état complet de la partie
+        et l'applique par le chemin normal des coups reçus
+        (`_apply_game_state`, LED/bip/pendules inclus) avant de conclure à
+        une vraie erreur. Si cette resynchronisation échoue à son tour
+        (réseau toujours indisponible), ni succès silencieux ni vraie
+        erreur ne sont affichés : le bandeau de coupure (#378) reste
+        visible et un réessai en arrière-plan reprend avec les délais
+        croissants déjà documentés (`_start_resync_retry_loop`), sans
+        jamais abandonner la partie. Si la resynchronisation réussit mais
+        montre une position toujours différente de l'échiquier physique,
+        les cases rouges déjà utilisées pour une position illégale
+        (`_activate_illegal_position`) affichent la position Lichess
+        (déjà corrigée) comme cible — jamais plus le texte générique
+        « remettez la pièce à sa place », trompeur si la cible locale
+        était elle-même périmée (cause réelle de l'incident du
+        26/11/2026, voir #391 point 3)."""
         message = exc.api_message or str(exc)
         self._game_log.state_change(
             f"coup physique {uci} — refusé par Lichess (HTTP {exc.status_code}) : {message}."
         )
         ambiguous = is_ambiguous_turn_or_over_error(message)
+        resync_failed = False
         if ambiguous and not self.game_over:
             self._drain_pending_stream_events(self.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S)
+            if not self.game_over and not self._move_already_applied(uci, expected_ply):
+                resync_failed = not self._resync_from_lichess(f"coup {uci} refusé (ambigu)")
+                if resync_failed:
+                    self._start_resync_retry_loop(f"coup {uci} refusé (ambigu, réessai)")
         if ambiguous and self._move_already_applied(uci, expected_ply):
             self._game_log.state_change(
-                f"coup physique {uci} — relecture du flux : déjà appliqué (réponse HTTP perdue "
+                f"coup physique {uci} — relecture : déjà appliqué (réponse HTTP perdue "
                 f"après acceptation réelle par Lichess) — succès silencieux, aucune erreur affichée."
             )
             return
         if ambiguous and self.game_over:
             self._last_move_rejected_after_game_over = True
             self._game_log.state_change(
-                f"coup physique {uci} — relecture du flux : partie déjà terminée "
+                f"coup physique {uci} — relecture : partie déjà terminée "
                 f"(statut={self._status}) — dernier coup non accepté, aucune erreur affichée."
             )
             return
+        if resync_failed:
+            # Issue #392, point 3c : réseau toujours indisponible au moment
+            # de conclure — ni succès silencieux ni vraie erreur confirmés,
+            # jamais de message "coup refusé" tant que la cause réelle
+            # n'est pas connue. Le bandeau de coupure et son réessai en
+            # arrière-plan (déjà démarrés ci-dessus) prennent le relais.
+            return
         if ambiguous:
             self._game_log.state_change(
-                f"coup physique {uci} — relecture du flux : partie toujours en cours "
-                f"après {self.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S:.1f}s — vraie erreur, coup refusé affiché."
+                f"coup physique {uci} — resynchronisation effectuée — position toujours en "
+                f"désaccord avec l'échiquier physique — cases à corriger affichées (position Lichess)."
             )
+            self._awaiting_resync_reset = True
+            self._resync_target_fen = self.board.board_fen()
+            send_event("lichess_move_refused", {"message": message})
+            return
         self._reset_target_fen = self.board.board_fen()
         self._awaiting_piece_reset = True
         send_event("lichess_move_refused", {"message": message})
@@ -2385,6 +2464,66 @@ class LichessGame(threading.Thread):
             except queue.Empty:
                 continue
             self._handle_stream_event(event)
+
+    def _resync_from_lichess(self, reason: str) -> bool:
+        """Issue #392, point 3a : relit l'état complet de la partie
+        directement sur Lichess (`GameClient.peek_game_full`, même
+        mécanisme qu'une reprise — un gameFull porte un état complet) et
+        l'applique par le chemin NORMAL des coups reçus (`_apply_game_state`
+        — jamais `_apply_game_full`, qui rejouerait tout l'historique en
+        silence sans LED/bip/pendules pour les coups manqués, alors que
+        ceux-ci doivent recevoir le même traitement qu'un coup reçu en
+        direct). `_apply_new_moves` (appelé par `_apply_game_state`) est
+        déjà sans effet si aucun coup n'est manquant — jamais de double
+        traitement d'un coup déjà connu. Retourne True si la lecture a
+        réussi (position corrigée, que des coups aient manqué ou non),
+        False sinon (réseau toujours indisponible — jamais de conclusion
+        hâtive dans ce cas, voir l'appelant)."""
+        try:
+            full_event = self.client.peek_game_full(self.game_id)
+        except (LichessAuthError, LichessApiError, LichessRateLimitError, LichessNetworkError) as exc:
+            logger.warning("Lichess : resynchronisation (%s) échouée — %s.", reason, exc)
+            self._game_log.connectivity(f"resynchronisation ({reason}) échouée : {exc}.")
+            self._report_network_error()
+            return False
+        if full_event is None:
+            logger.warning("Lichess : resynchronisation (%s) — aucun état reçu.", reason)
+            self._game_log.connectivity(f"resynchronisation ({reason}) — flux fermé sans état reçu.")
+            self._report_network_error()
+            return False
+        state = full_event.get("state") or {}
+        self._game_log.state_change(
+            f"resynchronisation ({reason}) — état complet relu et appliqué "
+            f"(coups déjà connus={self._moves_applied}, coups reçus={len(moves_from_state(state))})."
+        )
+        self._apply_game_state(state)
+        self._clear_network_error_if_active()
+        return True
+
+    def _start_resync_retry_loop(self, reason: str) -> None:
+        """Issue #392, point 3c : réessaie `_resync_from_lichess` en
+        arrière-plan avec les délais croissants déjà documentés pour la
+        reconnexion du flux (`RECONNECT_DELAYS_S`, game_client.py — 1, 2,
+        4, 8, 30s), jamais en bloquant le fil de jeu principal (l'horloge
+        tourne, voir en-tête de `_handle_move_rejected`). S'arrête dès que
+        la partie se termine (quelle qu'en soit la cause) ou dès qu'une
+        tentative réussit ; jamais plus d'une boucle à la fois."""
+        if self._resync_retry_active or self.game_over:
+            return
+        self._resync_retry_active = True
+        threading.Thread(target=self._resync_retry_worker, args=(reason,), daemon=True).start()
+
+    def _resync_retry_worker(self, reason: str) -> None:
+        try:
+            attempt = 0
+            while not self.game_over:
+                delay = RECONNECT_DELAYS_S[min(attempt, len(RECONNECT_DELAYS_S) - 1)]
+                time.sleep(delay)
+                attempt += 1
+                if self._resync_from_lichess(reason):
+                    return
+        finally:
+            self._resync_retry_active = False
 
     # ── Fin de partie ────────────────────────────────────────────────────
 

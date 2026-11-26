@@ -37,7 +37,30 @@ REQUEST_TIMEOUT_S = 10
 # amicale longue (ex. 90+30, réflexions de 15-20 min) peut rester silencieuse
 # plus longtemps sans que la connexion soit réellement coupée — 90s de
 # tolérance avant de considérer la lecture comme interrompue (issue #309).
+# Reste utilisé pour les flux SANS maintien de connexion régulier établi
+# (recherche d'adversaire et flux général d'évènements, seek.py —
+# `open_stream`/`StreamHandle` ci-dessous) : non concerné par #392, point
+# 3e, faute de preuve qu'un seuil plus court y soit sûr (pas de fausse
+# reconnexion).
 STREAM_READ_TIMEOUT_S = 90
+# Issue #392, point 3e (étude #391, point 3) : seuil dédié au flux de
+# PARTIE (`stream_lines`, utilisé uniquement par
+# GameClient.stream_game) — 90s laissait passer une coupure réelle de
+# 25-37s SANS LA MOINDRE EXCEPTION (essai réel du 26/11/2026 : 2.c4/3.e4
+# envoyés et acceptés par Lichess, mais jamais affichés, position locale
+# figée 4 demi-coups, blocage total jusqu'à abandon). Valeur retenue : 20s.
+# Justification (aucune documentation PRIMAIRE officielle trouvée donnant
+# l'intervalle exact — recherche faite le 26/11/2026) : le commentaire
+# ci-dessus (~9s, déjà estimé par #309) est corroboré par plusieurs sources
+# communautaires indépendantes (dépôts BotLi et lichess-bot, miroir
+# mintlify/deepwiki de la doc officielle) qui convergent sur un maintien de
+# connexion Lichess de l'ordre de 7 à 9s pour les flux NDJSON (évènements
+# et partie) — jamais confirmé par la spécification officielle elle-même.
+# 20s laisse une marge large (plus du double de l'intervalle estimé) pour
+# absorber un aller-retour réseau lent ou quelques maintiens manqués sans
+# déclencher de fausse reconnexion, tout en détectant une coupure réelle
+# bien avant l'ancien seuil et avant même la durée observée le 26/11/2026.
+GAME_STREAM_READ_TIMEOUT_S = 20
 
 
 def _user_agent() -> str:
@@ -147,12 +170,15 @@ class UrllibTransport:
         """Générateur de lignes décodées (lignes vides de maintien incluses).
         S'arrête normalement (fin du générateur) quand Lichess ferme le
         flux ; lève TransportNetworkError/TransportTimeoutError en cas de
-        coupure — à l'appelant de décider s'il reprend."""
+        coupure — à l'appelant de décider s'il reprend. Seul appelant :
+        GameClient.stream_game()/peek_game_full() (flux de PARTIE) — seuil
+        dédié GAME_STREAM_READ_TIMEOUT_S (issue #392, point 3e), distinct
+        de STREAM_READ_TIMEOUT_S (recherche/évènements, open_stream)."""
         ensure_https(url)
         req = urllib.request.Request(url, method="GET", headers=_headers(token))
         try:
             # Adresse vérifiée par ensure_https ci-dessus.
-            with urllib.request.urlopen(req, timeout=STREAM_READ_TIMEOUT_S) as resp:  # noqa: S310  # nosec B310
+            with urllib.request.urlopen(req, timeout=GAME_STREAM_READ_TIMEOUT_S) as resp:  # noqa: S310  # nosec B310
                 for raw_line in resp:
                     yield raw_line.decode("utf-8", errors="replace").rstrip("\n")
         except urllib.error.HTTPError as exc:

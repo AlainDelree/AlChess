@@ -340,12 +340,18 @@ def test_coup_identique_joue_plus_tot_najamais_pris_pour_la_confirmation(monkeyp
     # notation "g1f3" que le tout premier coup, par coïncidence) n'a pas
     # été réellement accepté par Lichess cette fois.
     monkeypatch.setattr(game, "_drain_pending_stream_events", lambda timeout_s: None)
+    # Resynchronisation active (#392, point 3a) mockée — contact Lichess
+    # réussi (simulé) qui ne change rien : jamais de vrai réseau ici.
+    monkeypatch.setattr(game, "_resync_from_lichess", lambda reason: True)
 
     game._submit_move("g1f3")
 
     refused = _events_of(events, "lichess_move_refused")
     assert len(refused) == 1
-    assert game._awaiting_piece_reset is True
+    # Issue #392, point 3b : cases rouges (position Lichess resynchronisée
+    # comme cible), plus jamais le texte générique "remettez la pièce".
+    assert game._awaiting_resync_reset is True
+    assert game._resync_target_fen == game.board.board_fen()
     # Le décoi du ply 0 n'a jamais été réutilisé pour confirmer ce nouvel envoi.
     assert len(game.board.move_stack) == 2
 
@@ -366,12 +372,18 @@ def test_vrai_refus_apres_relecture_sans_confirmation_affiche_toujours_lerreur(m
         raise LichessApiError(400, "Not your turn, or game already over")
 
     monkeypatch.setattr(client, "play_move", fake_play_move)
+    # Resynchronisation active (#392, point 3a) mockée — contact Lichess
+    # réussi (simulé) qui ne change rien : jamais de vrai réseau ici.
+    monkeypatch.setattr(game, "_resync_from_lichess", lambda reason: True)
 
     game._submit_move("e2e4")
 
     refused = _events_of(events, "lichess_move_refused")
     assert len(refused) == 1
-    assert game._awaiting_piece_reset is True
+    # Issue #392, point 3b : cases rouges (position Lichess resynchronisée
+    # comme cible), plus jamais le texte générique "remettez la pièce".
+    assert game._awaiting_resync_reset is True
+    assert game._resync_target_fen == game.board.board_fen()
     assert game.board.move_stack == []
 
 

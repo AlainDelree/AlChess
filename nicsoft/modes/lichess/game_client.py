@@ -332,6 +332,41 @@ class GameClient:
                 sleep(delay)
                 continue
 
+    def peek_game_full(self, game_id: str) -> dict | None:
+        """Lecture directe de l'état complet de la partie — UNE SEULE
+        tentative, SANS la reprise automatique à délais croissants de
+        stream_game() ci-dessus (qui ne renonce jamais en cas de coupure
+        persistante, adaptée à un flux tenu ouvert tout le long de la
+        partie, pas à un appel ponctuel attendu par le fil de jeu
+        principal). Utilisée pour la reprise (voir
+        game_manager_modes/lichess.py::_peek_game_full, déjà existant) et
+        pour la resynchronisation en cours de partie après un incident
+        réseau (issue #392, point 3a, game.py::LichessGame._resync_from_lichess)
+        — à l'appelant de décider lui-même du réessai (délais croissants
+        propres, voir _resync_retry_worker) en cas d'échec. Toute erreur
+        réseau est traduite en exception typée Lichess (comme le reste de
+        ce client), jamais une exception de transport brute. None si le
+        flux se ferme sans jamais envoyer de gameFull."""
+        url = f"{API_BASE}/board/game/stream/{game_id}"
+        try:
+            stream = self._transport.stream_lines(url, self._token)
+            try:
+                for line in stream:
+                    if not line.strip():
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except ValueError:
+                        continue
+                    if event.get("type") == "gameFull":
+                        return event
+                return None
+            finally:
+                stream.close()
+        except TransportHTTPError as exc:
+            _raise_for_transport_error(exc)
+        except (TransportNetworkError, TransportTimeoutError):
+            raise LichessNetworkError("réseau indisponible") from None
 
 # ── Fonctions utilitaires pures ─────────────────────────────────────────────
 

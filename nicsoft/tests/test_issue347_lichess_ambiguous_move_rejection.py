@@ -154,8 +154,12 @@ def test_coup_refuse_apres_abandon_adversaire_affiche_la_victoire_sans_toast_err
 
 def test_coup_refuse_vraie_erreur_hors_tour_reste_un_toast_erreur(monkeypatch):
     """Le même message ambigu, mais la partie n'est PAS terminée (aucun
-    événement de fin dans le flux dans le délai imparti) : comportement
-    inchangé — toast « coup refusé », remise en place demandée."""
+    événement de fin dans le flux dans le délai imparti) : toast « coup
+    refusé » toujours affiché. Issue #392, point 3b : la resynchronisation
+    active (déclenchée depuis cette issue, mockée ici pour rester sans
+    réseau) confirme que la position reste en désaccord — l'affichage
+    bascule sur les cases rouges (position Lichess comme cible), plus
+    jamais sur l'ancien "remettez la pièce" (_awaiting_piece_reset)."""
     transport = FakeTransport(requests=[
         lambda m, u, t, f: TransportHTTPError(400, _AMBIGUOUS_BODY),
     ])
@@ -164,6 +168,11 @@ def test_coup_refuse_vraie_erreur_hors_tour_reste_un_toast_erreur(monkeypatch):
     # aucun événement ne sera posé, le cas doit retomber sur la vraie
     # erreur après ce court délai.
     game.AMBIGUOUS_ERROR_REQUERY_TIMEOUT_S = 0.05
+    # Resynchronisation (nouvelle requête réseau, #392 point 3a) mockée —
+    # simule un contact Lichess réussi qui ne change rien (aucun coup
+    # manquant, position toujours en désaccord) : jamais de vrai réseau
+    # dans ce test, voir la règle absolue du dossier.
+    monkeypatch.setattr(game, "_resync_from_lichess", lambda reason: True)
 
     board.current_fen = chess.Board("rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR").board_fen() + " b - - 0 1"
     _settle_physical_move(game)
@@ -172,7 +181,8 @@ def test_coup_refuse_vraie_erreur_hors_tour_reste_un_toast_erreur(monkeypatch):
     assert game._last_move_rejected_after_game_over is False
     refused = _events_of(events, "lichess_move_refused")
     assert refused and "Not your turn" in refused[0]["message"]
-    assert game._awaiting_piece_reset is True
+    assert game._awaiting_resync_reset is True
+    assert game._resync_target_fen == game.board.board_fen()
 
 
 def test_coup_refuse_message_non_ambigu_reste_inchange(monkeypatch):
