@@ -1838,6 +1838,12 @@ socket.on("app_state", (data) => {
     _puzzleSeriesCurrentIndex = puzzleIdx - 1;
     _puzzleSeriesResults[_puzzleSeriesCurrentIndex] = { status: "current", diff: null };
     _lichessPuzzleRenderSeriesStrip();
+    // Issue #390, point 8 : retenus pour le libellé du bouton de fin de
+    // problème ("Voir le bilan" seulement au DERNIER problème d'une séance
+    // bornée — voir socket.on("lichess_puzzle_result") plus bas), puisque
+    // le résultat n'a plus accès à ces deux valeurs par ailleurs.
+    _puzzlePlayingIndex = puzzleIdx;
+    _puzzlePlayingTotal = (typeof data.puzzle_total === "number" && data.puzzle_total > 0) ? data.puzzle_total : 0;
     _puzzleDeactivateBoard();
     const virtualInstr = document.getElementById("lichess-puzzle-virtual-instructions");
     if (virtualInstr) virtualInstr.style.display = _puzzleVirtualActive ? "" : "none";
@@ -2588,6 +2594,47 @@ function _lichessPuzzleRenderDailyCounts() {
 // ci-dessus).
 function _lichessPuzzleOnSessionSizeInput() {
   _lichessPuzzleRenderDailyCounts();
+  _lichessPuzzleUpdateStartButtonLabel();
+}
+
+// Valeur par défaut du serveur (config_manager.py, lichess_puzzle_session_size)
+// — repli affiché pour une saisie vide ou invalide, jamais 0 ni 1 (qui sont
+// des tailles valides à part entière, pas des replis).
+const LICHESS_PUZZLE_SESSION_SIZE_DEFAUT = 25;
+
+// Libellé du bouton de lancement, dépendant de la taille de séance réglée
+// (issue #390, point 8) — mis à jour immédiatement à la saisie (voir
+// _lichessPuzzleOnSessionSizeInput ci-dessus), à l'arrivée de config_data
+// (valeur restaurée depuis config.json) et à chaque changement de langue
+// (_refreshDynamicLabels, i18n.js) : AUCUN data-i18n statique sur ce
+// bouton, sinon il écraserait cette forme dynamique. N (inséré comme
+// texte, via l'interpolation de t()) suit toujours la valeur courante du
+// champ, pas la dernière valeur mémorisée côté serveur.
+function _lichessPuzzleUpdateStartButtonLabel() {
+  const btn = document.getElementById("btn-start-lichess-puzzle");
+  if (!btn) return;
+  const sizeEl = document.getElementById("cfg-lichess-puzzle-session-size");
+  const raw = sizeEl ? parseInt(sizeEl.value, 10) : NaN;
+  const n = (Number.isFinite(raw) && raw >= 0) ? raw : LICHESS_PUZZLE_SESSION_SIZE_DEFAUT;
+  if (n === 0) {
+    btn.textContent = t("config.lichess.probleme_btn_illimite");
+  } else if (n === 1) {
+    btn.textContent = t("config.lichess.probleme_btn");
+  } else {
+    btn.textContent = t("config.lichess.probleme_btn_serie", { n: n });
+  }
+}
+
+// Libellé du bouton de fin de problème — "Voir le bilan" seulement au
+// dernier problème d'une séance bornée (issue #390, point 8), sinon
+// "Problème suivant" (comportement d'avant cette issue). Appelée à chaque
+// résultat (socket.on("lichess_puzzle_result")) et à chaque changement de
+// langue (_refreshDynamicLabels) — AUCUN data-i18n statique sur ce bouton.
+function _lichessPuzzleUpdateNextButtonLabel() {
+  const btn = document.getElementById("lichess-puzzle-btn-next");
+  if (!btn) return;
+  const isLastOfBoundedSession = _puzzlePlayingTotal > 0 && _puzzlePlayingIndex === _puzzlePlayingTotal;
+  btn.textContent = t(isLastOfBoundedSession ? "lichess.puzzle.voir_bilan" : "lichess.puzzle.suivant");
 }
 
 // Poussé par game.py::_maybe_fetch_new_rating, en meilleur effort et
@@ -3285,6 +3332,13 @@ function _refreshDynamicLabels() {
   // ci-dessus.
   _lichessPuzzleRenderThemeOptions();
   _lichessPuzzleRenderPhaseOptions();
+  // Libellé du bouton de lancement, dépendant de la taille de séance
+  // réglée (issue #390, point 8) — même mécanisme : réinterpolé à chaque
+  // changement de langue plutôt que par data-i18n statique (le libellé
+  // "data-i18n" seul écraserait sinon la bonne forme au prochain
+  // changement de langue sans retenir la taille réglée).
+  _lichessPuzzleUpdateStartButtonLabel();
+  _lichessPuzzleUpdateNextButtonLabel();
 
   // Titre bouton flip
   const flipBtn = document.getElementById("btn-flip");
@@ -4968,6 +5022,12 @@ socket.on("lichess_puzzle_result", (data) => {
   // solution", qui réémet ce même évènement, voir puzzle_game.py::_show_solution).
   const ratingEl = document.getElementById("lichess-puzzle-rating");
   if (ratingEl) ratingEl.textContent = (typeof data.rating === "number") ? t("lichess.puzzle.cote", { rating: data.rating }) : "";
+  // Issue #390, point 8 : "Voir le bilan" seulement au DERNIER problème
+  // d'une séance BORNÉE (_puzzlePlayingTotal > 0 — "0"/sans limite garde
+  // toujours "Problème suivant", quel que soit l'index). Comportement du
+  // bouton inchangé : même data-action="lichess_puzzle_next" dans les deux
+  // cas, c'est le serveur qui décide d'enchaîner ou d'afficher le bilan.
+  _lichessPuzzleUpdateNextButtonLabel();
   const resultBox = document.getElementById("lichess-puzzle-result");
   if (resultBox) resultBox.style.display = "";
   const solutionBanner = document.getElementById("lichess-puzzle-solution-banner");
@@ -8167,6 +8227,13 @@ let _puzzleSetupFen = "";
 // purement serveur) — uniquement ceux de CETTE séance, connus du navigateur.
 let _puzzleSeriesResults = [];
 let _puzzleSeriesCurrentIndex = -1;
+// Problème EN COURS (issue #390, point 8) — puzzle_index/puzzle_total du
+// dernier payload "lichess_puzzle_playing" reçu, utilisés uniquement pour
+// savoir si le bouton de fin de problème doit dire "Voir le bilan" (dernier
+// problème d'une séance bornée) ou "Problème suivant" (sinon) — jamais pour
+// l'affichage du compteur "Problème X / N" (déjà géré séparément).
+let _puzzlePlayingIndex = 1;
+let _puzzlePlayingTotal = 0;
 let _puzzleSelected      = null;    // case sélectionnée, coord interne "file-rank"
 let _puzzleLegalDests    = [];      // destinations légales (coords internes) pour la case sélectionnée
 
@@ -9837,6 +9904,8 @@ socket.on("config_data", (data) => {
   // avec la taille de séance qui vient d'être restaurée ci-dessus (sans
   // effet si _lichessPuzzleDailyCounts n'est pas encore arrivé).
   _lichessPuzzleRenderDailyCounts();
+  // Libellé du bouton de lancement (issue #390, point 8) — même raison.
+  _lichessPuzzleUpdateStartButtonLabel();
 
   // Série à jouer des problèmes — mélange/thème/phase (issue #388, point 2)
   // — même mécanisme de mémorisation que la taille de séance ci-dessus.

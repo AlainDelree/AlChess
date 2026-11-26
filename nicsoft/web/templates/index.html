@@ -489,7 +489,7 @@
          un problème). -->
     <div class="card cfg-hh-card">
       <h2 data-i18n="config.lichess.probleme_titre">🧩 Problèmes</h2>
-      <p class="outil-desc" data-i18n="config.lichess.probleme_desc">Résolvez les problèmes Lichess un par un — aucune aide, angle par défaut.</p>
+      <p class="outil-desc" data-i18n="config.lichess.probleme_desc">Résolvez les problèmes Lichess un par un, sans aucune aide, dans la série choisie ci-dessous.</p>
       <!-- Choix du mode (issue #364) : "Échiquier" (défaut, inchangé) ou
            "Sur l'écran" (mode virtuel, sans échiquier physique) — mémorisé
            dans localStorage (selectPuzzleModeLichess, app.js), jamais côté
@@ -551,7 +551,13 @@
         <div id="lichess-puzzle-daily-counts-phase" class="lichess-puzzle-daily-counts-row"></div>
         <div id="lichess-puzzle-daily-counts-mix" class="lichess-puzzle-daily-counts-row"></div>
       </div>
-      <button class="btn btn-reprendre" id="btn-start-lichess-puzzle" data-action="start_lichess_puzzle" data-i18n="config.lichess.probleme_btn">▶ Jouer un problème</button>
+      <!-- Libellé dépendant de la taille de séance réglée (issue #390,
+           point 8) — PAS de data-i18n statique ici : le texte est
+           entièrement piloté par _lichessPuzzleUpdateStartButtonLabel()
+           (app.js), y compris au changement de langue (voir
+           _refreshDynamicLabels), sinon un data-i18n figé écraserait la
+           bonne forme (série de N / sans limite / un problème). -->
+      <button class="btn btn-reprendre" id="btn-start-lichess-puzzle" data-action="start_lichess_puzzle">▶ Jouer un problème</button>
     </div>
 
     <!-- Choix du type de partie (issue #327, point 1 ; classé issue #344, point 1 ;
@@ -1294,7 +1300,12 @@
         </div>
         <div id="lichess-puzzle-result-actions">
           <button id="lichess-puzzle-btn-solution" class="btn" data-action="lichess_puzzle_view_solution" style="display:none;" data-i18n="lichess.puzzle.voir_solution">Voir la solution</button>
-          <button id="lichess-puzzle-btn-next" class="btn btn-reprendre" data-action="lichess_puzzle_next" data-i18n="lichess.puzzle.suivant">Problème suivant ▶</button>
+          <!-- Libellé "Problème suivant"/"Voir le bilan" (issue #390, point 8)
+               — PAS de data-i18n statique : texte entièrement piloté par
+               socket.on("lichess_puzzle_result") (app.js), selon que ce
+               problème est ou non le dernier d'une séance bornée. Même
+               action/comportement dans les deux cas (data-action inchangé). -->
+          <button id="lichess-puzzle-btn-next" class="btn btn-reprendre" data-action="lichess_puzzle_next">Problème suivant ▶</button>
         </div>
       </div>
 
