@@ -2936,8 +2936,15 @@ socket.on("lichess_move", (data) => {
   renderBoard(currentFen, from, to, null, null, null, null);
   hideFeedback();
   updateMaterial(currentFen);
+  // Issue #393, point 3 : un coup adverse n'est pas forcément celui d'une
+  // IA (bug réel établi par #391 — un adversaire humain était affiché
+  // "IA de Lichess (niveau N)") — `data.opponent_is_ai` (transmis par le
+  // serveur, comme à l'initialisation lichess_init) tranche, jamais une
+  // supposition fixe ici.
   const playerLabel = data.opponent_move
-    ? t("lichess.ia_niveau", { level: data.level || _lichessLevel })
+    ? (data.opponent_is_ai
+        ? t("lichess.ia_niveau", { level: data.level || _lichessLevel })
+        : (data.opponent_name || t("lichess.adversaire_inconnu")))
     : _localPlayerName(null, "lichess.vous");
   const turnInfo = document.getElementById("turn-info");
   turnInfo.textContent = t("game.a_joue", {

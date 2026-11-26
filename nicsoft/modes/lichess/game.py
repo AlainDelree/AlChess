@@ -1663,6 +1663,15 @@ class LichessGame(threading.Thread):
                     "fen": self.board.board_fen(), "san": san, "uci": uci,
                     "color": mover_color, "level": self.level,
                     "opponent_move": mover_color != self.user_color,
+                    # Issue #393, point 3 : transmet si l'ADVERSAIRE (pas
+                    # forcément l'auteur de CE coup, qui peut être nous)
+                    # est une IA — jamais déduit du seul `opponent_move`,
+                    # qui ne dit rien de sa nature. app.js (socket.on
+                    # "lichess_move") doit s'en servir au lieu de toujours
+                    # supposer l'IA pour un coup adverse (bug réel établi
+                    # par #391 : un humain était affiché "IA de Lichess").
+                    "opponent_is_ai": self._opponent_is_ai,
+                    "opponent_name": self.opponent_name,
                 })
                 # Bip court à chaque coup de l'adversaire SEULEMENT (jamais
                 # pour les coups de l'utilisateur) — case à cocher, issue
