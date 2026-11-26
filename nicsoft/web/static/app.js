@@ -4698,18 +4698,33 @@ function _lichessPuzzleThemeLabel(key) {
 // Lichess (performance, nombre de parties) est insérée via les variables
 // d'interpolation de t() dans un textContent — jamais en HTML (règle de
 // sécurité AlChess).
+//
+// Issue #393, point 1 : établi par l'étude #391 — le tableau de bord
+// INDISPONIBLE (jeton absent, réseau coupé, droit manquant,
+// `_lichessPuzzleDashboard` encore `null` avant sa première arrivée) et le
+// tableau de bord disponible mais vraiment VIDE (thème jamais joué sur la
+// période) sont deux situations différentes, jamais confondues : seul le
+// second cas affiche "jamais joué" par thème. Le premier affiche une
+// mention neutre UNIQUE en tête de la liste (jamais répétée sur chaque
+// thème) et chaque option reste un simple libellé, sans annotation ni
+// statistique inventée.
 function _lichessPuzzleRenderThemeOptions() {
   const sel = document.getElementById("cfg-lichess-puzzle-theme");
   if (!sel) return;
+  const available = !!(_lichessPuzzleDashboard && _lichessPuzzleDashboard.available === true);
+  const hint = document.getElementById("cfg-lichess-puzzle-stats-indisponibles");
+  if (hint) hint.classList.toggle("hidden", available);
   sel.textContent = "";
-  const themes = (_lichessPuzzleDashboard && _lichessPuzzleDashboard.themes) || {};
+  const themes = available ? (_lichessPuzzleDashboard.themes || {}) : {};
   const labelFn = (key) => t(`lichess.puzzle_theme.${key}`);
   const orderedKeys = _lichessPuzzleSortThemeKeys(LICHESS_PUZZLE_THEME_KEYS, themes, labelFn);
   orderedKeys.forEach((key) => {
     const label = labelFn(key);
     const stats = themes[key];
     let text;
-    if (stats && typeof stats.nb === "number" && stats.nb >= LICHESS_PUZZLE_THEME_MIN_PLAYS) {
+    if (!available) {
+      text = label;
+    } else if (stats && typeof stats.nb === "number" && stats.nb >= LICHESS_PUZZLE_THEME_MIN_PLAYS) {
       text = t("lichess.puzzle.stat_normal", { label, performance: stats.performance, count: stats.nb });
     } else if (stats && typeof stats.nb === "number" && stats.nb > 0) {
       text = t("lichess.puzzle.stat_peu_joue", { label, count: stats.nb });
@@ -4740,7 +4755,13 @@ function _lichessPuzzleRenderThemeOptions() {
 function _lichessPuzzleApplyThemeSelection() {
   const sel = document.getElementById("cfg-lichess-puzzle-theme");
   if (!sel) return;
-  const defaultTheme = _lichessPuzzleDashboard && _lichessPuzzleDashboard.default_theme;
+  // Issue #393, point 1 : jamais de thème par défaut appliqué si le
+  // tableau de bord est indisponible — le serveur n'en calcule déjà
+  // jamais dans ce cas (voir check_lichess_puzzle_dashboard), mais cette
+  // vérification locale garde ce comportement correct même si `available`
+  // devenait faux pour une autre raison future.
+  const available = !!(_lichessPuzzleDashboard && _lichessPuzzleDashboard.available === true);
+  const defaultTheme = available && _lichessPuzzleDashboard.default_theme;
   const desired = _lichessPuzzleStoredTheme || (_lichessPuzzleThemeTouchedByUser ? "" : defaultTheme) || "";
   if (desired && LICHESS_PUZZLE_THEME_KEYS.includes(desired)) sel.value = desired;
 }

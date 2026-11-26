@@ -524,6 +524,12 @@
       </div>
       <div id="cfg-lichess-puzzle-theme-row" style="display:none;">
         <label class="cfg-label" for="cfg-lichess-puzzle-theme" data-i18n="config.lichess.probleme_theme_label">Thème à travailler</label>
+        <!-- Issue #393, point 1 : mention unique, affichée seulement si le
+             tableau de bord est indisponible (jeton absent, réseau coupé,
+             droit manquant) — jamais confondue avec "jamais joué" (qui ne
+             peut apparaître que si le tableau de bord a réellement
+             répondu), voir _lichessPuzzleRenderThemeOptions (app.js). -->
+        <p id="cfg-lichess-puzzle-stats-indisponibles" class="outil-desc hidden" data-i18n="config.lichess.probleme_stats_indisponibles">Statistiques indisponibles pour le moment — réessayez en rouvrant cet écran.</p>
         <select id="cfg-lichess-puzzle-theme" class="cfg-input" onchange="lichessSavePuzzleTheme()"></select>
       </div>
       <div id="cfg-lichess-puzzle-phase-row" style="display:none;">

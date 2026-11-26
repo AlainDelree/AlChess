@@ -978,6 +978,7 @@
   "config.lichess.probleme_serie_theme": "Thema",
   "config.lichess.probleme_serie_phase": "Partiephase",
   "config.lichess.probleme_theme_label": "Zu übendes Thema",
+  "config.lichess.probleme_stats_indisponibles": "Statistiken derzeit nicht verfügbar — versuchen Sie es erneut, indem Sie diesen Bildschirm neu öffnen.",
   "config.lichess.probleme_phase_label": "Zu übende Partiephase",
   "lichess.puzzle.stat_normal": "{label} — {performance} ({count})",
   "lichess.puzzle.stat_peu_joue": "{label} — selten gespielt ({count})",

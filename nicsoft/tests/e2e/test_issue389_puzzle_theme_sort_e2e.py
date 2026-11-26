@@ -122,6 +122,15 @@ def test_tri_egalite_de_performance_departagee_par_taux_1er_coup_puis_alpha(page
 
 
 def test_tri_tableau_de_bord_vide_est_entierement_alphabetique(page):
+    # Issue #393, point 1 (établi par #391) : "disponible mais vide" (aucun
+    # thème joué sur la période) et "indisponible" (jeton/réseau/droit en
+    # cause) produisent le MÊME ordre ici — _lichessPuzzleSortThemeKeys ne
+    # trie QUE sur les statistiques par thème (absentes dans les deux cas),
+    # jamais sur la disponibilité elle-même. Les deux cas restent bien
+    # DISTINCTS à l'affichage (libellé, voir
+    # test_issue393_point1_lichess_dashboard_indisponible_e2e.py) : c'est
+    # _lichessPuzzleRenderThemeOptions, pas le tri, qui porte cette
+    # distinction.
     result = page.evaluate(
         """() => _lichessPuzzleSortThemeKeys(['zugzwang', 'fork', 'mate'], {}, (key) => key)"""
     )
@@ -129,6 +138,9 @@ def test_tri_tableau_de_bord_vide_est_entierement_alphabetique(page):
 
 
 def test_tri_tableau_de_bord_indisponible_est_entierement_alphabetique(page):
+    # Voir le commentaire du test ci-dessus — même ordre que le cas
+    # "disponible mais vide", par construction (aucune statistique connue
+    # dans les deux cas pour le tri lui-même).
     result = page.evaluate(
         """() => _lichessPuzzleSortThemeKeys(['zugzwang', 'fork', 'mate'], null, (key) => key)"""
     )

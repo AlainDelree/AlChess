@@ -187,12 +187,16 @@ def check_lichess_puzzle_dashboard() -> None:
     d'échec (jeton absent, réseau coupé, droit manquant) : `available`
     distingue alors les deux cas pour l'écran, qui reste utilisable sans
     statistiques ni thème par défaut calculé (jamais de message d'erreur
-    bloquant, voir le rapport de clôture)."""
+    bloquant, voir le rapport de clôture). Issue #393, point 1 : le
+    résultat de CHAQUE lecture est désormais journalisé (INFO, jamais le
+    jeton ni le contenu complet) — succès (nombre de thèmes, période) ET
+    échec (statut), pour pouvoir confirmer après coup qu'un appel a
+    réellement abouti."""
     token = (load_config().get("lichess_token") or "").strip()
     if not token:
         send_event("lichess_puzzle_dashboard", {"available": False, "themes": {}, "default_theme": ""})
         return
-    from nicsoft.modes.lichess.puzzle_client import get_puzzle_dashboard
+    from nicsoft.modes.lichess.puzzle_client import get_puzzle_dashboard, PUZZLE_DASHBOARD_DEFAULT_DAYS
     try:
         result = get_puzzle_dashboard(token)
     except Exception as exc:
@@ -204,6 +208,14 @@ def check_lichess_puzzle_dashboard() -> None:
         send_event("lichess_puzzle_dashboard", {"available": False, "themes": {}, "default_theme": ""})
         return
     themes = result.get("themes") or {}
+    # Issue #393, point 1 : journalisation systématique d'une lecture
+    # réussie (jamais le contenu complet, seulement un résumé) — avant
+    # cette issue, un succès ne laissait AUCUNE trace, rendant impossible
+    # de savoir si l'appel avait réellement abouti.
+    logger_lichess.info(
+        "Lichess : tableau de bord des problèmes lu (statut=ok, thèmes=%d, période=%dj).",
+        len(themes), PUZZLE_DASHBOARD_DEFAULT_DAYS,
+    )
     default_theme = compute_default_theme(themes)
     send_event("lichess_puzzle_dashboard", {"available": True, "themes": themes, "default_theme": default_theme})
 
