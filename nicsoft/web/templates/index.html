@@ -1331,17 +1331,43 @@
      ramène aux réglages des problèmes (comme le bouton de fin de problème
      ci-dessus), jamais au menu principal. -->
 <div id="screen-lichess-puzzle-summary" class="screen-connecting">
-  <div class="card" style="text-align:left; max-width:480px; margin:0 auto;">
+  <div class="card lichess-puzzle-summary-card">
     <h2 class="card-title-lg" data-i18n="lichess.puzzle.bilan_titre">🏁 Bilan de la séance</h2>
-    <div id="lichess-puzzle-summary-stats"></div>
+    <!-- Série jouée (issue #388, point 3) — ligne de texte seule, même
+         valeur que series_theme/l'historique local, jamais deux
+         représentations distinctes du même réglage. -->
+    <div id="lichess-puzzle-summary-serie" class="lichess-puzzle-summary-serie"></div>
+    <!-- Indicateurs bien séparés (issue #390, point 6) — réussis/ratés/
+         durée moyenne/variation totale (signée, couleur verte/rouge selon
+         le signe — jamais la seule information, le signe et le nombre sont
+         déjà du texte). Remplis par _renderLichessPuzzleSessionSummary
+         (app.js), jamais de HTML inséré depuis une valeur. -->
+    <div id="lichess-puzzle-summary-indicators" class="lichess-puzzle-summary-indicators">
+      <div class="lichess-puzzle-summary-indicator">
+        <div id="lichess-puzzle-summary-solved" class="lichess-puzzle-summary-indicator-value"></div>
+        <div class="lichess-puzzle-summary-indicator-label" data-i18n="lichess.puzzle.bilan_reussis_label">Réussis</div>
+      </div>
+      <div class="lichess-puzzle-summary-indicator">
+        <div id="lichess-puzzle-summary-failed-count" class="lichess-puzzle-summary-indicator-value"></div>
+        <div class="lichess-puzzle-summary-indicator-label" data-i18n="lichess.puzzle.bilan_rates_label">Ratés</div>
+      </div>
+      <div class="lichess-puzzle-summary-indicator">
+        <div id="lichess-puzzle-summary-avg-duration" class="lichess-puzzle-summary-indicator-value"></div>
+        <div class="lichess-puzzle-summary-indicator-label" data-i18n="lichess.puzzle.bilan_duree_moyenne_label">Durée moyenne</div>
+      </div>
+      <div class="lichess-puzzle-summary-indicator">
+        <div id="lichess-puzzle-summary-rating-diff" class="lichess-puzzle-summary-indicator-value"></div>
+        <div class="lichess-puzzle-summary-indicator-label" data-i18n="lichess.puzzle.bilan_variation_label">Variation de cote</div>
+      </div>
+    </div>
     <!-- Bande des résultats (issue #390, point 5) — même panneau, mêmes
          pastilles et même rendu que #lichess-puzzle-series-strip ci-dessus
          (_lichessPuzzleRenderSeriesStrip, app.js) : la séance vient de se
          terminer, le tableau construit pendant le jeu est réutilisé tel
          quel, jamais redemandé au serveur. -->
     <div id="lichess-puzzle-summary-strip" class="lichess-puzzle-series-strip"></div>
-    <div id="lichess-puzzle-summary-failed-title" data-i18n="lichess.puzzle.bilan_rates_titre" style="display:none;">Problèmes ratés :</div>
-    <ul id="lichess-puzzle-summary-failed-list"></ul>
+    <div id="lichess-puzzle-summary-failed-title" class="lichess-puzzle-summary-failed-title" data-i18n="lichess.puzzle.bilan_rates_titre" style="display:none;">Problèmes ratés :</div>
+    <ul id="lichess-puzzle-summary-failed-list" class="lichess-puzzle-summary-failed-list"></ul>
     <button class="btn btn-continuer" data-action="back_config_lichess" data-i18n="lichess.puzzle.retour_reglages" style="margin-top:16px;">← Retour aux réglages</button>
   </div>
 </div>

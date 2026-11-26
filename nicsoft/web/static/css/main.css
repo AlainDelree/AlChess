@@ -1830,6 +1830,31 @@
 .lichess-ongoing-game-note { font-size:0.85rem; color:#5a4a1a; font-style:italic; }
 .outils-wiki-result { display:none; margin-top:12px; }
 
+/* Écran de bilan de séance (issue #390, point 6) — même esprit visuel que
+   .game-gameover-card (titre/sections bien séparées, sobre) : un seul
+   .card, mais structuré en sous-blocs plutôt qu'en texte brut. */
+.lichess-puzzle-summary-card { text-align:left; max-width:480px; margin:0 auto; }
+.lichess-puzzle-summary-serie { font-size:0.9rem; color:#3a5a7a; margin:0 0 12px; font-weight:600; }
+.lichess-puzzle-summary-indicators {
+  display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;
+  margin:0 0 14px;
+}
+.lichess-puzzle-summary-indicator {
+  background:#d8e4f0; border:1px solid #a0b8d0; border-radius:8px;
+  padding:8px 10px; text-align:center;
+}
+.lichess-puzzle-summary-indicator-value { font-size:1.15rem; font-weight:700; color:#1a2a3a; }
+.lichess-puzzle-summary-indicator-value.is-positive { color:#2e7d32; }
+.lichess-puzzle-summary-indicator-value.is-negative { color:#c0392b; }
+.lichess-puzzle-summary-indicator-label { font-size:0.75rem; color:#3a5a7a; text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+.lichess-puzzle-summary-failed-title { margin:14px 0 6px; font-size:0.85rem; font-weight:700; color:#3a5a7a; }
+.lichess-puzzle-summary-failed-list { list-style:none; margin:0 0 6px; padding:0; }
+.lichess-puzzle-summary-failed-list li {
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:6px 8px; border-bottom:1px solid #a0b8d0; font-size:0.85rem;
+}
+.lichess-puzzle-summary-failed-list li:last-child { border-bottom:none; }
+
 /* Bande des résultats de la série (issue #390, point 5) — pastilles qui
    passent à la ligne sans jamais déborder (flex-wrap), couleur jamais seule
    porteuse de l'information (signe/nombre dans le texte + titre/aria-label

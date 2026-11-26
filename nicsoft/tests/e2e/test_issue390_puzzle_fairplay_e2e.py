@@ -12,7 +12,10 @@ enregistrées par `socket.on(...)` dans app.js.
 Point 4 : seul le thème/la phase CHOISI pour la série est affiché pendant
 la résolution — jamais les thèmes propres du problème reçu (un thème
 contenant un mot repérable ne doit apparaître nulle part dans la page
-avant la fin)."""
+avant la fin).
+
+Point 6 : structure du bilan de séance (indicateurs séparés, liste des
+problèmes ratés avec identifiant/cote/lien distinct)."""
 import pytest
 
 pytestmark = pytest.mark.slow
@@ -172,5 +175,63 @@ def test_bande_reutilisee_dans_le_bilan(at_menu):
     summary_pills = _pills(page, "#lichess-puzzle-summary-strip .lichess-puzzle-pill")
     assert summary_pills.count() == 1
     assert "lichess-puzzle-pill-solved" in summary_pills.first.get_attribute("class")
+    page.evaluate("() => { sendAction({type: 'back_menu'}); }")
+    page.wait_for_selector("#screen-menu", state="visible", timeout=5000)
+
+
+# ── Point 6 : structure du bilan de séance ──────────────────────────────
+
+def _afficher_bilan(page, **overrides):
+    payload = {
+        "state": "lichess_puzzle_session_summary",
+        "completed": 5, "solved": 3, "failed": 2, "avg_duration_s": 17.4,
+        "rating_diff_total": -6, "failed_puzzles": [
+            {"puzzle_id": "pzlA", "rating": 1720},
+            {"puzzle_id": "pzlB", "rating": None},
+        ],
+        "series_angle": "fork",
+    }
+    payload.update(overrides)
+    _declencher_evenement_socket_client(page, "app_state", payload)
+    page.wait_for_selector("#screen-lichess-puzzle-summary", state="visible", timeout=5000)
+    return page
+
+
+def test_bilan_affiche_les_indicateurs_separes(at_menu):
+    page = _afficher_bilan(at_menu)
+    assert page.locator("#lichess-puzzle-summary-solved").text_content() == "3"
+    assert page.locator("#lichess-puzzle-summary-failed-count").text_content() == "2"
+    assert page.locator("#lichess-puzzle-summary-avg-duration").text_content() == "17 s"
+    diff_el = page.locator("#lichess-puzzle-summary-rating-diff")
+    assert diff_el.text_content() == "-6"
+    assert "is-negative" in diff_el.get_attribute("class")
+    assert "Fork" in page.locator("#lichess-puzzle-summary-serie").text_content()
+    page.evaluate("() => { sendAction({type: 'back_menu'}); }")
+    page.wait_for_selector("#screen-menu", state="visible", timeout=5000)
+
+
+def test_bilan_variation_positive_colore_en_vert(at_menu):
+    page = _afficher_bilan(at_menu, rating_diff_total=9)
+    diff_el = page.locator("#lichess-puzzle-summary-rating-diff")
+    assert diff_el.text_content() == "+9"
+    assert "is-positive" in diff_el.get_attribute("class")
+    page.evaluate("() => { sendAction({type: 'back_menu'}); }")
+    page.wait_for_selector("#screen-menu", state="visible", timeout=5000)
+
+
+def test_bilan_liste_problemes_rates_id_cote_et_lien_distinct(at_menu):
+    page = _afficher_bilan(at_menu)
+    items = page.locator("#lichess-puzzle-summary-failed-list li")
+    assert items.count() == 2
+    first = items.nth(0)
+    assert "pzlA" in first.text_content()
+    assert "1720" in first.text_content()
+    link = first.locator("a")
+    assert link.get_attribute("href") == "https://lichess.org/training/pzlA"
+    assert link.get_attribute("target") == "_blank"
+    assert "noopener" in link.get_attribute("rel")
+    assert "Lichess" in link.text_content()
+    second = items.nth(1)
+    assert "pzlB" in second.text_content()
     page.evaluate("() => { sendAction({type: 'back_menu'}); }")
     page.wait_for_selector("#screen-menu", state="visible", timeout=5000)

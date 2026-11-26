@@ -5077,42 +5077,50 @@ function _renderLichessPuzzleSessionSummary(data) {
   // déclarée terminée, voir le commentaire de _puzzleSeriesResults
   // ci-dessus) ; jamais redemandée au serveur.
   _lichessPuzzleRenderSeriesStrip();
-  const statsEl = document.getElementById("lichess-puzzle-summary-stats");
-  if (statsEl) {
-    statsEl.textContent = "";
-    // Série demandée (issue #388, point 3) — "" (mélange) ou une clé de
-    // PUZZLE_THEME_KEYS/PUZZLE_PHASE_KEYS : essaie d'abord le thème, puis
-    // la phase (listes disjointes, voir LICHESS_PUZZLE_THEME_KEYS/
-    // LICHESS_PUZZLE_PHASE_KEYS ci-dessus) — jamais les deux à la fois.
+
+  // Série jouée (issue #388, point 3 ; mise en forme issue #390, point 6) —
+  // "" (mélange) ou une clé de PUZZLE_THEME_KEYS/PUZZLE_PHASE_KEYS, comme
+  // avant cette issue (contenu/comportement inchangés, seule la présentation
+  // change — plus de texte brut en liste à puces).
+  const serieEl = document.getElementById("lichess-puzzle-summary-serie");
+  if (serieEl) {
     const angle = data.series_angle || "";
-    let serieLigne;
     if (!angle) {
-      serieLigne = t("lichess.puzzle.bilan_serie_melange");
+      serieEl.textContent = t("lichess.puzzle.bilan_serie_melange");
     } else {
       const key = LICHESS_PUZZLE_PHASE_KEYS.includes(angle) ? `lichess.puzzle_phase.${angle}` : `lichess.puzzle_theme.${angle}`;
-      serieLigne = t("lichess.puzzle.bilan_serie", { label: t(key) });
+      serieEl.textContent = t("lichess.puzzle.bilan_serie", { label: t(key) });
     }
-    const lignes = [
-      serieLigne,
-      t("lichess.puzzle.bilan_reussis", { count: data.solved || 0 }),
-      t("lichess.puzzle.bilan_rates", { count: data.failed || 0 }),
-    ];
-    if (typeof data.avg_duration_s === "number") {
-      lignes.push(t("lichess.puzzle.bilan_duree_moyenne", { duration: `${Math.round(data.avg_duration_s)} s` }));
-    }
-    if (typeof data.rating_diff_total === "number") {
-      const signed = data.rating_diff_total > 0 ? `+${data.rating_diff_total}` : `${data.rating_diff_total}`;
-      lignes.push(t("lichess.puzzle.bilan_variation_totale", { diff: signed }));
-    } else {
-      lignes.push(t("lichess.puzzle.bilan_variation_inconnue"));
-    }
-    lignes.forEach((ligne) => {
-      const p = document.createElement("p");
-      p.textContent = ligne;
-      statsEl.appendChild(p);
-    });
   }
 
+  // Indicateurs bien séparés (issue #390, point 6) — mêmes valeurs
+  // qu'auparavant (solved/failed/avg_duration_s/rating_diff_total), chacun
+  // dans son propre encadré plutôt qu'une ligne de texte parmi d'autres.
+  const solvedEl = document.getElementById("lichess-puzzle-summary-solved");
+  if (solvedEl) solvedEl.textContent = String(data.solved || 0);
+  const failedCountEl = document.getElementById("lichess-puzzle-summary-failed-count");
+  if (failedCountEl) failedCountEl.textContent = String(data.failed || 0);
+  const avgDurationEl = document.getElementById("lichess-puzzle-summary-avg-duration");
+  if (avgDurationEl) {
+    avgDurationEl.textContent = (typeof data.avg_duration_s === "number")
+      ? `${Math.round(data.avg_duration_s)} s` : "—";
+  }
+  const ratingDiffEl = document.getElementById("lichess-puzzle-summary-rating-diff");
+  if (ratingDiffEl) {
+    ratingDiffEl.classList.remove("is-positive", "is-negative");
+    if (typeof data.rating_diff_total === "number") {
+      const diff = data.rating_diff_total;
+      ratingDiffEl.textContent = diff > 0 ? `+${diff}` : `${diff}`;
+      ratingDiffEl.classList.add(diff >= 0 ? "is-positive" : "is-negative");
+    } else {
+      ratingDiffEl.textContent = t("lichess.puzzle.bilan_variation_inconnue_abregee");
+    }
+  }
+
+  // Liste des problèmes ratés (issue #390, point 6) — identifiant, cote,
+  // lien "Voir sur Lichess" distinct (auparavant toute la ligne était le
+  // lien) ; même adresse/mêmes attributs de sécurité qu'avant (nouvel
+  // onglet, noopener/noreferrer).
   const failedTitle = document.getElementById("lichess-puzzle-summary-failed-title");
   const failedList  = document.getElementById("lichess-puzzle-summary-failed-list");
   if (failedList) {
@@ -5121,12 +5129,17 @@ function _renderLichessPuzzleSessionSummary(data) {
     if (failedTitle) failedTitle.style.display = failedPuzzles.length ? "" : "none";
     failedPuzzles.forEach((p) => {
       const li = document.createElement("li");
-      const a = document.createElement("a");
+      const span = document.createElement("span");
       const puzzleId = String(p.puzzle_id || "");
+      span.textContent = (typeof p.rating === "number")
+        ? t("lichess.puzzle.bilan_rate_id_cote", { id: puzzleId, rating: p.rating })
+        : puzzleId;
+      const a = document.createElement("a");
       a.href = `https://lichess.org/training/${encodeURIComponent(puzzleId)}`;
       a.target = "_blank";
       a.rel = "noopener noreferrer";
-      a.textContent = (typeof p.rating === "number") ? `${puzzleId} (${p.rating})` : puzzleId;
+      a.textContent = t("lichess.puzzle.bilan_voir_lichess");
+      li.appendChild(span);
       li.appendChild(a);
       failedList.appendChild(li);
     });
